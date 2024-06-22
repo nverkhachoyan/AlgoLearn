@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"algolearn-backend/pkg/colors"
 	"log"
 	"net/http"
 )

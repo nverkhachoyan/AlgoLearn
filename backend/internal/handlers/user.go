@@ -4,7 +4,9 @@ import (
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
 	"algolearn-backend/internal/services"
+	"algolearn-backend/pkg/middleware"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"time"
@@ -88,9 +90,24 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := services.GenerateJWT(user.ID)
+	if err != nil {
+		http.Error(w, "Could not generate token", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Login successful",
-		"id":      user.ID,
+		"token": token,
 	})
+}
+
+func SomeProtectedHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	w.Write([]byte(fmt.Sprintf("Hello, user %d", userID)))
 }

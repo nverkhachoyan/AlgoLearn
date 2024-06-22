@@ -3,49 +3,69 @@ package handlers
 import (
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/services"
 	"encoding/json"
 	"net/http"
-	"strconv"
+	"time"
 )
 
-func GetUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := repository.GetAllUsers()
+func RegisterUser(w http.ResponseWriter, r *http.Request) {
+	var req models.RegistrationRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Failed to get users", http.StatusInternalServerError)
+		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
-}
 
-func GetUser(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Path[len("/users/"):]
-	id, err := strconv.Atoi(idStr)
+	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		http.Error(w, "Could not hash password", http.StatusInternalServerError)
 		return
 	}
-	user, err := repository.GetUserById(id)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
-}
 
-func CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
+	user := models.User{
+		Username:     req.Username,
+		Email:        req.Email,
+		PasswordHash: hashedPassword,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
-	createdUser, err := repository.CreateUser(user)
+
+	err = repository.CreateUser(user)
 	if err != nil {
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		http.Error(w, "Could not create user", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdUser)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message:": "User created successfully",
+		"id":       user.ID,
+	})
+}
+
+func LoginUser(w http.ResponseWriter, r *http.Request) {
+	var req models.LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	user, err := repository.GetUserByEmail(req.Email)
+	if err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	if !services.CheckPasswordHash(req.Password, user.PasswordHash) {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Login successful",
+		"id":      user.ID,
+	})
 }

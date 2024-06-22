@@ -64,11 +64,14 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	response := map[string]interface{}{
 		"message:": "User created successfully",
 		"id":       user.ID,
-	})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request) {
@@ -96,10 +99,14 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := map[string]interface{}{
+		"message": "Logged in successfully",
+		"token":   token,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": token,
-	})
+	json.NewEncoder(w).Encode(response)
 }
 
 func SomeProtectedHandler(w http.ResponseWriter, r *http.Request) {

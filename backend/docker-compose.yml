@@ -4,10 +4,8 @@ services:
   db:
     image: postgres:latest
     container_name: algolearn_postgres
-    environment:
-        POSTGRES_USER: algoadmin 
-        POSTGRES_PASSWORD: algolearn4stml 
-        POSTGRES_DB: algolearn 
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:

@@ -18,35 +18,41 @@ func ValidateEmail(email string) bool {
 	return re.MatchString(email)
 }
 
+func respondWithJSON(w http.ResponseWriter, status int, response models.Response) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(response)
+}
+
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req models.RegistrationRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		respondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
 		return
 	}
 
 	// Validate username length
 	if len(req.Username) < 5 || len(req.Username) > 20 {
-		http.Error(w, "Username must be between 5 and 20 characters long", http.StatusBadRequest)
+		respondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Username must be between 5 and 20 characters long"})
 		return
 	}
 
 	// Validate password length
 	if len(req.Password) < 8 {
-		http.Error(w, "Password must be at least 8 characters long", http.StatusBadRequest)
+		respondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Password must be at least 8 characters long"})
 		return
 	}
 
 	// Validate email format
 	if !ValidateEmail(req.Email) {
-		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		respondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid email format"})
 		return
 	}
 
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
-		http.Error(w, "Could not hash password", http.StatusInternalServerError)
+		respondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not hash password"})
 		return
 	}
 
@@ -60,61 +66,65 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	err = repository.CreateUser(user)
 	if err != nil {
-		http.Error(w, "Could not create user. Is there another account with this email address?", http.StatusInternalServerError)
+		respondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not create user. Is there another account with this email address?"})
 		return
 	}
 
-	response := map[string]interface{}{
-		"message:": "User created successfully",
-		"id":       user.ID,
+	response := models.Response{
+		Status:  "success",
+		Message: "User created successfully",
+		Data:    map[string]interface{}{"id": user.ID},
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	respondWithJSON(w, http.StatusCreated, response)
 }
 
 func LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
+
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		respondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
 		return
 	}
 
 	user, err := repository.GetUserByEmail(req.Email)
 	if err != nil {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		respondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Invalid email or password"})
 		return
 	}
 
 	if !services.CheckPasswordHash(req.Password, user.PasswordHash) {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		respondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Invalid email or password"})
 		return
 	}
 
 	token, err := services.GenerateJWT(user.ID)
 	if err != nil {
-		http.Error(w, "Could not generate token", http.StatusInternalServerError)
+		respondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not generate token"})
 		return
 	}
 
-	response := map[string]interface{}{
-		"message": "Logged in successfully",
-		"token":   token,
+	response := models.Response{
+		Status:  "success",
+		Message: "Logged in successfully",
+		Data:    map[string]interface{}{"token": token},
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	respondWithJSON(w, http.StatusOK, response)
 }
 
 func SomeProtectedHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		respondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
 		return
 	}
 
-	w.Write([]byte(fmt.Sprintf("Hello, user %d", userID)))
+	response := models.Response{
+		Status:  "success",
+		Message: fmt.Sprintf("Hello, user %d", userID),
+	}
+
+	respondWithJSON(w, http.StatusOK, response)
 }

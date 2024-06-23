@@ -14,8 +14,8 @@ func SetupRouter() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// User endpoint
-	mux.HandleFunc("GET /user", handlers.LoginUser)
-	mux.HandleFunc("POST /user", handlers.RegisterUser)
+	mux.HandleFunc("POST /user/login", handlers.LoginUser)
+	mux.HandleFunc("POST /user/register", handlers.RegisterUser)
 	mux.HandleFunc("/user", methodNotAllowed)
 
 	// Protected routes require the setup below

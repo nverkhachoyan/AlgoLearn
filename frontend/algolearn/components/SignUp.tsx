@@ -32,6 +32,7 @@ export default function SignUp({ switchView, handleSignUp }: any) {
         placeholderTextColor={'#7F8986'}
         value={username}
         onChangeText={setUsername}
+        autoCapitalize='none'
       />
       <TextInput
         style={styles.input}
@@ -39,6 +40,7 @@ export default function SignUp({ switchView, handleSignUp }: any) {
         placeholderTextColor={'#7F8986'}
         value={email}
         onChangeText={setEmail}
+        autoCapitalize='none'
       />
       <TextInput
         style={styles.input}

@@ -32,6 +32,7 @@ export default function SignIn({ switchView, handleSignIn }: any) {
         placeholderTextColor={'#7F8986'}
         value={email}
         onChangeText={setEmail}
+        autoCapitalize='none'
       />
       <TextInput
         style={styles.input}
@@ -39,6 +40,7 @@ export default function SignIn({ switchView, handleSignIn }: any) {
         placeholderTextColor={'#7F8986'}
         value={password}
         onChangeText={setPassword}
+        autoCapitalize='none'
         secureTextEntry
       />
       <TouchableOpacity

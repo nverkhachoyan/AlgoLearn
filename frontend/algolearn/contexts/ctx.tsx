@@ -5,7 +5,11 @@ import { apiFetch } from '../utils/api';
 
 const AuthContext = React.createContext<{
   signIn: (email: string, password: string) => Promise<string | null>;
-  signUp: (username: string, email: string, password: string) => Promise<string | null>;
+  signUp: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<string | null>;
   signOut: () => Promise<boolean>;
   session?: string | null;
   isLoading: boolean;
@@ -40,7 +44,10 @@ export function SessionProvider(props: React.PropsWithChildren) {
     checkToken();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<string | null> => {
+  const signIn = async (
+    email: string,
+    password: string
+  ): Promise<string | null> => {
     try {
       if (email.length < 3) {
         return 'Username must be at least 3 characters';
@@ -54,7 +61,7 @@ export function SessionProvider(props: React.PropsWithChildren) {
         body: JSON.stringify({ email, password }),
       });
 
-      if (res.data.status === "error") {
+      if (res.data.status === 'error') {
         return res.data.message;
       }
 
@@ -69,7 +76,11 @@ export function SessionProvider(props: React.PropsWithChildren) {
     }
   };
 
-  const signUp = async (username: string, email: string, password: string): Promise<string | null> => {
+  const signUp = async (
+    username: string,
+    email: string,
+    password: string
+  ): Promise<string | null> => {
     try {
       if (username.length < 3) {
         return 'Username must be at least 3 characters';
@@ -83,13 +94,20 @@ export function SessionProvider(props: React.PropsWithChildren) {
         body: JSON.stringify({ username, email, password }),
       });
 
-      if (res.status === "error") {
+      if (res.status === 'error') {
         return res.data.message;
       }
 
-      await AsyncStorage.setItem('token', res.data.token);
-      setSession(res.data.token);
-      return null;
+      const token = res.data.token;
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+        setSession(token);
+        return null;
+      } else {
+        console.log('Token is undefined');
+        setSession(null);
+        return 'Registration successful, but no token received';
+      }
     } catch (error: any) {
       console.log(error);
       setSession(null);
@@ -111,7 +129,8 @@ export function SessionProvider(props: React.PropsWithChildren) {
         signOut,
         session,
         isLoading,
-      }}>
+      }}
+    >
       {props.children}
     </AuthContext.Provider>
   );

@@ -12,24 +12,29 @@ import { useSession } from '@/contexts/ctx';
 import { router } from 'expo-router';
 
 export default function ProfileScreen() {
-    const { signOut } = useSession();
-    const handleSignOut = async () => {
-      const ok = await signOut(); 
-      if (ok) {
-        router.replace('/SignIn');
-      }
-    };
+  const { signOut } = useSession();
+  const handleSignOut = async () => {
+    const ok = await signOut();
+    if (ok) {
+      router.replace('/Onboarding');
+    }
+  };
 
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
+      headerImage={
+        <Ionicons size={310} name='code-slash' style={styles.headerImage} />
+      }
+    >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Nver Khachoyan</ThemedText>
+        <ThemedText type='title'>Nver Khachoyan</ThemedText>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
+      <ThemedText>
+        This app includes example code to help you get started.
+      </ThemedText>
 
-    <Button title="Sign Out" onPress={() => handleSignOut()} />
+      <Button title='Sign Out' onPress={() => handleSignOut()} />
     </ParallaxScrollView>
   );
 }

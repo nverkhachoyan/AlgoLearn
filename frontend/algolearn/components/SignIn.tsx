@@ -10,27 +10,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-export default function SignIn({ switchView }: any) {
+export default function SignIn({ switchView, handleSignIn }: any) {
   const colorScheme = useColorScheme();
   const { signIn } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  const handleSignIn = async (email: string, password: string) => {
-    const err = await signIn(email, password);
-    if (err) {
-      alert(err);
-      return;
-    }
-    router.replace('/(tabs)');
-  };
 
   return (
     <>
       <Text
         style={[
           styles.title,
-          { color: colorScheme === 'dark' ? '#000' : '#FFF' },
+          { color: colorScheme === 'dark' ? '#FFF' : '#333' },
         ]}
       >
         Log in

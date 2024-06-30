@@ -1,9 +1,6 @@
 import { router, Redirect } from 'expo-router';
 import {
-  Text,
   View,
-  TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
   Image,
@@ -13,31 +10,24 @@ import {
 } from 'react-native';
 import { useSession } from '@/contexts/ctx';
 import { useEffect, useState } from 'react';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedInputText } from '@/components/ThemedInputText';
-import { useColorScheme } from '@/hooks/useColorScheme';
 // @ts-ignore
 import Logo from '@/assets/images/logo.png';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, {
   useSharedValue,
-  withTiming,
   useAnimatedStyle,
-  Easing,
   withSpring,
   useAnimatedProps,
+  runOnJS,
 } from 'react-native-reanimated';
 import SignIn from '@/components/SignIn';
 import SignUp from '@/components/SignUp';
+import { useColorScheme } from 'react-native';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function Onboarding() {
-  const { isLoading } = useSession();
-  const { signIn } = useSession();
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { isLoading, signIn, signUp } = useSession();
   const [hasAccount, setHasAccount] = useState(true);
   const circleSize = useSharedValue<number>(70);
   const circleAnimatedProps = useAnimatedProps(() => ({
@@ -50,9 +40,59 @@ export default function Onboarding() {
       restSpeedThreshold: 0.01,
     }),
   }));
+  const viewOpacity = useSharedValue(1);
+  const colorScheme = useColorScheme();
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: viewOpacity.value,
+  }));
 
+  // Switch between sign in and sign up
   const switchView = () => {
-    setHasAccount(!hasAccount);
+    viewOpacity.value = withSpring(
+      0,
+      {
+        mass: 1,
+        damping: 6,
+        stiffness: 60,
+        overshootClamping: false,
+        restDisplacementThreshold: 0.01,
+        restSpeedThreshold: 122,
+      },
+      () => {
+        runOnJS(setHasAccount)(!hasAccount);
+        viewOpacity.value = withSpring(1, {
+          mass: 1,
+          damping: 6,
+          stiffness: 60,
+          overshootClamping: false,
+          restDisplacementThreshold: 0.01,
+          restSpeedThreshold: 122,
+        });
+      }
+    );
+  };
+
+  // Handle sign in and sign up
+  const handleSignIn = async (email: string, password: string) => {
+    const err = await signIn(email, password);
+    if (err) {
+      alert(err);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
+  const handleSignUp = async (
+    username: string,
+    email: string,
+    password: string
+  ) => {
+    const err = await signUp(username, email, password);
+    if (err) {
+      alert(err);
+    } else {
+      handleSignIn(email, password);
+    }
   };
 
   // Animate the circle size when the component mounts
@@ -60,6 +100,7 @@ export default function Onboarding() {
     circleSize.value += 20;
   }, []);
 
+  // Loading screen
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -71,7 +112,10 @@ export default function Onboarding() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[
+        styles.container,
+        { backgroundColor: colorScheme === 'dark' ? '#000' : '#FEFEFE' },
+      ]}
     >
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
         <View style={styles.innerContainer}>
@@ -86,11 +130,19 @@ export default function Onboarding() {
             </Svg>
             <Image source={Logo} style={styles.logo} />
           </View>
-          {hasAccount ? (
-            <SignIn switchView={switchView} />
-          ) : (
-            <SignUp switchView={switchView} />
-          )}
+          <Animated.View style={[styles.formContainer, animatedStyle]}>
+            {hasAccount ? (
+              <SignIn
+                handleSignIn={handleSignIn}
+                switchView={() => switchView()}
+              />
+            ) : (
+              <SignUp
+                handleSignUp={handleSignUp}
+                switchView={() => switchView()}
+              />
+            )}
+          </Animated.View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -125,6 +177,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 15,
   },
+  formContainer: {
+    width: '100%',
+  },
   logo: {
     position: 'absolute',
     width: 200,
@@ -136,47 +191,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 200,
     height: 200,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  input: {
-    marginBottom: 15,
-    fontSize: 18,
-    padding: 10,
-    borderRadius: 5,
-    borderColor: '#E0E0E0',
-    borderWidth: 1,
-    backgroundColor: '#FAFAFA',
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#25A879',
-    paddingVertical: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  secondaryButton: {
-    backgroundColor: '#E0E0E0',
-    paddingVertical: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  secondaryButtonText: {
-    color: '#25A879',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,

@@ -2,9 +2,10 @@
 package services
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"os"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))

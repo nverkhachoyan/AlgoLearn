@@ -5,10 +5,12 @@ import (
 	"algolearn-backend/internal/router"
 	"algolearn-backend/pkg/colors"
 	"algolearn-backend/pkg/middleware"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -34,8 +36,11 @@ func main() {
 	// Router setup
 	r := router.SetupRouter()
 
+	// Wrapping router with timeout middleware
+	timeoutMiddleware := middleware.TimeoutMiddleware(time.Second * 10)
+	
 	// Wrapping router with logging middleware
-	loggedRouter := middleware.Logger(r)
+	loggedRouter := middleware.Logger(timeoutMiddleware(r))
 
 	// Start server and log
 	log.Println(colors.Purple + "Server is running on port 8080" + colors.Reset)

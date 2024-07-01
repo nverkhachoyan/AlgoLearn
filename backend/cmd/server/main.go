@@ -38,7 +38,7 @@ func main() {
 
 	// Wrapping router with timeout middleware
 	timeoutMiddleware := middleware.TimeoutMiddleware(time.Second * 10)
-	
+
 	// Wrapping router with logging middleware
 	loggedRouter := middleware.Logger(timeoutMiddleware(r))
 

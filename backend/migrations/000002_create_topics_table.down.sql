@@ -1,2 +1,9 @@
-DROP TABLE topics;
+DROP TABLE notifications;
+DROP TABLE user_achievements;
+DROP TABLE achievements;
+DROP TABLE user_answers;
+DROP TABLE answers;
+DROP TABLE practice_sessions;
+DROP TABLE questions;
 DROP TABLE subtopics;
+DROP TABLE topics;

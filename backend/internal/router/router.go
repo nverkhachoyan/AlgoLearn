@@ -2,32 +2,83 @@ package router
 
 import (
 	"algolearn-backend/internal/handlers"
-	"algolearn-backend/internal/models"
 	"algolearn-backend/pkg/middleware"
-	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	handlers.RespondWithJSON(w, http.StatusMethodNotAllowed, models.Response{Status: "error", Error: "Method not allowed"})
-}
+func SetupRouter() *mux.Router {
+	r := mux.NewRouter()
 
-func SetupRouter() *http.ServeMux {
-	mux := http.NewServeMux()
+	// User endpoints
+	r.HandleFunc("/user/login", handlers.LoginUser).Methods("POST")
+	r.HandleFunc("/user/register", handlers.RegisterUser).Methods("POST")
 
-	// User endpoint
-	mux.HandleFunc("POST /user/login", handlers.LoginUser)
-	mux.HandleFunc("POST /user/register", handlers.RegisterUser)
-	mux.HandleFunc("/user", methodNotAllowed)
+	// Protected routes
+	protected := r.PathPrefix("/").Subrouter()
+	protected.Use(middleware.Auth)
 
-	// Topics endpoint
-	mux.HandleFunc("GET /topics", handlers.GetAllTopics)
-	mux.HandleFunc("/topics", methodNotAllowed)
+	// Topics endpoints
+	protected.HandleFunc("/topics", handlers.GetAllTopics).Methods("GET")
+	protected.HandleFunc("/topics/{id}", handlers.GetTopicByID).Methods("GET")
+	protected.HandleFunc("/topics", handlers.CreateTopic).Methods("POST")
+	protected.HandleFunc("/topics/{id}", handlers.UpdateTopic).Methods("PUT")
+	protected.HandleFunc("/topics/{id}", handlers.DeleteTopic).Methods("DELETE")
 
-	// Protected routes require the setup below
-	protectedMux := http.NewServeMux()
-	protectedMux.HandleFunc("GET /protected", handlers.SomeProtectedHandler)
-	// Wrap the protected routes with Auth middleware
-	mux.Handle("/protected", middleware.Auth(protectedMux))
+	// Subtopics endpoints
+	protected.HandleFunc("/subtopics", handlers.GetAllSubtopics).Methods("GET")
+	protected.HandleFunc("/subtopics/{id}", handlers.GetSubtopicByID).Methods("GET")
+	protected.HandleFunc("/subtopics", handlers.CreateSubtopic).Methods("POST")
+	protected.HandleFunc("/subtopics/{id}", handlers.UpdateSubtopic).Methods("PUT")
+	protected.HandleFunc("/subtopics/{id}", handlers.DeleteSubtopic).Methods("DELETE")
 
-	return mux
+	// Practice sessions endpoints
+	protected.HandleFunc("/practice_sessions", handlers.GetAllPracticeSessions).Methods("GET")
+	protected.HandleFunc("/practice_sessions/{id}", handlers.GetPracticeSessionByID).Methods("GET")
+	protected.HandleFunc("/practice_sessions", handlers.CreatePracticeSession).Methods("POST")
+	protected.HandleFunc("/practice_sessions/{id}", handlers.UpdatePracticeSession).Methods("PUT")
+	protected.HandleFunc("/practice_sessions/{id}", handlers.DeletePracticeSession).Methods("DELETE")
+
+	// Questions endpoints
+	protected.HandleFunc("/questions", handlers.GetAllQuestions).Methods("GET")
+	protected.HandleFunc("/questions/{id}", handlers.GetQuestionByID).Methods("GET")
+	protected.HandleFunc("/questions", handlers.CreateQuestion).Methods("POST")
+	protected.HandleFunc("/questions/{id}", handlers.UpdateQuestion).Methods("PUT")
+	protected.HandleFunc("/questions/{id}", handlers.DeleteQuestion).Methods("DELETE")
+
+	// Answers endpoints
+	protected.HandleFunc("/answers", handlers.GetAllAnswers).Methods("GET")
+	protected.HandleFunc("/answers/{id}", handlers.GetAnswerByID).Methods("GET")
+	protected.HandleFunc("/answers", handlers.CreateAnswer).Methods("POST")
+	protected.HandleFunc("/answers/{id}", handlers.UpdateAnswer).Methods("PUT")
+	protected.HandleFunc("/answers/{id}", handlers.DeleteAnswer).Methods("DELETE")
+
+	// User answers endpoints
+	protected.HandleFunc("/user_answers", handlers.GetAllUserAnswers).Methods("GET")
+	protected.HandleFunc("/user_answers/{id}", handlers.GetUserAnswerByID).Methods("GET")
+	protected.HandleFunc("/user_answers", handlers.CreateUserAnswer).Methods("POST")
+	protected.HandleFunc("/user_answers/{id}", handlers.UpdateUserAnswer).Methods("PUT")
+	protected.HandleFunc("/user_answers/{id}", handlers.DeleteUserAnswer).Methods("DELETE")
+
+	// Achievements endpoints
+	protected.HandleFunc("/achievements", handlers.GetAllAchievements).Methods("GET")
+	protected.HandleFunc("/achievements/{id}", handlers.GetAchievementByID).Methods("GET")
+	protected.HandleFunc("/achievements", handlers.CreateAchievement).Methods("POST")
+	protected.HandleFunc("/achievements/{id}", handlers.UpdateAchievement).Methods("PUT")
+	protected.HandleFunc("/achievements/{id}", handlers.DeleteAchievement).Methods("DELETE")
+
+	// User achievements endpoints
+	protected.HandleFunc("/user_achievements", handlers.GetAllUserAchievements).Methods("GET")
+	protected.HandleFunc("/user_achievements/{id}", handlers.GetUserAchievementByID).Methods("GET")
+	protected.HandleFunc("/user_achievements", handlers.CreateUserAchievement).Methods("POST")
+	protected.HandleFunc("/user_achievements/{id}", handlers.DeleteUserAchievement).Methods("DELETE")
+
+	// Notifications endpoints
+	protected.HandleFunc("/notifications", handlers.GetAllNotifications).Methods("GET")
+	protected.HandleFunc("/notifications/{id}", handlers.GetNotificationByID).Methods("GET")
+	protected.HandleFunc("/notifications", handlers.CreateNotification).Methods("POST")
+	protected.HandleFunc("/notifications/{id}", handlers.UpdateNotification).Methods("PUT")
+	protected.HandleFunc("/notifications/{id}", handlers.DeleteNotification).Methods("DELETE")
+
+	return r
 }

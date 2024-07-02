@@ -10,6 +10,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// There are two types of routes: Authorized and Admin
+// Authorized routes are protected by JWT authentication
+// Admin routes are only accessible by admin users with the "admin" role
+
 func SetupRouter() *mux.Router {
 	r := mux.NewRouter()
 
@@ -24,76 +28,85 @@ func SetupRouter() *mux.Router {
 	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
 
-	// Protected routes
-	protected := r.PathPrefix("/").Subrouter()
-	protected.Use(middleware.Auth)
+	// Authorized routes
+	authorized := r.PathPrefix("/").Subrouter()
+	authorized.Use(middleware.Auth)
 
+	// Admin endpoints
+	admin := r.PathPrefix("/admin").Subrouter()
+	admin.Use(middleware.IsAdmin)
+
+	// Admin dashboard endpoint
+	admin.HandleFunc("", handlers.AdminDashboard).Methods("GET")
+	
 	// User endpoints
-	protected.HandleFunc("/user", handlers.GetUser).Methods("GET")
-	protected.HandleFunc("/user", handlers.UpdateUser).Methods("PUT")
-	protected.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
+	authorized.HandleFunc("/user", handlers.GetUser).Methods("GET")
+	authorized.HandleFunc("/user", handlers.UpdateUser).Methods("PUT")
+	authorized.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
 	// Topics endpoints
-	protected.HandleFunc("/topics", handlers.GetAllTopics).Methods("GET")
-	protected.HandleFunc("/topics/{id}", handlers.GetTopicByID).Methods("GET")
-	protected.HandleFunc("/topics", handlers.CreateTopic).Methods("POST")
-	protected.HandleFunc("/topics/{id}", handlers.UpdateTopic).Methods("PUT")
-	protected.HandleFunc("/topics/{id}", handlers.DeleteTopic).Methods("DELETE")
+	authorized.HandleFunc("/topics", handlers.GetAllTopics).Methods("GET")
+	authorized.HandleFunc("/topics/{id}", handlers.GetTopicByID).Methods("GET")
+	admin.HandleFunc("/topics", handlers.CreateTopic).Methods("POST")
+	admin.HandleFunc("/topics/{id}", handlers.UpdateTopic).Methods("PUT")
+	admin.HandleFunc("/topics/{id}", handlers.DeleteTopic).Methods("DELETE")
 
 	// Subtopics endpoints
-	protected.HandleFunc("/subtopics", handlers.GetAllSubtopics).Methods("GET")
-	protected.HandleFunc("/subtopics/{id}", handlers.GetSubtopicByID).Methods("GET")
-	protected.HandleFunc("/subtopics", handlers.CreateSubtopic).Methods("POST")
-	protected.HandleFunc("/subtopics/{id}", handlers.UpdateSubtopic).Methods("PUT")
-	protected.HandleFunc("/subtopics/{id}", handlers.DeleteSubtopic).Methods("DELETE")
+	authorized.HandleFunc("/subtopics", handlers.GetAllSubtopics).Methods("GET")
+	authorized.HandleFunc("/subtopics/{id}", handlers.GetSubtopicByID).Methods("GET")
+	admin.HandleFunc("/subtopics", handlers.CreateSubtopic).Methods("POST")
+	admin.HandleFunc("/subtopics/{id}", handlers.UpdateSubtopic).Methods("PUT")
+	admin.HandleFunc("/subtopics/{id}", handlers.DeleteSubtopic).Methods("DELETE")
 
 	// Practice sessions endpoints
-	protected.HandleFunc("/practice_sessions", handlers.GetAllPracticeSessions).Methods("GET")
-	protected.HandleFunc("/practice_sessions/{id}", handlers.GetPracticeSessionByID).Methods("GET")
-	protected.HandleFunc("/practice_sessions", handlers.CreatePracticeSession).Methods("POST")
-	protected.HandleFunc("/practice_sessions/{id}", handlers.UpdatePracticeSession).Methods("PUT")
-	protected.HandleFunc("/practice_sessions/{id}", handlers.DeletePracticeSession).Methods("DELETE")
+	authorized.HandleFunc("/practice_sessions", handlers.GetAllPracticeSessions).Methods("GET")
+	authorized.HandleFunc("/practice_sessions/{id}", handlers.GetPracticeSessionByID).Methods("GET")
+	authorized.HandleFunc("/practice_sessions", handlers.CreatePracticeSession).Methods("POST")
+	authorized.HandleFunc("/practice_sessions/{id}", handlers.UpdatePracticeSession).Methods("PUT")
+	authorized.HandleFunc("/practice_sessions/{id}", handlers.DeletePracticeSession).Methods("DELETE")
 
 	// Questions endpoints
-	protected.HandleFunc("/questions", handlers.GetAllQuestions).Methods("GET")
-	protected.HandleFunc("/questions/{id}", handlers.GetQuestionByID).Methods("GET")
-	protected.HandleFunc("/questions", handlers.CreateQuestion).Methods("POST")
-	protected.HandleFunc("/questions/{id}", handlers.UpdateQuestion).Methods("PUT")
-	protected.HandleFunc("/questions/{id}", handlers.DeleteQuestion).Methods("DELETE")
+	authorized.HandleFunc("/questions", handlers.GetAllQuestions).Methods("GET")
+	authorized.HandleFunc("/questions/{id}", handlers.GetQuestionByID).Methods("GET")
+	authorized.HandleFunc("/questions", handlers.CreateQuestion).Methods("POST")
+	authorized.HandleFunc("/questions/{id}", handlers.UpdateQuestion).Methods("PUT")
+	authorized.HandleFunc("/questions/{id}", handlers.DeleteQuestion).Methods("DELETE")
 
 	// Answers endpoints
-	protected.HandleFunc("/answers", handlers.GetAllAnswers).Methods("GET")
-	protected.HandleFunc("/answers/{id}", handlers.GetAnswerByID).Methods("GET")
-	protected.HandleFunc("/answers", handlers.CreateAnswer).Methods("POST")
-	protected.HandleFunc("/answers/{id}", handlers.UpdateAnswer).Methods("PUT")
-	protected.HandleFunc("/answers/{id}", handlers.DeleteAnswer).Methods("DELETE")
+	authorized.HandleFunc("/answers", handlers.GetAllAnswers).Methods("GET")
+	authorized.HandleFunc("/answers/{id}", handlers.GetAnswerByID).Methods("GET")
+	authorized.HandleFunc("/answers", handlers.CreateAnswer).Methods("POST")
+	authorized.HandleFunc("/answers/{id}", handlers.UpdateAnswer).Methods("PUT")
+	authorized.HandleFunc("/answers/{id}", handlers.DeleteAnswer).Methods("DELETE")
 
 	// User answers endpoints
-	protected.HandleFunc("/user_answers", handlers.GetAllUserAnswers).Methods("GET")
-	protected.HandleFunc("/user_answers/{id}", handlers.GetUserAnswerByID).Methods("GET")
-	protected.HandleFunc("/user_answers", handlers.CreateUserAnswer).Methods("POST")
-	protected.HandleFunc("/user_answers/{id}", handlers.UpdateUserAnswer).Methods("PUT")
-	protected.HandleFunc("/user_answers/{id}", handlers.DeleteUserAnswer).Methods("DELETE")
+	authorized.HandleFunc("/user_answers", handlers.GetAllUserAnswers).Methods("GET")
+	authorized.HandleFunc("/user_answers/{id}", handlers.GetUserAnswerByID).Methods("GET")
+	authorized.HandleFunc("/user_answers", handlers.CreateUserAnswer).Methods("POST")
+	authorized.HandleFunc("/user_answers/{id}", handlers.UpdateUserAnswer).Methods("PUT")
+	authorized.HandleFunc("/user_answers/{id}", handlers.DeleteUserAnswer).Methods("DELETE")
 
 	// Achievements endpoints
-	protected.HandleFunc("/achievements", handlers.GetAllAchievements).Methods("GET")
-	protected.HandleFunc("/achievements/{id}", handlers.GetAchievementByID).Methods("GET")
-	protected.HandleFunc("/achievements", handlers.CreateAchievement).Methods("POST")
-	protected.HandleFunc("/achievements/{id}", handlers.UpdateAchievement).Methods("PUT")
-	protected.HandleFunc("/achievements/{id}", handlers.DeleteAchievement).Methods("DELETE")
+	authorized.HandleFunc("/achievements", handlers.GetAllAchievements).Methods("GET")
+	authorized.HandleFunc("/achievements/{id}", handlers.GetAchievementByID).Methods("GET")
+	authorized.HandleFunc("/achievements", handlers.CreateAchievement).Methods("POST")
+	authorized.HandleFunc("/achievements/{id}", handlers.UpdateAchievement).Methods("PUT")
+	authorized.HandleFunc("/achievements/{id}", handlers.DeleteAchievement).Methods("DELETE")
 
 	// User achievements endpoints
-	protected.HandleFunc("/user_achievements", handlers.GetAllUserAchievements).Methods("GET")
-	protected.HandleFunc("/user_achievements/{id}", handlers.GetUserAchievementByID).Methods("GET")
-	protected.HandleFunc("/user_achievements", handlers.CreateUserAchievement).Methods("POST")
-	protected.HandleFunc("/user_achievements/{id}", handlers.DeleteUserAchievement).Methods("DELETE")
+	authorized.HandleFunc("/user_achievements", handlers.GetAllUserAchievements).Methods("GET")
+	authorized.HandleFunc("/user_achievements/{id}", handlers.GetUserAchievementByID).Methods("GET")
+	authorized.HandleFunc("/user_achievements", handlers.CreateUserAchievement).Methods("POST")
+	authorized.HandleFunc("/user_achievements/{id}", handlers.DeleteUserAchievement).Methods("DELETE")
 
 	// Notifications endpoints
-	protected.HandleFunc("/notifications", handlers.GetAllNotifications).Methods("GET")
-	protected.HandleFunc("/notifications/{id}", handlers.GetNotificationByID).Methods("GET")
-	protected.HandleFunc("/notifications", handlers.CreateNotification).Methods("POST")
-	protected.HandleFunc("/notifications/{id}", handlers.UpdateNotification).Methods("PUT")
-	protected.HandleFunc("/notifications/{id}", handlers.DeleteNotification).Methods("DELETE")
+	authorized.HandleFunc("/notifications", handlers.GetAllNotifications).Methods("GET")
+	authorized.HandleFunc("/notifications/{id}", handlers.GetNotificationByID).Methods("GET")
+	authorized.HandleFunc("/notifications", handlers.CreateNotification).Methods("POST")
+	authorized.HandleFunc("/notifications/{id}", handlers.UpdateNotification).Methods("PUT")
+	authorized.HandleFunc("/notifications/{id}", handlers.DeleteNotification).Methods("DELETE")
+
+
 
 	return r
 }

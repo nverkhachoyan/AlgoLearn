@@ -2,7 +2,10 @@ package router
 
 import (
 	"algolearn-backend/internal/handlers"
+	"algolearn-backend/internal/models"
 	"algolearn-backend/pkg/middleware"
+	"encoding/json"
+	"net/http"
 
 	"github.com/gorilla/mux"
 )
@@ -10,13 +13,25 @@ import (
 func SetupRouter() *mux.Router {
 	r := mux.NewRouter()
 
-	// User endpoints
-	r.HandleFunc("/user/login", handlers.LoginUser).Methods("POST")
-	r.HandleFunc("/user/register", handlers.RegisterUser).Methods("POST")
+	// Health check endpoint
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		response := models.Response{Status: "success", Message: "Healthy"}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	}).Methods("GET")
+
+	// Signup and login endpoints
+	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
+	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
 
 	// Protected routes
 	protected := r.PathPrefix("/").Subrouter()
 	protected.Use(middleware.Auth)
+
+	// User endpoints
+	protected.HandleFunc("/user", handlers.GetUser).Methods("GET")
+	protected.HandleFunc("/user", handlers.UpdateUser).Methods("PUT")
+	protected.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
 	// Topics endpoints
 	protected.HandleFunc("/topics", handlers.GetAllTopics).Methods("GET")

@@ -6,12 +6,22 @@ import "time"
 // User specific models
 
 type User struct {
-	ID           int       `json:"user_id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID                int       `json:"user_id"`
+	Username          string    `json:"username"`
+	Email             string    `json:"email"`
+	Role              string    `json:"role"`
+	PasswordHash      string    `json:"-"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+	FirstName         string    `json:"first_name,omitempty"`
+	LastName          string    `json:"last_name,omitempty"`
+	ProfilePictureURL string    `json:"profile_picture_url,omitempty"`
+	LastLoginAt       time.Time `json:"last_login_at,omitempty"`
+	IsActive          bool      `json:"is_active"`
+	IsEmailVerified   bool      `json:"is_email_verified"`
+	Bio               string    `json:"bio,omitempty"`
+	Location          string    `json:"location,omitempty"`
+	Preferences       string    `json:"preferences,omitempty"` // JSON or serialized data for user preferences
 }
 
 // Topic specific models

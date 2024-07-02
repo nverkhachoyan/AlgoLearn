@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"algolearn-backend/internal/repository"
 	"algolearn-backend/internal/services"
 	"context"
 	"net/http"
@@ -11,6 +12,28 @@ import (
 type contextKey string
 
 const userContextKey contextKey = "userID"
+
+func IsAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := GetUserID(r.Context())
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		user, err := repository.GetUserByID(userID)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if user.Role == "admin" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		http.Error(w, "You are not authorized to access this resource", http.StatusUnauthorized)
+	})
+}
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

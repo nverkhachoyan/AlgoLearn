@@ -62,14 +62,18 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := models.User{
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		Username:       req.Username,
+		Email:          req.Email,
+		PasswordHash:   hashedPassword,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		Role:           "user", // default role
+		IsActive:       true,
+		IsEmailVerified: false,
+		Preferences:    `{}`, // Default to an empty JSON object as a string
 	}
 
-	if err := repository.CreateUser(user); err != nil {
+	if err := repository.CreateUser(&user); err != nil {
 		log.Printf("Error creating user: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not create user"})
 		return
@@ -100,8 +104,16 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := repository.GetUserByEmail(req.Email)
-	if err != nil || !services.CheckPasswordHash(req.Password, user.PasswordHash) {
+	if err != nil {
 		log.Printf("Login failed for user %s: %v", req.Email, err)
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Invalid email or password"})
+		return
+	}
+
+	if !services.CheckPasswordHash(req.Password, user.PasswordHash) {
+		log.Printf("Login failed for user %s: invalid password", req.Email)
+		log.Printf("Provided password: %s", req.Password)
+		log.Printf("Stored hash: %s", user.PasswordHash)
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Invalid email or password"})
 		return
 	}
@@ -120,6 +132,72 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
+}
+
+// UpdateUser handles updating user information
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
+		return
+	}
+
+	// Ensure the user being updated is the one authenticated
+	if user.ID != userID {
+		RespondWithJSON(w, http.StatusForbidden, models.Response{Status: "error", Message: "Cannot update another user"})
+		return
+	}
+
+	user.UpdatedAt = time.Now()
+
+	if err := repository.UpdateUser(&user); err != nil {
+		log.Printf("Error updating user %d: %v", userID, err)
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not update user"})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User updated successfully"})
+}
+
+// GetUser retrieves the authenticated user's information
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		return
+	}
+
+	user, err := repository.GetUserByID(userID)
+	if err != nil {
+		log.Printf("Error retrieving user %d: %v", userID, err)
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve user"})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User retrieved successfully", Data: user})
+}
+
+// DeleteUser handles user deletion
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		return
+	}
+
+	if err := repository.DeleteUser(userID); err != nil {
+		log.Printf("Error deleting user %d: %v", userID, err)
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not delete user"})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User deleted successfully"})
 }
 
 // SomeProtectedHandler is a protected route example

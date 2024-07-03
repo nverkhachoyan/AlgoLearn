@@ -1,4 +1,4 @@
-CREATE TABLE topics (
+CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT NOT NULL,
@@ -6,9 +6,9 @@ CREATE TABLE topics (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE subtopics (
+CREATE TABLE modules (
     id SERIAL PRIMARY KEY,
-    topic_id INT REFERENCES topics(id) ON DELETE CASCADE,
+    course_id INT REFERENCES courses(id) ON DELETE CASCADE,
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -17,7 +17,7 @@ CREATE TABLE subtopics (
 
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
-    subtopic_id INT REFERENCES subtopics(id) ON DELETE CASCADE,
+    module_id INT REFERENCES modules(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -26,7 +26,7 @@ CREATE TABLE questions (
 CREATE TABLE practice_sessions (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    subtopic_id INT REFERENCES subtopics(id) ON DELETE CASCADE,
+    module_id INT REFERENCES modules(id) ON DELETE CASCADE,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP
 );

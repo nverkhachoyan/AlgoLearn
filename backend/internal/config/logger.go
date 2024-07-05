@@ -35,7 +35,7 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		b.WriteString(fmt.Sprintf("%s\n", entry.Time.Format(f.TimestampFormat)))
 	}
 
-	b.WriteString(fmt.Sprintf(colors.Green + "%s\t" + colors.Reset, entry.Level.String()))
+	b.WriteString(fmt.Sprintf(colors.Green + "%s\n" + colors.Reset, entry.Level.String()))
 	b.WriteString(fmt.Sprintf("%s\n", entry.Message))
 
 	for key, value := range entry.Data {

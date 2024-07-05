@@ -1,0 +1,1220 @@
+{
+  "info": {
+    "name": "AlgoLearn API",
+    "description": "Postman collection for AlgoLearn API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Welcome",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        }
+      }
+    },
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"testuser@example.com\",\n    \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["register"]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"testuser@example.com\",\n    \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["login"]
+        }
+      }
+    },
+    {
+      "name": "User - Get User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user",
+          "host": ["{{baseUrl}}"],
+          "path": ["user"]
+        }
+      }
+    },
+    {
+      "name": "User - Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"updateduser\",\n    \"email\": \"updateduser@example.com\",\n    \"first_name\": \"Updated\",\n    \"last_name\": \"User\",\n    \"bio\": \"Updated bio\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user",
+          "host": ["{{baseUrl}}"],
+          "path": ["user"]
+        }
+      }
+    },
+    {
+      "name": "User - Delete User",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user",
+          "host": ["{{baseUrl}}"],
+          "path": ["user"]
+        }
+      }
+    },
+    {
+      "name": "Courses - Get All Courses",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/courses",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses"]
+        }
+      }
+    },
+    {
+      "name": "Courses - Get Course By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/courses/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", "1"]
+        }
+      }
+    },
+    {
+      "name": "Courses - Create Course",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"New Course\",\n    \"description\": \"Description of new course\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/courses",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses"]
+        }
+      }
+    },
+    {
+      "name": "Courses - Update Course",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Updated Course\",\n    \"description\": \"Updated description of course\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/courses/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", "1"]
+        }
+      }
+    },
+    {
+      "name": "Courses - Delete Course",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/courses/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["courses", "1"]
+        }
+      }
+    },
+    {
+      "name": "Units - Get All Units",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/units",
+          "host": ["{{baseUrl}}"],
+          "path": ["units"]
+        }
+      }
+    },
+    {
+      "name": "Units - Get Unit By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/units/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["units", "1"]
+        }
+      }
+    },
+    {
+      "name": "Units - Create Unit",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"course_id\": 1,\n    \"name\": \"New Unit\",\n    \"description\": \"Description of new unit\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/units",
+          "host": ["{{baseUrl}}"],
+          "path": ["units"]
+        }
+      }
+    },
+    {
+      "name": "Units - Update Unit",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"course_id\": 1,\n    \"name\": \"Updated Unit\",\n    \"description\": \"Updated description of unit\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/units/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["units", "1"]
+        }
+      }
+    },
+    {
+      "name": "Units - Delete Unit",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/units/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["units", "1"]
+        }
+      }
+    },
+    {
+      "name": "Modules - Get All Modules",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/modules",
+          "host": ["{{baseUrl}}"],
+          "path": ["modules"]
+        }
+      }
+    },
+    {
+      "name": "Modules - Get Module By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/modules/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["modules", "1"]
+        }
+      }
+    },
+    {
+      "name": "Modules - Create Module",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"unit_id\": 1,\n    \"name\": \"New Module\",\n    \"description\": \"Description of new module\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/modules",
+          "host": ["{{baseUrl}}"],
+          "path": ["modules"]
+        }
+      }
+    },
+    {
+      "name": "Modules - Update Module",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"unit_id\": 1,\n    \"name\": \"Updated Module\",\n    \"description\": \"Updated description of module\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/modules/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["modules", "1"]
+        }
+      }
+    },
+    {
+      "name": "Modules - Delete Module",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/modules/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["modules", "1"]
+        }
+      }
+    },
+    {
+      "name": "Module Questions - Get All Module Questions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/module_questions",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_questions"]
+        }
+      }
+    },
+    {
+      "name": "Module Questions - Get Module Question By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/module_questions/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_questions", "1"]
+        }
+      }
+    },
+    {
+      "name": "Module Questions - Create Module Question",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"module_id\": 1,\n    \"content\": \"New question content\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/module_questions",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_questions"]
+        }
+      }
+    },
+    {
+      "name": "Module Questions - Update Module Question",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"module_id\": 1,\n    \"content\": \"Updated question content\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/module_questions/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_questions", "1"]
+        }
+      }
+    },
+    {
+      "name": "Module Questions - Delete Module Question",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/module_questions/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_questions", "1"]
+        }
+      }
+    },
+    {
+      "name": "Module Question Answers - Get All Module Question Answers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/module_question_answers",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_question_answers"]
+        }
+      }
+    },
+    {
+      "name": "Module Question Answers - Get Module Question Answer By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/module_question_answers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_question_answers", "1"]
+        }
+      }
+    },
+    {
+      "name": "Module Question Answers - Create Module Question Answer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"question_id\": 1,\n    \"content\": \"New answer content\",\n    \"is_correct\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/module_question_answers",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_question_answers"]
+        }
+      }
+    },
+    {
+      "name": "Module Question Answers - Update Module Question Answer",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"question_id\": 1,\n    \"content\": \"Updated answer content\",\n    \"is_correct\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/module_question_answers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_question_answers", "1"]
+        }
+      }
+    },
+    {
+      "name": "Module Question Answers - Delete Module Question Answer",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/module_question_answers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["module_question_answers", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Module Sessions - Get All User Module Sessions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_module_sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_module_sessions"]
+        }
+      }
+    },
+    {
+      "name": "User Module Sessions - Get User Module Session By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_module_sessions/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_module_sessions", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Module Sessions - Create User Module Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"module_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user_module_sessions",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_module_sessions"]
+        }
+      }
+    },
+    {
+      "name": "User Module Sessions - Update User Module Session",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"progress\": 50.00,\n    \"current_position\": 10\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user_module_sessions/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_module_sessions", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Module Sessions - Delete User Module Session",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_module_sessions/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_module_sessions", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Answers - Get All User Answers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_answers",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_answers"]
+        }
+      }
+    },
+    {
+      "name": "User Answers - Get User Answer By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_answers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_answers", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Answers - Create User Answer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"user_module_session_id\": 1,\n    \"question_id\": 1,\n    \"answer_id\": 1,\n    \"is_correct\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user_answers",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_answers"]
+        }
+      }
+    },
+    {
+      "name": "User Answers - Update User Answer",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"is_correct\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user_answers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_answers", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Answers - Delete User Answer",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_answers/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_answers", "1"]
+        }
+      }
+    },
+    {
+      "name": "Achievements - Get All Achievements",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/achievements",
+          "host": ["{{baseUrl}}"],
+          "path": ["achievements"]
+        }
+      }
+    },
+    {
+      "name": "Achievements - Get Achievement By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/achievements/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["achievements", "1"]
+        }
+      }
+    },
+    {
+      "name": "Achievements - Create Achievement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"New Achievement\",\n    \"description\": \"Description of new achievement\",\n    \"points\": 100\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/achievements",
+          "host": ["{{baseUrl}}"],
+          "path": ["achievements"]
+        }
+      }
+    },
+    {
+      "name": "Achievements - Update Achievement",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Updated Achievement\",\n    \"description\": \"Updated description of achievement\",\n    \"points\": 150\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/achievements/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["achievements", "1"]
+        }
+      }
+    },
+    {
+      "name": "Achievements - Delete Achievement",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminJwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/achievements/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["achievements", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Achievements - Get All User Achievements",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_achievements",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_achievements"]
+        }
+      }
+    },
+    {
+      "name": "User Achievements - Get User Achievement By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_achievements/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_achievements", "1"]
+        }
+      }
+    },
+    {
+      "name": "User Achievements - Create User Achievement",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"user_id\": 1,\n    \"achievement_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user_achievements",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_achievements"]
+        }
+      }
+    },
+    {
+      "name": "User Achievements - Delete User Achievement",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user_achievements/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["user_achievements", "1"]
+        }
+      }
+    },
+    {
+      "name": "Notifications - Get All Notifications",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/notifications",
+          "host": ["{{baseUrl}}"],
+          "path": ["notifications"]
+        }
+      }
+    },
+    {
+      "name": "Notifications - Get Notification By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/notifications/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["notifications", "1"]
+        }
+      }
+    },
+    {
+      "name": "Notifications - Create Notification",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"user_id\": 1,\n    \"content\": \"New notification content\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/notifications",
+          "host": ["{{baseUrl}}"],
+          "path": ["notifications"]
+        }
+      }
+    },
+    {
+      "name": "Notifications - Update Notification",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"content\": \"Updated notification content\",\n    \"read\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/notifications/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["notifications", "1"]
+        }
+      }
+    },
+    {
+      "name": "Notifications - Delete Notification",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/notifications/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["notifications", "1"]
+        }
+      }
+    },
+    {
+      "name": "Streaks - Get All Streaks",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/streaks",
+          "host": ["{{baseUrl}}"],
+          "path": ["streaks"]
+        }
+      }
+    },
+    {
+      "name": "Streaks - Get Streak By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/streaks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["streaks", "1"]
+        }
+      }
+    },
+    {
+      "name": "Streaks - Create Streak",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"user_id\": 1,\n    \"streak_start_date\": \"2023-07-01T00:00:00Z\",\n    \"streak_end_date\": null,\n    \"streak_length\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/streaks",
+          "host": ["{{baseUrl}}"],
+          "path": ["streaks"]
+        }
+      }
+    },
+    {
+      "name": "Streaks - Update Streak",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"streak_end_date\": \"2023-07-02T00:00:00Z\",\n    \"streak_length\": 2\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/streaks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["streaks", "1"]
+        }
+      }
+    },
+    {
+      "name": "Streaks - Delete Streak",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/streaks/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["streaks", "1"]
+        }
+      }
+    }
+  ]
+}

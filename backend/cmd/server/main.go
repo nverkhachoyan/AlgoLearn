@@ -23,6 +23,7 @@ func main() {
 	// Initialize database
 	config.InitDB()
 	config.InitOAuth()
+	config.InitLogger()
 	defer config.GetDB().Close()
 
 	// Check for migrations
@@ -41,7 +42,7 @@ func main() {
 	timeoutMiddleware := middleware.TimeoutMiddleware(time.Second * 10)
 
 	// Wrapping router with logging middleware
-	loggedRouter := middleware.Logger(timeoutMiddleware(r))
+	loggedRouter := middleware.LoggingMiddleware(timeoutMiddleware(r))
 
 	// Start server and log
 	log.Println(colors.Purple + "Server is running on port 8080" + colors.Reset)

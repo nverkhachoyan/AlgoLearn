@@ -3,12 +3,11 @@ package models
 
 import "time"
 
-// User specific models
-
 type User struct {
 	ID                int       `json:"user_id"`
 	Username          string    `json:"username"`
 	Email             string    `json:"email"`
+	OAuthID		   	  string    `json:"oauth_id,omitempty"`
 	Role              string    `json:"role"`
 	PasswordHash      string    `json:"-"`
 	CreatedAt         time.Time `json:"created_at"`
@@ -25,8 +24,6 @@ type User struct {
 	Preferences       string    `json:"preferences,omitempty"` // JSON for user preferences
 }
 
-// Streak specific models
-
 type Streak struct {
 	ID            int       `json:"id"`
 	UserID        int       `json:"user_id"`
@@ -38,8 +35,6 @@ type Streak struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-// Course specific models
-
 type Course struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
@@ -47,8 +42,6 @@ type Course struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
-
-// Unit specific models
 
 type Unit struct {
 	ID          int       `json:"id"`
@@ -58,8 +51,6 @@ type Unit struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
-
-// Module specific models
 
 type Module struct {
 	ID          int       `json:"id"`
@@ -71,8 +62,6 @@ type Module struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// Module question specific models
-
 type ModuleQuestion struct {
 	ID        int       `json:"id"`
 	ModuleID  int       `json:"module_id"`
@@ -80,8 +69,6 @@ type ModuleQuestion struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
-
-// Module question answer specific models
 
 type ModuleQuestionAnswer struct {
 	ID         int       `json:"id"`
@@ -91,8 +78,6 @@ type ModuleQuestionAnswer struct {
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
-
-// User module session specific models
 
 type UserModuleSession struct {
 	ID              int       `json:"id"`
@@ -105,8 +90,6 @@ type UserModuleSession struct {
 	LastAccessed    time.Time `json:"last_accessed"`
 }
 
-// User answer specific models
-
 type UserAnswer struct {
 	ID                  int       `json:"id"`
 	UserModuleSessionID int       `json:"user_module_session_id"`
@@ -115,8 +98,6 @@ type UserAnswer struct {
 	AnsweredAt          time.Time `json:"answered_at"`
 	IsCorrect           bool      `json:"is_correct"`
 }
-
-// Achievement specific models
 
 type Achievement struct {
 	ID          int       `json:"id"`
@@ -127,16 +108,12 @@ type Achievement struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// User achievement specific models
-
 type UserAchievement struct {
 	ID            int       `json:"id"`
 	UserID        int       `json:"user_id"`
 	AchievementID int       `json:"achievement_id"`
 	AchievedAt    time.Time `json:"achieved_at"`
 }
-
-// Notification specific models
 
 type Notification struct {
 	ID        int       `json:"id"`

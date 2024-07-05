@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllUserModuleSessions handles fetching all user_module_sessions for a user
 func GetAllUserModuleSessions(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -31,7 +30,6 @@ func GetAllUserModuleSessions(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User module sessions retrieved successfully", Data: sessions})
 }
 
-// GetUserModuleSessionByID handles fetching a user_module_session by ID
 func GetUserModuleSessionByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -56,7 +54,6 @@ func GetUserModuleSessionByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User module session retrieved successfully", Data: session})
 }
 
-// CreateUserModuleSession handles creating a new user_module_session for a user
 func CreateUserModuleSession(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -80,7 +77,6 @@ func CreateUserModuleSession(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "User module session created successfully", Data: session})
 }
 
-// UpdateUserModuleSession handles updating a user_module_session
 func UpdateUserModuleSession(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -119,7 +115,6 @@ func UpdateUserModuleSession(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User module session updated successfully"})
 }
 
-// DeleteUserModuleSession handles deleting a user_module_session
 func DeleteUserModuleSession(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

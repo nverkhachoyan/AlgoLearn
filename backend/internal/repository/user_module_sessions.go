@@ -49,7 +49,6 @@ func scanUserModuleSession(row *sql.Row) (models.UserModuleSession, error) {
 	return session, nil
 }
 
-// GetUserModuleSessionsByUserID retrieves all user_module_sessions for a user
 func GetUserModuleSessionsByUserID(userID int) ([]models.UserModuleSession, error) {
 	db := config.GetDB()
 	query := fmt.Sprintf("SELECT %s FROM user_module_sessions WHERE user_id = $1", userModuleSessionFields)
@@ -85,13 +84,11 @@ func GetUserModuleSessionsByUserID(userID int) ([]models.UserModuleSession, erro
 	return sessions, nil
 }
 
-// GetUserModuleSessionByID retrieves a user_module_session by its ID for a user
 func GetUserModuleSessionByID(id int, userID int) (models.UserModuleSession, error) {
 	query := fmt.Sprintf("SELECT %s FROM user_module_sessions WHERE id = $1 AND user_id = $2", userModuleSessionFields)
 	return queryUserModuleSession(query, id, userID)
 }
 
-// CreateUserModuleSession inserts a new user_module_session into the database
 func CreateUserModuleSession(session *models.UserModuleSession) error {
 	db := config.GetDB()
 	query := `
@@ -120,7 +117,6 @@ func CreateUserModuleSession(session *models.UserModuleSession) error {
 	return nil
 }
 
-// UpdateUserModuleSession updates a user_module_session's information in the database
 func UpdateUserModuleSession(session *models.UserModuleSession) error {
 	db := config.GetDB()
 	query := `
@@ -144,7 +140,6 @@ func UpdateUserModuleSession(session *models.UserModuleSession) error {
 	return nil
 }
 
-// DeleteUserModuleSession deletes a user_module_session from the database
 func DeleteUserModuleSession(id int, userID int) error {
 	db := config.GetDB()
 	query := "DELETE FROM user_module_sessions WHERE id = $1 AND user_id = $2"

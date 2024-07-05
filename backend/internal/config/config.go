@@ -7,9 +7,27 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"golang.org/x/oauth2"
 )
 
-var db *sql.DB
+var (
+	db *sql.DB
+
+	googleOauthConfig *oauth2.Config
+	appleOauthConfig  *oauth2.Config
+)
+
+var (
+	googleEndpoint = oauth2.Endpoint{
+		AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+		TokenURL: "https://accounts.google.com/o/oauth2/token",
+	}
+
+	appleEndpoint = oauth2.Endpoint{
+		AuthURL:  "https://appleid.apple.com/auth/authorize",
+		TokenURL: "https://appleid.apple.com/auth/token",
+	}
+)
 
 func InitDB() {
 	var err error
@@ -36,6 +54,34 @@ func InitDB() {
 	log.Println("Connected to the database successfully")
 }
 
+func InitOAuth() {
+	googleOauthConfig = &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		Endpoint:     googleEndpoint,
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+	}
+
+	appleOauthConfig = &oauth2.Config{
+		ClientID:     os.Getenv("APPLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("APPLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("APPLE_REDIRECT_URL"),
+		Endpoint:     appleEndpoint,
+		Scopes:       []string{"name", "email"},
+	}
+
+	log.Println("OAuth configurations initialized successfully")
+}
+
 func GetDB() *sql.DB {
 	return db
+}
+
+func GetGoogleOAuthConfig() *oauth2.Config {
+	return googleOauthConfig
+}
+
+func GetAppleOAuthConfig() *oauth2.Config {
+	return appleOauthConfig
 }

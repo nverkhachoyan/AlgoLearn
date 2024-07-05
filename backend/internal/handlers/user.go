@@ -41,7 +41,6 @@ func validateRegistrationInput(req models.RegistrationRequest) (bool, string) {
 	return true, ""
 }
 
-// RegisterUser handles user registration
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -96,7 +95,6 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, response)
 }
 
-// LoginUser handles user login
 func LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -135,7 +133,6 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-// UpdateUser handles updating user information
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -166,7 +163,6 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User updated successfully"})
 }
 
-// GetUser retrieves the authenticated user's information
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -184,7 +180,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User retrieved successfully", Data: user})
 }
 
-// DeleteUser handles user deletion
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

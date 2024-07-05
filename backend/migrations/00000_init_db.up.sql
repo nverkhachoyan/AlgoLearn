@@ -4,6 +4,7 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    oauth_id VARCHAR(100),
     role VARCHAR(20) DEFAULT 'user',
     first_name VARCHAR(100),
     last_name VARCHAR(100),
@@ -96,7 +97,7 @@ CREATE TABLE user_answers (
     id SERIAL PRIMARY KEY,
     user_module_session_id INT REFERENCES user_module_sessions(id) ON DELETE CASCADE,
     question_id INT REFERENCES module_questions(id) ON DELETE CASCADE,
-    answer_id INT REFERENCES module_questions_answers(id) ON DELETE CASCADE,
+    answer_id INT REFERENCES module_question_answers(id) ON DELETE CASCADE,
     answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_correct BOOLEAN NOT NULL
 );

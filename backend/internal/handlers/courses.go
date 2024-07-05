@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllCourses handles fetching all courses
 func GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	courses, err := repository.GetAllCourses()
 	if err != nil {
@@ -25,7 +24,6 @@ func GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Courses retrieved successfully", Data: courses})
 }
 
-// GetCourseByID handles fetching a course by ID
 func GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -44,7 +42,6 @@ func GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Course retrieved successfully", Data: course})
 }
 
-// CreateCourse handles creating a new course
 func CreateCourse(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -74,7 +71,6 @@ func CreateCourse(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "Course created successfully", Data: course})
 }
 
-// UpdateCourse handles updating a course
 func UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -112,7 +108,6 @@ func UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Course updated successfully"})
 }
 
-// DeleteCourse handles deleting a course
 func DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

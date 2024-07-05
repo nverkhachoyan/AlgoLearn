@@ -22,6 +22,7 @@ func main() {
 
 	// Initialize database
 	config.InitDB()
+	config.InitOAuth()
 	defer config.GetDB().Close()
 
 	// Check for migrations

@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllUnits handles fetching all units for a course
 func GetAllUnits(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	courseID, err := strconv.Atoi(params["course_id"])
@@ -32,7 +31,6 @@ func GetAllUnits(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Units retrieved successfully", Data: units})
 }
 
-// GetUnitByID handles fetching a unit by ID
 func GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -51,7 +49,6 @@ func GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Unit retrieved successfully", Data: unit})
 }
 
-// CreateUnit handles creating a new unit
 func CreateUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -81,7 +78,6 @@ func CreateUnit(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "Unit created successfully", Data: unit})
 }
 
-// UpdateUnit handles updating a unit
 func UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -119,7 +115,6 @@ func UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Unit updated successfully"})
 }
 
-// DeleteUnit handles deleting a unit
 func DeleteUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllStreaks handles fetching all streaks for a user
 func GetAllStreaks(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -31,7 +30,6 @@ func GetAllStreaks(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Streaks retrieved successfully", Data: streaks})
 }
 
-// GetStreakByID handles fetching a streak by ID
 func GetStreakByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -56,7 +54,6 @@ func GetStreakByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Streak retrieved successfully", Data: streak})
 }
 
-// CreateStreak handles creating a new streak for a user
 func CreateStreak(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -80,7 +77,6 @@ func CreateStreak(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "Streak created successfully", Data: streak})
 }
 
-// UpdateStreak handles updating a streak
 func UpdateStreak(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -112,7 +108,6 @@ func UpdateStreak(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Streak updated successfully"})
 }
 
-// DeleteStreak handles deleting a streak
 func DeleteStreak(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

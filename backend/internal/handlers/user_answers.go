@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllUserAnswers handles fetching all user_answers for a session
 func GetAllUserAnswers(w http.ResponseWriter, r *http.Request) {
 	_, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -38,7 +37,6 @@ func GetAllUserAnswers(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User answers retrieved successfully", Data: answers})
 }
 
-// GetUserAnswerByID handles fetching a user_answer by ID
 func GetUserAnswerByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -63,7 +61,6 @@ func GetUserAnswerByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User answer retrieved successfully", Data: answer})
 }
 
-// CreateUserAnswer handles creating a new user_answer for a user
 func CreateUserAnswer(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -88,7 +85,6 @@ func CreateUserAnswer(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "User answer created successfully", Data: answer})
 }
 
-// UpdateUserAnswer handles updating a user_answer
 func UpdateUserAnswer(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -126,7 +122,6 @@ func UpdateUserAnswer(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User answer updated successfully"})
 }
 
-// DeleteUserAnswer handles deleting a user_answer
 func DeleteUserAnswer(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

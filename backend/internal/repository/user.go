@@ -29,15 +29,13 @@ var userFields = `
 	updated_at
 `
 
-// Helper function to execute a query and scan the user
-func queryUser(query string, args ...interface{}) (models.User, error) {
+func queryUser(query string, args ...interface{}) (*models.User, error) {
 	db := config.GetDB()
 	row := db.QueryRow(query, args...)
 	return scanUser(row)
 }
 
-// Common function to scan user rows
-func scanUser(row *sql.Row) (models.User, error) {
+func scanUser(row *sql.Row) (*models.User, error) {
 	var user models.User
 	err := row.Scan(
 		&user.ID,
@@ -56,17 +54,17 @@ func scanUser(row *sql.Row) (models.User, error) {
 		&user.Preferences,
 		&user.CPUs,
 		&user.CreatedAt,
-		&user.UpdatedAt)
+		&user.UpdatedAt,
+	)
 
 	if err == sql.ErrNoRows {
-		return user, fmt.Errorf("user not found")
+		return nil, fmt.Errorf("user not found")
 	} else if err != nil {
-		return user, fmt.Errorf("could not scan user: %v", err)
+		return nil, fmt.Errorf("could not scan user: %v", err)
 	}
-	return user, nil
+	return &user, nil
 }
 
-// CreateUser inserts a new user into the database
 func CreateUser(user *models.User) error {
 	db := config.GetDB()
 	query := `
@@ -74,6 +72,7 @@ func CreateUser(user *models.User) error {
 		username,
 		email,
 		password_hash,
+		oauth_id,
 		role,
 		first_name,
 		last_name,
@@ -87,12 +86,13 @@ func CreateUser(user *models.User) error {
 		cpus,
 		created_at,
 		updated_at
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	RETURNING id`
 	err := db.QueryRow(query,
 		user.Username,
 		user.Email,
 		user.PasswordHash,
+		user.OAuthID,
 		user.Role,
 		user.FirstName,
 		user.LastName,
@@ -112,19 +112,16 @@ func CreateUser(user *models.User) error {
 	return nil
 }
 
-// GetUserByID retrieves a user by their ID
-func GetUserByID(id int) (models.User, error) {
+func GetUserByID(id int) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", userFields)
 	return queryUser(query, id)
 }
 
-// GetUserByEmail retrieves a user by their email
-func GetUserByEmail(email string) (models.User, error) {
+func GetUserByEmail(email string) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE email = $1", userFields)
 	return queryUser(query, email)
 }
 
-// UpdateUser updates a user's information in the database
 func UpdateUser(user *models.User) error {
 	db := config.GetDB()
 	query := `
@@ -165,7 +162,6 @@ func UpdateUser(user *models.User) error {
 	return nil
 }
 
-// DeleteUser deletes a user from the database
 func DeleteUser(id int) error {
 	db := config.GetDB()
 	query := "DELETE FROM users WHERE id = $1"
@@ -176,7 +172,6 @@ func DeleteUser(id int) error {
 	return nil
 }
 
-// GetAllUsers retrieves all users from the database
 func GetAllUsers() ([]models.User, error) {
 	db := config.GetDB()
 	query := fmt.Sprintf("SELECT %s FROM users", userFields)
@@ -219,7 +214,6 @@ func GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-// ChangeUserPassword updates a user's password
 func ChangeUserPassword(userID int, newPasswordHash string) error {
 	db := config.GetDB()
 	query := "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2"

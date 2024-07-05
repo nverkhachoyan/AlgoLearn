@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllModuleQuestions handles fetching all questions for a module
 func GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	moduleID, err := strconv.Atoi(params["module_id"])
@@ -32,7 +31,6 @@ func GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Questions retrieved successfully", Data: questions})
 }
 
-// GetModuleQuestionByID handles fetching a question by ID
 func GetModuleQuestionByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -51,7 +49,6 @@ func GetModuleQuestionByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Question retrieved successfully", Data: question})
 }
 
-// CreateModuleQuestion handles creating a new question for a module
 func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -81,7 +78,6 @@ func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "Question created successfully", Data: question})
 }
 
-// UpdateModuleQuestion handles updating a question
 func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -119,7 +115,6 @@ func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Question updated successfully"})
 }
 
-// DeleteModuleQuestion handles deleting a question
 func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

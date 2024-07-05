@@ -13,8 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllAnswersForQuestion handles fetching all answers for a question
-func GetAllAnswersForQuestion(w http.ResponseWriter, r *http.Request) {
+func GetAllModuleQuestionAnswers(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	questionID, err := strconv.Atoi(params["question_id"])
 	if err != nil {
@@ -32,8 +31,7 @@ func GetAllAnswersForQuestion(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Answers retrieved successfully", Data: answers})
 }
 
-// GetAnswerByID handles fetching an answer by ID
-func GetAnswerByID(w http.ResponseWriter, r *http.Request) {
+func GetModuleQuestionAnswerByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -41,7 +39,7 @@ func GetAnswerByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer, err := repository.GetAnswerByID(id)
+	answer, err := repository.GetModuleQuestionAnswerByID(id)
 	if err != nil {
 		log.Printf("Error fetching answer %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve answer"})
@@ -51,8 +49,7 @@ func GetAnswerByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Answer retrieved successfully", Data: answer})
 }
 
-// CreateAnswer handles creating a new answer for a question
-func CreateAnswer(w http.ResponseWriter, r *http.Request) {
+func CreateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -72,7 +69,7 @@ func CreateAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.CreateAnswer(&answer); err != nil {
+	if err := repository.CreateModuleQuestionAnswer(&answer); err != nil {
 		log.Printf("Error creating answer: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not create answer"})
 		return
@@ -81,8 +78,7 @@ func CreateAnswer(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "Answer created successfully", Data: answer})
 }
 
-// UpdateAnswer handles updating an answer
-func UpdateAnswer(w http.ResponseWriter, r *http.Request) {
+func UpdateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -110,7 +106,7 @@ func UpdateAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 	answer.ID = id
 
-	if err := repository.UpdateAnswer(&answer); err != nil {
+	if err := repository.UpdateModuleQuestionAnswer(&answer); err != nil {
 		log.Printf("Error updating answer %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not update answer"})
 		return
@@ -119,8 +115,7 @@ func UpdateAnswer(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Answer updated successfully"})
 }
 
-// DeleteAnswer handles deleting an answer
-func DeleteAnswer(w http.ResponseWriter, r *http.Request) {
+func DeleteModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -141,7 +136,7 @@ func DeleteAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.DeleteAnswer(id); err != nil {
+	if err := repository.DeleteModuleQuestionAnswer(id); err != nil {
 		log.Printf("Error deleting answer %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not delete answer"})
 		return

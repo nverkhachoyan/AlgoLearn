@@ -19,14 +19,12 @@ var userAnswerFields = `
 	is_correct
 `
 
-// Helper function to execute a query and scan the user_answer
 func queryUserAnswer(query string, args ...interface{}) (models.UserAnswer, error) {
 	db := config.GetDB()
 	row := db.QueryRow(query, args...)
 	return scanUserAnswer(row)
 }
 
-// Common function to scan user_answer rows
 func scanUserAnswer(row *sql.Row) (models.UserAnswer, error) {
 	var answer models.UserAnswer
 	err := row.Scan(
@@ -46,7 +44,6 @@ func scanUserAnswer(row *sql.Row) (models.UserAnswer, error) {
 	return answer, nil
 }
 
-// GetUserAnswersBySessionID retrieves all user_answers for a session
 func GetUserAnswersBySessionID(sessionID int) ([]models.UserAnswer, error) {
 	db := config.GetDB()
 	query := fmt.Sprintf("SELECT %s FROM user_answers WHERE user_module_session_id = $1", userAnswerFields)
@@ -80,13 +77,11 @@ func GetUserAnswersBySessionID(sessionID int) ([]models.UserAnswer, error) {
 	return answers, nil
 }
 
-// GetUserAnswerByID retrieves a user_answer by its ID
 func GetUserAnswerByID(id int) (models.UserAnswer, error) {
 	query := fmt.Sprintf("SELECT %s FROM user_answers WHERE id = $1", userAnswerFields)
 	return queryUserAnswer(query, id)
 }
 
-// CreateUserAnswer inserts a new user_answer into the database
 func CreateUserAnswer(answer *models.UserAnswer) error {
 	db := config.GetDB()
 	query := `
@@ -111,7 +106,6 @@ func CreateUserAnswer(answer *models.UserAnswer) error {
 	return nil
 }
 
-// UpdateUserAnswer updates a user_answer's information in the database
 func UpdateUserAnswer(answer *models.UserAnswer) error {
 	db := config.GetDB()
 	query := `
@@ -133,7 +127,6 @@ func UpdateUserAnswer(answer *models.UserAnswer) error {
 	return nil
 }
 
-// DeleteUserAnswer deletes a user_answer from the database
 func DeleteUserAnswer(id int) error {
 	db := config.GetDB()
 	query := "DELETE FROM user_answers WHERE id = $1"

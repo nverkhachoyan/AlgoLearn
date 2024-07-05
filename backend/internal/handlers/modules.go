@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// GetAllModules handles fetching all modules for a unit
 func GetAllModules(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	unitID, err := strconv.Atoi(params["unit_id"])
@@ -32,7 +31,6 @@ func GetAllModules(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Modules retrieved successfully", Data: modules})
 }
 
-// GetModuleByID handles fetching a module by ID
 func GetModuleByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -51,7 +49,6 @@ func GetModuleByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Module retrieved successfully", Data: module})
 }
 
-// CreateModule handles creating a new module
 func CreateModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -81,7 +78,6 @@ func CreateModule(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "Module created successfully", Data: module})
 }
 
-// UpdateModule handles updating a module
 func UpdateModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -119,7 +115,6 @@ func UpdateModule(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Module updated successfully"})
 }
 
-// DeleteModule handles deleting a module
 func DeleteModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

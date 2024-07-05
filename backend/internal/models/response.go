@@ -9,7 +9,6 @@ type Response struct {
 	Error   string      `json:"error,omitempty"`
 }
 
-// User response models
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -21,27 +20,47 @@ type RegistrationRequest struct {
 	Password string `json:"password"`
 }
 
-// Topic response models
-type TopicResponse struct {
-	Topic Topic `json:"topic"`
+type UserResponse struct {
+	User User `json:"user"`
 }
 
-type TopicListResponse struct {
-	Topics []Topic `json:"topics"`
+type CourseResponse struct {
+	Course Course `json:"course"`
 }
 
-// Question and Practice Session response models
+type CourseListResponse struct {
+	Courses []Course `json:"courses"`
+}
+
+type UnitResponse struct {
+	Unit Unit `json:"unit"`
+}
+
+type UnitListResponse struct {
+	Units []Unit `json:"units"`
+}
+
+type ModuleResponse struct {
+	Module Module `json:"module"`
+}
+
+type ModuleListResponse struct {
+	Modules []Module `json:"modules"`
+}
+
 type QuestionResponse struct {
-	Question Question `json:"question"`
-	Answers  []Answer `json:"answers"`
+	Question ModuleQuestion         `json:"question"`
+	Answers  []ModuleQuestionAnswer `json:"answers"`
 }
 
-type PracticeSessionResponse struct {
+type ModuleSessionResponse struct {
 	SessionID int                `json:"session_id"`
+	Module    Module             `json:"module"`
+	Progress  float64            `json:"progress"`
+	Position  int                `json:"current_position"`
 	Questions []QuestionResponse `json:"questions"`
 }
 
-// Paginated response model
 type PaginatedResponse struct {
 	Data       interface{} `json:"data"`
 	TotalCount int         `json:"total_count"`

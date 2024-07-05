@@ -1,3 +1,4 @@
+// internal/handlers/user.go
 package handlers
 
 import (
@@ -6,7 +7,6 @@ import (
 	"algolearn-backend/internal/services"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -70,6 +70,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Role:           "user", // default role
 		IsActive:       true,
 		IsEmailVerified: false,
+		CPUs:           0,  // default CPUs
 		Preferences:    `{}`, // Default to an empty JSON object as a string
 	}
 
@@ -198,20 +199,4 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User deleted successfully"})
-}
-
-// SomeProtectedHandler is a protected route example
-func SomeProtectedHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
-		return
-	}
-
-	response := models.Response{
-		Status:  "success",
-		Message: fmt.Sprintf("Hello, user %d", userID),
-	}
-
-	RespondWithJSON(w, http.StatusOK, response)
 }

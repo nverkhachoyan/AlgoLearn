@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS user_answers;
+DROP TABLE IF EXISTS user_progress;
+DROP TABLE IF EXISTS module_question_answers;
+DROP TABLE IF EXISTS module_questions;
+DROP TABLE IF EXISTS modules;
+DROP TABLE IF EXISTS units;
+DROP TABLE IF EXISTS courses;
+DROP TABLE IF EXISTS user_achievements;
+DROP TABLE IF EXISTS achievements;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS streaks;
+DROP TABLE IF EXISTS users;

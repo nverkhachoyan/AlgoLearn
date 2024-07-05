@@ -21,45 +21,69 @@ type User struct {
 	IsEmailVerified   bool      `json:"is_email_verified"`
 	Bio               string    `json:"bio,omitempty"`
 	Location          string    `json:"location,omitempty"`
-	Preferences       string    `json:"preferences,omitempty"` // JSON or serialized data for user preferences
+	CPUs              int       `json:"cpus,omitempty"`
+	Preferences       string    `json:"preferences,omitempty"` // JSON for user preferences
 }
 
-// Topic specific models
+// Streak specific models
 
-type Topic struct {
-	ID          int       `json:"topic_id"`
+type Streak struct {
+	ID            int       `json:"id"`
+	UserID        int       `json:"user_id"`
+	StartDate     time.Time `json:"start_date"`
+	EndDate       time.Time `json:"end_date,omitempty"`
+	CurrentStreak int       `json:"current_streak"`
+	LongestStreak int       `json:"longest_streak"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// Course specific models
+
+type Course struct {
+	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type Subtopic struct {
+// Unit specific models
+
+type Unit struct {
 	ID          int       `json:"id"`
-	TopicID     int       `json:"topic_id"`
+	CourseID    int       `json:"course_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type PracticeSession struct {
+// Module specific models
+
+type Module struct {
 	ID          int       `json:"id"`
-	UserID      int       `json:"user_id"`
-	SubtopicID  int       `json:"subtopic_id"`
-	StartedAt   time.Time `json:"started_at"`
-	CompletedAt time.Time `json:"completed_at"`
+	UnitID      int       `json:"unit_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Content     string    `json:"content"` // JSON content
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type Question struct {
-	ID         int       `json:"id"`
-	SubtopicID int       `json:"subtopic_id"`
-	Content    string    `json:"content"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+// Module question specific models
+
+type ModuleQuestion struct {
+	ID        int       `json:"id"`
+	ModuleID  int       `json:"module_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type Answer struct {
+// Module question answer specific models
+
+type ModuleQuestionAnswer struct {
 	ID         int       `json:"id"`
 	QuestionID int       `json:"question_id"`
 	Content    string    `json:"content"`
@@ -67,15 +91,32 @@ type Answer struct {
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
+
+// User module session specific models
+
+type UserModuleSession struct {
+	ID              int       `json:"id"`
+	UserID          int       `json:"user_id"`
+	ModuleID        int       `json:"module_id"`
+	StartedAt       time.Time `json:"started_at"`
+	CompletedAt     time.Time `json:"completed_at,omitempty"`
+	Progress        float64   `json:"progress"`
+	CurrentPosition int       `json:"current_position"`
+	LastAccessed    time.Time `json:"last_accessed"`
+}
+
+// User answer specific models
 
 type UserAnswer struct {
-	ID         int       `json:"id"`
-	SessionID  int       `json:"session_id"`
-	QuestionID int       `json:"question_id"`
-	AnswerID   int       `json:"answer_id"`
-	AnsweredAt time.Time `json:"answered_at"`
-	IsCorrect  bool      `json:"is_correct"`
+	ID                  int       `json:"id"`
+	UserModuleSessionID int       `json:"user_module_session_id"`
+	QuestionID          int       `json:"question_id"`
+	AnswerID            int       `json:"answer_id"`
+	AnsweredAt          time.Time `json:"answered_at"`
+	IsCorrect           bool      `json:"is_correct"`
 }
+
+// Achievement specific models
 
 type Achievement struct {
 	ID          int       `json:"id"`
@@ -86,12 +127,16 @@ type Achievement struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// User achievement specific models
+
 type UserAchievement struct {
 	ID            int       `json:"id"`
 	UserID        int       `json:"user_id"`
 	AchievementID int       `json:"achievement_id"`
 	AchievedAt    time.Time `json:"achieved_at"`
 }
+
+// Notification specific models
 
 type Notification struct {
 	ID        int       `json:"id"`

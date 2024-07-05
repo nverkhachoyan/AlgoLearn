@@ -10,21 +10,22 @@ import (
 
 // Fields to select in user queries
 var userFields = `
-	id, 
-	username, 
-	email, 
+	id,
+	username,
+	email,
 	password_hash,
-	role, 
-	first_name, 
-	last_name, 
-	profile_picture_url, 
-	last_login_at, 
-	is_active, 
-	is_email_verified, 
-	bio, 
-	location, 
-	preferences, 
-	created_at, 
+	role,
+	first_name,
+	last_name,
+	profile_picture_url,
+	last_login_at,
+	is_active,
+	is_email_verified,
+	bio,
+	location,
+	preferences,
+	cpus,
+	created_at,
 	updated_at
 `
 
@@ -39,23 +40,24 @@ func queryUser(query string, args ...interface{}) (models.User, error) {
 func scanUser(row *sql.Row) (models.User, error) {
 	var user models.User
 	err := row.Scan(
-		&user.ID, 
-		&user.Username, 
-		&user.Email, 
+		&user.ID,
+		&user.Username,
+		&user.Email,
 		&user.PasswordHash,
-		&user.Role, 
-		&user.FirstName, 
-		&user.LastName, 
-		&user.ProfilePictureURL, 
-		&user.LastLoginAt, 
-		&user.IsActive, 
-		&user.IsEmailVerified, 
-		&user.Bio, 
-		&user.Location, 
-		&user.Preferences, 
-		&user.CreatedAt, 
+		&user.Role,
+		&user.FirstName,
+		&user.LastName,
+		&user.ProfilePictureURL,
+		&user.LastLoginAt,
+		&user.IsActive,
+		&user.IsEmailVerified,
+		&user.Bio,
+		&user.Location,
+		&user.Preferences,
+		&user.CPUs,
+		&user.CreatedAt,
 		&user.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return user, fmt.Errorf("user not found")
 	} else if err != nil {
@@ -82,25 +84,27 @@ func CreateUser(user *models.User) error {
 		bio,
 		location,
 		preferences,
+		cpus,
 		created_at,
 		updated_at
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	RETURNING id`
 	err := db.QueryRow(query,
-		user.Username, 
-		user.Email, 
-		user.PasswordHash, 
-		user.Role, 
-		user.FirstName, 
-		user.LastName, 
-		user.ProfilePictureURL, 
-		user.LastLoginAt, 
-		user.IsActive, 
-		user.IsEmailVerified, 
-		user.Bio, 
-		user.Location, 
-		user.Preferences, 
-		user.CreatedAt, 
+		user.Username,
+		user.Email,
+		user.PasswordHash,
+		user.Role,
+		user.FirstName,
+		user.LastName,
+		user.ProfilePictureURL,
+		user.LastLoginAt,
+		user.IsActive,
+		user.IsEmailVerified,
+		user.Bio,
+		user.Location,
+		user.Preferences,
+		user.CPUs,
+		user.CreatedAt,
 		user.UpdatedAt).Scan(&user.ID)
 	if err != nil {
 		return fmt.Errorf("could not insert user: %v", err)
@@ -137,8 +141,9 @@ func UpdateUser(user *models.User) error {
 		bio = $10,
 		location = $11,
 		preferences = $12,
+		cpus = $13,
 		updated_at = NOW()
-	WHERE id = $13`
+	WHERE id = $14`
 	_, err := db.Exec(query,
 		user.Username,
 		user.Email,
@@ -152,6 +157,7 @@ func UpdateUser(user *models.User) error {
 		user.Bio,
 		user.Location,
 		user.Preferences,
+		user.CPUs,
 		user.ID)
 	if err != nil {
 		return fmt.Errorf("could not update user: %v", err)
@@ -184,20 +190,21 @@ func GetAllUsers() ([]models.User, error) {
 	for rows.Next() {
 		var user models.User
 		err := rows.Scan(
-			&user.ID, 
-			&user.Username, 
-			&user.Email, 
-			&user.Role, 
-			&user.FirstName, 
-			&user.LastName, 
-			&user.ProfilePictureURL, 
-			&user.LastLoginAt, 
-			&user.IsActive, 
-			&user.IsEmailVerified, 
-			&user.Bio, 
-			&user.Location, 
-			&user.Preferences, 
-			&user.CreatedAt, 
+			&user.ID,
+			&user.Username,
+			&user.Email,
+			&user.Role,
+			&user.FirstName,
+			&user.LastName,
+			&user.ProfilePictureURL,
+			&user.LastLoginAt,
+			&user.IsActive,
+			&user.IsEmailVerified,
+			&user.Bio,
+			&user.Location,
+			&user.Preferences,
+			&user.CPUs,
+			&user.CreatedAt,
 			&user.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("could not scan user: %v", err)

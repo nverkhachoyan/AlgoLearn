@@ -38,46 +38,46 @@ func SetupRouter() *mux.Router {
 
 	// Admin dashboard endpoint
 	admin.HandleFunc("", handlers.AdminDashboard).Methods("GET")
-	
+
 	// User endpoints
 	authorized.HandleFunc("/user", handlers.GetUser).Methods("GET")
 	authorized.HandleFunc("/user", handlers.UpdateUser).Methods("PUT")
 	authorized.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
-	// Topics endpoints
-	authorized.HandleFunc("/topics", handlers.GetAllTopics).Methods("GET")
-	authorized.HandleFunc("/topics/{id}", handlers.GetTopicByID).Methods("GET")
-	admin.HandleFunc("/topics", handlers.CreateTopic).Methods("POST")
-	admin.HandleFunc("/topics/{id}", handlers.UpdateTopic).Methods("PUT")
-	admin.HandleFunc("/topics/{id}", handlers.DeleteTopic).Methods("DELETE")
+	// // Topics endpoints
+	// authorized.HandleFunc("/topics", handlers.GetAllTopics).Methods("GET")
+	// authorized.HandleFunc("/topics/{id}", handlers.GetTopicByID).Methods("GET")
+	// admin.HandleFunc("/topics", handlers.CreateTopic).Methods("POST")
+	// admin.HandleFunc("/topics/{id}", handlers.UpdateTopic).Methods("PUT")
+	// admin.HandleFunc("/topics/{id}", handlers.DeleteTopic).Methods("DELETE")
 
-	// Subtopics endpoints
-	authorized.HandleFunc("/subtopics", handlers.GetAllSubtopics).Methods("GET")
-	authorized.HandleFunc("/subtopics/{id}", handlers.GetSubtopicByID).Methods("GET")
-	admin.HandleFunc("/subtopics", handlers.CreateSubtopic).Methods("POST")
-	admin.HandleFunc("/subtopics/{id}", handlers.UpdateSubtopic).Methods("PUT")
-	admin.HandleFunc("/subtopics/{id}", handlers.DeleteSubtopic).Methods("DELETE")
+	// // Subtopics endpoints
+	// authorized.HandleFunc("/subtopics", handlers.GetAllSubtopics).Methods("GET")
+	// authorized.HandleFunc("/subtopics/{id}", handlers.GetSubtopicByID).Methods("GET")
+	// admin.HandleFunc("/subtopics", handlers.CreateSubtopic).Methods("POST")
+	// admin.HandleFunc("/subtopics/{id}", handlers.UpdateSubtopic).Methods("PUT")
+	// admin.HandleFunc("/subtopics/{id}", handlers.DeleteSubtopic).Methods("DELETE")
 
-	// Practice sessions endpoints
-	authorized.HandleFunc("/practice_sessions", handlers.GetAllPracticeSessions).Methods("GET")
-	authorized.HandleFunc("/practice_sessions/{id}", handlers.GetPracticeSessionByID).Methods("GET")
-	authorized.HandleFunc("/practice_sessions", handlers.CreatePracticeSession).Methods("POST")
-	authorized.HandleFunc("/practice_sessions/{id}", handlers.UpdatePracticeSession).Methods("PUT")
-	authorized.HandleFunc("/practice_sessions/{id}", handlers.DeletePracticeSession).Methods("DELETE")
+	// // Practice sessions endpoints
+	// authorized.HandleFunc("/practice_sessions", handlers.GetAllPracticeSessions).Methods("GET")
+	// authorized.HandleFunc("/practice_sessions/{id}", handlers.GetPracticeSessionByID).Methods("GET")
+	// authorized.HandleFunc("/practice_sessions", handlers.CreatePracticeSession).Methods("POST")
+	// authorized.HandleFunc("/practice_sessions/{id}", handlers.UpdatePracticeSession).Methods("PUT")
+	// authorized.HandleFunc("/practice_sessions/{id}", handlers.DeletePracticeSession).Methods("DELETE")
 
-	// Questions endpoints
-	authorized.HandleFunc("/questions", handlers.GetAllQuestions).Methods("GET")
-	authorized.HandleFunc("/questions/{id}", handlers.GetQuestionByID).Methods("GET")
-	authorized.HandleFunc("/questions", handlers.CreateQuestion).Methods("POST")
-	authorized.HandleFunc("/questions/{id}", handlers.UpdateQuestion).Methods("PUT")
-	authorized.HandleFunc("/questions/{id}", handlers.DeleteQuestion).Methods("DELETE")
+	// // Questions endpoints
+	// authorized.HandleFunc("/questions", handlers.GetAllQuestions).Methods("GET")
+	// authorized.HandleFunc("/questions/{id}", handlers.GetQuestionByID).Methods("GET")
+	// authorized.HandleFunc("/questions", handlers.CreateQuestion).Methods("POST")
+	// authorized.HandleFunc("/questions/{id}", handlers.UpdateQuestion).Methods("PUT")
+	// authorized.HandleFunc("/questions/{id}", handlers.DeleteQuestion).Methods("DELETE")
 
-	// Answers endpoints
-	authorized.HandleFunc("/answers", handlers.GetAllAnswers).Methods("GET")
-	authorized.HandleFunc("/answers/{id}", handlers.GetAnswerByID).Methods("GET")
-	authorized.HandleFunc("/answers", handlers.CreateAnswer).Methods("POST")
-	authorized.HandleFunc("/answers/{id}", handlers.UpdateAnswer).Methods("PUT")
-	authorized.HandleFunc("/answers/{id}", handlers.DeleteAnswer).Methods("DELETE")
+	// // Answers endpoints
+	// authorized.HandleFunc("/answers", handlers.GetAllAnswers).Methods("GET")
+	// authorized.HandleFunc("/answers/{id}", handlers.GetAnswerByID).Methods("GET")
+	// authorized.HandleFunc("/answers", handlers.CreateAnswer).Methods("POST")
+	// authorized.HandleFunc("/answers/{id}", handlers.UpdateAnswer).Methods("PUT")
+	// authorized.HandleFunc("/answers/{id}", handlers.DeleteAnswer).Methods("DELETE")
 
 	// User answers endpoints
 	authorized.HandleFunc("/user_answers", handlers.GetAllUserAnswers).Methods("GET")
@@ -105,8 +105,6 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/notifications", handlers.CreateNotification).Methods("POST")
 	authorized.HandleFunc("/notifications/{id}", handlers.UpdateNotification).Methods("PUT")
 	authorized.HandleFunc("/notifications/{id}", handlers.DeleteNotification).Methods("DELETE")
-
-
 
 	return r
 }

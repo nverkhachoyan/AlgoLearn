@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
     paddingLeft: 25,
     paddingRight: 25,
     backgroundColor: '#fff',
-    // margin: 20,
   },
   middleContent: {
     flex: 1,

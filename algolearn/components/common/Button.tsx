@@ -1,41 +1,96 @@
-import React from 'react';
-import { Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Text,
+  StyleSheet,
+  Pressable,
+  ViewStyle,
+  TextStyle,
+} from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+
+type FeatherIconName = keyof typeof Feather.glyphMap;
+type FontAwesomeIconName = keyof typeof FontAwesome.glyphMap;
 
 interface ButtonProps {
   onPress: () => void;
   title?: string;
   icon?: {
-    name: keyof typeof Feather.glyphMap;
+    name: FeatherIconName | FontAwesomeIconName;
     position: 'left' | 'right' | 'middle';
     size?: number;
     color?: string;
+    type?: 'feather' | 'fontawesome'; // Specify the type of icon
   };
-  style?: 'solid' | 'regular' | 'light' | 'brands';
+  style?: ViewStyle; // Style for the Pressable
+  textStyle?: TextStyle; // Style for the Text
+  iconStyle?: TextStyle; // Style for the Icon
 }
 
 export default function Button(props: ButtonProps) {
-  const { onPress, title = 'Save', icon } = props;
+  const {
+    onPress,
+    title = 'Save',
+    icon,
+    style,
+    textStyle,
+    iconStyle,
+    ...rest
+  } = props;
+  const [isPressed, setIsPressed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const renderIcon = () => {
     if (!icon) return null;
 
-    const { name, size = 20, color = 'white' } = icon;
+    const { name, size = 20, color = 'white', type = 'feather' } = icon;
+
+    if (type === 'fontawesome') {
+      return (
+        <FontAwesome
+          name={name as FontAwesomeIconName}
+          size={size}
+          color={color}
+          style={[
+            icon.position === 'left' ? styles.iconLeft : styles.iconRight,
+            iconStyle,
+          ]}
+        />
+      );
+    }
 
     return (
       <Feather
-        name={name}
+        name={name as FeatherIconName}
         size={size}
         color={color}
-        style={icon.position === 'left' ? styles.iconLeft : styles.iconRight}
+        style={[
+          icon.position === 'left' ? styles.iconLeft : styles.iconRight,
+          iconStyle,
+        ]}
       />
     );
   };
 
   return (
-    <Pressable style={styles.button} onPress={onPress}>
-      <Text style={[styles.text]}>{title}</Text>
-      {props.icon && renderIcon()}
+    <Pressable
+      style={[
+        styles.button,
+        isPressed && styles.buttonPressed,
+        isHovered && styles.buttonHovered,
+        style,
+      ]}
+      onPress={onPress}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      {...rest}
+    >
+      {icon?.position === 'left' && renderIcon()}
+      <Text style={[styles.text, textStyle]}>{title}</Text>
+      {icon?.position === 'right' && renderIcon()}
+      {icon?.position === 'middle' && renderIcon()}
     </Pressable>
   );
 }
@@ -51,6 +106,13 @@ const styles = StyleSheet.create({
     elevation: 3,
     backgroundColor: 'black',
   },
+  buttonPressed: {
+    backgroundColor: '#333',
+    transform: [{ scale: 0.95 }],
+  },
+  buttonHovered: {
+    backgroundColor: '#555',
+  },
   text: {
     fontSize: 16,
     lineHeight: 21,
@@ -59,11 +121,9 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   iconRight: {
-    position: 'absolute',
-    right: 15,
+    marginLeft: 8,
   },
   iconLeft: {
-    position: 'absolute',
-    left: 15,
+    marginRight: 8,
   },
 });

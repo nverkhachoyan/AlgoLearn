@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Image } from 'expo-image';
 
 type FeatherIconName = keyof typeof Feather.glyphMap;
 type FontAwesomeIconName = keyof typeof FontAwesome.glyphMap;
@@ -20,11 +21,12 @@ interface ButtonProps {
     position: 'left' | 'right' | 'middle';
     size?: number;
     color?: string;
-    type?: 'feather' | 'fontawesome'; // Specify the type of icon
+    type?: 'feather' | 'fontawesome' | 'png'; // Type of icon
+    src?: string; // Source if type is png
   };
   style?: ViewStyle; // Style for the Pressable
   textStyle?: TextStyle; // Style for the Text
-  iconStyle?: TextStyle; // Style for the Icon
+  iconStyle?: TextStyle | {}; // Style for the Icon
 }
 
 export default function Button(props: ButtonProps) {
@@ -43,7 +45,7 @@ export default function Button(props: ButtonProps) {
   const renderIcon = () => {
     if (!icon) return null;
 
-    const { name, size = 20, color = 'white', type = 'feather' } = icon;
+    const { name, size = 20, color = 'white', type = 'feather', src } = icon;
 
     if (type === 'fontawesome') {
       return (
@@ -51,6 +53,18 @@ export default function Button(props: ButtonProps) {
           name={name as FontAwesomeIconName}
           size={size}
           color={color}
+          style={[
+            icon.position === 'left' ? styles.iconLeft : styles.iconRight,
+            iconStyle,
+          ]}
+        />
+      );
+    }
+
+    if (type === 'png') {
+      return (
+        <Image
+          source={src}
           style={[
             icon.position === 'left' ? styles.iconLeft : styles.iconRight,
             iconStyle,

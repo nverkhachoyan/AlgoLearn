@@ -43,6 +43,7 @@ export default function Index() {
           title='Get Started'
           onPress={() => router.navigate('(onboarding)/signup')}
           icon={{ name: 'arrow-right', position: 'right' }}
+          iconStyle={{ position: 'absolute', right: 12 }}
         />
       </View>
     </View>

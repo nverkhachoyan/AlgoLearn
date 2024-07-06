@@ -1,9 +1,13 @@
+version: "3.8"
+
 services:
   db:
     image: postgres:latest
     container_name: algolearn_postgres
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: algoadmin
+      POSTGRES_PASSWORD: algolearn4stml
+      POSTGRES_DB: algolearn
     ports:
       - "5432:5432"
     volumes:
@@ -11,11 +15,25 @@ services:
     networks:
       - algolearn-net
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: algolearn_app
+    depends_on:
+      - db
+    networks:
+      - algolearn-net
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - PORT=${PORT}
+    ports:
+      - "8080:8080"
+
 volumes:
   db-data: {}
-  
+
 networks:
   algolearn-net: {}
-
-
-

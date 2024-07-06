@@ -20,6 +20,16 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Default port if not specified
+	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
+
 	// Initialize database
 	config.InitDB()
 	config.InitOAuth()
@@ -45,6 +55,6 @@ func main() {
 	loggedRouter := middleware.LoggingMiddleware(timeoutMiddleware(r))
 
 	// Start server and log
-	log.Println(colors.Purple + "Server is running on port 8080" + colors.Reset)
-	log.Fatal(http.ListenAndServe(":8080", loggedRouter))
+	log.Println(colors.Purple + "Server is running on port " + port + " " + colors.Reset)
+	log.Fatal(http.ListenAndServe(":"+port, loggedRouter))
 }

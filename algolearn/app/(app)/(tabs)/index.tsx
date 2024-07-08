@@ -1,22 +1,43 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { View, ScrollView, Text } from '@/components/Themed';
 import StickyHeader from '@/components/StickyHeader';
+import { useAuthContext } from '@/context/auth';
+import CourseCard from '@/components/tabs/CourseCard';
 
-export default function TabOneScreen() {
+export default function Home() {
+  const { user, isAuthed, loading } = useAuthContext();
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
+  if (!isAuthed || !user) {
+    return <Text>Not logged in</Text>;
+  }
+
   return (
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       stickyHeaderIndices={[0]}
     >
-      <StickyHeader cpus={0} strikeCount={0} userAvatar={null} />
+      <StickyHeader cpus={user.cpus} strikeCount={0} userAvatar={null} />
 
-      <Text style={styles.title}>Index</Text>
-      <View
-        style={styles.separator}
-        lightColor='#eee'
-        darkColor='rgba(255,255,255,0.1)'
-      />
-      {/* Add other content here */}
+      <View style={styles.container}>
+        <Text style={styles.title}>Currently Learning</Text>
+        <View style={styles.separator} />
+        <CourseCard
+          courseTitle='The JavaScript Ecosystem'
+          unitInfo='Unit 1: In the beginning, there was Eden...'
+          buttonTitle='Jump right back in'
+        />
+        <Text style={styles.title}>Other Topics</Text>
+        <View style={styles.separator} />
+        <CourseCard
+          courseTitle='Data Structures'
+          unitInfo='Unit 1: Who is this Al Gore Rhythm?'
+          buttonTitle='Jump right back in'
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -24,6 +45,7 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    marginHorizontal: 16,
   },
   scrollContent: {
     flexGrow: 1,
@@ -32,9 +54,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+    fontFamily: 'OpenSauceOne-Regular',
+    alignSelf: 'center',
   },
   separator: {
-    marginVertical: 30,
+    marginVertical: 16,
     height: 1,
     width: '80%',
   },

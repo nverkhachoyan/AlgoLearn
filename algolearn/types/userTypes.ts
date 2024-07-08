@@ -14,7 +14,7 @@ export type User = {
   is_email_verified: boolean;
   bio?: string;
   location?: string;
-  cpus?: number;
+  cpus: number;
   preferences?: string;
   token: string | null;
 } | null;

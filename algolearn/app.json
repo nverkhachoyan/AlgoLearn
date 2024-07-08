@@ -5,26 +5,32 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "app.algolearn",
     "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android", "web"],
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nverkhachoyan.algolearn"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.nverkhachoyan.algolearn"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "config": {
+        "redirectUri": "https://auth.expo.io/@nverkhachoyan/algolearn"
+      }
     },
     "plugins": [
       "expo-router",
@@ -42,6 +48,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "8973f7e9-27c5-43e1-aa75-aff16ec756c8"
+      }
+    },
+    "owner": "nverkhachoyan"
   }
 }

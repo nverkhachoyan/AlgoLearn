@@ -1,14 +1,10 @@
 import React, { useEffect } from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Tabs, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useAuthContext } from '@/context/auth';
-import { router } from 'expo-router';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Feather>['name'];
@@ -63,6 +59,8 @@ export default function TabLayout() {
           paddingTop: 5,
           paddingBottom: 5,
           height: 40,
+          borderRadius: 8,
+          marginHorizontal: 20,
         },
       }}
     >

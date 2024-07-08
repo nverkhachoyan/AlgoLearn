@@ -9,7 +9,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState, useEffect } from 'react';
 import 'react-native-reanimated';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import globalStyles from '@/app/(app)/styles'; // Import global styles
@@ -56,14 +56,12 @@ export default function Layout() {
   }
 
   return (
-    <SafeAreaView style={globalStyles.container}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name='(tabs)' />
-          <Stack.Screen name='modal' options={{ presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
-    </SafeAreaView>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name='(tabs)' />
+        <Stack.Screen name='modal' options={{ presentation: 'modal' }} />
+      </Stack>
+    </ThemeProvider>
   );
 }
 

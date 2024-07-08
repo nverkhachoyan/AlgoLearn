@@ -1,20 +1,20 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
 import { View } from '@/components/Themed';
 
 import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text } from '@/components/Themed';
+import { StatusBar } from 'expo-status-bar';
 
 export default function TabOneScreen() {
   return (
-    <View>
-      <Text style={styles.title}>Tab One</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Index</Text>
       <View
         style={styles.separator}
         lightColor='#eee'
         darkColor='rgba(255,255,255,0.1)'
       />
-      <EditScreenInfo path='app/(tabs)/index.tsx' />
     </View>
   );
 }

@@ -4,95 +4,67 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
-
-export type User = {
-  name: string;
-  email: string;
-  token: string | null;
-} | null;
-
-export type AuthContextType = {
-  user: User;
-  setUser: (
-    user: {
-      name: string;
-      email: string;
-      token: string | null;
-    } | null
-  ) => void;
-  handleSignOut: () => void;
-  signInWithGoogle: () => Promise<void>;
-  isAuthed: boolean;
-  loading: boolean;
-};
+import { useFetchUser } from '@/hooks/useFetchUser';
+import { User } from '@/types/userTypes';
+import { AuthContextType } from '@/types/authTypes';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [loading, setLoading] = useState<boolean>(true);
   const [isAuthed, setIsAuthed] = useState<boolean>(false);
-  const [user, setUser] = useState<User>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const { user, loading, setUser, refetch } = useFetchUser(token);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await AsyncStorage.removeItem('authToken');
     setUser(null);
     setIsAuthed(false);
-  };
+  }, [setUser]);
 
-  console.log('User', user);
-  console.log('isAuthed', isAuthed);
+  const handleSuccess = useCallback(
+    async (token: string) => {
+      setToken(token);
+      await AsyncStorage.setItem('authToken', token);
+      setIsAuthed(true);
+      refetch();
+    },
+    [refetch]
+  );
 
-  const handleSignIn = async (token: string) => {
-    await AsyncStorage.setItem('authToken', token);
-    setUser({
-      name: 'Nverig',
-      email: 'gmil',
-      token: token,
-    });
-    setIsAuthed(true);
-  };
-
-  const handleSuccess = async (token: string) => {
-    setUser({
-      name: 'Nverik',
-      email: 'gmailnvo',
-      token: token,
-    });
-    await AsyncStorage.setItem('authToken', token);
-    setIsAuthed(true);
-  };
-
-  const handleError = (error: Error) => {
-    console.error('Authentication error:', error);
-    handleSignOut();
-  };
+  const handleError = useCallback(
+    (error: Error) => {
+      console.error('Authentication error:', error);
+      handleSignOut();
+    },
+    [handleSignOut]
+  );
 
   const { promptAsync } = useGoogleAuth(handleSuccess, handleError);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     promptAsync();
-  };
+  }, [promptAsync]);
 
   useEffect(() => {
     const checkAuthState = async () => {
-      const authToken = await AsyncStorage.getItem('authToken');
-      if (authToken) {
-        await AsyncStorage.setItem('authToken', authToken);
-        setUser({
-          name: 'Nverik',
-          email: 'gmailnvo',
-          token: authToken,
-        });
-        setIsAuthed(true);
+      try {
+        const authToken = await AsyncStorage.getItem('authToken');
+        if (authToken) {
+          setToken(authToken);
+          setIsAuthed(true);
+          refetch();
+        }
+      } catch (error) {
+        console.error('Failed to check auth state:', error);
       }
-      setLoading(false);
     };
 
     checkAuthState();
-  }, []);
+  }, [refetch]);
 
   return (
     <AuthContext.Provider

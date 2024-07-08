@@ -11,11 +11,14 @@ import { useRouter } from 'expo-router';
 import Button from '@/components/common/Button';
 import { Feather } from '@expo/vector-icons';
 import { useAuthContext } from '@/context/auth';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 
 export default function SignUp() {
   const router = useRouter();
   const { isAuthed } = useAuthContext();
   const { signInWithGoogle } = useAuthContext();
+  const colorScheme = useColorScheme();
 
   useEffect(() => {
     if (isAuthed) {
@@ -24,24 +27,72 @@ export default function SignUp() {
   }, [isAuthed]);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={[
+        styles.container,
+        { backgroundColor: Colors[colorScheme ?? 'light'].background },
+      ]}
+    >
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
-        <Feather name='arrow-left' size={24} color='black' />
+        <Feather
+          name='arrow-left'
+          size={24}
+          color={Colors[colorScheme ?? 'light'].text}
+        />
       </Pressable>
-      <Text style={styles.title}>Log in or sign up to AlgoLearn</Text>
+      <Text
+        style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}
+      >
+        Log in or sign up to AlgoLearn
+      </Text>
       <View style={styles.middleContent}>
-        <TextInput style={styles.textInput} placeholder='Email' />
+        <TextInput
+          style={[
+            styles.textInput,
+            {
+              borderColor: Colors[colorScheme ?? 'light'].border,
+              color: Colors[colorScheme ?? 'light'].text,
+            },
+          ]}
+          placeholder='Email'
+          placeholderTextColor={Colors[colorScheme ?? 'light'].placeholderText}
+        />
         <Button
           title='Continue'
           onPress={() => router.navigate('(onboarding)/signup')}
           icon={{ name: 'arrow-right', position: 'right' }}
-          iconStyle={{ position: 'absolute', right: 12 }}
+          textStyle={{ color: Colors[colorScheme ?? 'light'].buttonText }}
+          iconStyle={{
+            position: 'absolute',
+            right: 12,
+            color: Colors[colorScheme ?? 'light'].buttonText,
+          }}
+          style={{
+            backgroundColor: Colors[colorScheme ?? 'light'].buttonBackground,
+          }}
         />
       </View>
       <View style={styles.dividerContainer}>
-        <View style={styles.line} />
-        <Text style={styles.orText}>or</Text>
-        <View style={styles.line} />
+        <View
+          style={[
+            styles.line,
+            { backgroundColor: Colors[colorScheme ?? 'light'].text },
+          ]}
+        />
+        <Text
+          style={[
+            styles.orText,
+            { color: Colors[colorScheme ?? 'light'].text },
+          ]}
+        >
+          or
+        </Text>
+        <View
+          style={[
+            styles.line,
+            { backgroundColor: Colors[colorScheme ?? 'light'].text },
+          ]}
+        />
       </View>
       <View style={styles.buttonContainer}>
         <Button
@@ -55,11 +106,14 @@ export default function SignUp() {
           }}
           iconStyle={{ width: 20, height: 20 }}
           style={{
-            backgroundColor: '#fff',
-            borderColor: '#555',
+            backgroundColor:
+              colorScheme ?? 'light' === 'light' ? 'white' : 'black',
+            borderColor: Colors[colorScheme ?? 'light'].border,
             borderWidth: 1,
           }}
-          textStyle={{ color: 'black' }}
+          textStyle={{
+            color: '#666',
+          }}
         />
       </View>
     </ScrollView>
@@ -71,7 +125,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: 25,
     paddingRight: 25,
-    backgroundColor: '#fff',
   },
   goBackButton: {
     flexDirection: 'row',
@@ -106,7 +159,6 @@ const styles = StyleSheet.create({
   textInput: {
     height: 45,
     padding: 10,
-    borderColor: '#333',
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 16,
@@ -119,11 +171,9 @@ const styles = StyleSheet.create({
   line: {
     height: 1,
     flex: 1,
-    backgroundColor: '#333',
   },
   orText: {
     marginHorizontal: 10,
     fontSize: 16,
-    color: '#333',
   },
 });

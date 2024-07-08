@@ -6,12 +6,12 @@ export default function PushNotifications() {
   const router = useRouter();
 
   return (
-    <SafeAreaView>
+    <>
       <Text>Push Notifications</Text>
       <Button
         title='Get Started'
         onPress={() => router.navigate('(onboarding)/courseselection')}
       />
-    </SafeAreaView>
+    </>
   );
 }

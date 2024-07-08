@@ -1,29 +1,42 @@
 import { StyleSheet } from 'react-native';
-
-import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text, View } from '@/components/Themed';
 import Button from '@/components/common/Button';
 import { useAuthContext } from '@/context/auth';
-import { router } from 'expo-router';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
+import { Seperator } from '@/components/common/Seperator';
+import { AuthContextType } from '@/types/authTypes';
 
 export default function inbox() {
-  const { handleSignOut } = useAuthContext();
+  const { user, isAuthed, loading, handleSignOut } = useAuthContext();
+  const colorScheme = useColorScheme();
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
+
+  if (!isAuthed || !user) {
+    return <Text>Not logged in</Text>;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View
-        style={styles.separator}
-        lightColor='#eee'
-        darkColor='rgba(255,255,255,0.1)'
-      />
-      <EditScreenInfo path='app/(tabs)/two.tsx' />
+      <Text style={styles.title}>Inbox</Text>
+      <Seperator />
+      <Text>Email: {user.email}</Text>
+      <Text>CPUS: {user.cpus}</Text>
+
       <Button
         title='Log Out'
         onPress={() => {
           handleSignOut();
-          router.navigate('welcome');
         }}
+        style={{
+          backgroundColor: Colors[colorScheme ?? 'light'].buttonBackground,
+          borderColor: Colors[colorScheme ?? 'light'].border,
+          borderWidth: 1,
+        }}
+        textStyle={{ color: Colors[colorScheme ?? 'light'].buttonText }}
       />
     </View>
   );

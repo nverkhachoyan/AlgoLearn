@@ -1,0 +1,20 @@
+export type User = {
+  user_id: number;
+  username: string;
+  email: string;
+  oauth_id?: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+  first_name?: string;
+  last_name?: string;
+  profile_picture_url?: string;
+  last_login_at?: string;
+  is_active: boolean;
+  is_email_verified: boolean;
+  bio?: string;
+  location?: string;
+  cpus?: number;
+  preferences?: string;
+  token: string | null;
+} | null;

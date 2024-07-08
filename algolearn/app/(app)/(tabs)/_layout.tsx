@@ -48,7 +48,8 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, true),
         tabBarShowLabel: false,
         tabBarStyle: {
-          height: 40,
+          height: 50,
+          paddingVertical: 10,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.53,

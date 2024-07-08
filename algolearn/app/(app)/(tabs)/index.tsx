@@ -1,29 +1,33 @@
 import { Platform, StyleSheet } from 'react-native';
-import { useEffect, useState } from 'react';
-import { View } from '@/components/Themed';
-
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text } from '@/components/Themed';
-import { StatusBar } from 'expo-status-bar';
+import { View, ScrollView, Text } from '@/components/Themed';
+import StickyHeader from '@/components/StickyHeader';
 
 export default function TabOneScreen() {
   return (
-    <View style={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      stickyHeaderIndices={[0]}
+    >
+      <StickyHeader cpus={0} strikeCount={0} userAvatar={null} />
+
       <Text style={styles.title}>Index</Text>
       <View
         style={styles.separator}
         lightColor='#eee'
         darkColor='rgba(255,255,255,0.1)'
       />
-    </View>
+      {/* Add other content here */}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
   },
   title: {
     fontSize: 20,

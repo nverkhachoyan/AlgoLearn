@@ -16,6 +16,7 @@ export default {
     buttonBackground: '#1E1E1E',
     border: '#333',
     placeholderText: '#999',
+    icon: '#333',
   },
   dark: {
     text: '#fff',
@@ -32,5 +33,6 @@ export default {
     buttonBackground: 'white',
     border: '#888',
     placeholderText: '#666',
+    icon: '#fff',
   },
 };

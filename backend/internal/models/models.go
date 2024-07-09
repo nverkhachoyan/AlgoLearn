@@ -20,7 +20,7 @@ type User struct {
 	IsEmailVerified   bool      `json:"is_email_verified"`
 	Bio               string    `json:"bio,omitempty"`
 	Location          string    `json:"location,omitempty"`
-	CPUs              int       `json:"cpus,omitempty"`
+	CPUs              int       `json:"cpus"`
 	Preferences       string    `json:"preferences,omitempty"` // JSON for user preferences
 }
 

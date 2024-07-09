@@ -16,8 +16,8 @@ COPY . .
 # Build the Go app
 RUN go build -o main cmd/server/main.go
 
-# Expose port (Railway automatically assigns a port, so this is optional)
-EXPOSE 8080
+# Expose port 
+EXPOSE 8080 
 
 # Command to run the executable
 CMD ["./main"]

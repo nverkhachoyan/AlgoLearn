@@ -1,5 +1,4 @@
 import { Stack } from 'expo-router';
-import { AuthProvider } from '@/context/auth';
 
 export default function Layout() {
   return (
@@ -13,7 +12,7 @@ export default function Layout() {
           fontWeight: 'bold',
         },
       }}
-      initialRouteName='welcome'
+      // initialRouteName='welcome'
     >
       <Stack.Screen name='welcome' options={{ headerShown: false }} />
       <Stack.Screen name='signup' options={{ headerShown: false }} />

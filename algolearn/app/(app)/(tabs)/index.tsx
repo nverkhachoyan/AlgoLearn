@@ -1,8 +1,10 @@
-import { StyleSheet } from 'react-native';
-import { View, ScrollView, Text } from '@/components/Themed';
-import StickyHeader from '@/components/StickyHeader';
-import { useAuthContext } from '@/context/auth';
-import CourseCard from '@/components/tabs/CourseCard';
+import { StyleSheet } from "react-native";
+import { View, ScrollView, Text } from "@/components/Themed";
+import StickyHeader from "@/components/StickyHeader";
+import { useAuthContext } from "@/context/auth";
+import CourseCard from "@/components/tabs/CourseCard";
+import Button from "@/components/common/Button";
+import { router } from "expo-router";
 
 export default function Home() {
   const { user, isAuthed, loading } = useAuthContext();
@@ -20,22 +22,31 @@ export default function Home() {
       contentContainerStyle={styles.scrollContent}
       stickyHeaderIndices={[0]}
     >
-      <StickyHeader cpus={user.cpus} strikeCount={0} userAvatar={null} />
+      <StickyHeader
+        cpus={user.cpus}
+        strikeCount={0}
+        userAvatar={null}
+        onAvatarPress={() => {
+          router.push("profile");
+        }}
+      />
 
       <View style={styles.container}>
         <Text style={styles.title}>Currently Learning</Text>
         <View style={styles.separator} />
         <CourseCard
-          courseTitle='The JavaScript Ecosystem'
-          unitInfo='Unit 1: In the beginning, there was Eden...'
-          buttonTitle='Jump right back in'
+          courseTitle="The JavaScript Ecosystem"
+          unitInfo="Unit 1: In the beginning, there was Eden..."
+          buttonTitle="Jump right back in"
         />
+        <View style={styles.separator} />
+
         <Text style={styles.title}>Other Topics</Text>
         <View style={styles.separator} />
         <CourseCard
-          courseTitle='Data Structures'
-          unitInfo='Unit 1: Who is this Al Gore Rhythm?'
-          buttonTitle='Jump right back in'
+          courseTitle="Data Structures"
+          unitInfo="Unit 1: Who is this Al Gore Rhythm?"
+          buttonTitle="Jump right back in"
         />
       </View>
     </ScrollView>
@@ -49,17 +60,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
-    fontFamily: 'OpenSauceOne-Regular',
-    alignSelf: 'center',
+    fontWeight: "bold",
+    fontFamily: "OpenSauceOne-Regular",
+    alignSelf: "center",
   },
   separator: {
     marginVertical: 16,
     height: 1,
-    width: '80%',
+    width: "80%",
   },
 });

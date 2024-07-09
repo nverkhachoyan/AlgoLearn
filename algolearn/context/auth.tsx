@@ -1,46 +1,42 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-  useCallback,
-} from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useGoogleAuth } from '@/hooks/useGoogleAuth';
-import { useFetchUser } from '@/hooks/useFetchUser';
-import { User } from '@/types/userTypes';
-import { AuthContextType } from '@/types/authTypes';
+import React, { useEffect, useCallback, useState } from "react";
+import { useAtom } from "jotai";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { tokenAtom, isAuthedAtom, userAtom } from "@/atoms/authAtoms"; // Adjust the import path as needed
+import { AuthContextType } from "@/types/authTypes";
+import { createContext, useContext, ReactNode } from "react";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthed, setIsAuthed] = useState<boolean>(false);
-  const [token, setToken] = useState<string | null>(null);
-  const { user, loading, setUser, refetch } = useFetchUser(token);
+  const [token, setToken] = useAtom(tokenAtom);
+  const [isAuthed, setIsAuthed] = useAtom(isAuthedAtom);
+  const [{ data: user, refetch: refetchUser, isFetching: loadingUserFetch }] =
+    useAtom(userAtom);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const handleSignOut = useCallback(async () => {
-    await AsyncStorage.removeItem('authToken');
-    setUser(null);
+  const signOut = useCallback(async () => {
+    await AsyncStorage.removeItem("authToken");
+    setToken(null);
     setIsAuthed(false);
-  }, [setUser]);
+  }, [setToken, setIsAuthed]);
 
   const handleSuccess = useCallback(
     async (token: string) => {
       setToken(token);
-      await AsyncStorage.setItem('authToken', token);
+      await AsyncStorage.setItem("authToken", token);
       setIsAuthed(true);
-      refetch();
+      refetchUser();
     },
-    [refetch]
+    [setToken, setIsAuthed, refetchUser],
   );
 
   const handleError = useCallback(
     (error: Error) => {
-      console.error('Authentication error:', error);
-      handleSignOut();
+      console.error("Authentication error:", error);
+      signOut();
     },
-    [handleSignOut]
+    [signOut],
   );
 
   const { promptAsync } = useGoogleAuth(handleSuccess, handleError);
@@ -52,27 +48,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuthState = async () => {
       try {
-        const authToken = await AsyncStorage.getItem('authToken');
+        const authToken = await AsyncStorage.getItem("authToken");
         if (authToken) {
           setToken(authToken);
           setIsAuthed(true);
-          refetch();
+          refetchUser();
         }
       } catch (error) {
-        console.error('Failed to check auth state:', error);
+        console.error("Failed to check auth state:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     checkAuthState();
-  }, [refetch]);
+  }, [setToken, setIsAuthed, refetchUser]);
+
+  useEffect(() => {
+    if (!loadingUserFetch) {
+      setLoading(false);
+    }
+  }, [loadingUserFetch]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        setUser,
         signInWithGoogle,
-        handleSignOut,
+        signOut,
         isAuthed,
         loading,
       }}
@@ -85,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuthContext must be used within an AuthProvider');
+    throw new Error("useAuthContext must be used within an AuthProvider");
   }
   return context;
 };

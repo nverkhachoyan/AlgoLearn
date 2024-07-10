@@ -36,8 +36,17 @@ CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT NOT NULL,
+    background_color VARCHAR(7) DEFAULT '#FFFFFF',  -- Default white color
+    icon_url TEXT,
+    duration VARCHAR(50),
+    difficulty_level VARCHAR(20),  -- Example: "Beginner", "Intermediate", "Advanced"
+    author VARCHAR(100),
+    tags TEXT[],  -- Array of tags
+    rating DECIMAL(2, 1) CHECK (rating >= 0 AND rating <= 5),  -- Rating from 0 to 5
+    learners_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Units table

@@ -4,7 +4,7 @@ import Feather from "@expo/vector-icons/Feather";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
-import { useAuthContext } from "@/context/auth";
+import { useAuthContext } from "@/context/AuthProvider";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Feather>["name"];

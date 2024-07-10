@@ -1,17 +1,12 @@
 import axios from "axios";
 
-export const fetchUser = async (token: string) => {
+export const fetchCourses = async () => {
   const response = await axios.get(
     `${process.env.EXPO_PUBLIC_BACKEND_URL}/courses`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
   );
   if (response.data.status === "success") {
-    return { ...response.data.data, token };
+    return response.data.data; // Assuming this is an array of courses
   } else {
-    throw new Error(response.data.message);
+    throw new Error(response.data);
   }
 };

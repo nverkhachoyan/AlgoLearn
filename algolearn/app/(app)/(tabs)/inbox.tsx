@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import { Text, View, ScrollView } from "@/components/Themed";
 import Button from "@/components/common/Button";
-import { useAuthContext } from "@/context/auth";
+import { useAuthContext } from "@/context/AuthProvider";
 import { useColorScheme } from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
 import { Seperator } from "@/components/common/Seperator";

@@ -1,5 +1,5 @@
 import { Slot } from "expo-router";
-import { AuthProvider } from "@/context/auth";
+import { AuthProvider } from "@/context/AuthProvider";
 import { SafeAreaView } from "react-native";
 import { useColorScheme } from "react-native";
 import Colors from "@/constants/Colors";
@@ -12,8 +12,8 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <JotaiProvider>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <JotaiProvider>
         <SafeAreaView
           style={{
             flex: 1,
@@ -24,7 +24,7 @@ export default function RootLayout() {
             <Slot />
           </AuthProvider>
         </SafeAreaView>
-      </QueryClientProvider>
-    </JotaiProvider>
+      </JotaiProvider>
+    </QueryClientProvider>
   );
 }

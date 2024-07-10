@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet } from "react-native";
 import { Text, View } from "@/components/Themed";
-import { useAuthContext } from "@/context/auth";
+import { useAuthContext } from "@/context/AuthProvider";
 import Button from "@/components/common/Button";
 import { router } from "expo-router";
 import { useColorScheme } from "@/components/useColorScheme";
@@ -10,7 +10,7 @@ import moment from "moment";
 import Colors from "@/constants/Colors";
 
 export default function Profile() {
-  const { user, isAuthed, loading, signOut } = useAuthContext();
+  const { user, isAuthed, loading, signOut, deleteAccount } = useAuthContext();
   const colorScheme = useColorScheme();
 
   const theme = Colors[colorScheme ?? "light"];
@@ -80,7 +80,7 @@ export default function Profile() {
       <Seperator />
       <Button
         title="Delete Account"
-        onPress={signOut}
+        onPress={() => deleteAccount()}
         style={{
           backgroundColor: theme.dangerBgColor,
         }}

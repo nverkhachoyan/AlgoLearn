@@ -36,10 +36,10 @@ func SetupRouter() *mux.Router {
 	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
 
-	 // OAuth 2.0 login and callback endpoints
-	 r.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")
-	 r.HandleFunc("/callback/google", handlers.GoogleCallback).Methods("GET")
-	 r.HandleFunc("/callback/apple", handlers.AppleCallback).Methods("GET")
+	// OAuth 2.0 login and callback endpoints
+	r.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")
+	r.HandleFunc("/callback/google", handlers.GoogleCallback).Methods("GET")
+	r.HandleFunc("/callback/apple", handlers.AppleCallback).Methods("GET")
 
 	// Authorized routes
 	authorized := r.PathPrefix("/").Subrouter()
@@ -58,8 +58,8 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
 	// Courses endpoints
-	authorized.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
-	authorized.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
+	r.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
+	r.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
 	admin.HandleFunc("/courses", handlers.CreateCourse).Methods("POST")
 	admin.HandleFunc("/courses/{id}", handlers.UpdateCourse).Methods("PUT")
 	admin.HandleFunc("/courses/{id}", handlers.DeleteCourse).Methods("DELETE")

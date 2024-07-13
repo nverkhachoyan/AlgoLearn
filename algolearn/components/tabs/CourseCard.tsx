@@ -1,8 +1,10 @@
 import { View, Text, Image, StyleSheet } from "react-native";
+import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import Button from "../common/Button";
 
 export default function CourseCard(props: {
+  courseID: string;
   courseTitle: string;
   unitInfo: string;
   buttonTitle?: string;
@@ -41,7 +43,9 @@ export default function CourseCard(props: {
       <View style={styles.buttonContainer}>
         <Button
           title="Details"
-          onPress={() => console.log("Details")}
+          onPress={() =>
+            router.push(`course_details/?courseID=${props.courseID}`)
+          }
           textStyle={{ fontSize: 14 }}
         />
         <Button
@@ -70,7 +74,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
+    gap: 10,
     marginVertical: 18,
   },
   title: {

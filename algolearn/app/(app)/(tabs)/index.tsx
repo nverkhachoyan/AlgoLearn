@@ -39,8 +39,6 @@ export default function Home() {
     return <Text>Fetching courses...</Text>;
   }
 
-  console.log("courses", courses);
-
   return (
     <ScrollView
       contentContainerStyle={styles.scrollContent}
@@ -54,7 +52,6 @@ export default function Home() {
           router.push("profile");
         }}
       />
-
       <View style={styles.container}>
         <Text style={styles.title}>Currently Learning</Text>
         <View style={styles.separator} />
@@ -62,6 +59,7 @@ export default function Home() {
           courses.map((course) => (
             <CourseCard
               key={course.id}
+              courseID={course.id.toString()}
               courseTitle={course.name}
               unitInfo={course.description}
               // backgroundColor={course.background_color}

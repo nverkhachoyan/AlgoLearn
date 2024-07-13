@@ -97,6 +97,14 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      {/* Hidden tabs */}
+      <Tabs.Screen
+        name="(course)"
+        options={{
+          headerShown: false,
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

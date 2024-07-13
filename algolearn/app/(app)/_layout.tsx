@@ -45,7 +45,10 @@ export default function Layout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{ headerShown: false }}
+        initialRouteName="(tabs)/index"
+      >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="profile" options={{ presentation: "modal" }} />
       </Stack>

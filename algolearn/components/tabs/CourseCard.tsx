@@ -44,13 +44,13 @@ export default function CourseCard(props: {
         <Button
           title="Details"
           onPress={() =>
-            router.push(`course_details/?courseID=${props.courseID}`)
+            router.replace(`course_details/?courseID=${props.courseID}`)
           }
           textStyle={{ fontSize: 14 }}
         />
         <Button
           title={props.buttonTitle || "Continue"}
-          onPress={() => console.log("Get Started")}
+          onPress={() => router.replace("module_session")}
           textStyle={{ fontSize: 14 }}
         />
       </View>

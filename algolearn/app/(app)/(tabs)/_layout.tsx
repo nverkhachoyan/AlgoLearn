@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, useSegments } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
@@ -16,6 +16,7 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { loading, isAuthed } = useAuthContext();
+  const segments = useSegments();
 
   useEffect(() => {
     if (!loading && !isAuthed) {
@@ -54,6 +55,7 @@ export default function TabLayout() {
           shadowOpacity: 0.53,
           shadowRadius: 2.5,
           borderRadius: 8,
+          display: segments.includes("module_session") ? "none" : "flex",
         },
         tabBarItemStyle: {
           paddingTop: 5,

@@ -1,12 +1,28 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, Linking, Alert, StyleSheet } from "react-native";
+import { Linking, Alert, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text } from "@/components/Themed";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 import Markdown from "react-native-markdown-display";
 import YoutubePlayer from "react-native-youtube-iframe";
 import CodeBlock from "./CodeBlock";
+import { FontAwesome6 } from "@expo/vector-icons";
 
-const SectionRenderer = ({ section }: { section: any }) => {
+export type QuestionState = {
+  question_id: number;
+  has_answered: boolean;
+  selected_option_id?: number;
+};
+
+const SectionRenderer = ({
+  section,
+  handleQuestionAnswer,
+  questionsState,
+}: {
+  section: any;
+  handleQuestionAnswer: (question_id: number, selected_id: number) => void;
+  questionsState: Map<number, QuestionState>;
+}) => {
   const [videoPlaying, setVideoPlaying] = useState(false);
 
   const onStateChange = useCallback((state: any) => {
@@ -20,6 +36,34 @@ const SectionRenderer = ({ section }: { section: any }) => {
     setVideoPlaying((prev) => !prev);
   }, []);
 
+  const getIconColor = (
+    optionId: number,
+    questionState: QuestionState | undefined,
+  ) => {
+    if (questionState?.has_answered) {
+      if (optionId === section.correct_option_id) {
+        return "green";
+      } else if (optionId === questionState.selected_option_id) {
+        return "red";
+      }
+    }
+    return "gray";
+  };
+
+  const getOptionIcon = (
+    optionId: number,
+    questionState: QuestionState | undefined,
+  ) => {
+    if (questionState?.has_answered) {
+      if (optionId === section.correct_option_id) {
+        return "check-circle";
+      } else if (optionId === questionState.selected_option_id) {
+        return "times-circle";
+      }
+    }
+    return "circle";
+  };
+
   switch (section.type) {
     case "text":
       return (
@@ -32,7 +76,10 @@ const SectionRenderer = ({ section }: { section: any }) => {
                 <Image
                   key={node.key}
                   source={{ uri: node.attributes.src }}
-                  style={{ width: "100%", height: 200, resizeMode: "contain" }}
+                  style={[
+                    styles.section,
+                    { width: "100%", height: 200, contentFit: "contain" },
+                  ]}
                 />
               );
             },
@@ -46,7 +93,7 @@ const SectionRenderer = ({ section }: { section: any }) => {
               fontFamily: "OpenSauceOne-Bold",
             },
             ordered_list: { marginVertical: 15 },
-            list_item: { marginVertical: 5 },
+            list_item: { marginVertical: 4 },
             text: { lineHeight: 24 },
             link: { color: "#434343", textDecorationLine: "underline" },
           }}
@@ -60,10 +107,7 @@ const SectionRenderer = ({ section }: { section: any }) => {
       );
     case "image":
       return (
-        <View
-          key={section.position}
-          style={[styles.section, { marginVertical: 10 }]}
-        >
+        <View key={section.position} style={[styles.section]}>
           <Image
             source={{ uri: section.url }}
             style={{ width: "100%", height: 200 }}
@@ -86,14 +130,35 @@ const SectionRenderer = ({ section }: { section: any }) => {
         </View>
       );
     case "question":
+      const questionState = questionsState.get(section.question_id);
       return (
         <View
           key={section.position}
-          style={[styles.section, { marginVertical: 10 }]}
+          style={[styles.section, styles.questionContainer]}
         >
-          <Text>{section.question}</Text>
+          <Text style={[styles.question]}>{section.question}</Text>
           {section.options.map((option: any) => (
-            <Text key={option.id}>{option.content}</Text>
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                questionState?.selected_option_id === option.id
+                  ? styles.questionOptionSelected
+                  : styles.questionOption,
+              ]}
+              onPress={() =>
+                handleQuestionAnswer(section.question_id, option.id)
+              }
+              disabled={questionState?.has_answered}
+            >
+              <FontAwesome6
+                name={getOptionIcon(option.id, questionState)}
+                style={[
+                  styles.questionOptionIcon,
+                  { color: getIconColor(option.id, questionState) },
+                ]}
+              />
+              <Text> {option.content} </Text>
+            </TouchableOpacity>
           ))}
         </View>
       );
@@ -101,7 +166,15 @@ const SectionRenderer = ({ section }: { section: any }) => {
       return (
         <View
           key={section.position}
-          style={[styles.section, { height: 200, marginVertical: 10 }]}
+          style={[
+            styles.section,
+            {
+              height: 200,
+              marginVertical: 10,
+              borderRadius: 5,
+              overflow: "hidden",
+            },
+          ]}
         >
           <YoutubePlayer
             height={300}
@@ -127,6 +200,42 @@ export default SectionRenderer;
 
 const styles = StyleSheet.create({
   section: {
-    marginVertical: 10,
+    marginVertical: 20,
+  },
+  questionContainer: {
+    padding: 10,
+    borderRadius: 2,
+    backgroundColor: "#f8f8f8",
+  },
+  question: {
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  questionOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginVertical: 5,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    backgroundColor: "#fff",
+  },
+  questionOptionSelected: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginVertical: 5,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    backgroundColor: "#E8E8E8",
+  },
+  questionOptionIcon: {
+    fontSize: 14,
   },
 });

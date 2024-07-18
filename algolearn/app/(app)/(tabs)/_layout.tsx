@@ -55,7 +55,7 @@ export default function TabLayout() {
           shadowOpacity: 0.53,
           shadowRadius: 2.5,
           borderRadius: 8,
-          display: segments.includes("module_session") ? "none" : "flex",
+          display: segments.includes("ModuleSession") ? "none" : "flex",
         },
         tabBarItemStyle: {
           paddingTop: 5,

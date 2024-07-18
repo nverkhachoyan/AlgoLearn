@@ -5,8 +5,6 @@ import useHighlighter from "../hooks/useHighlighter";
 const CodeBlock = memo(({ code }: { code: string }) => {
   const tokens = useHighlighter(code);
 
-  console.log(tokens);
-
   return (
     <View style={[styles.section, styles.codeBlock]}>
       {tokens.map((token, index) => (

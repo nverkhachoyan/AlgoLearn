@@ -127,6 +127,9 @@ CREATE TABLE user_achievements (
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     achievement_id INT REFERENCES achievements(id) ON DELETE CASCADE,
     achieved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    name VARCHAR(100),
+    description VARCHAR(100),
+    points INT,
     UNIQUE(user_id, achievement_id)
 );
 

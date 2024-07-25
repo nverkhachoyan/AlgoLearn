@@ -2,34 +2,53 @@
 package repository
 
 import (
+	"github.com/lib/pq"
 	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/models"
 )
 
 func GetAllCourses() ([]models.Course, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, name, description, created_at, updated_at FROM courses")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+    db := config.GetDB()
+    rows, err := db.Query("SELECT * FROM courses")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	var courses []models.Course
-	for rows.Next() {
-		var course models.Course
-		err := rows.Scan(&course.ID, &course.Name, &course.Description, &course.CreatedAt, &course.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		courses = append(courses, course)
-	}
+    var courses []models.Course
+    for rows.Next() {
+        var course models.Course
+        var tags pq.StringArray // Use pq.StringArray for scanning PostgreSQL arrays
+        err := rows.Scan(
+            &course.ID, 
+            &course.Name, 
+            &course.Description, 
+            &course.BackgroundColor, 
+            &course.IconURL, 
+            &course.Duration, 
+            &course.DifficultyLevel, 
+            &course.Author, 
+            &tags, // Scan into pq.StringArray
+            &course.Rating, 
+            &course.LearnersCount, 
+            &course.CreatedAt, 
+            &course.UpdatedAt,
+            &course.LastUpdated,
+        )
+        if err != nil {
+            return nil, err
+        }
+        course.Tags = []string(tags) // Convert pq.StringArray to []string
+        courses = append(courses, course)
+    }
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
 
-	return courses, nil
+    return courses, nil
 }
+
 
 func GetCourseByID(id int) (*models.Course, error) {
 	db := config.GetDB()

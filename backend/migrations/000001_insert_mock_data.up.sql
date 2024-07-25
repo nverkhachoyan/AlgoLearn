@@ -1,58 +1,73 @@
--- Insert mock data into users table
-INSERT INTO users (username, email, password_hash, first_name, last_name, bio, location, cpus) VALUES
-('john_doe', 'john.doe@example.com', 'hashed_password_1', 'John', 'Doe', 'Loves coding and teaching.', 'New York, USA', 100),
-('jane_smith', 'jane.smith@example.com', 'hashed_password_2', 'Jane', 'Smith', 'Passionate about AI and ML.', 'San Francisco, USA', 150);
+-- Users
+INSERT INTO users (username, email, password_hash, oauth_id, role, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, preferences, cpus, created_at, updated_at)
+VALUES 
+('john_doe', 'john@example.com', 'hashedpassword1', 'oauthid1', 'user', 'John', 'Doe', 'http://example.com/john.jpg', NOW(), TRUE, FALSE, 'Bio of John Doe', 'New York', '{}', 100, NOW(), NOW()),
+('jane_smith', 'jane@example.com', 'hashedpassword2', 'oauthid2', 'admin', 'Jane', 'Smith', 'http://example.com/jane.jpg', NOW(), TRUE, TRUE, 'Bio of Jane Smith', 'Los Angeles', '{"theme":"dark"}', 200, NOW(), NOW());
 
--- Insert mock data into courses table
-INSERT INTO courses (name, description, background_color, icon_url, duration, difficulty_level, author, tags, rating, learners_count) VALUES
-('Introduction to Programming', 'Learn the basics of programming using Python.', '#FF5733', 'https://example.com/icons/python.png', '10 hours', 'Beginner', 'John Doe', ARRAY['Programming', 'Python', 'Basics'], 4.5, 200),
-('Advanced Machine Learning', 'Dive deep into advanced machine learning concepts.', '#33FF57', 'https://example.com/icons/ml.png', '20 hours', 'Advanced', 'Jane Smith', ARRAY['Machine Learning', 'Advanced', 'AI'], 4.8, 120);
+-- Streaks
+INSERT INTO streaks (user_id, start_date, end_date, current_streak, longest_streak, created_at, updated_at)
+VALUES 
+(1, '2024-01-01', '2024-01-10', 10, 10, NOW(), NOW()),
+(2, '2024-01-05', '2024-01-15', 10, 10, NOW(), NOW());
 
--- Insert mock data into units table
-INSERT INTO units (course_id, name, description) VALUES
-(1, 'Getting Started with Python', 'Introduction to Python programming language.'),
-(1, 'Control Structures', 'Learn about if-else, loops, and more in Python.'),
-(2, 'Supervised Learning', 'Explore supervised learning algorithms and techniques.'),
-(2, 'Unsupervised Learning', 'Learn about unsupervised learning methods.');
+-- Courses
+INSERT INTO courses (name, description, background_color, icon_url, duration, difficulty_level, author, tags, rating, learners_count, created_at, updated_at, last_updated)
+VALUES 
+('Intro to Algorithms', 'Learn the basics of algorithms', '#FF5733', 'http://example.com/algorithms.png', '4 weeks', 'Beginner', 'John Doe', ARRAY['algorithms', 'basics'], 4.5, 150, NOW(), NOW(), NOW()),
+('Advanced Data Structures', 'Deep dive into data structures', '#33FF57', 'http://example.com/datastructures.png', '6 weeks', 'Advanced', 'Jane Smith', ARRAY['data structures', 'advanced'], 4.8, 100, NOW(), NOW(), NOW());
 
--- Insert mock data into modules table
-INSERT INTO modules (unit_id, name, description, content) VALUES
-(1, 'Python Basics', 'Learn the basics of Python programming.', '{"content": "This module covers variables, data types, and basic syntax."}'),
-(2, 'Loops in Python', 'Understand how loops work in Python.', '{"content": "This module covers for loops, while loops, and loop control statements."}'),
-(3, 'Regression Analysis', 'Learn about regression analysis in supervised learning.', '{"content": "This module covers linear regression, logistic regression, and more."}'),
-(4, 'Clustering Algorithms', 'Explore different clustering algorithms.', '{"content": "This module covers k-means, hierarchical clustering, and more."}');
+-- Units
+INSERT INTO units (course_id, name, description, created_at, updated_at)
+VALUES 
+(1, 'Basic Algorithms', 'Introduction to basic algorithms', NOW(), NOW()),
+(2, 'Trees and Graphs', 'Advanced concepts of trees and graphs', NOW(), NOW());
 
--- Insert mock data into module_questions table
-INSERT INTO module_questions (module_id, content) VALUES
-(1, 'What is a variable in Python?'),
-(2, 'How do you write a for loop in Python?'),
-(3, 'What is linear regression?'),
-(4, 'What is the k-means algorithm?');
+-- Modules
+INSERT INTO modules (unit_id, name, description, content, created_at, updated_at)
+VALUES 
+(1, 'Sorting Algorithms', 'Learn about sorting algorithms', '{"content": "Sorting algorithms content"}', NOW(), NOW()),
+(2, 'Graph Traversal', 'Learn about graph traversal techniques', '{"content": "Graph traversal content"}', NOW(), NOW());
 
--- Insert mock data into module_question_answers table
-INSERT INTO module_question_answers (question_id, content, is_correct) VALUES
-(1, 'A variable is a storage location paired with an associated symbolic name.', TRUE),
-(2, 'for i in range(10):', TRUE),
-(3, 'Linear regression is a linear approach to modeling the relationship between a dependent variable and one or more independent variables.', TRUE),
-(4, 'The k-means algorithm is a method of vector quantization, originally from signal processing, that is popular for cluster analysis in data mining.', TRUE);
+-- Module Questions
+INSERT INTO module_questions (module_id, content, created_at, updated_at)
+VALUES 
+(1, 'What is the time complexity of quicksort?', NOW(), NOW()),
+(2, 'Explain the difference between DFS and BFS.', NOW(), NOW());
 
--- Insert mock data into streaks table
-INSERT INTO streaks (user_id, start_date, current_streak, longest_streak) VALUES
-(1, CURRENT_TIMESTAMP - INTERVAL '5 days', 5, 5),
-(2, CURRENT_TIMESTAMP - INTERVAL '3 days', 3, 3);
+-- Module Question Answers
+INSERT INTO module_question_answers (question_id, content, is_correct, created_at, updated_at)
+VALUES 
+(1, 'O(n log n)', TRUE, NOW(), NOW()),
+(1, 'O(n^2)', FALSE, NOW(), NOW()),
+(2, 'DFS uses a stack, BFS uses a queue', TRUE, NOW(), NOW()),
+(2, 'DFS is faster than BFS', FALSE, NOW(), NOW());
 
--- Insert mock data into achievements table
-INSERT INTO achievements (name, description, points) VALUES
-('First Login', 'Logged in for the first time.', 10),
-('Complete First Module', 'Completed the first module.', 20);
+-- User Module Sessions
+INSERT INTO user_module_sessions (user_id, module_id, started_at, completed_at, progress, current_position, last_accessed)
+VALUES 
+(1, 1, NOW(), NULL, 50.00, 2, NOW()),
+(2, 2, NOW(), '2024-02-01', 100.00, 5, NOW());
 
--- Insert mock data into user_achievements table
-INSERT INTO user_achievements (user_id, achievement_id) VALUES
-(1, 1),
-(1, 2),
-(2, 1);
+-- User Answers
+INSERT INTO user_answers (user_module_session_id, question_id, answer_id, answered_at, is_correct)
+VALUES 
+(1, 1, 1, NOW(), TRUE),
+(2, 2, 3, NOW(), TRUE);
 
--- Insert mock data into notifications table
-INSERT INTO notifications (user_id, content) VALUES
-(1, 'Welcome to the platform, John! Start learning now.'),
-(2, 'Welcome to the platform, Jane! Start exploring new courses.');
+-- Achievements
+INSERT INTO achievements (name, description, points, created_at, updated_at)
+VALUES 
+('First Module Completed', 'Complete your first module', 10, NOW(), NOW()),
+('Perfect Score', 'Get a perfect score in a module', 20, NOW(), NOW());
+
+-- User Achievements
+INSERT INTO user_achievements (user_id, achievement_id, achieved_at, name, description, points)
+VALUES 
+(1, 1, NOW(), 'First Module Completed', 'Complete your first module', 10),
+(2, 2, NOW(), 'Perfect Score', 'Get a perfect score in a module', 20);
+
+-- Notifications
+INSERT INTO notifications (user_id, content, read, created_at)
+VALUES 
+(1, 'You have a new achievement!', FALSE, NOW()),
+(2, 'Your module is complete!', TRUE, NOW());

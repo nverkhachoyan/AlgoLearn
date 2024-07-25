@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"regexp"
 	"time"
+  "fmt"
 )
 
 // ValidateEmail validates the email format
@@ -52,6 +53,13 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: message})
 		return
 	}
+
+  // Check if user with email already exists
+  if user, err := repository.GetUserByEmail(req.Email); err == nil {
+    fmt.Printf("ERROR WHEN CHECKING EMAIL:  %s", err)
+    RespondWithJSON(w, http.StatusConflict, models.Response{Status: "error", ErrorCode: "ACCOUNT_EXISTS", Message: "User with this email already exists"})
+    return
+  }
 
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {

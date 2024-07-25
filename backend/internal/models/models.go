@@ -1,4 +1,3 @@
-// internal/models/models.go
 package models
 
 import "time"
@@ -7,7 +6,7 @@ type User struct {
 	ID                int       `json:"user_id"`
 	Username          string    `json:"username"`
 	Email             string    `json:"email"`
-	OAuthID		   	  string    `json:"oauth_id,omitempty"`
+	OAuthID           string    `json:"oauth_id,omitempty"`
 	Role              string    `json:"role"`
 	PasswordHash      string    `json:"-"`
 	CreatedAt         time.Time `json:"created_at"`
@@ -22,6 +21,8 @@ type User struct {
 	Location          string    `json:"location,omitempty"`
 	CPUs              int       `json:"cpus"`
 	Preferences       string    `json:"preferences,omitempty"` // JSON for user preferences
+	Streaks           []Streak  `json:"streaks,omitempty"`    // Add streaks
+	Achievements      []UserAchievement `json:"achievements,omitempty"` // Add achievements
 }
 
 type Streak struct {
@@ -36,11 +37,20 @@ type Streak struct {
 }
 
 type Course struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	BackgroundColor string    `json:"background_color"`
+	IconURL         string    `json:"icon_url,omitempty"`
+	Duration        string    `json:"duration,omitempty"`
+	DifficultyLevel string    `json:"difficulty_level,omitempty"`
+	Author          string    `json:"author,omitempty"`
+	Tags            []string  `json:"tags,omitempty"`
+	Rating          float64   `json:"rating,omitempty"`
+	LearnersCount   int       `json:"learners_count"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	LastUpdated     time.Time `json:"last_updated"`
 }
 
 type Unit struct {
@@ -113,6 +123,9 @@ type UserAchievement struct {
 	UserID        int       `json:"user_id"`
 	AchievementID int       `json:"achievement_id"`
 	AchievedAt    time.Time `json:"achieved_at"`
+	Name        string      `json:"name"`
+	Description string    	`json:"description"`
+	Points      int       	`json:"points"`
 }
 
 type Notification struct {

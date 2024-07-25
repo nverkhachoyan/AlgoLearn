@@ -1,4 +1,3 @@
-// internal/repository/user.go
 package repository
 
 import (
@@ -13,6 +12,7 @@ var userFields = `
 	id,
 	username,
 	email,
+	oauth_id,
 	password_hash,
 	role,
 	first_name,
@@ -41,6 +41,7 @@ func scanUser(row *sql.Row) (*models.User, error) {
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.OAuthID,
 		&user.PasswordHash,
 		&user.Role,
 		&user.FirstName,
@@ -114,12 +115,46 @@ func CreateUser(user *models.User) error {
 
 func GetUserByID(id int) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", userFields)
-	return queryUser(query, id)
+	user, err := queryUser(query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch user streaks
+	user.Streaks, err = GetStreaksByUserID(id)
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch user streaks: %v", err)
+	}
+
+	// Fetch user achievements
+	user.Achievements, err = GetUserAchievementsByUserID(id)
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch user achievements: %v", err)
+	}
+
+	return user, nil
 }
 
 func GetUserByEmail(email string) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE email = $1", userFields)
-	return queryUser(query, email)
+	user, err := queryUser(query, email)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch user streaks
+	user.Streaks, err = GetStreaksByUserID(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch user streaks: %v", err)
+	}
+
+	// Fetch user achievements
+	user.Achievements, err = GetUserAchievementsByUserID(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch user achievements: %v", err)
+	}
+
+	return user, nil
 }
 
 func UpdateUser(user *models.User) error {
@@ -128,22 +163,24 @@ func UpdateUser(user *models.User) error {
 	UPDATE users SET
 		username = $1,
 		email = $2,
-		role = $3,
-		first_name = $4,
-		last_name = $5,
-		profile_picture_url = $6,
-		last_login_at = $7,
-		is_active = $8,
-		is_email_verified = $9,
-		bio = $10,
-		location = $11,
-		preferences = $12,
-		cpus = $13,
+		oauth_id = $3,
+		role = $4,
+		first_name = $5,
+		last_name = $6,
+		profile_picture_url = $7,
+		last_login_at = $8,
+		is_active = $9,
+		is_email_verified = $10,
+		bio = $11,
+		location = $12,
+		preferences = $13,
+		cpus = $14,
 		updated_at = NOW()
-	WHERE id = $14`
+	WHERE id = $15`
 	_, err := db.Exec(query,
 		user.Username,
 		user.Email,
+		user.OAuthID,
 		user.Role,
 		user.FirstName,
 		user.LastName,
@@ -188,6 +225,8 @@ func GetAllUsers() ([]models.User, error) {
 			&user.ID,
 			&user.Username,
 			&user.Email,
+			&user.OAuthID,
+			&user.PasswordHash,
 			&user.Role,
 			&user.FirstName,
 			&user.LastName,
@@ -204,6 +243,19 @@ func GetAllUsers() ([]models.User, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not scan user: %v", err)
 		}
+
+		// Fetch user streaks
+		user.Streaks, err = GetStreaksByUserID(user.ID)
+		if err != nil {
+			return nil, fmt.Errorf("could not fetch user streaks: %v", err)
+		}
+
+		// Fetch user achievements
+		user.Achievements, err = GetUserAchievementsByUserID(user.ID)
+		if err != nil {
+			return nil, fmt.Errorf("could not fetch user achievements: %v", err)
+		}
+
 		users = append(users, user)
 	}
 

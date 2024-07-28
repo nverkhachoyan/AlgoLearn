@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   db:
@@ -9,9 +9,9 @@ services:
       POSTGRES_PASSWORD: algolearn4stml
       POSTGRES_DB: algolearn
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
-      - /Users/nverkhachoyan/.local/mnt/postgresql_data:/var/lib/postgresql/data
+      - /mnt/volume_sfo3_01/postgresql_data:/var/lib/postgresql/data
     networks:
       - algolearn-net
 
@@ -28,14 +28,14 @@ services:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - PORT=8080
     ports:
-      - "8080:8080"
+      - '8080:8080'
 
 volumes:
   postgres-data:
     driver: local
     driver_opts:
       type: none
-      device: /Users/nverkhachoyan/.local/mnt
+      device: /mnt/volume_sfo3_01
       o: bind
 
 networks:

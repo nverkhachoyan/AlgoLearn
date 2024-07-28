@@ -5,23 +5,23 @@ import { useAuthContext } from '@/context/AuthProvider';
 import CourseCard from '@/components/tabs/CourseCard';
 import Button from '@/components/common/Button';
 import { router } from 'expo-router';
-import { useAtom } from 'jotai';
-import { coursesAtom, triggerCoursesRefetchAtom } from '@/atoms/coursesAtoms';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCourses } from './hooks/useCourses';
 
 export default function Home() {
   const { user, isAuthed, loading, signOut } = useAuthContext();
-  const [, setTriggerFetchCourses] = useAtom(triggerCoursesRefetchAtom);
-  const [{ data: courses, isFetching }] = useAtom(coursesAtom);
-
-  useEffect(() => {
-    setTriggerFetchCourses(true);
-  }, []);
+  const { allCourses, isCoursesPending, coursesFetchError } = useCourses();
 
   if (loading) {
     return <Text>Loading...</Text>;
   }
+
+  useEffect(() => {
+    if (!loading && !isAuthed && !user) {
+      router.navigate('welcome');
+    }
+  }, [loading, isAuthed]);
 
   if (!isAuthed || !user) {
     return (
@@ -35,7 +35,7 @@ export default function Home() {
     );
   }
 
-  if (isFetching) {
+  if (isCoursesPending) {
     return <Text>Fetching courses...</Text>;
   }
 
@@ -55,8 +55,8 @@ export default function Home() {
       <View style={styles.container}>
         <Text style={styles.title}>Currently Learning</Text>
         <View style={styles.separator} />
-        {courses && courses.length > 0 ? (
-          courses.map((course) => (
+        {allCourses && allCourses.length > 0 ? (
+          allCourses.map((course: any) => (
             <CourseCard
               key={course.id}
               courseID={course.id.toString()}

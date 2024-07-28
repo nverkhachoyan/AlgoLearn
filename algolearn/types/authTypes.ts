@@ -1,5 +1,5 @@
-import { User } from "./userTypes";
-import { UseMutateFunction } from "@tanstack/react-query";
+import { User } from './userTypes';
+import { UseMutateFunction } from '@tanstack/react-query';
 
 export type AuthContextType = {
   user: User | undefined;
@@ -8,4 +8,13 @@ export type AuthContextType = {
   isAuthed: boolean;
   loading: boolean;
   deleteAccount: any;
+  checkEmailMutate: (email: string) => void;
+  doesEmailExist: null | boolean;
+  signInMutate: ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => void;
 };

@@ -1,60 +1,77 @@
-import { atom } from "jotai";
-import { atomWithQuery, atomWithMutation } from "jotai-tanstack-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/types/userTypes";
-import { fetchUser, deleteAccount } from "@/services/authService";
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { fetchUser, deleteAccount } from '@/services/authService';
+// import { useMutation, useQuery } from '@tanstack/react-query';
+// import { useState } from 'react';
 
-export const tokenAtom = atom<string | null>(null);
-export const isAuthedAtom = atom<boolean>(false);
+// export const useAuth = () => {
+//   const [isAuthed, setIsAuthed] = useState(false);
+//   const [token, setToken] = useState('');
 
-// User atom with query
-export const userAtom = atomWithQuery<User | null>((get) => ({
-  queryKey: ["user", get(tokenAtom)],
-  queryFn: async () => {
-    const token = get(tokenAtom);
-    if (!token) return null;
-    return fetchUser(token);
-  },
-  enabled: !!get(tokenAtom),
-}));
+//   const {
+//     isPending: isUserPending,
+//     error: userError,
+//     data: user,
+//   } = useQuery({
+//     queryKey: ['user'],
+//     queryFn: async () => {
+//       const authToken = await AsyncStorage.getItem('authToken');
+//       if (authToken) {
+//         return fetchUser(authToken);
+//       } else {
+//         return null;
+//       }
+//     },
+//   });
 
-// Delete account atom with mutation
-export const deleteAccountAtom = atomWithMutation((get) => ({
-  mutationKey: ["deleteAccount"],
-  mutationFn: async () => {
-    const token = get(tokenAtom);
-    if (!token) throw new Error("No token available");
-    const data = await deleteAccount(token);
-    return data;
-  },
-}));
+//   const {
+//     data: deleteAccountData,
+//     mutate: deleteAccountMutate,
+//     isPending: isDeleteAccountPending,
+//     error: deleteAccountError,
+//   } = useMutation({
+//     mutationFn: async () => {
+//       const token = await AsyncStorage.getItem('authToken');
+//       if (!token) throw new Error('No token available');
+//       const data = await deleteAccount(token);
+//       return data;
+//     },
+//   });
 
-// Sign out thunk
-export const signOutAtom = atom(null, async (get, set) => {
-  await AsyncStorage.removeItem("authToken");
-  set(tokenAtom, null);
-  set(isAuthedAtom, false);
-});
+//   const { mutate: signOut } = useMutation({
+//     mutationFn: async () => {
+//       await AsyncStorage.removeItem('authToken');
+//       setIsAuthed(false);
+//       setToken('');
+//     },
+//   });
 
-// Handle success thunk
-export const handleSuccessAtom = atom(
-  null,
-  async (get, set, newToken: string) => {
-    set(tokenAtom, newToken);
-    await AsyncStorage.setItem("authToken", newToken);
-    set(isAuthedAtom, true);
-  },
-);
+//   const handleSuccess = async (newToken: string) => {
+//     await AsyncStorage.setItem('authToken', newToken);
+//     setIsAuthed(true);
+//     setToken(newToken);
+//   };
 
-// Check auth state thunk
-export const checkAuthStateAtom = atom(null, async (get, set) => {
-  try {
-    const authToken = await AsyncStorage.getItem("authToken");
-    if (authToken) {
-      set(tokenAtom, authToken);
-      set(isAuthedAtom, true);
-    }
-  } catch (error) {
-    console.error("Failed to check auth state:", error);
-  }
-});
+//   const checkAuthState = async () => {
+//     try {
+//       const authToken = await AsyncStorage.getItem('authToken');
+//       if (authToken) {
+//         setIsAuthed(true);
+//       }
+//     } catch (error) {
+//       console.error('Failed to check auth state:', error);
+//     }
+//   };
+
+//   return {
+//     isAuthed,
+//     isUserPending,
+//     userError,
+//     user,
+//     deleteAccountData,
+//     deleteAccountMutate,
+//     signOut,
+//     handleSuccess,
+//     token,
+//     checkAuthState,
+//   };
+// };

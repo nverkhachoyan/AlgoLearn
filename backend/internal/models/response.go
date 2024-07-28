@@ -1,13 +1,17 @@
 // internal/models/response.go
 package models
 
+import (
+	"algolearn-backend/internal/errors"
+)
+
 // General response model
 type Response struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-  ErrorCode string    `json:"error_code,omitempty"`
+	Status    string           `json:"status"`
+	Message   string           `json:"message"`
+	Data      interface{}      `json:"data,omitempty"`
+	Error     string           `json:"error,omitempty"`
+	ErrorCode errors.ErrorCode `json:"error_code,omitempty"`
 }
 
 type LoginRequest struct {

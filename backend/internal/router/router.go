@@ -35,6 +35,7 @@ func SetupRouter() *mux.Router {
 	// Email sign-in/sign-up endpoints
 	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
 	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+	r.HandleFunc("/checkemail", handlers.CheckEmailExists).Methods("GET")
 
 	// OAuth 2.0 login and callback endpoints
 	r.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")

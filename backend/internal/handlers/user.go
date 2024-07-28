@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
 	"algolearn-backend/internal/services"
@@ -11,7 +12,6 @@ import (
 	"net/http"
 	"regexp"
 	"time"
-  "fmt"
 )
 
 // ValidateEmail validates the email format
@@ -42,6 +42,18 @@ func validateRegistrationInput(req models.RegistrationRequest) (bool, string) {
 	return true, ""
 }
 
+func CheckEmailExists(w http.ResponseWriter, r *http.Request) {
+	var email string = r.URL.Query().Get("email")
+
+	user, _ := repository.GetUserByEmail(email)
+	if user != nil {
+		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "success", ErrorCode: errors.ACCOUNT_EXISTS, Message: "An account with this email already exists"})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{Status: "error", Message: "An account with this email does not exist"})
+}
+
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -54,12 +66,17 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-  // Check if user with email already exists
-  if user, err := repository.GetUserByEmail(req.Email); err == nil {
-    fmt.Printf("ERROR WHEN CHECKING EMAIL:  %s", err)
-    RespondWithJSON(w, http.StatusConflict, models.Response{Status: "error", ErrorCode: "ACCOUNT_EXISTS", Message: "User with this email already exists"})
-    return
-  }
+	// Check if user with email already exists
+	userByEmail, _ := repository.GetUserByEmail(req.Email)
+	// if err != nil {
+	// 	log.Printf("Error fetching user by email: %v", err)
+	// 	RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", ErrorCode: "INTERNAL_ERROR", Message: "Internal server error"})
+	// 	return
+	// }
+	if userByEmail != nil {
+		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "error", ErrorCode: errors.ACCOUNT_EXISTS, Message: "An account with this email already exists"})
+		return
+	}
 
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
@@ -68,20 +85,20 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := models.User{
-		Username:       req.Username,
-		Email:          req.Email,
-		PasswordHash:   hashedPassword,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
-		Role:           "user", // default role
-		IsActive:       true,
+	user := &models.User{
+		Username:        req.Username,
+		Email:           req.Email,
+		PasswordHash:    hashedPassword,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		Role:            "user", // default role
+		IsActive:        true,
 		IsEmailVerified: false,
-		CPUs:           0,  // default CPUs
-		Preferences:    `{}`, // Default to an empty JSON object as a string
+		CPUs:            0,    // default CPUs
+		Preferences:     `{}`, // Default to an empty JSON object as a string
 	}
 
-	if err := repository.CreateUser(&user); err != nil {
+	if err := repository.CreateUser(user); err != nil {
 		log.Printf("Error creating user: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not create user"})
 		return
@@ -187,6 +204,23 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User retrieved successfully", Data: user})
 }
+
+// func CheckEmailExists(w http.ResponseWriter, r *http.Request) {
+// 	var req models.EmailRequest
+// 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// 		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
+// 		return
+// 	}
+
+// 	exists, err := repository.CheckEmailExists(req.Email)
+// 	if err != nil {
+// 		log.Printf("Error checking email %s: %v", req.Email, err)
+// 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not check email"})
+// 		return
+// 	}
+
+// 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Email checked successfully", Data: map[string]bool{"exists": exists}})
+// }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())

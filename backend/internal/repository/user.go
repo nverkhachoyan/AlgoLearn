@@ -139,6 +139,11 @@ func GetUserByEmail(email string) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE email = $1", userFields)
 	user, err := queryUser(query, email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// No user found with email, no errors
+			return nil, nil
+		}
+		// No user found with email, but error occurred
 		return nil, err
 	}
 

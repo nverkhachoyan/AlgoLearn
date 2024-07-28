@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,83 +6,198 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-} from "react-native";
-import { useRouter } from "expo-router";
-import Button from "@/components/common/Button";
-import { Feather } from "@expo/vector-icons";
-import { useAuthContext } from "@/context/AuthProvider";
-import { useColorScheme } from "@/components/useColorScheme";
-import Colors from "@/constants/Colors";
+  Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import Button from '@/components/common/Button';
+import { Feather } from '@expo/vector-icons';
+import { useAuthContext } from '@/context/AuthProvider';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthed } = useAuthContext();
+  const { isAuthed, checkEmailMutate, doesEmailExist, signInMutate } =
+    useAuthContext();
   const { signInWithGoogle } = useAuthContext();
   const colorScheme = useColorScheme();
+  const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [retryPassword, setRetryPassword] = useState<string>('');
 
   useEffect(() => {
     if (isAuthed) {
-      router.navigate("pushnotifications");
+      router.navigate('pushnotifications');
     }
   }, [isAuthed]);
+
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailCheck = async () => {
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      return;
+    }
+
+    await checkEmailMutate(email);
+    setHasCheckedEmail(true);
+  };
+
+  const handleSignUp = () => {
+    if (password.length < 8) {
+      Alert.alert(
+        'Weak Password',
+        'Password must be at least 8 characters long.'
+      );
+      return;
+    }
+
+    if (password !== retryPassword) {
+      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      return;
+    }
+
+    // Add your sign-up logic here
+  };
+
+  const handleContinue = () => {
+    if (doesEmailExist === false) {
+      handleSignUp();
+    } else {
+      // Add your sign-in logic here
+      signInMutate({ email, password });
+    }
+  };
 
   return (
     <ScrollView
       style={[
         styles.container,
-        { backgroundColor: Colors[colorScheme ?? "light"].background },
+        { backgroundColor: Colors[colorScheme ?? 'light'].background },
       ]}
     >
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
         <Feather
-          name="arrow-left"
+          name='arrow-left'
           size={24}
-          color={Colors[colorScheme ?? "light"].text}
+          color={Colors[colorScheme ?? 'light'].text}
         />
       </Pressable>
       <Text
-        style={[styles.title, { color: Colors[colorScheme ?? "light"].text }]}
+        style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}
       >
         Log in or sign up to AlgoLearn
       </Text>
+
+      {/* SIGN-IN OR SIGN-UP FORM */}
       <View style={styles.middleContent}>
         <TextInput
           style={[
             styles.textInput,
             {
-              borderColor: Colors[colorScheme ?? "light"].border,
-              color: Colors[colorScheme ?? "light"].text,
+              borderColor: Colors[colorScheme ?? 'light'].border,
+              color: Colors[colorScheme ?? 'light'].text,
             },
           ]}
-          placeholder="Email"
-          placeholderTextColor={Colors[colorScheme ?? "light"].placeholderText}
+          placeholder='Email'
+          placeholderTextColor={Colors[colorScheme ?? 'light'].placeholderText}
+          value={email}
+          onChangeText={(newEmail) => setEmail(newEmail)}
+          autoCapitalize='none'
         />
-        <Button
-          title="Continue"
-          onPress={() => router.navigate("(onboarding)/signup")}
-          icon={{ name: "arrow-right", position: "right" }}
-          textStyle={{ color: Colors[colorScheme ?? "light"].buttonText }}
-          iconStyle={{
-            position: "absolute",
-            right: 12,
-            color: Colors[colorScheme ?? "light"].buttonText,
-          }}
-          style={{
-            backgroundColor: Colors[colorScheme ?? "light"].buttonBackground,
-          }}
-        />
+
+        {hasCheckedEmail && (
+          <>
+            <TextInput
+              style={[
+                styles.textInput,
+                {
+                  borderColor: Colors[colorScheme ?? 'light'].border,
+                  color: Colors[colorScheme ?? 'light'].text,
+                },
+              ]}
+              placeholder='Enter your password'
+              placeholderTextColor={
+                Colors[colorScheme ?? 'light'].placeholderText
+              }
+              value={password}
+              onChangeText={(newPassword) => setPassword(newPassword)}
+              autoCapitalize='none'
+              secureTextEntry
+            />
+            {doesEmailExist === false && (
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    borderColor: Colors[colorScheme ?? 'light'].border,
+                    color: Colors[colorScheme ?? 'light'].text,
+                  },
+                ]}
+                placeholder='Retype password'
+                placeholderTextColor={
+                  Colors[colorScheme ?? 'light'].placeholderText
+                }
+                value={retryPassword}
+                onChangeText={(newRetryPassword) =>
+                  setRetryPassword(newRetryPassword)
+                }
+                autoCapitalize='none'
+                secureTextEntry
+              />
+            )}
+            <Button
+              title='Continue'
+              onPress={handleContinue}
+              icon={{ name: 'arrow-right', position: 'right' }}
+              textStyle={{ color: Colors[colorScheme ?? 'light'].buttonText }}
+              iconStyle={{
+                position: 'absolute',
+                right: 12,
+                color: Colors[colorScheme ?? 'light'].buttonText,
+              }}
+              style={{
+                backgroundColor:
+                  Colors[colorScheme ?? 'light'].buttonBackground,
+              }}
+            />
+          </>
+        )}
+
+        {!hasCheckedEmail && (
+          <Button
+            title='Continue'
+            onPress={handleEmailCheck}
+            icon={{ name: 'arrow-right', position: 'right' }}
+            textStyle={{ color: Colors[colorScheme ?? 'light'].buttonText }}
+            iconStyle={{
+              position: 'absolute',
+              right: 12,
+              color: Colors[colorScheme ?? 'light'].buttonText,
+            }}
+            style={{
+              backgroundColor: Colors[colorScheme ?? 'light'].buttonBackground,
+            }}
+          />
+        )}
       </View>
+
+      {/* SEPARATOR */}
       <View style={styles.dividerContainer}>
         <View
           style={[
             styles.line,
-            { backgroundColor: Colors[colorScheme ?? "light"].text },
+            { backgroundColor: Colors[colorScheme ?? 'light'].text },
           ]}
         />
         <Text
           style={[
             styles.orText,
-            { color: Colors[colorScheme ?? "light"].text },
+            { color: Colors[colorScheme ?? 'light'].text },
           ]}
         >
           or
@@ -90,29 +205,31 @@ export default function SignUp() {
         <View
           style={[
             styles.line,
-            { backgroundColor: Colors[colorScheme ?? "light"].text },
+            { backgroundColor: Colors[colorScheme ?? 'light'].text },
           ]}
         />
       </View>
+
+      {/* GOOGLE OAUTH BUTTON */}
       <View style={styles.buttonContainer}>
         <Button
-          title="Continue with Google"
+          title='Continue with Google'
           onPress={signInWithGoogle}
           icon={{
-            name: "google",
-            position: "left",
-            type: "png",
-            src: require("@/assets/icons/google.png"),
+            name: 'google',
+            position: 'left',
+            type: 'png',
+            src: require('@/assets/icons/google.png'),
           }}
           iconStyle={{ width: 20, height: 20 }}
           style={{
             backgroundColor:
-              colorScheme ?? "light" === "light" ? "white" : "black",
-            borderColor: Colors[colorScheme ?? "light"].border,
+              colorScheme ?? 'light' === 'light' ? 'white' : 'black',
+            borderColor: Colors[colorScheme ?? 'light'].border,
             borderWidth: 1,
           }}
           textStyle={{
-            color: "#666",
+            color: '#666',
           }}
         />
       </View>
@@ -127,9 +244,9 @@ const styles = StyleSheet.create({
     paddingRight: 25,
   },
   goBackButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "absolute",
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
     top: 20,
     left: 0,
     zIndex: 1,
@@ -144,15 +261,15 @@ const styles = StyleSheet.create({
   },
   middleContent: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     marginTop: 30,
     marginBottom: 30,
   },
   title: {
     fontSize: 30,
-    fontWeight: "bold",
-    fontFamily: "OpenSauceOne-SemiBold",
-    textAlign: "left",
+    fontWeight: 'bold',
+    fontFamily: 'OpenSauceOne-SemiBold',
+    textAlign: 'left',
     marginTop: 70,
     marginBottom: 30,
   },
@@ -164,9 +281,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   line: {
     height: 1,

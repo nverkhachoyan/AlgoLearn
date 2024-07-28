@@ -1,14 +1,14 @@
-import { StyleSheet } from "react-native";
-import { View, ScrollView, Text } from "@/components/Themed";
-import StickyHeader from "@/components/StickyHeader";
-import { useAuthContext } from "@/context/AuthProvider";
-import CourseCard from "@/components/tabs/CourseCard";
-import Button from "@/components/common/Button";
-import { router } from "expo-router";
-import { useAtom } from "jotai";
-import { coursesAtom, triggerCoursesRefetchAtom } from "@/atoms/coursesAtoms";
-import { useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StyleSheet } from 'react-native';
+import { View, ScrollView, Text } from '@/components/Themed';
+import StickyHeader from '@/components/StickyHeader';
+import { useAuthContext } from '@/context/AuthProvider';
+import CourseCard from '@/components/tabs/CourseCard';
+import Button from '@/components/common/Button';
+import { router } from 'expo-router';
+import { useAtom } from 'jotai';
+import { coursesAtom, triggerCoursesRefetchAtom } from '@/atoms/coursesAtoms';
+import { useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Home() {
   const { user, isAuthed, loading, signOut } = useAuthContext();
@@ -28,7 +28,7 @@ export default function Home() {
       <Text>
         Not logged in
         <Button
-          title="Clear local storage"
+          title='Clear local storage'
           onPress={() => AsyncStorage.clear()}
         />
       </Text>
@@ -49,7 +49,7 @@ export default function Home() {
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={null}
         onAvatarPress={() => {
-          router.push("profile");
+          router.push('profile');
         }}
       />
       <View style={styles.container}>
@@ -63,7 +63,7 @@ export default function Home() {
               courseTitle={course.name}
               unitInfo={course.description}
               // backgroundColor={course.background_color}
-              iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+              iconUrl='https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png'
               description={course.description}
               author={course.author}
               difficultyLevel={course.difficulty_level}
@@ -102,17 +102,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
   },
   title: {
     fontSize: 20,
-    fontWeight: "bold",
-    fontFamily: "OpenSauceOne-Regular",
-    alignSelf: "center",
+    fontWeight: 'bold',
+    fontFamily: 'OpenSauceOne-Regular',
+    alignSelf: 'center',
   },
   separator: {
     marginVertical: 16,
     height: 1,
-    width: "80%",
+    width: '80%',
   },
 });

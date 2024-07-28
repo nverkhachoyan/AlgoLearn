@@ -1,33 +1,34 @@
-import axios from "axios";
+import api from './api';
 
 export const fetchUser = async (token: string) => {
-  const response = await axios.get(
-    `${process.env.EXPO_PUBLIC_BACKEND_URL}/user`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const response = await api.get('/user', {
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
-  );
-  if (response.data.status === "success") {
-    return { ...response.data.data, token };
-  } else {
-    throw new Error(response.data.message);
-  }
+  });
+  return response.data;
+};
+
+export const checkEmailExists = async (email: string) => {
+  const response = await api.get(`/checkemail`, {
+    params: { email },
+  });
+  return response.data;
 };
 
 export const deleteAccount = async (token: string) => {
-  const response = await axios.delete(
-    `${process.env.EXPO_PUBLIC_BACKEND_URL}/user`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const response = await api.delete('/user', {
+    headers: {
+      Authorization: `Bearer ${token}`,
     },
-  );
-  if (response.data.status === "success") {
-    return response.data.data;
-  } else {
-    throw new Error(response.data.message);
-  }
+  });
+  return response.data;
+};
+
+export const signIn = async (email: string, password: string) => {
+  const response = await api.post('/login', {
+    email,
+    password,
+  });
+  return response.data;
 };

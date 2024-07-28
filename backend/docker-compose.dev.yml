@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - /mnt/volume_sfo3_01/postgresql_data:/var/lib/postgresql/data
     networks:
       - algolearn-net
 
@@ -24,16 +24,19 @@ services:
       - db
     networks:
       - algolearn-net
-    env_file:
-      - .env
     environment:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      - PORT=${PORT}
+      - PORT=8080
     ports:
       - "8080:8080"
 
 volumes:
-  db-data: {}
+  postgres-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /mnt/volume_sfo3_01
+      o: bind
 
 networks:
   algolearn-net: {}

@@ -52,6 +52,9 @@ export const useAuth = () => {
       await AsyncStorage.removeItem('authToken');
       setAuthState({ isAuthed: false, token: '' });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+    },
   });
 
   // Sign in
@@ -81,10 +84,8 @@ export const useAuth = () => {
       mutationFn: async (email: string) => {
         const response = await checkEmailExists(email);
         if (response.status === 'success') {
-          console.log('Email does exist');
           return true;
         } else if (response.status === 'error') {
-          console.log('Email does not exist');
           return false;
         }
       },

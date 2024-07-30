@@ -1,10 +1,9 @@
-import { Slot } from "expo-router";
-import { AuthProvider } from "@/context/AuthProvider";
-import { SafeAreaView } from "react-native";
-import { useColorScheme } from "react-native";
-import Colors from "@/constants/Colors";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Provider as JotaiProvider } from "jotai";
+import { Slot } from 'expo-router';
+import { AuthProvider } from '@/context/AuthProvider';
+import { ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, Theme } from '@/constants/Colors';
+import { useColorScheme } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
@@ -13,18 +12,17 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <JotaiProvider>
-        <SafeAreaView
-          style={{
-            flex: 1,
-            backgroundColor: Colors[colorScheme ?? "light"].background,
-          }}
-        >
-          <AuthProvider>
-            <Slot />
-          </AuthProvider>
-        </SafeAreaView>
-      </JotaiProvider>
+      <ThemeProvider
+        value={
+          colorScheme === 'dark'
+            ? (DarkTheme as Theme)
+            : (DefaultTheme as Theme)
+        }
+      >
+        <AuthProvider>
+          <Slot />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

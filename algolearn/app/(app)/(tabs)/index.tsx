@@ -8,10 +8,12 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCourses } from './hooks/useCourses';
+import useTheme from '@/hooks/useTheme';
 
 export default function Home() {
-  const { user, isAuthed, loading, signOut } = useAuthContext();
+  const { user, isAuthed, loading } = useAuthContext();
   const { allCourses, isCoursesPending, coursesFetchError } = useCourses();
+  const { colors } = useTheme();
 
   if (loading) {
     return <Text>Loading...</Text>;
@@ -19,7 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && !isAuthed && !user) {
-      router.navigate('welcome');
+      router.navigate('/welcome');
     }
   }, [loading, isAuthed]);
 
@@ -41,7 +43,10 @@ export default function Home() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { backgroundColor: colors.viewBackground },
+      ]}
       stickyHeaderIndices={[0]}
     >
       <StickyHeader
@@ -49,10 +54,10 @@ export default function Home() {
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={null}
         onAvatarPress={() => {
-          router.push('profile');
+          router.push('/profile');
         }}
       />
-      <View style={styles.container}>
+      <View style={[styles.container]}>
         <Text style={styles.title}>Currently Learning</Text>
         <View style={styles.separator} />
         {allCourses && allCourses.length > 0 ? (
@@ -99,6 +104,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginHorizontal: 16,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,
@@ -114,5 +120,6 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     height: 1,
     width: '80%',
+    alignSelf: 'center',
   },
 });

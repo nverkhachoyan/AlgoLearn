@@ -78,7 +78,7 @@ export default function CourseDetails() {
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={null}
         onAvatarPress={() => {
-          router.push('profile');
+          router.push('/profile');
         }}
       />
       <View style={styles.container}>

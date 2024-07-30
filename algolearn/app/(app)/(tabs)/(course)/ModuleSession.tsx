@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { ScrollView, View, Text } from '@/components/Themed';
 import { Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 import SectionRenderer from './components/SectionRenderer';
 import {
   CodeSection,
@@ -14,10 +14,13 @@ import {
 } from './moduleSessionTypes';
 import Button from '@/components/common/Button';
 import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+// import Colors from '@/constants/Colors';
+import { AppRoutes } from '@/types/routes';
+import { useTheme } from '@react-navigation/native';
 
 export default function ModuleSession(props: any) {
   const colorScheme = useColorScheme();
+  const { colors } = useTheme();
   const content: { sections: Section[] } = {
     sections: [
       {
@@ -148,7 +151,7 @@ export default function ModuleSession(props: any) {
     <>
       <ScrollView
         stickyHeaderIndices={[0]}
-        style={{ backgroundColor: Colors[colorScheme ?? 'light'].background }}
+        style={{ backgroundColor: colors.background }}
       >
         <View
           style={[
@@ -198,7 +201,7 @@ export default function ModuleSession(props: any) {
               <Feather name='book-open' /> Module 1: Algorithms
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.navigate('ModuleSession')}>
+          <TouchableOpacity onPress={() => router.navigate('/ModuleSession')}>
             <Feather name='arrow-right' size={18} color='black' />
           </TouchableOpacity>
         </View>

@@ -1,10 +1,11 @@
-import { StyleSheet, TouchableOpacity, Animated } from "react-native";
-import { Feather, FontAwesome } from "@expo/vector-icons";
-import { Text, View } from "@/components/Themed";
-import { useState, useRef, useEffect } from "react";
-import { Course } from "@/types/userTypes";
+import { StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Feather, FontAwesome } from '@expo/vector-icons';
+import { Text, View } from '@/components/Themed';
+import { useState, useRef, useEffect } from 'react';
+import useTheme from '@/hooks/useTheme';
 
 export default function CourseUnit({ units }: { units: any }) {
+  const { colors } = useTheme();
   const [isTOCCollapsed, setIsTOCCollapsed] = useState(true);
   const [collapsedUnits, setCollapsedUnits] = useState<{
     [key: string]: boolean;
@@ -16,7 +17,7 @@ export default function CourseUnit({ units }: { units: any }) {
   const iconRefs = useRef<{ [key: string]: Animated.Value }>({});
 
   useEffect(() => {
-    units.forEach((unit) => {
+    units.forEach((unit: any) => {
       if (!animationRefs.current[unit.unitNumber]) {
         animationRefs.current[unit.unitNumber] = new Animated.Value(0);
         iconRefs.current[unit.unitNumber] = new Animated.Value(0);
@@ -26,7 +27,7 @@ export default function CourseUnit({ units }: { units: any }) {
 
   const calculateTOCHeight = () => {
     let totalHeight = 10; // Base height for the TOC header
-    units.forEach((unit) => {
+    units.forEach((unit: any) => {
       totalHeight += 44; // Height for each unit header
       if (collapsedUnits[unit.unitNumber]) {
         const moduleCount = Object.keys(unit.modules).length;
@@ -88,13 +89,13 @@ export default function CourseUnit({ units }: { units: any }) {
     <View style={styles.tocContainer}>
       <TouchableOpacity onPress={toggleCollapseTOC}>
         <Text style={styles.tocTitle}>
-          <Feather name="list" /> Table of Contents{" "}
+          <Feather name='list' /> Table of Contents{' '}
         </Text>
       </TouchableOpacity>
       <Animated.View
         style={[styles.unitsContainer, { height: TOCAnimationRef }]}
       >
-        {units.map((unit) => {
+        {units.map((unit: any) => {
           if (
             !animationRefs.current[unit.unitNumber] ||
             !iconRefs.current[unit.unitNumber]
@@ -111,20 +112,39 @@ export default function CourseUnit({ units }: { units: any }) {
 
           const iconRotate = iconRefs.current[unit.unitNumber].interpolate({
             inputRange: [0, 1],
-            outputRange: ["0deg", "90deg"],
+            outputRange: ['0deg', '90deg'],
           });
 
           return (
             <TouchableOpacity
               key={unit.unitNumber}
               onPress={() => toggleExpandUnit(unit.unitNumber)}
-              style={styles.unitTitle}
+              style={[
+                styles.unitTitle,
+                { backgroundColor: colors.backgroundContrast },
+              ]}
             >
-              <View style={styles.unitTitleContainer}>
-                <Text style={styles.unitTitleText}>{unit.unitNumber}.</Text>
-                <Text style={styles.unitTitleText}>{unit.unitName}</Text>
+              <View
+                style={[
+                  styles.unitTitleContainer,
+                  { backgroundColor: colors.backgroundContrast },
+                ]}
+              >
+                <Text
+                  style={[styles.unitTitleText, { color: colors.textContrast }]}
+                >
+                  {unit.unitNumber}.
+                </Text>
+                <Text
+                  style={[styles.unitTitleText, { color: colors.textContrast }]}
+                >
+                  {unit.unitName}
+                </Text>
                 <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
-                  <FontAwesome name={"chevron-right"} />
+                  <FontAwesome
+                    name={'chevron-right'}
+                    color={colors.textContrast}
+                  />
                 </Animated.View>
               </View>
               <Animated.View
@@ -133,7 +153,9 @@ export default function CourseUnit({ units }: { units: any }) {
                 <View style={styles.modulesContainer}>
                   {Object.entries(unit.modules).map(([key, module]) => (
                     <TouchableOpacity key={key} style={styles.moduleItem}>
-                      <Text>{module}</Text>
+                      <Text style={{ color: colors.textContrast }}>
+                        {module as string}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -148,48 +170,46 @@ export default function CourseUnit({ units }: { units: any }) {
 
 const styles = StyleSheet.create({
   unitTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f1f1f1",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   unitTitle: {
     padding: 15,
-    backgroundColor: "#f1f1f1",
   },
   unitTitleText: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   unitContainer: {
-    overflow: "hidden",
+    overflow: 'hidden',
     borderRadius: 5,
   },
   modulesContainer: {
-    backgroundColor: "#f1f1f1",
+    backgroundColor: 'transparent',
     marginVertical: 10,
   },
   moduleItem: {
     height: 40,
-    justifyContent: "center",
+    justifyContent: 'center',
     paddingHorizontal: 15,
     marginVertical: 5,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   tocContainer: {
-    width: "80%",
+    width: '80%',
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: '#ddd',
     borderRadius: 5,
-    alignSelf: "center",
-    overflow: "hidden",
+    alignSelf: 'center',
+    overflow: 'hidden',
   },
   unitsContainer: {},
   tocTitle: {
     padding: 15,
-    backgroundColor: "#24272E",
-    color: "#fff",
-    fontWeight: "bold",
+    backgroundColor: '#24272E',
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

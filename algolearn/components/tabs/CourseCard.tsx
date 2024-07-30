@@ -1,7 +1,10 @@
-import { View, Text, Image, StyleSheet } from "react-native";
-import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import Button from "../common/Button";
+import { Image, StyleSheet } from 'react-native';
+import { View, Text } from '../Themed';
+import { router, Href } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import Button from '../common/Button';
+import { AppRoutes } from '@/types/routes';
+import useTheme from '@/hooks/useTheme';
 
 export default function CourseCard(props: {
   courseID: string;
@@ -16,24 +19,25 @@ export default function CourseCard(props: {
   duration?: string;
   rating?: number;
 }) {
+  const { colors } = useTheme();
   return (
     <View
-      style={[styles.container, { backgroundColor: props.backgroundColor }]}
+      style={[styles.container, { backgroundColor: colors.cardBackground }]}
     >
       <Image source={{ uri: props.iconUrl }} style={styles.icon} />
       <Text style={styles.title}>{props.courseTitle}</Text>
       <Text style={styles.author}>{props.author}</Text>
       <View style={styles.info}>
         <Text>
-          <Feather name={"percent"} size={15} /> {" " + props.difficultyLevel}
+          <Feather name={'percent'} size={15} /> {' ' + props.difficultyLevel}
         </Text>
         <Text>
-          <Feather name={"clock"} size={15} />
-          {" " + props.duration}
+          <Feather name={'clock'} size={15} />
+          {' ' + props.duration}
         </Text>
         <Text>
-          <Feather name={"star"} size={15} />
-          {" " + props.rating}
+          <Feather name={'star'} size={15} />
+          {' ' + props.rating}
         </Text>
       </View>
       {/* <Text style={styles.description}>{props.description}</Text> */}
@@ -42,16 +46,30 @@ export default function CourseCard(props: {
       <Text style={styles.unitInfo}>{props.unitInfo}</Text>
       <View style={styles.buttonContainer}>
         <Button
-          title="Details"
+          title='Details'
           onPress={() =>
-            router.replace(`CourseDetails/?courseID=${props.courseID}`)
+            router.replace(
+              `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>
+            )
           }
-          textStyle={{ fontSize: 14 }}
+          style={{
+            backgroundColor: colors.buttonBackground,
+          }}
+          textStyle={{
+            fontSize: 14,
+            color: colors.buttonText,
+          }}
         />
         <Button
-          title={props.buttonTitle || "Continue"}
-          onPress={() => router.replace("ModuleSession")}
-          textStyle={{ fontSize: 14 }}
+          title={props.buttonTitle || 'Continue'}
+          onPress={() => router.replace('/ModuleSession')}
+          style={{
+            backgroundColor: colors.buttonBackground,
+          }}
+          textStyle={{
+            fontSize: 14,
+            color: colors.buttonText,
+          }}
         />
       </View>
     </View>
@@ -69,48 +87,50 @@ const styles = StyleSheet.create({
   separator: {
     marginVertical: 10,
     height: 1,
-    backgroundColor: "#333",
+    backgroundColor: '#333',
     opacity: 0.2,
   },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 10,
     marginVertical: 18,
+    backgroundColor: 'transparent',
   },
   title: {
     fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginVertical: 5,
   },
   author: {
     fontSize: 16,
-    fontStyle: "italic",
-    textAlign: "center",
+    fontStyle: 'italic',
+    textAlign: 'center',
     marginVertical: 5,
   },
   description: {
     fontSize: 16,
-    textAlign: "center",
+    textAlign: 'center',
     marginVertical: 10,
   },
   info: {
     fontSize: 20,
-    textAlign: "center",
+    textAlign: 'center',
     marginVertical: 5,
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 10,
+    backgroundColor: 'transparent',
   },
   unitInfo: {
     fontSize: 18,
-    textAlign: "center",
+    textAlign: 'center',
   },
   icon: {
     width: 60,
     height: 60,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginVertical: 10,
   },
 });

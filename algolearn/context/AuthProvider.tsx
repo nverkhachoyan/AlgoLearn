@@ -31,17 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const { promptAsync } = useGoogleAuth(handleSuccess, handleError);
 
-  console.log('TOKEN', token);
-
-  useEffect(() => {
-    const getStorageItem = async () => {
-      const tokenPerhaps = await AsyncStorage.getItem('authToken');
-      console.log('TOK?', tokenPerhaps);
-    };
-
-    getStorageItem();
-  }, []);
-
   const signInWithGoogle = useCallback(async () => {
     await promptAsync();
   }, [promptAsync]);
@@ -49,10 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkAuthState();
   }, [isAuthed, token]);
-
-  useEffect(() => {
-    console.log('Does email exist?: ', doesEmailExist);
-  }, [doesEmailExist]);
 
   return (
     <AuthContext.Provider

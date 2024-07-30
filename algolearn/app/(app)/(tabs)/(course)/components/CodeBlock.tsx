@@ -1,6 +1,6 @@
-import { memo } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import useHighlighter from "../hooks/useHighlighter";
+import { memo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import useHighlighter from '../hooks/useHighlighter';
 
 const CodeBlock = memo(({ code }: { code: string }) => {
   const tokens = useHighlighter(code);
@@ -23,35 +23,35 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   codeBlock: {
-    backgroundColor: "#19171C",
+    backgroundColor: '#19171C',
     padding: 10,
     borderRadius: 5,
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   token: {
-    fontFamily: "monospace",
+    fontFamily: 'monospace',
   },
   keyword: {
-    color: "#07a",
+    color: '#07a',
   },
   string: {
-    color: "#690",
+    color: '#690',
   },
   number: {
-    color: "#905",
+    color: '#905',
   },
   identifier: {
-    color: "#DD4A68",
+    color: '#DD4A68',
   },
   punctuation: {
-    color: "#999",
+    color: '#999',
   },
   newline: {
-    width: "100%",
+    width: '100%',
     height: 0,
   },
   comment: {
-    color: "#690",
+    color: '#690',
   },
 });

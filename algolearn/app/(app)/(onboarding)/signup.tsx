@@ -13,7 +13,8 @@ import Button from '@/components/common/Button';
 import { Feather } from '@expo/vector-icons';
 import { useAuthContext } from '@/context/AuthProvider';
 import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
+// import Colors from '@/constants/Colors';
+import useTheme from '@/hooks/useTheme';
 
 export default function SignUp() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function SignUp() {
     useAuthContext();
   const { signInWithGoogle } = useAuthContext();
   const colorScheme = useColorScheme();
+  const { colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -28,7 +30,7 @@ export default function SignUp() {
 
   useEffect(() => {
     if (isAuthed) {
-      router.navigate('pushnotifications');
+      router.navigate('/pushnotifications');
     }
   }, [isAuthed]);
 
@@ -75,21 +77,12 @@ export default function SignUp() {
 
   return (
     <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor: Colors[colorScheme ?? 'light'].background },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
-        <Feather
-          name='arrow-left'
-          size={24}
-          color={Colors[colorScheme ?? 'light'].text}
-        />
+        <Feather name='arrow-left' size={24} color={colors.text} />
       </Pressable>
-      <Text
-        style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}
-      >
+      <Text style={[styles.title, { color: colors.text }]}>
         Log in or sign up to AlgoLearn
       </Text>
 
@@ -99,12 +92,12 @@ export default function SignUp() {
           style={[
             styles.textInput,
             {
-              borderColor: Colors[colorScheme ?? 'light'].border,
-              color: Colors[colorScheme ?? 'light'].text,
+              borderColor: colors.border,
+              color: colors.text,
             },
           ]}
           placeholder='Email'
-          placeholderTextColor={Colors[colorScheme ?? 'light'].placeholderText}
+          placeholderTextColor={colors.placeholderText}
           value={email}
           onChangeText={(newEmail) => setEmail(newEmail)}
           autoCapitalize='none'
@@ -116,14 +109,12 @@ export default function SignUp() {
               style={[
                 styles.textInput,
                 {
-                  borderColor: Colors[colorScheme ?? 'light'].border,
-                  color: Colors[colorScheme ?? 'light'].text,
+                  borderColor: colors.border,
+                  color: colors.text,
                 },
               ]}
               placeholder='Enter your password'
-              placeholderTextColor={
-                Colors[colorScheme ?? 'light'].placeholderText
-              }
+              placeholderTextColor={colors.placeholderText}
               value={password}
               onChangeText={(newPassword) => setPassword(newPassword)}
               autoCapitalize='none'
@@ -134,14 +125,12 @@ export default function SignUp() {
                 style={[
                   styles.textInput,
                   {
-                    borderColor: Colors[colorScheme ?? 'light'].border,
-                    color: Colors[colorScheme ?? 'light'].text,
+                    borderColor: colors.border,
+                    color: colors.text,
                   },
                 ]}
                 placeholder='Retype password'
-                placeholderTextColor={
-                  Colors[colorScheme ?? 'light'].placeholderText
-                }
+                placeholderTextColor={colors.placeholderText}
                 value={retryPassword}
                 onChangeText={(newRetryPassword) =>
                   setRetryPassword(newRetryPassword)
@@ -154,15 +143,14 @@ export default function SignUp() {
               title='Continue'
               onPress={handleContinue}
               icon={{ name: 'arrow-right', position: 'right' }}
-              textStyle={{ color: Colors[colorScheme ?? 'light'].buttonText }}
+              textStyle={{ color: colors.buttonText }}
               iconStyle={{
                 position: 'absolute',
                 right: 12,
-                color: Colors[colorScheme ?? 'light'].buttonText,
+                color: colors.buttonText,
               }}
               style={{
-                backgroundColor:
-                  Colors[colorScheme ?? 'light'].buttonBackground,
+                backgroundColor: colors.buttonBackground,
               }}
             />
           </>
@@ -173,14 +161,14 @@ export default function SignUp() {
             title='Continue'
             onPress={handleEmailCheck}
             icon={{ name: 'arrow-right', position: 'right' }}
-            textStyle={{ color: Colors[colorScheme ?? 'light'].buttonText }}
+            textStyle={{ color: colors.buttonText }}
             iconStyle={{
               position: 'absolute',
               right: 12,
-              color: Colors[colorScheme ?? 'light'].buttonText,
+              color: colors.buttonText,
             }}
             style={{
-              backgroundColor: Colors[colorScheme ?? 'light'].buttonBackground,
+              backgroundColor: colors.buttonBackground,
             }}
           />
         )}
@@ -188,26 +176,9 @@ export default function SignUp() {
 
       {/* SEPARATOR */}
       <View style={styles.dividerContainer}>
-        <View
-          style={[
-            styles.line,
-            { backgroundColor: Colors[colorScheme ?? 'light'].text },
-          ]}
-        />
-        <Text
-          style={[
-            styles.orText,
-            { color: Colors[colorScheme ?? 'light'].text },
-          ]}
-        >
-          or
-        </Text>
-        <View
-          style={[
-            styles.line,
-            { backgroundColor: Colors[colorScheme ?? 'light'].text },
-          ]}
-        />
+        <View style={[styles.line, { backgroundColor: colors.text }]} />
+        <Text style={[styles.orText, { color: colors.text }]}>or</Text>
+        <View style={[styles.line, { backgroundColor: colors.text }]} />
       </View>
 
       {/* GOOGLE OAUTH BUTTON */}
@@ -225,7 +196,7 @@ export default function SignUp() {
           style={{
             backgroundColor:
               colorScheme ?? 'light' === 'light' ? 'white' : 'black',
-            borderColor: Colors[colorScheme ?? 'light'].border,
+            borderColor: colors.border,
             borderWidth: 1,
           }}
           textStyle={{

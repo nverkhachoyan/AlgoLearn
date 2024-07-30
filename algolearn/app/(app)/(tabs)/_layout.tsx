@@ -1,9 +1,9 @@
 import React from 'react';
 import { Tabs, useSegments } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { Theme } from '@/constants/Colors';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import useTheme from '@/hooks/useTheme';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Feather>['name'];
@@ -13,8 +13,8 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const segments = useSegments();
+  const { colors } = useTheme();
+  const segments = useSegments() as string[];
 
   const getTabBarIcon =
     (name: React.ComponentProps<typeof Feather>['name']) =>
@@ -22,25 +22,24 @@ export default function TabLayout() {
       (
         <TabBarIcon
           name={name}
-          color={
-            focused ? 'white' : Colors[colorScheme ?? 'light'].tabIconDefault
-          }
+          color={focused ? 'white' : colors.tabIconDefault}
         />
       );
 
-  const tabBarActiveBackgroundColor = (screen: string) => {
-    const screenKey =
-      `tabIcon${screen}Selected` as keyof (typeof Colors)['light'];
-    return Colors[colorScheme ?? 'light'][screenKey];
-  };
+  // const tabBarActiveBackgroundColor = (screen: string) => {
+  //   const screenKey =
+  //     `tabIcon${screen}Selected` as keyof (Theme);
+  //   return colors.screenKey;
+  // };
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors.tint,
         headerShown: useClientOnlyValue(false, true),
         tabBarShowLabel: false,
         tabBarStyle: {
+          backgroundColor: colors.tabBarBackground,
           height: 50,
           paddingVertical: 10,
           shadowColor: '#000',
@@ -63,7 +62,7 @@ export default function TabLayout() {
         name='index'
         options={{
           tabBarIcon: getTabBarIcon('home'),
-          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor('Home'),
+          tabBarActiveBackgroundColor: colors.tabBarBackground,
           headerShown: false,
         }}
       />
@@ -71,7 +70,7 @@ export default function TabLayout() {
         name='explore'
         options={{
           tabBarIcon: getTabBarIcon('compass'),
-          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor('Explore'),
+          tabBarActiveBackgroundColor: colors.tabBarBackground,
           headerShown: false,
         }}
       />
@@ -79,16 +78,15 @@ export default function TabLayout() {
         name='challenges'
         options={{
           tabBarIcon: getTabBarIcon('codesandbox'),
-          tabBarActiveBackgroundColor:
-            tabBarActiveBackgroundColor('Challenges'),
+          tabBarActiveBackgroundColor: colors.tabBarBackground,
           headerShown: false,
         }}
       />
       <Tabs.Screen
-        name='inbox'
+        name='feed'
         options={{
           tabBarIcon: getTabBarIcon('inbox'),
-          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor('Inbox'),
+          tabBarActiveBackgroundColor: colors.tabBarBackground,
           headerShown: false,
         }}
       />

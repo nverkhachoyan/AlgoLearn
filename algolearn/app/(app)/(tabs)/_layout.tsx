@@ -1,12 +1,13 @@
-import React from 'react';
-import { Tabs, useSegments } from 'expo-router';
-import Feather from '@expo/vector-icons/Feather';
-import { Theme } from '@/constants/Colors';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import useTheme from '@/hooks/useTheme';
+import React from "react";
+import { Tabs, useSegments } from "expo-router";
+import Feather from "@expo/vector-icons/Feather";
+import { Theme } from "@/constants/Colors";
+import { useClientOnlyValue } from "@/components/useClientOnlyValue";
+import useTheme from "@/hooks/useTheme";
+import { View } from "react-native";
 
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof Feather>['name'];
+  name: React.ComponentProps<typeof Feather>["name"];
   color: string;
 }) {
   return <Feather size={28} {...props} />;
@@ -17,20 +18,18 @@ export default function TabLayout() {
   const segments = useSegments() as string[];
 
   const getTabBarIcon =
-    (name: React.ComponentProps<typeof Feather>['name']) =>
-    ({ focused }: { focused: boolean }) =>
-      (
-        <TabBarIcon
-          name={name}
-          color={focused ? 'white' : colors.tabIconDefault}
-        />
-      );
+    (name: React.ComponentProps<typeof Feather>["name"]) =>
+    ({ focused }: { focused: boolean }) => (
+      <TabBarIcon
+        name={name}
+        color={focused ? "white" : colors.tabIconDefault}
+      />
+    );
 
-  // const tabBarActiveBackgroundColor = (screen: string) => {
-  //   const screenKey =
-  //     `tabIcon${screen}Selected` as keyof (Theme);
-  //   return colors.screenKey;
-  // };
+  const tabBarActiveBackgroundColor = (screen: string) => {
+    const screenKey = `tabIcon${screen}Selected` as keyof typeof colors;
+    return colors[screenKey];
+  };
 
   return (
     <Tabs
@@ -42,12 +41,13 @@ export default function TabLayout() {
           backgroundColor: colors.tabBarBackground,
           height: 50,
           paddingVertical: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.53,
-          shadowRadius: 2.5,
-          borderRadius: 8,
-          display: segments.includes('ModuleSession') ? 'none' : 'flex',
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -7 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3.84,
+          borderTopStartRadius: 8,
+          borderTopEndRadius: 8,
+          display: segments.includes("ModuleSession") ? "none" : "flex",
         },
         tabBarItemStyle: {
           paddingTop: 5,
@@ -59,40 +59,41 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name='index'
+        name="index"
         options={{
-          tabBarIcon: getTabBarIcon('home'),
-          tabBarActiveBackgroundColor: colors.tabBarBackground,
+          tabBarIcon: getTabBarIcon("home"),
+          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor("Home"),
           headerShown: false,
         }}
       />
       <Tabs.Screen
-        name='explore'
+        name="explore"
         options={{
-          tabBarIcon: getTabBarIcon('compass'),
-          tabBarActiveBackgroundColor: colors.tabBarBackground,
+          tabBarIcon: getTabBarIcon("compass"),
+          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor("Explore"),
           headerShown: false,
         }}
       />
       <Tabs.Screen
-        name='challenges'
+        name="challenges"
         options={{
-          tabBarIcon: getTabBarIcon('codesandbox'),
-          tabBarActiveBackgroundColor: colors.tabBarBackground,
+          tabBarIcon: getTabBarIcon("codesandbox"),
+          tabBarActiveBackgroundColor:
+            tabBarActiveBackgroundColor("Challenges"),
           headerShown: false,
         }}
       />
       <Tabs.Screen
-        name='feed'
+        name="feed"
         options={{
-          tabBarIcon: getTabBarIcon('inbox'),
-          tabBarActiveBackgroundColor: colors.tabBarBackground,
+          tabBarIcon: getTabBarIcon("inbox"),
+          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor("Feed"),
           headerShown: false,
         }}
       />
       {/* Hidden tabs */}
       <Tabs.Screen
-        name='(course)'
+        name="(course)"
         options={{
           headerShown: false,
           href: null,

@@ -1,9 +1,10 @@
-import { View, Text } from './Themed';
-import { StyleSheet, Pressable } from 'react-native';
-import LottieView from 'lottie-react-native';
-import { useRef } from 'react';
-import { Feather } from '@expo/vector-icons';
-import useAppTheme from '@/hooks/useTheme';
+import { View, Text } from "./Themed";
+import { StyleSheet, Pressable, TouchableOpacity } from "react-native";
+import LottieView from "lottie-react-native";
+import { useRef } from "react";
+import { Feather } from "@expo/vector-icons";
+import useAppTheme from "@/hooks/useTheme";
+import { router } from "expo-router";
 // import useThemeColors from '@/hooks/useThemeColors';
 
 export default function Header(props: {
@@ -23,53 +24,53 @@ export default function Header(props: {
         },
       ]}
     >
-      <LottieView
-        autoPlay={true}
-        loop={false}
-        ref={animation}
-        style={styles.logo}
-        source={require('@/assets/lotties/AlgoLearnLogo.json')}
-      />
+      <TouchableOpacity onPress={() => router.replace("/")}>
+        <LottieView
+          autoPlay={true}
+          loop={false}
+          ref={animation}
+          style={styles.logo}
+          source={require("@/assets/lotties/AlgoLearnLogo.json")}
+        />
+      </TouchableOpacity>
       <View style={styles.headerItem}>
-        <Feather name='cpu' size={24} color='#1CC0CB' />
+        <Feather name="cpu" size={24} color="#1CC0CB" />
         <Text>{props.cpus}</Text>
       </View>
       <View style={styles.headerItem}>
-        <Feather name='zap' size={24} color='#1CC0CB' />
+        <Feather name="zap" size={24} color="#1CC0CB" />
         <Text>{props.strikeCount}</Text>
       </View>
 
-      <Pressable onPress={props.onAvatarPress}>
+      <TouchableOpacity onPress={props.onAvatarPress}>
         {props.userAvatar ? (
           <Text>Avatar</Text>
         ) : (
-          <Feather name='user' size={24} color={colors.icon} />
+          <Feather name="user" size={24} color={colors.icon} />
         )}
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
     height: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.05,
     shadowRadius: 3.84,
-    marginBottom: 30,
     borderBottomEndRadius: 8,
     borderBottomStartRadius: 8,
+    zIndex: 100,
   },
   headerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   logo: {
@@ -78,11 +79,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   separator: {
     marginVertical: 30,
     height: 1,
-    width: '80%',
+    width: "80%",
   },
 });

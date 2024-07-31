@@ -1,10 +1,21 @@
-import { StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Feather, FontAwesome } from '@expo/vector-icons';
-import { Text, View } from '@/components/Themed';
-import { useState, useRef, useEffect } from 'react';
-import useTheme from '@/hooks/useTheme';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  ScrollView,
+} from "react-native";
+import { Feather, FontAwesome } from "@expo/vector-icons";
+import { Text, View } from "@/components/Themed";
+import useTheme from "@/hooks/useTheme";
 
-export default function CourseUnit({ units }: { units: any }) {
+const CourseUnit = React.memo(({ units }: { units: any }) => {
   const { colors } = useTheme();
   const [isTOCCollapsed, setIsTOCCollapsed] = useState(true);
   const [collapsedUnits, setCollapsedUnits] = useState<{
@@ -12,7 +23,6 @@ export default function CourseUnit({ units }: { units: any }) {
   }>({});
   const TOCAnimationRef = useRef(new Animated.Value(0)).current;
 
-  // Initialize animation refs for each unit and its icon
   const animationRefs = useRef<{ [key: string]: Animated.Value }>({});
   const iconRefs = useRef<{ [key: string]: Animated.Value }>({});
 
@@ -25,8 +35,8 @@ export default function CourseUnit({ units }: { units: any }) {
     });
   }, [units]);
 
-  const calculateTOCHeight = () => {
-    let totalHeight = 10; // Base height for the TOC header
+  const calculateTOCHeight = useMemo(() => {
+    let totalHeight = 7; // Base height for the TOC header
     units.forEach((unit: any) => {
       totalHeight += 44; // Height for each unit header
       if (collapsedUnits[unit.unitNumber]) {
@@ -35,61 +45,67 @@ export default function CourseUnit({ units }: { units: any }) {
       }
     });
     return totalHeight;
-  };
+  }, [units, collapsedUnits]);
 
-  const animateTOC = (toValue: number, duration: number) => {
-    Animated.timing(TOCAnimationRef, {
-      toValue,
-      duration,
-      useNativeDriver: false,
-    }).start();
-  };
+  const animateTOC = useCallback(
+    (toValue: number, duration: number) => {
+      Animated.timing(TOCAnimationRef, {
+        toValue,
+        duration,
+        useNativeDriver: false,
+      }).start();
+    },
+    [TOCAnimationRef],
+  );
 
-  const toggleCollapseTOC = () => {
-    const toValue = isTOCCollapsed ? calculateTOCHeight() : 0;
+  const toggleCollapseTOC = useCallback(() => {
+    const toValue = isTOCCollapsed ? calculateTOCHeight : 0;
     animateTOC(toValue, 150);
     setIsTOCCollapsed(!isTOCCollapsed);
-  };
+  }, [isTOCCollapsed, calculateTOCHeight, animateTOC]);
 
-  const toggleExpandUnit = (unitNumber: string) => {
-    const isExpanded = collapsedUnits[unitNumber] || false;
-    const toValue = isExpanded ? 0 : 1;
+  const toggleExpandUnit = useCallback(
+    (unitNumber: string) => {
+      const isExpanded = collapsedUnits[unitNumber] || false;
+      const toValue = isExpanded ? 0 : 1;
 
-    if (animationRefs.current[unitNumber] && iconRefs.current[unitNumber]) {
-      Animated.timing(animationRefs.current[unitNumber], {
-        toValue,
-        duration: 100,
-        useNativeDriver: false,
-      }).start(() => {
-        setCollapsedUnits((prevState) => ({
-          ...prevState,
-          [unitNumber]: !isExpanded,
-        }));
-      });
+      if (animationRefs.current[unitNumber] && iconRefs.current[unitNumber]) {
+        Animated.timing(animationRefs.current[unitNumber], {
+          toValue,
+          duration: 5,
+          useNativeDriver: false,
+        }).start(() => {
+          setCollapsedUnits((prevState) => ({
+            ...prevState,
+            [unitNumber]: !isExpanded,
+          }));
+        });
 
-      Animated.timing(iconRefs.current[unitNumber], {
-        toValue,
-        duration: 100,
-        useNativeDriver: false,
-      }).start(() => {
-        if (!isTOCCollapsed) {
-          animateTOC(calculateTOCHeight(), 100);
-        }
-      });
-    }
-  };
+        Animated.timing(iconRefs.current[unitNumber], {
+          toValue,
+          duration: 5,
+          useNativeDriver: false,
+        }).start(() => {
+          if (!isTOCCollapsed) {
+            animateTOC(calculateTOCHeight, 100);
+          }
+        });
+      }
+    },
+    [collapsedUnits, calculateTOCHeight, animateTOC, isTOCCollapsed],
+  );
 
   useEffect(() => {
     if (!isTOCCollapsed) {
-      animateTOC(calculateTOCHeight(), 100);
+      animateTOC(calculateTOCHeight, 100);
     }
-  }, [collapsedUnits]);
+  }, [collapsedUnits, calculateTOCHeight, animateTOC, isTOCCollapsed]);
 
   return (
     <View style={styles.tocContainer}>
       <TouchableOpacity onPress={toggleCollapseTOC}>
         <Text style={styles.tocTitle}>
-          <Feather name='list' /> Table of Contents{' '}
+          <Feather name="list" /> Table of Contents{" "}
         </Text>
       </TouchableOpacity>
       <Animated.View
@@ -112,39 +128,29 @@ export default function CourseUnit({ units }: { units: any }) {
 
           const iconRotate = iconRefs.current[unit.unitNumber].interpolate({
             inputRange: [0, 1],
-            outputRange: ['0deg', '90deg'],
+            outputRange: ["0deg", "90deg"],
           });
 
           return (
             <TouchableOpacity
               key={unit.unitNumber}
               onPress={() => toggleExpandUnit(unit.unitNumber)}
-              style={[
-                styles.unitTitle,
-                { backgroundColor: colors.backgroundContrast },
-              ]}
+              style={[styles.unitTitle, { backgroundColor: colors.background }]}
             >
               <View
                 style={[
                   styles.unitTitleContainer,
-                  { backgroundColor: colors.backgroundContrast },
+                  { backgroundColor: colors.background },
                 ]}
               >
-                <Text
-                  style={[styles.unitTitleText, { color: colors.textContrast }]}
-                >
+                <Text style={[styles.unitTitleText, { color: colors.text }]}>
                   {unit.unitNumber}.
                 </Text>
-                <Text
-                  style={[styles.unitTitleText, { color: colors.textContrast }]}
-                >
+                <Text style={[styles.unitTitleText, { color: colors.text }]}>
                   {unit.unitName}
                 </Text>
                 <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
-                  <FontAwesome
-                    name={'chevron-right'}
-                    color={colors.textContrast}
-                  />
+                  <FontAwesome name={"chevron-right"} color={colors.text} />
                 </Animated.View>
               </View>
               <Animated.View
@@ -152,8 +158,14 @@ export default function CourseUnit({ units }: { units: any }) {
               >
                 <View style={styles.modulesContainer}>
                   {Object.entries(unit.modules).map(([key, module]) => (
-                    <TouchableOpacity key={key} style={styles.moduleItem}>
-                      <Text style={{ color: colors.textContrast }}>
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.moduleItem,
+                        { backgroundColor: colors.listBackground },
+                      ]}
+                    >
+                      <Text style={{ color: colors.text }}>
                         {module as string}
                       </Text>
                     </TouchableOpacity>
@@ -166,50 +178,55 @@ export default function CourseUnit({ units }: { units: any }) {
       </Animated.View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   unitTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   unitTitle: {
-    padding: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 13,
   },
   unitTitleText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   unitContainer: {
-    overflow: 'hidden',
+    overflow: "hidden",
     borderRadius: 5,
   },
   modulesContainer: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     marginVertical: 10,
   },
   moduleItem: {
     height: 40,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 15,
     marginVertical: 5,
-    backgroundColor: '#fff',
+    borderRadius: 5,
+    backgroundColor: "#fff",
   },
   tocContainer: {
-    width: '80%',
+    width: "80%",
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 5,
-    alignSelf: 'center',
-    overflow: 'hidden',
+    alignSelf: "center",
+    overflow: "hidden",
   },
   unitsContainer: {},
   tocTitle: {
     padding: 15,
-    backgroundColor: '#24272E',
-    color: '#fff',
-    fontWeight: 'bold',
+    // backgroundColor: "#24272E",
+    backgroundColor: "#0F1421",
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
+
+export default CourseUnit;

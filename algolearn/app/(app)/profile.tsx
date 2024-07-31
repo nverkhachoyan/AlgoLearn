@@ -1,14 +1,14 @@
-import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { useAuthContext } from '@/context/AuthProvider';
-import Button from '@/components/common/Button';
-import { router } from 'expo-router';
-import { Seperator } from '@/components/common/Seperator';
-import moment from 'moment';
-import { Feather } from '@expo/vector-icons';
-import { useEffect } from 'react';
-import useTheme from '@/hooks/useTheme';
+import { StatusBar } from "expo-status-bar";
+import { Platform, StyleSheet } from "react-native";
+import { Text, View } from "@/components/Themed";
+import { useAuthContext } from "@/context/AuthProvider";
+import Button from "@/components/common/Button";
+import { router } from "expo-router";
+import { Seperator } from "@/components/common/Seperator";
+import moment from "moment";
+import { Feather } from "@expo/vector-icons";
+import { useEffect } from "react";
+import useTheme from "@/hooks/useTheme";
 
 export default function Profile() {
   const { user, isAuthed, loading, signOut, deleteAccount } = useAuthContext();
@@ -16,12 +16,12 @@ export default function Profile() {
 
   const handleSignOut = () => {
     signOut();
-    router.replace('/welcome');
+    router.replace("/welcome");
   };
 
   useEffect(() => {
     if (!loading && !isAuthed && !user) {
-      router.navigate('/welcome');
+      router.navigate("/welcome");
     }
   }, [loading, isAuthed, user]);
 
@@ -42,59 +42,60 @@ export default function Profile() {
         ]}
       >
         <View style={styles.userInfoRow}>
-          <Feather name='mail' size={20} color={colors.text} />
+          <Feather name="mail" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
             {user.email}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='user' size={20} color={colors.text} />
+          <Feather name="user" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            {user.username || 'N/A'}
+            {user.username || "N/A"}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='cpu' size={20} color={colors.text} />
+          <Feather name="cpu" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
             CPUS: {user.cpus}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='tag' size={20} color={colors.text} />
+          <Feather name="tag" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
             Role: {user.role}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='calendar' size={20} color={colors.text} />
+          <Feather name="calendar" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Account Created: {moment(user.created_at).format('MMMM Do YYYY')}
+            Account Created: {moment(user.created_at).format("MMMM Do YYYY")}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='clock' size={20} color={colors.text} />
+          <Feather name="clock" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Last Login:{' '}
-            {user.last_login_at === '0001-01-01T00:00:00Z'
-              ? 'Never'
-              : moment(user.last_login_at).format('MMMM Do YYYY, h:mm:ss a')}
+            Last Login:{" "}
+            {user.last_login_at === "0001-01-01T00:00:00Z"
+              ? "Never"
+              : moment(user.last_login_at).format("MMMM Do YYYY, h:mm:ss a")}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='check-circle' size={20} color={colors.text} />
+          <Feather name="check-circle" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Active: {user.is_active ? 'Yes' : 'No'}
+            Active: {user.is_active ? "Yes" : "No"}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
-          <Feather name='mail' size={20} color={colors.text} />
+          <Feather name="mail" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Email Verified: {user.is_email_verified ? 'Yes' : 'No'}
+            Email Verified: {user.is_email_verified ? "Yes" : "No"}
           </Text>
         </View>
       </View>
+      <View style={styles.separator} />
       <Button
-        title='Log Out'
+        title="Log Out"
         onPress={handleSignOut}
         style={{
           backgroundColor: colors.buttonBackground,
@@ -104,25 +105,26 @@ export default function Profile() {
         }}
         textStyle={{ color: colors.buttonText }}
         icon={{
-          name: 'log-out',
-          position: 'right',
+          name: "log-out",
+          position: "right",
         }}
+        iconStyle={{ color: colors.buttonText }}
       />
-      <Seperator />
+
       <Button
-        title='Delete Account'
+        title="Delete Account"
         onPress={() => deleteAccount()}
         style={{
           backgroundColor: colors.dangerBgColor,
         }}
-        textStyle={{ color: colors.buttonText }}
+        textStyle={{ color: colors.dangerTextColor }}
         icon={{
-          name: 'remove',
-          type: 'fontawesome',
-          position: 'right',
+          name: "remove",
+          type: "fontawesome",
+          position: "right",
         }}
       />
-      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
+      <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
     </View>
   );
 }
@@ -130,39 +132,32 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
   },
   separator: {
     height: 1,
-    width: '80%',
-    marginVertical: 20,
+    width: "80%",
+    marginVertical: 5,
   },
   userInfoContainer: {
-    width: '90%',
+    width: "90%",
     marginVertical: 20,
     padding: 15,
     borderRadius: 10,
   },
   userInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: 5,
   },
   userInfoText: {
     fontSize: 16,
     marginLeft: 10,
-  },
-  button: {
-    width: '90%',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 5,
   },
 });

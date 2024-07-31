@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,14 @@ import {
   TextInput,
   Pressable,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import Button from '@/components/common/Button';
-import { Feather } from '@expo/vector-icons';
-import { useAuthContext } from '@/context/AuthProvider';
-import { useColorScheme } from '@/components/useColorScheme';
+} from "react-native";
+import { useRouter } from "expo-router";
+import Button from "@/components/common/Button";
+import { Feather } from "@expo/vector-icons";
+import { useAuthContext } from "@/context/AuthProvider";
+import { useColorScheme } from "@/components/useColorScheme";
 // import Colors from '@/constants/Colors';
-import useTheme from '@/hooks/useTheme';
+import useTheme from "@/hooks/useTheme";
 
 export default function SignUp() {
   const router = useRouter();
@@ -24,13 +24,13 @@ export default function SignUp() {
   const colorScheme = useColorScheme();
   const { colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [retryPassword, setRetryPassword] = useState<string>('');
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [retryPassword, setRetryPassword] = useState<string>("");
 
   useEffect(() => {
     if (isAuthed) {
-      router.navigate('/pushnotifications');
+      router.navigate("/pushnotifications");
     }
   }, [isAuthed]);
 
@@ -41,7 +41,7 @@ export default function SignUp() {
 
   const handleEmailCheck = async () => {
     if (!isValidEmail(email)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
       return;
     }
 
@@ -52,14 +52,14 @@ export default function SignUp() {
   const handleSignUp = () => {
     if (password.length < 8) {
       Alert.alert(
-        'Weak Password',
-        'Password must be at least 8 characters long.'
+        "Weak Password",
+        "Password must be at least 8 characters long.",
       );
       return;
     }
 
     if (password !== retryPassword) {
-      Alert.alert('Password Mismatch', 'Passwords do not match.');
+      Alert.alert("Password Mismatch", "Passwords do not match.");
       return;
     }
 
@@ -80,7 +80,7 @@ export default function SignUp() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
-        <Feather name='arrow-left' size={24} color={colors.text} />
+        <Feather name="arrow-left" size={24} color={colors.text} />
       </Pressable>
       <Text style={[styles.title, { color: colors.text }]}>
         Log in or sign up to AlgoLearn
@@ -92,15 +92,15 @@ export default function SignUp() {
           style={[
             styles.textInput,
             {
-              borderColor: colors.border,
+              borderColor: colors.inputBorder,
               color: colors.text,
             },
           ]}
-          placeholder='Email'
+          placeholder="Email"
           placeholderTextColor={colors.placeholderText}
           value={email}
           onChangeText={(newEmail) => setEmail(newEmail)}
-          autoCapitalize='none'
+          autoCapitalize="none"
         />
 
         {hasCheckedEmail && (
@@ -109,15 +109,15 @@ export default function SignUp() {
               style={[
                 styles.textInput,
                 {
-                  borderColor: colors.border,
+                  borderColor: colors.inputBorder,
                   color: colors.text,
                 },
               ]}
-              placeholder='Enter your password'
+              placeholder="Enter your password"
               placeholderTextColor={colors.placeholderText}
               value={password}
               onChangeText={(newPassword) => setPassword(newPassword)}
-              autoCapitalize='none'
+              autoCapitalize="none"
               secureTextEntry
             />
             {doesEmailExist === false && (
@@ -125,27 +125,27 @@ export default function SignUp() {
                 style={[
                   styles.textInput,
                   {
-                    borderColor: colors.border,
+                    borderColor: colors.inputBorder,
                     color: colors.text,
                   },
                 ]}
-                placeholder='Retype password'
+                placeholder="Retype password"
                 placeholderTextColor={colors.placeholderText}
                 value={retryPassword}
                 onChangeText={(newRetryPassword) =>
                   setRetryPassword(newRetryPassword)
                 }
-                autoCapitalize='none'
+                autoCapitalize="none"
                 secureTextEntry
               />
             )}
             <Button
-              title='Continue'
+              title="Continue"
               onPress={handleContinue}
-              icon={{ name: 'arrow-right', position: 'right' }}
+              icon={{ name: "arrow-right", position: "right" }}
               textStyle={{ color: colors.buttonText }}
               iconStyle={{
-                position: 'absolute',
+                position: "absolute",
                 right: 12,
                 color: colors.buttonText,
               }}
@@ -158,12 +158,12 @@ export default function SignUp() {
 
         {!hasCheckedEmail && (
           <Button
-            title='Continue'
+            title="Continue"
             onPress={handleEmailCheck}
-            icon={{ name: 'arrow-right', position: 'right' }}
+            icon={{ name: "arrow-right", position: "right" }}
             textStyle={{ color: colors.buttonText }}
             iconStyle={{
-              position: 'absolute',
+              position: "absolute",
               right: 12,
               color: colors.buttonText,
             }}
@@ -184,23 +184,23 @@ export default function SignUp() {
       {/* GOOGLE OAUTH BUTTON */}
       <View style={styles.buttonContainer}>
         <Button
-          title='Continue with Google'
+          title="Continue with Google"
           onPress={signInWithGoogle}
           icon={{
-            name: 'google',
-            position: 'left',
-            type: 'png',
-            src: require('@/assets/icons/google.png'),
+            name: "google",
+            position: "left",
+            type: "png",
+            src: require("@/assets/icons/google.png"),
           }}
           iconStyle={{ width: 20, height: 20 }}
           style={{
             backgroundColor:
-              colorScheme ?? 'light' === 'light' ? 'white' : 'black',
+              (colorScheme ?? "light" === "light") ? "white" : "black",
             borderColor: colors.border,
             borderWidth: 1,
           }}
           textStyle={{
-            color: '#666',
+            color: "#666",
           }}
         />
       </View>
@@ -215,9 +215,9 @@ const styles = StyleSheet.create({
     paddingRight: 25,
   },
   goBackButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'absolute',
+    flexDirection: "row",
+    alignItems: "center",
+    position: "absolute",
     top: 20,
     left: 0,
     zIndex: 1,
@@ -232,15 +232,15 @@ const styles = StyleSheet.create({
   },
   middleContent: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     marginTop: 30,
     marginBottom: 30,
   },
   title: {
     fontSize: 30,
-    fontWeight: 'bold',
-    fontFamily: 'OpenSauceOne-SemiBold',
-    textAlign: 'left',
+    fontWeight: "bold",
+    fontFamily: "OpenSauceOne-SemiBold",
+    textAlign: "left",
     marginTop: 70,
     marginBottom: 30,
   },
@@ -252,9 +252,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   line: {
     height: 1,

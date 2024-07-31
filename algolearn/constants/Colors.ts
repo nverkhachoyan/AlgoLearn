@@ -3,9 +3,13 @@ export type Theme = {
   colors: {
     primary: string;
     background: string;
+    secondaryBackground: string;
     viewBackground: string;
+    listBackground: string;
     card: string;
     border: string;
+    inputBorder: string;
+    cardBorder: string;
     notification: string;
     text: string;
     textContrast: string;
@@ -16,7 +20,7 @@ export type Theme = {
     tabIconSelected: string;
     tabIconHomeSelected: string;
     tabIconHomeDefault: string;
-    tabIconInboxSelected: string;
+    tabIconFeedSelected: string;
     tabIconExploreSelected: string;
     tabIconChallengesSelected: string;
     tabBarBackground: string;
@@ -39,99 +43,115 @@ export type Theme = {
     errorColor: string;
     alertColor: string;
     cardBackground: string;
+    questionCardBg: string;
+    questionSelectedBg: string;
     dismissText: string;
   };
 };
 
-const tintColorLight = '#333';
-const tintColorDark = '#333';
+const tintColorLight = "#333";
+const tintColorDark = "#333";
 
 export const DefaultTheme: Theme = {
   dark: false,
   colors: {
-    primary: 'rgb(0, 122, 255)',
-    background: '#FFFFFF',
-    viewBackground: '#FFF',
-    card: 'rgb(255, 255, 255)',
-    border: '#333',
-    notification: 'rgb(255, 59, 48)',
-    text: '#000',
-    textContrast: '#FFF',
-    backgroundContrast: '#000',
-    stickyHeaderBackground: '#FFF',
+    primary: "rgb(0, 122, 255)",
+    background: "#FFFFFF",
+    secondaryBackground: "#FFFFFF",
+    viewBackground: "#FFF",
+    listBackground: "#E8E8E8",
+    card: "rgb(255, 255, 255)",
+    border: "transparent",
+    inputBorder: "#333",
+    cardBorder: "#333",
+    notification: "rgb(255, 59, 48)",
+    text: "#000",
+    textContrast: "#FFF",
+    backgroundContrast: "#000",
+    stickyHeaderBackground: "#FFF",
     tint: tintColorLight,
-    tabIconDefault: '#1E1E1E',
+    tabIconDefault: "#1E1E1E",
     tabIconSelected: tintColorLight,
-    tabIconHomeDefault: '#1E1E1E',
-    tabIconHomeSelected: '#FCC931',
-    tabIconInboxSelected: '#9F52C5',
-    tabIconExploreSelected: '#25A879',
-    tabIconChallengesSelected: '#1CC0CB',
-    tabBarBackground: '#FFF',
-    buttonText: '#fff',
-    buttonBackground: '#1E1E1E',
-    placeholderText: '#999',
-    icon: '#333',
-    dangerBgColor: '#FF0000',
-    successBgColor: '#28a745',
-    warningBgColor: '#ffc107',
-    infoBgColor: '#17a2b8',
-    dangerTextColor: '#fff',
-    successTextColor: '#fff',
-    warningTextColor: '#000',
-    infoTextColor: '#fff',
-    linkColor: '#1E90FF',
-    hoverColor: '#555',
-    activeColor: '#0000FF',
-    disabledColor: '#D3D3D3',
-    errorColor: '#DC3545',
-    alertColor: '#FFC107',
-    cardBackground: '#FFF',
-    dismissText: '#636F73',
+    tabIconHomeDefault: "#1E1E1E",
+    tabIconHomeSelected: "#FCC931",
+    tabIconFeedSelected: "#9F52C5",
+    tabIconExploreSelected: "#25A879",
+    tabIconChallengesSelected: "#1CC0CB",
+    tabBarBackground: "#FFF",
+    buttonText: "#fff",
+    buttonBackground: "#1E1E1E",
+    placeholderText: "#999",
+    icon: "#333",
+    dangerBgColor: "#FF3E3E",
+    successBgColor: "#28a745",
+    warningBgColor: "#ffc107",
+    infoBgColor: "#17a2b8",
+    dangerTextColor: "#fff",
+    successTextColor: "#fff",
+    warningTextColor: "#000",
+    infoTextColor: "#fff",
+    linkColor: "#1E90FF",
+    hoverColor: "#555",
+    activeColor: "#0000FF",
+    disabledColor: "#D3D3D3",
+    errorColor: "#DC3545",
+    alertColor: "#FFC107",
+    cardBackground: "#FFF",
+    questionCardBg: "#FFF",
+    questionSelectedBg: "#1E1E1E",
+    dismissText: "#636F73",
   },
 };
 
 export const DarkTheme: Theme = {
   dark: true,
   colors: {
-    primary: 'rgb(0, 122, 255)',
-    background: '#24272E',
-    viewBackground: '#121212',
-    card: 'rgb(18, 18, 18)',
-    text: '#fff',
-    border: '#333',
-    notification: 'rgb(255, 69, 58)',
-    textContrast: '#000',
-    backgroundContrast: '#f1f1f1',
-    stickyHeaderBackground: '#24272E',
+    primary: "rgb(0, 122, 255)",
+    // background: "#24272E",
+
+    background: "#121212",
+    secondaryBackground: "#24272E",
+    viewBackground: "#121212",
+    listBackground: "#333",
+    card: "rgb(18, 18, 18)",
+    text: "#fff",
+    border: "transparent",
+    inputBorder: "#E8E8E8",
+    cardBorder: "#E8E8E8",
+    notification: "rgb(255, 69, 58)",
+    textContrast: "#000",
+    backgroundContrast: "#f1f1f1",
+    stickyHeaderBackground: "#24272E",
     tint: tintColorDark,
-    tabIconDefault: '#ccc',
+    tabIconDefault: "#ccc",
     tabIconSelected: tintColorDark,
-    tabIconHomeDefault: '#1E1E1E',
-    tabIconHomeSelected: '#FCC931',
-    tabIconInboxSelected: '#9F52C5',
-    tabIconExploreSelected: '#25A879',
-    tabIconChallengesSelected: '#1CC0CB',
-    tabBarBackground: '#24272E',
-    buttonText: '#000',
-    buttonBackground: 'white',
-    placeholderText: '#666',
-    icon: '#fff',
-    dangerBgColor: '#FF0000',
-    successBgColor: '#28a745',
-    warningBgColor: '#ffc107',
-    infoBgColor: '#17a2b8',
-    dangerTextColor: '#fff',
-    successTextColor: '#fff',
-    warningTextColor: '#000',
-    infoTextColor: '#fff',
-    linkColor: '#1E90FF',
-    hoverColor: '#AAA',
-    activeColor: '#0000FF',
-    disabledColor: '#555',
-    errorColor: '#DC3545',
-    alertColor: '#FFC107',
-    cardBackground: '#24272E',
-    dismissText: '#f3f3f3',
+    tabIconHomeDefault: "#1E1E1E",
+    tabIconHomeSelected: "#FCC931",
+    tabIconFeedSelected: "#9F52C5",
+    tabIconExploreSelected: "#25A879",
+    tabIconChallengesSelected: "#1CC0CB",
+    tabBarBackground: "#24272E",
+    buttonText: "#000",
+    buttonBackground: "white",
+    placeholderText: "#666",
+    icon: "#fff",
+    dangerBgColor: "#FF3E3E",
+    successBgColor: "#28a745",
+    warningBgColor: "#ffc107",
+    infoBgColor: "#17a2b8",
+    dangerTextColor: "#fff",
+    successTextColor: "#fff",
+    warningTextColor: "#000",
+    infoTextColor: "#fff",
+    linkColor: "#1E90FF",
+    hoverColor: "#AAA",
+    activeColor: "#0000FF",
+    disabledColor: "#555",
+    errorColor: "#DC3545",
+    alertColor: "#FFC107",
+    cardBackground: "#24272E",
+    questionCardBg: "#18181A",
+    questionSelectedBg: "#1E1E1E",
+    dismissText: "#f3f3f3",
   },
 };

@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from "react";
 import { Linking, Alert, StyleSheet, TouchableOpacity } from "react-native";
 import { View, Text } from "@/components/Themed";
-import { Image } from "expo-image";
+import { Image, ImageStyle } from "expo-image";
 import LottieView from "lottie-react-native";
 import Markdown from "react-native-markdown-display";
 import YoutubePlayer from "react-native-youtube-iframe";
 import CodeBlock from "./CodeBlock";
 import { FontAwesome6 } from "@expo/vector-icons";
+import useTheme from "@/hooks/useTheme";
 
 export type QuestionState = {
   question_id: number;
@@ -23,6 +24,7 @@ const SectionRenderer = ({
   handleQuestionAnswer: (question_id: number, selected_id: number) => void;
   questionsState: Map<number, QuestionState>;
 }) => {
+  const { colors } = useTheme();
   const [videoPlaying, setVideoPlaying] = useState(false);
 
   const onStateChange = useCallback((state: any) => {
@@ -47,7 +49,7 @@ const SectionRenderer = ({
         return "red";
       }
     }
-    return "gray";
+    return colors.text;
   };
 
   const getOptionIcon = (
@@ -78,7 +80,13 @@ const SectionRenderer = ({
                   source={{ uri: node.attributes.src }}
                   style={[
                     styles.section,
-                    { width: "100%", height: 200, contentFit: "contain" },
+                    {
+                      width: "100%",
+                      height: 200,
+                      // @ts-ignore-next-line
+                      contentFit: "contain",
+                      color: colors.text,
+                    },
                   ]}
                 />
               );
@@ -92,10 +100,15 @@ const SectionRenderer = ({
               fontSize: 20,
               fontFamily: "OpenSauceOne-Bold",
             },
-            ordered_list: { marginVertical: 15 },
+            ordered_list: { marginVertical: 15, color: colors.text },
             list_item: { marginVertical: 4 },
-            text: { lineHeight: 24 },
+            text: { lineHeight: 24, color: colors.text },
             link: { color: "#434343", textDecorationLine: "underline" },
+            code_inline: {
+              color: colors.text,
+              fontFamily: "OpenSauceOne-Bold",
+              backgroundColor: colors.background,
+            },
           }}
           onLinkPress={(url) => {
             Linking.openURL(url);
@@ -134,15 +147,26 @@ const SectionRenderer = ({
       return (
         <View
           key={section.position}
-          style={[styles.section, styles.questionContainer]}
+          style={[
+            styles.section,
+            styles.questionContainer,
+            { backgroundColor: colors.questionCardBg },
+          ]}
         >
-          <Text style={[styles.question]}>{section.question}</Text>
+          <Text style={[styles.question, { color: colors.text }]}>
+            {section.question}
+          </Text>
           {section.options.map((option: any) => (
             <TouchableOpacity
               key={option.id}
               style={[
                 questionState?.selected_option_id === option.id
-                  ? styles.questionOptionSelected
+                  ? [
+                      styles.questionOptionSelected,
+                      {
+                        opacity: 0.5,
+                      },
+                    ]
                   : styles.questionOption,
               ]}
               onPress={() =>
@@ -157,7 +181,7 @@ const SectionRenderer = ({
                   { color: getIconColor(option.id, questionState) },
                 ]}
               />
-              <Text> {option.content} </Text>
+              <Text style={{ color: colors.text }}> {option.content} </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -204,8 +228,7 @@ const styles = StyleSheet.create({
   },
   questionContainer: {
     padding: 10,
-    borderRadius: 2,
-    backgroundColor: "#f8f8f8",
+    borderRadius: 5,
   },
   question: {
     marginBottom: 15,
@@ -221,7 +244,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
-    backgroundColor: "#fff",
   },
   questionOptionSelected: {
     flex: 1,
@@ -233,7 +255,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
-    backgroundColor: "#E8E8E8",
   },
   questionOptionIcon: {
     fontSize: 14,

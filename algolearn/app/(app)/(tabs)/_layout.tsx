@@ -4,13 +4,51 @@ import Feather from "@expo/vector-icons/Feather";
 import { Theme } from "@/constants/Colors";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import useTheme from "@/hooks/useTheme";
-import { View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Feather>["name"];
   color: string;
 }) {
   return <Feather size={28} {...props} />;
+}
+
+function HapticTabButton({
+  onPress,
+  children,
+  accessibilityState,
+  backgroundColor,
+}: any) {
+  const handlePress = () => {
+    Haptics.selectionAsync();
+    onPress();
+  };
+
+  const isSelected = accessibilityState.selected;
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      style={{
+        flex: 1,
+        paddingTop: 5,
+        paddingBottom: 5,
+        borderRadius: 8,
+        marginHorizontal: 20,
+      }}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: isSelected ? backgroundColor : "transparent",
+          borderRadius: 8,
+        }}
+      >
+        {children}
+      </View>
+    </TouchableOpacity>
+  );
 }
 
 export default function TabLayout() {
@@ -39,8 +77,7 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: colors.tabBarBackground,
-          height: 50,
-          paddingVertical: 10,
+          marginBottom: -30,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -7 },
           shadowOpacity: 0.05,
@@ -49,46 +86,66 @@ export default function TabLayout() {
           borderTopEndRadius: 8,
           display: segments.includes("ModuleSession") ? "none" : "flex",
         },
-        tabBarItemStyle: {
-          paddingTop: 5,
-          paddingBottom: 5,
-          height: 40,
-          borderRadius: 8,
-          marginHorizontal: 20,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           tabBarIcon: getTabBarIcon("home"),
-          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor("Home"),
           headerShown: false,
+          tabBarButton: (props) => (
+            <HapticTabButton
+              {...props}
+              backgroundColor={tabBarActiveBackgroundColor("Home")}
+            >
+              {props.children}
+            </HapticTabButton>
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           tabBarIcon: getTabBarIcon("compass"),
-          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor("Explore"),
           headerShown: false,
+          tabBarButton: (props) => (
+            <HapticTabButton
+              {...props}
+              backgroundColor={tabBarActiveBackgroundColor("Explore")}
+            >
+              {props.children}
+            </HapticTabButton>
+          ),
         }}
       />
       <Tabs.Screen
         name="challenges"
         options={{
           tabBarIcon: getTabBarIcon("codesandbox"),
-          tabBarActiveBackgroundColor:
-            tabBarActiveBackgroundColor("Challenges"),
           headerShown: false,
+          tabBarButton: (props) => (
+            <HapticTabButton
+              {...props}
+              backgroundColor={tabBarActiveBackgroundColor("Challenges")}
+            >
+              {props.children}
+            </HapticTabButton>
+          ),
         }}
       />
       <Tabs.Screen
         name="feed"
         options={{
           tabBarIcon: getTabBarIcon("inbox"),
-          tabBarActiveBackgroundColor: tabBarActiveBackgroundColor("Feed"),
           headerShown: false,
+          tabBarButton: (props) => (
+            <HapticTabButton
+              {...props}
+              backgroundColor={tabBarActiveBackgroundColor("Feed")}
+            >
+              {props.children}
+            </HapticTabButton>
+          ),
         }}
       />
       {/* Hidden tabs */}

@@ -30,7 +30,7 @@ export default function SignUp() {
 
   useEffect(() => {
     if (isAuthed) {
-      router.navigate("/pushnotifications");
+      router.navigate("/userdetails");
     }
   }, [isAuthed]);
 
@@ -196,7 +196,7 @@ export default function SignUp() {
           style={{
             backgroundColor:
               (colorScheme ?? "light" === "light") ? "white" : "black",
-            borderColor: colors.border,
+            borderColor: colors.inputBorder,
             borderWidth: 1,
           }}
           textStyle={{

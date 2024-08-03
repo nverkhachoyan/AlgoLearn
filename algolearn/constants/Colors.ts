@@ -108,7 +108,6 @@ export const DarkTheme: Theme = {
   colors: {
     primary: "rgb(0, 122, 255)",
     // background: "#24272E",
-
     background: "#121212",
     secondaryBackground: "#24272E",
     viewBackground: "#121212",

@@ -91,11 +91,7 @@ export default function ModuleSession(props: any) {
   const [questionsState, setQuestionsState] = useState<
     Map<number, QuestionState>
   >(new Map());
-  const [isFooterExpanded, setIsFooterExpanded] = useState(false);
 
-  const toggleFooter = () => {
-    setIsFooterExpanded(!isFooterExpanded);
-  };
   const [loading, setLoading] = useState(true);
 
   const handleQuestionAnswer = useCallback(
@@ -189,22 +185,24 @@ export default function ModuleSession(props: any) {
           </View>
         </View>
       </ScrollView>
+      {/* STICKY FOOTER */}
       <View
         style={[
           styles.stickyFooter,
-          { backgroundColor: colors.secondaryBackground },
+          {
+            backgroundColor: colors.secondaryBackground,
+          },
         ]}
       >
-        <View
-          style={[
-            styles.stickyFooterInner,
-            { height: isFooterExpanded ? 160 : 40 },
-          ]}
-        >
+        <View style={styles.stickyFooterInner}>
           <TouchableOpacity onPress={() => router.back()}>
             <Feather name="arrow-left" size={18} color={colors.icon} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={toggleFooter}>
+          <TouchableOpacity
+            onPress={() => {
+              router.push("/SessionTOC");
+            }}
+          >
             <Text>
               <Feather name="book-open" color={colors.icon} /> Module 1:
               Algorithms
@@ -258,6 +256,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
+    height: 40,
   },
   footerText: {
     fontSize: 16,

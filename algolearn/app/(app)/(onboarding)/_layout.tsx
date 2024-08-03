@@ -1,24 +1,25 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
 
 export default function Layout() {
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#f4511e',
+          backgroundColor: "#f4511e",
         },
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: "bold",
         },
       }}
       // initialRouteName='welcome'
     >
-      <Stack.Screen name='welcome' options={{ headerShown: false }} />
-      <Stack.Screen name='signup' options={{ headerShown: false }} />
-      <Stack.Screen name='courseselection' options={{ headerShown: false }} />
-      <Stack.Screen name='tooltips' options={{ headerShown: false }} />
-      <Stack.Screen name='pushnotifications' options={{ headerShown: false }} />
+      <Stack.Screen name="welcome" options={{ headerShown: false }} />
+      <Stack.Screen name="signup" options={{ headerShown: false }} />
+      <Stack.Screen name="userdetails" options={{ headerShown: false }} />
+      <Stack.Screen name="courseselection" options={{ headerShown: false }} />
+      <Stack.Screen name="tooltips" options={{ headerShown: false }} />
+      <Stack.Screen name="pushnotifications" options={{ headerShown: false }} />
     </Stack>
   );
 }

@@ -69,6 +69,9 @@ export default function TabLayout() {
     return colors[screenKey];
   };
 
+  const shouldHideTabBar =
+    segments.includes("ModuleSession") || segments.includes("SessionTOC");
+
   return (
     <Tabs
       screenOptions={{
@@ -84,7 +87,7 @@ export default function TabLayout() {
           shadowRadius: 3.84,
           borderTopStartRadius: 8,
           borderTopEndRadius: 8,
-          display: segments.includes("ModuleSession") ? "none" : "flex",
+          display: shouldHideTabBar ? "none" : "flex",
         },
       }}
     >

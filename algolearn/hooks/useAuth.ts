@@ -1,59 +1,23 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  fetchUser,
-  deleteAccount,
-  checkEmailExists,
-  signIn,
-} from '@/services/authService';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { checkEmailExists, signIn } from "@/services/authService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export const useAuth = () => {
   const queryClient = useQueryClient();
   const [authState, setAuthState] = useState({
     isAuthed: false,
-    token: '',
-  });
-
-  // Fetch user data
-  const {
-    isPending: isUserPending,
-    error: userError,
-    data: user,
-  } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const authToken = await AsyncStorage.getItem('authToken');
-      if (authToken) {
-        const user = await fetchUser(authToken);
-        return { ...user.data, token: authToken };
-      }
-      return null;
-    },
-  });
-
-  // Delete account
-  const {
-    data: deleteAccountData,
-    mutate: deleteAccountMutate,
-    isPending: isDeleteAccountPending,
-    error: deleteAccountError,
-  } = useMutation({
-    mutationFn: async () => {
-      const token = await AsyncStorage.getItem('authToken');
-      if (!token) throw new Error('No token available');
-      return deleteAccount(token);
-    },
+    token: "",
   });
 
   // Sign out
   const { mutate: signOut } = useMutation({
     mutationFn: async () => {
-      await AsyncStorage.removeItem('authToken');
-      setAuthState({ isAuthed: false, token: '' });
+      await AsyncStorage.removeItem("authToken");
+      setAuthState({ isAuthed: false, token: "" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 
@@ -67,14 +31,14 @@ export const useAuth = () => {
       password: string;
     }) => {
       const response = await signIn(email, password);
-      if (response.status === 'success') {
+      if (response.status === "success") {
         handleSuccess(response.data.token);
       }
 
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 
@@ -83,9 +47,9 @@ export const useAuth = () => {
     useMutation({
       mutationFn: async (email: string) => {
         const response = await checkEmailExists(email);
-        if (response.status === 'success') {
+        if (response.status === "success") {
           return true;
-        } else if (response.status === 'error') {
+        } else if (response.status === "error") {
           return false;
         }
       },
@@ -93,32 +57,25 @@ export const useAuth = () => {
 
   // Handle success for sign-in or sign-up
   const handleSuccess = async (newToken: string) => {
-    await AsyncStorage.setItem('authToken', newToken);
+    await AsyncStorage.setItem("authToken", newToken);
     setAuthState({ isAuthed: true, token: newToken });
   };
 
   // Check the auth state
   const checkAuthState = async () => {
     try {
-      const authToken = await AsyncStorage.getItem('authToken');
+      const authToken = await AsyncStorage.getItem("authToken");
       if (authToken) {
         setAuthState({ isAuthed: true, token: authToken });
       }
     } catch (error) {
-      console.error('Failed to check auth state:', error);
+      console.error("Failed to check auth state:", error);
     }
   };
 
   return {
     isAuthed: authState.isAuthed,
     token: authState.token,
-    isUserPending,
-    userError,
-    user,
-    deleteAccountData,
-    deleteAccountMutate,
-    isDeleteAccountPending,
-    deleteAccountError,
     signOut,
     handleSuccess,
     checkAuthState,

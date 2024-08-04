@@ -1,4 +1,4 @@
-export type User = {
+export interface User {
   id: number;
   username: string;
   email: string;
@@ -19,7 +19,7 @@ export type User = {
   preferences?: string; // JSON string
   streaks?: Streak[];
   achievements?: UserAchievement[];
-} | null;
+}
 
 export interface Streak {
   id: number;

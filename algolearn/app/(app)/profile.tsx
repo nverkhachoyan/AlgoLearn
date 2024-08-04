@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useAuthContext } from "@/context/AuthProvider";
+import { useUser, UseUserReturn } from "@/hooks/useUser";
 import Button from "@/components/common/Button";
 import { router } from "expo-router";
 import { Seperator } from "@/components/common/Seperator";
@@ -11,7 +12,9 @@ import { useEffect } from "react";
 import useTheme from "@/hooks/useTheme";
 
 export default function Profile() {
-  const { user, isAuthed, loading, signOut, deleteAccount } = useAuthContext();
+  const { isAuthed, loading, signOut } = useAuthContext();
+  const { user, updateUser, deleteAccount }: UseUserReturn = useUser();
+
   const { colors } = useTheme();
 
   const handleSignOut = () => {
@@ -32,7 +35,7 @@ export default function Profile() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>
-        {user.username || user.email}
+        {user.data.username || user.data.email}
       </Text>
       <View style={[styles.separator, { backgroundColor: colors.border }]} />
       <View
@@ -44,52 +47,55 @@ export default function Profile() {
         <View style={styles.userInfoRow}>
           <Feather name="mail" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            {user.email}
+            {user.data.email}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="user" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            {user.username || "N/A"}
+            {user.data.username || "N/A"}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="cpu" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            CPUS: {user.cpus}
+            CPUS: {user.data.cpus}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="tag" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Role: {user.role}
+            Role: {user.data.role}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="calendar" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Account Created: {moment(user.created_at).format("MMMM Do YYYY")}
+            Account Created:{" "}
+            {moment(user.data.created_at).format("MMMM Do YYYY")}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="clock" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
             Last Login:{" "}
-            {user.last_login_at === "0001-01-01T00:00:00Z"
+            {user.data.last_login_at === "0001-01-01T00:00:00Z"
               ? "Never"
-              : moment(user.last_login_at).format("MMMM Do YYYY, h:mm:ss a")}
+              : moment(user.data.last_login_at).format(
+                  "MMMM Do YYYY, h:mm:ss a",
+                )}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="check-circle" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Active: {user.is_active ? "Yes" : "No"}
+            Active: {user.data.is_active ? "Yes" : "No"}
           </Text>
         </View>
         <View style={styles.userInfoRow}>
           <Feather name="mail" size={20} color={colors.text} />
           <Text style={[styles.userInfoText, { color: colors.text }]}>
-            Email Verified: {user.is_email_verified ? "Yes" : "No"}
+            Email Verified: {user.data.is_email_verified ? "Yes" : "No"}
           </Text>
         </View>
       </View>
@@ -113,7 +119,7 @@ export default function Profile() {
 
       <Button
         title="Delete Account"
-        onPress={() => deleteAccount()}
+        onPress={() => deleteAccount.mutate()}
         style={{
           backgroundColor: colors.dangerBgColor,
         }}

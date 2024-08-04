@@ -8,11 +8,15 @@ import { ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "@/hooks/useUser";
 import { useCourses } from "./hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
 
 export default function Home() {
-  const { user, isAuthed, loading } = useAuthContext();
+  const { isAuthed, loading } = useAuthContext();
+  const {
+    user: { data: user },
+  } = useUser();
   const { allCourses, isCoursesPending, coursesFetchError } = useCourses();
   const { colors } = useTheme();
 

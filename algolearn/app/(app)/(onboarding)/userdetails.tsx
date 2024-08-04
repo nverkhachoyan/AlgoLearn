@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -15,12 +15,12 @@ import { useAuthContext } from "@/context/AuthProvider";
 import useTheme from "@/hooks/useTheme";
 
 export default function UserDetails() {
-  const router = useRouter();
-  const { isAuthed } = useAuthContext();
-  const { colors } = useTheme();
   const [username, setUsername] = useState("");
   const [firstName, setFirstname] = useState("");
   const [lastName, setLastname] = useState("");
+  const router = useRouter();
+  const { isAuthed } = useAuthContext();
+  const { colors } = useTheme();
 
   if (!isAuthed) {
     router.navigate("/signup");
@@ -36,8 +36,6 @@ export default function UserDetails() {
       <Text style={[styles.title, { color: colors.text }]}>
         Log in or sign up to AlgoLearn
       </Text>
-
-      {/* SIGN-IN OR SIGN-UP FORM */}
       <View style={styles.middleContent}>
         <TextInput
           style={[
@@ -81,7 +79,6 @@ export default function UserDetails() {
           onChangeText={(newUsername) => setLastname(newUsername)}
           autoCapitalize="none"
         />
-
         <Button
           title="Save Details"
           onPress={() => {
@@ -145,18 +142,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 16,
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  line: {
-    height: 1,
-    flex: 1,
-  },
-  orText: {
-    marginHorizontal: 10,
-    fontSize: 16,
   },
 });

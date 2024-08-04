@@ -8,9 +8,11 @@ import (
 	"algolearn-backend/internal/services"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -159,11 +161,20 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
+	tokenStr := strings.Split(r.Header.Get("Authorization"), " ")[1]
+	if tokenStr == "" {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
 		return
 	}
+	fmt.Println(tokenStr)
+
+	claims, err := services.ValidateJWT(tokenStr)
+	if err != nil {
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		return
+	}
+
+	userID := int(claims.UserID)
 
 	var user models.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -171,12 +182,8 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ensure the user being updated is the one authenticated
-	if user.ID != userID {
-		RespondWithJSON(w, http.StatusForbidden, models.Response{Status: "error", Message: "Cannot update another user"})
-		return
-	}
-
+	// Set userID from token
+	user.ID = userID
 	user.UpdatedAt = time.Now()
 
 	if err := repository.UpdateUser(&user); err != nil {
@@ -204,23 +211,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User retrieved successfully", Data: user})
 }
-
-// func CheckEmailExists(w http.ResponseWriter, r *http.Request) {
-// 	var req models.EmailRequest
-// 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-// 		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
-// 		return
-// 	}
-
-// 	exists, err := repository.CheckEmailExists(req.Email)
-// 	if err != nil {
-// 		log.Printf("Error checking email %s: %v", req.Email, err)
-// 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not check email"})
-// 		return
-// 	}
-
-// 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Email checked successfully", Data: map[string]bool{"exists": exists}})
-// }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())

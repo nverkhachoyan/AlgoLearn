@@ -8,10 +8,14 @@ import moment from "moment";
 import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import useTheme from "@/hooks/useTheme";
+import { useUser } from "@/hooks/useUser";
 import StickyHeader from "@/components/StickyHeader";
 
 export default function Feed() {
-  const { user, isAuthed, loading } = useAuthContext();
+  const { isAuthed, loading } = useAuthContext();
+  const {
+    user: { data: user },
+  } = useUser();
   const { colors } = useTheme();
 
   useEffect(() => {

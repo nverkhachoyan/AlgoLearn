@@ -5,6 +5,7 @@ import (
 	"algolearn-backend/internal/models"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 // Fields to select in user queries
@@ -164,40 +165,52 @@ func GetUserByEmail(email string) (*models.User, error) {
 
 func UpdateUser(user *models.User) error {
 	db := config.GetDB()
-	query := `
-	UPDATE users SET
-		username = $1,
-		email = $2,
-		oauth_id = $3,
-		role = $4,
-		first_name = $5,
-		last_name = $6,
-		profile_picture_url = $7,
-		last_login_at = $8,
-		is_active = $9,
-		is_email_verified = $10,
-		bio = $11,
-		location = $12,
-		preferences = $13,
-		cpus = $14,
-		updated_at = NOW()
-	WHERE id = $15`
-	_, err := db.Exec(query,
-		user.Username,
-		user.Email,
-		user.OAuthID,
-		user.Role,
-		user.FirstName,
-		user.LastName,
-		user.ProfilePictureURL,
-		user.LastLoginAt,
-		user.IsActive,
-		user.IsEmailVerified,
-		user.Bio,
-		user.Location,
-		user.Preferences,
-		user.CPUs,
-		user.ID)
+
+	// Map to hold fields to be updated
+	fieldsToUpdate := map[string]interface{}{}
+	if user.Username != "" {
+		fieldsToUpdate["username"] = user.Username
+	}
+	if user.Email != "" {
+		fieldsToUpdate["email"] = user.Email
+	}
+	if user.FirstName != "" {
+		fieldsToUpdate["first_name"] = user.FirstName
+	}
+	if user.LastName != "" {
+		fieldsToUpdate["last_name"] = user.LastName
+	}
+	if user.ProfilePictureURL != "" {
+		fieldsToUpdate["profile_picture_url"] = user.ProfilePictureURL
+	}
+	if user.Bio != "" {
+		fieldsToUpdate["bio"] = user.Bio
+	}
+	if user.Location != "" {
+		fieldsToUpdate["location"] = user.Location
+	}
+	if user.Preferences != "" {
+		fieldsToUpdate["preferences"] = user.Preferences
+	}
+
+	// Building query dynamically
+	setClauses := []string{}
+	values := []interface{}{}
+	i := 1
+	for field, value := range fieldsToUpdate {
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, i))
+		values = append(values, value)
+		i++
+	}
+
+	// Updated user
+	setClauses = append(setClauses, fmt.Sprintf("updated_at = NOW()"))
+	// Adding user ID for the WHERE clause
+	values = append(values, user.ID)
+
+	query := fmt.Sprintf(`UPDATE users SET %s WHERE id = $%d`, strings.Join(setClauses, ", "), i)
+
+	_, err := db.Exec(query, values...)
 	if err != nil {
 		return fmt.Errorf("could not update user: %v", err)
 	}

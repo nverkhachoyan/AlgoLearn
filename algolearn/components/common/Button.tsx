@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Text,
   StyleSheet,
   Pressable,
   ViewStyle,
   TextStyle,
-} from 'react-native';
-import Feather from '@expo/vector-icons/Feather';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Image } from 'expo-image';
+} from "react-native";
+import Feather from "@expo/vector-icons/Feather";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Image } from "expo-image";
 
 type FeatherIconName = keyof typeof Feather.glyphMap;
 type FontAwesomeIconName = keyof typeof FontAwesome.glyphMap;
@@ -18,10 +18,10 @@ interface ButtonProps {
   title?: string;
   icon?: {
     name: FeatherIconName | FontAwesomeIconName;
-    position: 'left' | 'right' | 'middle';
+    position: "left" | "right" | "middle";
     size?: number;
     color?: string;
-    type?: 'feather' | 'fontawesome' | 'png'; // Type of icon
+    type?: "feather" | "fontawesome" | "png"; // Type of icon
     src?: string; // Source if type is png
   };
   style?: ViewStyle; // Style for the Pressable
@@ -30,45 +30,31 @@ interface ButtonProps {
 }
 
 export default function Button(props: ButtonProps) {
-  const {
-    onPress,
-    title = 'Save',
-    icon,
-    style,
-    textStyle,
-    iconStyle,
-    ...rest
-  } = props;
+  const { onPress, title, icon, style, textStyle, iconStyle, ...rest } = props;
   const [isPressed, setIsPressed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const renderIcon = () => {
     if (!icon) return null;
 
-    const { name, size = 20, color = 'white', type = 'feather', src } = icon;
+    const { name, size = 20, color = "white", type = "feather", src } = icon;
 
-    if (type === 'fontawesome') {
+    if (type === "fontawesome") {
       return (
         <FontAwesome
           name={name as FontAwesomeIconName}
           size={size}
           color={color}
-          style={[
-            icon.position === 'left' ? styles.iconLeft : styles.iconRight,
-            iconStyle,
-          ]}
+          style={[styles[`icon${icon.position}`], iconStyle]}
         />
       );
     }
 
-    if (type === 'png') {
+    if (type === "png") {
       return (
         <Image
           source={src}
-          style={[
-            icon.position === 'left' ? styles.iconLeft : styles.iconRight,
-            iconStyle,
-          ]}
+          style={[styles[`icon${icon.position}`], iconStyle]}
         />
       );
     }
@@ -78,10 +64,7 @@ export default function Button(props: ButtonProps) {
         name={name as FeatherIconName}
         size={size}
         color={color}
-        style={[
-          icon.position === 'left' ? styles.iconLeft : styles.iconRight,
-          iconStyle,
-        ]}
+        style={[styles[`icon${icon.position}`], iconStyle]}
       />
     );
   };
@@ -101,43 +84,44 @@ export default function Button(props: ButtonProps) {
       onHoverOut={() => setIsHovered(false)}
       {...rest}
     >
-      {icon?.position === 'left' && renderIcon()}
-      <Text style={[styles.text, textStyle]}>{title}</Text>
-      {icon?.position === 'right' && renderIcon()}
-      {icon?.position === 'middle' && renderIcon()}
+      {icon?.position === "left" && renderIcon()}
+      {title && <Text style={[styles.text, textStyle]}>{title}</Text>}
+      {icon?.position === "right" && renderIcon()}
+      {icon?.position === "middle" && renderIcon()}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 10,
     elevation: 3,
-    backgroundColor: 'black',
+    backgroundColor: "black",
   },
   buttonPressed: {
-    backgroundColor: '#333',
+    backgroundColor: "#333",
     transform: [{ scale: 0.95 }],
   },
   buttonHovered: {
-    backgroundColor: '#555',
+    backgroundColor: "#555",
   },
   text: {
     fontSize: 16,
     lineHeight: 21,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     letterSpacing: 0.25,
-    color: 'white',
+    color: "white",
   },
-  iconRight: {
+  iconright: {
     marginLeft: 8,
   },
-  iconLeft: {
+  iconleft: {
     marginRight: 8,
   },
+  iconmiddle: {},
 });

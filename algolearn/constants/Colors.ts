@@ -9,10 +9,13 @@ export type Theme = {
     card: string;
     border: string;
     inputBorder: string;
+    inputBackground: string;
+    inputBackgroundFocused: string;
     cardBorder: string;
     notification: string;
     text: string;
     textContrast: string;
+    textDimmed: string;
     backgroundContrast: string;
     stickyHeaderBackground: string;
     tint: string;
@@ -63,10 +66,13 @@ export const DefaultTheme: Theme = {
     card: "rgb(255, 255, 255)",
     border: "transparent",
     inputBorder: "#333",
+    inputBackground: "#F7F7F7",
+    inputBackgroundFocused: "#E2E2E2",
     cardBorder: "#333",
     notification: "rgb(255, 59, 48)",
     text: "#000",
     textContrast: "#FFF",
+    textDimmed: "#636F73",
     backgroundContrast: "#000",
     stickyHeaderBackground: "#FFF",
     tint: tintColorLight,
@@ -82,7 +88,7 @@ export const DefaultTheme: Theme = {
     buttonBackground: "#1E1E1E",
     placeholderText: "#999",
     icon: "#333",
-    dangerBgColor: "#FF3E3E",
+    dangerBgColor: "#B2222C",
     successBgColor: "#28a745",
     warningBgColor: "#ffc107",
     infoBgColor: "#17a2b8",
@@ -116,9 +122,12 @@ export const DarkTheme: Theme = {
     text: "#fff",
     border: "transparent",
     inputBorder: "#E8E8E8",
+    inputBackground: "#333",
+    inputBackgroundFocused: "#252525",
     cardBorder: "#E8E8E8",
     notification: "rgb(255, 69, 58)",
     textContrast: "#000",
+    textDimmed: "#C2C2C2",
     backgroundContrast: "#f1f1f1",
     stickyHeaderBackground: "#24272E",
     tint: tintColorDark,
@@ -134,7 +143,7 @@ export const DarkTheme: Theme = {
     buttonBackground: "white",
     placeholderText: "#666",
     icon: "#fff",
-    dangerBgColor: "#FF3E3E",
+    dangerBgColor: "#B2222C",
     successBgColor: "#28a745",
     warningBgColor: "#ffc107",
     infoBgColor: "#17a2b8",

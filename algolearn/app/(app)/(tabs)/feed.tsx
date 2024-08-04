@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 import { Text, View, ScrollView } from "@/components/Themed";
 import Button from "@/components/common/Button";
 import { useAuthContext } from "@/context/AuthProvider";
@@ -9,7 +9,8 @@ import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import useTheme from "@/hooks/useTheme";
 import { useUser } from "@/hooks/useUser";
-import StickyHeader from "@/components/StickyHeader";
+import { StickyHeader } from "@/components/common/StickyHeader";
+import LottieView from "lottie-react-native";
 
 export default function Feed() {
   const { isAuthed, loading } = useAuthContext();
@@ -80,6 +81,7 @@ export default function Feed() {
           router.push("/profile");
         }}
       />
+
       <ScrollView
         style={[styles.scrollContainer, { backgroundColor: colors.background }]}
       >
@@ -114,20 +116,6 @@ export default function Feed() {
               </View>
             ))}
           </View>
-
-          <Button
-            title="Go to Account"
-            onPress={() => {
-              router.push("/profile");
-            }}
-            style={{
-              backgroundColor: colors.buttonBackground,
-              borderColor: colors.border,
-              borderWidth: 1,
-              marginBottom: 10,
-            }}
-            textStyle={{ color: colors.buttonText }}
-          />
         </View>
       </ScrollView>
     </View>
@@ -148,15 +136,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    // color: Colors.light.text,
   },
   loadingText: {
     fontSize: 18,
-    // color: Colors.light.text,
   },
   notLoggedInText: {
     fontSize: 18,
-    // color: Colors.light.dangerBgColor,
   },
   separator: {
     height: 1,

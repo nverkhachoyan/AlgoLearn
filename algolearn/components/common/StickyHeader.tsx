@@ -1,19 +1,23 @@
-import { View, Text } from "./Themed";
-import { StyleSheet, Pressable, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TouchableOpacity,
+} from "react-native";
 import LottieView from "lottie-react-native";
-import { useRef } from "react";
+import { useRef, ReactNode } from "react";
 import { Feather } from "@expo/vector-icons";
-import useAppTheme from "@/hooks/useTheme";
+import useTheme from "@/hooks/useTheme";
 import { router } from "expo-router";
-// import useThemeColors from '@/hooks/useThemeColors';
 
-export default function Header(props: {
+export function StickyHeader(props: {
   cpus: number;
   strikeCount: number;
   userAvatar: string | null;
   onAvatarPress: () => void;
 }) {
-  const { colors } = useAppTheme();
+  const { colors } = useTheme();
   const animation = useRef(null);
   return (
     <View
@@ -35,11 +39,11 @@ export default function Header(props: {
       </TouchableOpacity>
       <View style={styles.headerItem}>
         <Feather name="cpu" size={24} color="#1CC0CB" />
-        <Text>{props.cpus}</Text>
+        <Text style={{ color: colors.text }}>{props.cpus}</Text>
       </View>
       <View style={styles.headerItem}>
         <Feather name="zap" size={24} color="#1CC0CB" />
-        <Text>{props.strikeCount}</Text>
+        <Text style={{ color: colors.text }}>{props.strikeCount}</Text>
       </View>
 
       <TouchableOpacity onPress={props.onAvatarPress}>
@@ -49,6 +53,23 @@ export default function Header(props: {
           <Feather name="user" size={24} color={colors.icon} />
         )}
       </TouchableOpacity>
+    </View>
+  );
+}
+
+export function StickyHeaderSimple({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.stickyHeaderBackground,
+        },
+      ]}
+    >
+      {children}
     </View>
   );
 }

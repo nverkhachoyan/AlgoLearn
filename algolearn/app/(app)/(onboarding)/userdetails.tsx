@@ -13,6 +13,7 @@ import Button from "@/components/common/Button";
 import { Feather } from "@expo/vector-icons";
 import { useAuthContext } from "@/context/AuthProvider";
 import useTheme from "@/hooks/useTheme";
+import { useUser } from "@/hooks/useUser";
 
 export default function UserDetails() {
   const [username, setUsername] = useState("");
@@ -21,10 +22,25 @@ export default function UserDetails() {
   const router = useRouter();
   const { isAuthed } = useAuthContext();
   const { colors } = useTheme();
+  const { updateUser } = useUser();
 
   if (!isAuthed) {
     router.navigate("/signup");
   }
+
+  const handleUpdateUser = async () => {
+    if (!username || !firstName || !lastName) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    try {
+      updateUser.mutate({ username, firstName, lastName });
+      router.navigate("/pushnotifications");
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    }
+  };
 
   return (
     <ScrollView
@@ -82,7 +98,7 @@ export default function UserDetails() {
         <Button
           title="Save Details"
           onPress={() => {
-            router.navigate("/pushnotifications");
+            handleUpdateUser();
           }}
           icon={{ name: "arrow-right", position: "right" }}
           textStyle={{ color: colors.buttonText }}

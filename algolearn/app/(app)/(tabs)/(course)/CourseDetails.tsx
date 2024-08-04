@@ -4,15 +4,16 @@ import { Feather, MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { StyleSheet, Image, Animated } from "react-native";
 import { useState, useRef } from "react";
 import Button from "@/components/common/Button";
-import StickyHeader from "@/components/StickyHeader";
+import { StickyHeader } from "@/components/common/StickyHeader";
 import { useAuthContext } from "@/context/AuthProvider";
 import { router } from "expo-router";
 import TableOfContents from "./components/TableOfContents";
 import { useCourses } from "../hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
+import { useUser } from "@/hooks/useUser";
 
 export default function CourseDetails() {
-  const { user } = useAuthContext();
+  const { user } = useUser();
   const { courseID } = useLocalSearchParams();
   const { allCourses, isCoursesPending } = useCourses();
   const { colors } = useTheme();
@@ -66,7 +67,7 @@ export default function CourseDetails() {
     }).start(() => setIsCollapsed(!isCollapsed));
   };
 
-  if (!allCourses || !user || isCoursesPending) {
+  if (!allCourses || isCoursesPending) {
     return <Text>Loading...</Text>;
   }
 
@@ -79,8 +80,8 @@ export default function CourseDetails() {
       stickyHeaderIndices={[0]}
     >
       <StickyHeader
-        cpus={user.cpus}
-        strikeCount={user.streaks?.length ?? 0}
+        cpus={user.data.cpus}
+        strikeCount={user.data.streaks?.length ?? 0}
         userAvatar={null}
         onAvatarPress={() => {
           router.push("/profile");

@@ -55,6 +55,7 @@ export default function Layout() {
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="profile" options={{ presentation: "modal" }} />
+          <Stack.Screen name="preferences" />
         </Stack>
       </SafeAreaView>
       <SafeAreaView

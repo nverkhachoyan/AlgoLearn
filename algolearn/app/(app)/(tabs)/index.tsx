@@ -1,16 +1,19 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 import { View, ScrollView, Text } from "@/components/Themed";
-import StickyHeader from "@/components/StickyHeader";
+// import StickyHeader from "@/components/StickyHeader";
 import { useAuthContext } from "@/context/AuthProvider";
 import CourseCard from "@/components/tabs/CourseCard";
 import Button from "@/components/common/Button";
 import { ActivityIndicator } from "react-native";
 import { router } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/hooks/useUser";
 import { useCourses } from "./hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
+import { StickyHeader } from "@/components/common/StickyHeader";
+import LottieView from "lottie-react-native";
+import { Feather } from "@expo/vector-icons";
 
 export default function Home() {
   const { isAuthed, loading } = useAuthContext();
@@ -19,6 +22,7 @@ export default function Home() {
   } = useUser();
   const { allCourses, isCoursesPending, coursesFetchError } = useCourses();
   const { colors } = useTheme();
+  const animation = useRef(null);
 
   if (loading) {
     return <Text>Loading...</Text>;
@@ -67,6 +71,7 @@ export default function Home() {
           router.push("/profile");
         }}
       />
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -141,5 +146,18 @@ const styles = StyleSheet.create({
     height: 1,
     width: "80%",
     alignSelf: "center",
+  },
+  headerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  logo: {
+    width: 36,
+    height: 36,
+  },
+  stickyHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
   },
 });

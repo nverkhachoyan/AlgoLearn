@@ -1,11 +1,11 @@
-import { Stack } from "expo-router";
+import { Href, Stack, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
 import { useFonts } from "expo-font";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect } from "react";
 import useTheme from "@/hooks/useTheme";
-export { ErrorBoundary } from "expo-router";
+export { ErrorBoundary, useSegments, Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Layout() {
@@ -22,6 +22,9 @@ export default function Layout() {
     "OpenSauceOne-SemiBold": require("@/assets/fonts/OpenSauceOne-SemiBold.ttf"),
     "OpenSauceOne-LightItalic": require("@/assets/fonts/OpenSauceOne-LightItalic.ttf"),
   });
+  const segments = useSegments();
+
+  const shouldSafeAreaBeBlack = segments.includes("(onboarding)" as never);
 
   useEffect(() => {
     if (error) throw error;
@@ -41,7 +44,12 @@ export default function Layout() {
     <>
       <SafeAreaView
         edges={["top"]}
-        style={{ flex: 0, backgroundColor: colors.secondaryBackground }}
+        style={{
+          flex: 0,
+          backgroundColor: shouldSafeAreaBeBlack
+            ? colors.background
+            : colors.secondaryBackground,
+        }}
       />
       <SafeAreaView
         edges={["left", "right"]}
@@ -62,8 +70,9 @@ export default function Layout() {
         edges={["bottom"]}
         style={{
           flex: 0,
-          backgroundColor: colors.secondaryBackground,
-          // borderRadius: 20,
+          backgroundColor: shouldSafeAreaBeBlack
+            ? colors.background
+            : colors.secondaryBackground,
         }}
       />
     </>

@@ -22,6 +22,12 @@ export default function Profile() {
   };
 
   useEffect(() => {
+    if (user.error) {
+      console.log("Error while fetching user", user.error.message);
+    }
+  }, [user, user.error]);
+
+  useEffect(() => {
     if (!loading && !isAuthed && !user) {
       router.navigate("/welcome");
     }

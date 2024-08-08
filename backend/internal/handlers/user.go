@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
@@ -10,10 +11,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/google/uuid"
 )
 
 // ValidateEmail validates the email format
@@ -160,13 +167,34 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
+// Uploads avatar to S3 and returns URL
+func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int) (string, error) {
+	objectKey := "users/" + strconv.Itoa(userID) + "/public/avatars/" + uuid.New().String()
+
+	putObjectInput := &s3.PutObjectInput{
+		Bucket: aws.String("algolearn"),
+		Key:    aws.String(objectKey),
+		Body:   file,
+		ACL:    aws.String("public-read"),
+	}
+
+	// Upload file to S3
+	_, err := s3Session.PutObject(putObjectInput)
+	if err != nil {
+		fmt.Printf("Error uploading user avatar to S3 object storage")
+		return "", fmt.Errorf("error uploading to S3: %v", err)
+	}
+
+	avatarURL := fmt.Sprintf("https://%s/%s", "algolearn.sfo3.cdn.digitaloceanspaces.com", objectKey)
+	return avatarURL, nil
+}
+
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	tokenStr := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	if tokenStr == "" {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
 		return
 	}
-	fmt.Println(tokenStr)
 
 	claims, err := services.ValidateJWT(tokenStr)
 	if err != nil {
@@ -176,9 +204,17 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	userID := int(claims.UserID)
 
+	// Parsing multipart form data
+	err = r.ParseMultipartForm(10 << 20) // 10 MB
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_FORM_DATA, Message: "Invalid Form Data was sent in the request"})
+		return
+	}
+
 	var user models.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
+	jsonData := r.FormValue("data")
+	if err := json.Unmarshal([]byte(jsonData), &user); err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_JSON, Message: "Invalid JSON was sent in the request"})
 		return
 	}
 
@@ -186,9 +222,35 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	user.ID = userID
 	user.UpdatedAt = time.Now()
 
+	// Handling avatar upload if present
+	file, _, err := r.FormFile("avatar")
+	if err == nil {
+		defer file.Close()
+		s3Session := config.GetS3Sesssion()
+		avatarURL, err := uploadUserAvatarToS3(s3Session, file, userID)
+		if err != nil {
+			RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", ErrorCode: errors.FILE_UPLOAD_FAILED, Message: "File upload to S3 object storage has failed"})
+			return
+		}
+		user.ProfilePictureURL = avatarURL
+	} else if err != http.ErrMissingFile {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.FILE_UPLOAD_FAILED,
+				Message:   "Error while processing avatar upload, but file is not missing, it's likely something else"})
+		return
+	}
+
+	log.Printf("Updating user data: %+v\n", user)
+
 	if err := repository.UpdateUser(&user); err != nil {
 		log.Printf("Error updating user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not update user"})
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.DATABASE_FAIL,
+				Message:   "Failed to update the user table in the database, likely issue with repository function, or database is down"})
 		return
 	}
 

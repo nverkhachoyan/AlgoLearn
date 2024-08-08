@@ -9,12 +9,13 @@ import { Response } from "@/types/apiTypes";
 interface UpdateUserData {
   username?: string;
   email?: string;
-  firstName?: string;
-  lastName?: string;
-  profilePictureURL?: string;
+  first_name?: string;
+  last_name?: string;
+  profile_picture_url?: string;
   bio?: string;
   location?: string;
   preferences?: JSON;
+  avatar?: File;
 }
 
 interface UserWithToken extends User {
@@ -64,6 +65,9 @@ export const useUser = (): UseUserReturn => {
   const updateUserMutation = useMutation({
     mutationFn: async (data: any) => {
       const token = await getAuthToken();
+      console.log("lets see if this logs from useUser");
+      console.log("data: ", data);
+
       return updateUser(token, data);
     },
   });

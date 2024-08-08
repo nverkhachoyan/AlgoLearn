@@ -1,6 +1,5 @@
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet } from "react-native";
 import { View, ScrollView, Text } from "@/components/Themed";
-// import StickyHeader from "@/components/StickyHeader";
 import { useAuthContext } from "@/context/AuthProvider";
 import CourseCard from "@/components/tabs/CourseCard";
 import Button from "@/components/common/Button";
@@ -12,8 +11,6 @@ import { useUser } from "@/hooks/useUser";
 import { useCourses } from "./hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
 import { StickyHeader } from "@/components/common/StickyHeader";
-import LottieView from "lottie-react-native";
-import { Feather } from "@expo/vector-icons";
 
 export default function Home() {
   const { isAuthed, loading } = useAuthContext();
@@ -30,7 +27,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && !isAuthed && !user) {
-      router.replace("/welcome");
+      router.navigate("/welcome");
     }
   }, [loading, isAuthed]);
 
@@ -66,7 +63,7 @@ export default function Home() {
       <StickyHeader
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}
-        userAvatar={null}
+        userAvatar={user.profile_picture_url}
         onAvatarPress={() => {
           router.push("/profile");
         }}

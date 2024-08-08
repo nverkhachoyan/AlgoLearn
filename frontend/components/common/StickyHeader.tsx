@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Pressable,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useRef, ReactNode } from "react";
@@ -46,9 +47,9 @@ export function StickyHeader(props: {
         <Text style={{ color: colors.text }}>{props.strikeCount}</Text>
       </View>
 
-      <TouchableOpacity onPress={props.onAvatarPress}>
+      <TouchableOpacity onPress={props.onAvatarPress} style={styles.headerItem}>
         {props.userAvatar ? (
-          <Text>Avatar</Text>
+          <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
         ) : (
           <Feather name="user" size={24} color={colors.icon} />
         )}
@@ -97,6 +98,11 @@ const styles = StyleSheet.create({
   logo: {
     width: 36,
     height: 36,
+  },
+  avatar: {
+    width: 33,
+    height: 33,
+    borderRadius: 100,
   },
   title: {
     fontSize: 20,

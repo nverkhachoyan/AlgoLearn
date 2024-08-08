@@ -51,11 +51,11 @@ export default function ModuleSession(props: any) {
         correct_option_id: 3,
         position: 5,
       } as QuestionSection,
-      // {
-      //   type: "video",
-      //   url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      //   position: 6,
-      // } as VideoSection,
+      {
+        type: "video",
+        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        position: 6,
+      } as VideoSection,
       {
         type: "code",
         content:

@@ -6,6 +6,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	_ "github.com/lib/pq"
 	"golang.org/x/oauth2"
 )
@@ -15,6 +19,7 @@ var (
 
 	googleOauthConfig *oauth2.Config
 	appleOauthConfig  *oauth2.Config
+	s3Session         *s3.S3
 )
 
 var (
@@ -74,6 +79,22 @@ func InitOAuth() {
 	log.Println("OAuth configurations initialized successfully")
 }
 
+func InitS3() {
+
+	sess, err := session.NewSession(&aws.Config{
+		Region:           aws.String(os.Getenv("SPACES_REGION")),
+		Endpoint:         aws.String(os.Getenv("SPACES_ENDPOINT")),
+		Credentials:      credentials.NewStaticCredentials(os.Getenv("SPACES_ACCESS_KEY"), os.Getenv("SPACES_SECRET_KEY"), ""),
+		S3ForcePathStyle: aws.Bool(true), // Migth be necessary for DigitalOcean Spaces
+	})
+	if err != nil {
+		log.Fatalf("Unable to create AWS session: %v", err)
+	}
+
+	s3Session = s3.New(sess)
+	log.Println("S3 session initialized successfully")
+}
+
 func GetDB() *sql.DB {
 	return db
 }
@@ -84,4 +105,8 @@ func GetGoogleOAuthConfig() *oauth2.Config {
 
 func GetAppleOAuthConfig() *oauth2.Config {
 	return appleOauthConfig
+}
+
+func GetS3Sesssion() *s3.S3 {
+	return s3Session
 }

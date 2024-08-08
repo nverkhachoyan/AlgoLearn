@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"os"
 	"time"
+
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Loading env variables
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
@@ -29,11 +29,16 @@ func main() {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
-	// Initialize database
+	// Initialize configs
+	config.InitLogger()
 	config.InitDB()
 	config.InitOAuth()
-	config.InitLogger()
-	defer config.GetDB().Close()
+	config.InitS3()
+	defer func() {
+		if err := config.GetDB().Close(); err != nil {
+			log.Printf("Error closing database: %v\n", err)
+		}
+	}()
 
 	// Check for migrations
 	if os.Getenv("RUN_MIGRATIONS") == "true" {

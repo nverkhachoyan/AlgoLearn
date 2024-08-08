@@ -4,7 +4,7 @@ import { View, Text } from "@/components/Themed";
 import { Image, ImageStyle } from "expo-image";
 import LottieView from "lottie-react-native";
 import Markdown from "react-native-markdown-display";
-import YoutubePlayer from "react-native-youtube-iframe";
+import YoutubePlayer from "./YoutubePlayer";
 import CodeBlock from "./CodeBlock";
 import { FontAwesome6 } from "@expo/vector-icons";
 import useTheme from "@/hooks/useTheme";
@@ -200,12 +200,7 @@ const SectionRenderer = ({
             },
           ]}
         >
-          <YoutubePlayer
-            height={300}
-            play={videoPlaying}
-            videoId={section.url.split("v=")[1]}
-            onChangeState={onStateChange}
-          />
+          <YoutubePlayer videoId={section.url.split("v=")[1]} />
         </View>
       );
     case "code":

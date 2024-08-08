@@ -20,9 +20,9 @@ import { StickyHeaderSimple } from "@/components/common/StickyHeader";
 interface UpdateUserData {
   username?: string;
   email?: string;
-  firstName?: string;
-  lastName?: string;
-  profilePictureURL?: string;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
+  profile_picture_url?: string;
   bio?: string;
   location?: string;
   preferences?: JSON;
@@ -36,9 +36,9 @@ export default function Preferences() {
   const [formData, setFormData] = useState<UpdateUserData>({
     username: user?.data.username,
     email: user?.data.email,
-    firstName: user?.data.first_name,
-    lastName: user?.data.last_name,
-    profilePictureURL: user?.data.profile_picture_url,
+    first_name: user?.data.first_name,
+    last_name: user?.data.last_name,
+    profile_picture_url: user?.data.profile_picture_url,
     bio: user?.data.bio,
     location: user?.data.location,
   });
@@ -49,7 +49,7 @@ export default function Preferences() {
   };
 
   const handleSave = () => {
-    updateUser.mutate(formData);
+    updateUser.mutate({ ...formData });
   };
 
   useEffect(() => {
@@ -122,15 +122,15 @@ export default function Preferences() {
             label="First Name"
             icon="user"
             placeholder="First Name"
-            value={formData.firstName || ""}
-            onChangeText={(text) => handleChange("firstName", text)}
+            value={formData.first_name || ""}
+            onChangeText={(text) => handleChange("first_name", text)}
           />
           <LabeledInput
             label="Last Name"
             icon="user"
             placeholder="Last Name"
-            value={formData.lastName || ""}
-            onChangeText={(text) => handleChange("lastName", text)}
+            value={formData.last_name || ""}
+            onChangeText={(text) => handleChange("last_name", text)}
           />
           <LabeledInput
             label="Bio"
@@ -150,7 +150,9 @@ export default function Preferences() {
 
           <Button
             title="Save"
-            onPress={handleSave}
+            onPress={() => {
+              handleSave();
+            }}
             style={{
               backgroundColor: colors.buttonBackground,
               borderColor: colors.border,

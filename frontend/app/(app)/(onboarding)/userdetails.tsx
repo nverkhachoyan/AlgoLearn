@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,22 +7,51 @@ import {
   TextInput,
   Pressable,
   Alert,
+  TouchableOpacity,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import Button from "@/components/common/Button";
 import { Feather } from "@expo/vector-icons";
 import { useAuthContext } from "@/context/AuthProvider";
 import useTheme from "@/hooks/useTheme";
 import { useUser } from "@/hooks/useUser";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+
+const MaxProfilePictureSize = 5 * 1024 * 1024;
 
 export default function UserDetails() {
   const [username, setUsername] = useState("");
-  const [firstName, setFirstname] = useState("");
-  const [lastName, setLastname] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const router = useRouter();
   const { isAuthed } = useAuthContext();
   const { colors } = useTheme();
   const { updateUser } = useUser();
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      const { uri, type } = result.assets[0];
+      const fileType = type || "image/jpeg"; // default to image/jpeg if type is not available
+      const fileName = uri.split("/").pop();
+
+      setImage(uri);
+      setImageFile({ uri, name: fileName, type: fileType });
+    }
+  };
 
   if (!isAuthed) {
     router.navigate("/signup");
@@ -35,12 +64,31 @@ export default function UserDetails() {
     }
 
     try {
-      updateUser.mutate({ username, firstName, lastName });
+      const userData = {
+        username,
+        first_name: firstName,
+        last_name: lastName,
+      };
+
+      if (imageFile) {
+        updateUser.mutate({
+          ...userData,
+          avatar: imageFile,
+        });
+      } else {
+        updateUser.mutate(userData);
+      }
       router.navigate("/pushnotifications");
     } catch (error: any) {
       Alert.alert("Error", error.message);
     }
   };
+
+  useEffect(() => {
+    if (updateUser.error) {
+      console.log("Error while updating user", updateUser.error.message);
+    }
+  }, [updateUser.error]);
 
   return (
     <ScrollView
@@ -53,6 +101,26 @@ export default function UserDetails() {
         Log in or sign up to AlgoLearn
       </Text>
       <View style={styles.middleContent}>
+        <TouchableOpacity
+          onPress={pickImage}
+          style={styles.profilePictureContainer}
+        >
+          {image ? (
+            <Image source={{ uri: image }} style={styles.image} />
+          ) : (
+            <View style={styles.image}>
+              <FontAwesome
+                name="user-circle"
+                color={colors.text}
+                size={200}
+                style={{ width: "100%" }}
+              />
+            </View>
+          )}
+          <View style={styles.uploadAvatarContainer}>
+            <Text style={styles.uploadAvatarText}>Upload Avatar</Text>
+          </View>
+        </TouchableOpacity>
         <TextInput
           style={[
             styles.textInput,
@@ -78,7 +146,7 @@ export default function UserDetails() {
           value={firstName}
           placeholder="First name"
           placeholderTextColor={colors.placeholderText}
-          onChangeText={(newFirstName) => setFirstname(newFirstName)}
+          onChangeText={(newFirstName) => setFirstName(newFirstName)}
           autoCapitalize="none"
         />
         <TextInput
@@ -92,14 +160,12 @@ export default function UserDetails() {
           value={lastName}
           placeholder="Last name"
           placeholderTextColor={colors.placeholderText}
-          onChangeText={(newUsername) => setLastname(newUsername)}
+          onChangeText={(newLastName) => setLastName(newLastName)}
           autoCapitalize="none"
         />
         <Button
           title="Save Details"
-          onPress={() => {
-            handleUpdateUser();
-          }}
+          onPress={handleUpdateUser}
           icon={{ name: "arrow-right", position: "right" }}
           textStyle={{ color: colors.buttonText }}
           iconStyle={{
@@ -141,7 +207,7 @@ const styles = StyleSheet.create({
   middleContent: {
     flex: 1,
     justifyContent: "center",
-    marginTop: 30,
+    marginTop: 10,
     marginBottom: 30,
   },
   title: {
@@ -158,5 +224,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 16,
+  },
+  profilePictureContainer: {
+    position: "relative",
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: 16,
+    overflow: "hidden",
+    borderRadius: 100,
+  },
+  image: {
+    width: 200,
+    height: 200,
+    position: "relative",
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: 16,
+    overflow: "hidden",
+    borderRadius: 100,
+  },
+  uploadAvatarContainer: {
+    width: "100%",
+    fontSize: 16,
+    fontFamily: "OpenSauceOne-Regular",
+    position: "absolute",
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    color: "white",
+    padding: 15,
+    paddingBottom: 20,
+    borderBottomStartRadius: 100,
+    borderBottomEndRadius: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uploadAvatarText: {
+    color: "white",
+    fontSize: 16,
+    fontFamily: "OpenSauceOne-Regular",
+    textAlign: "center",
   },
 });

@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     doesEmailExist,
     checkEmailMutate,
     signInMutate,
+    signUp,
   } = useAuth();
 
   const handleError = useCallback(
@@ -46,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkEmailMutate,
         doesEmailExist,
         signInMutate,
+        signUp,
       }}
     >
       {children}

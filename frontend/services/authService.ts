@@ -16,6 +16,15 @@ export const signIn = async (email: string, password: string) => {
   return response.data;
 };
 
+export const signUp = async (email: string, password: string) => {
+  const response = await api.post("/register", {
+    username: email,
+    email,
+    password,
+  });
+  return response.data;
+};
+
 export const getAuthToken = async (): Promise<string> => {
   const token = await AsyncStorage.getItem("authToken");
   if (!token) throw new Error("No token available");

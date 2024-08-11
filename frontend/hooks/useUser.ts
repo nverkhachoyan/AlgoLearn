@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchUser, deleteAccount, updateUser } from "@/services/userServices";
 import { getAuthToken } from "@/services/authService";
+import { useAuth } from "./useAuth";
 
 import { User } from "../types/userTypes";
 import { Response } from "@/types/apiTypes";
@@ -31,7 +32,8 @@ type QueryObject<T> = {
 };
 
 type MutationObject<T, V> = {
-  mutate: (data: V) => void;
+  mutateAsync?: any;
+  mutate: any;
   data: T | any;
   isPending: boolean;
   error: any;
@@ -49,6 +51,9 @@ export type UseUserReturn = {
 };
 
 export const useUser = (): UseUserReturn => {
+  const queryClient = useQueryClient();
+  const { invalidateAuth } = useAuth();
+
   // Fetch user data
   const userMutation = useQuery({
     queryKey: ["user"],
@@ -77,7 +82,13 @@ export const useUser = (): UseUserReturn => {
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
       const token = await getAuthToken();
-      return deleteAccount(token);
+      const response = await deleteAccount(token);
+      if (response.status === "success") {
+        await invalidateAuth();
+        return true;
+      } else {
+        return false;
+      }
     },
   });
 
@@ -94,7 +105,8 @@ export const useUser = (): UseUserReturn => {
       error: updateUserMutation.error,
     },
     deleteAccount: {
-      mutate: deleteAccountMutation.mutate,
+      mutateAsync: deleteAccountMutation.mutateAsync,
+      mutate: deleteAccountMutation.mutateAsync,
       data: deleteAccountMutation.data,
       isPending: deleteAccountMutation.isPending,
       error: deleteAccountMutation.error,

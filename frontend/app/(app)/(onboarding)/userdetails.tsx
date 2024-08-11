@@ -22,7 +22,7 @@ import useToast from "@/hooks/useToast";
 
 import { ImageFile } from "@/types/CommonTypes";
 
-const MaxProfilePictureSize = 1024 * 1024;
+const MaxProfilePictureSize = 5 * 1024 * 1024;
 
 export default function UserDetails() {
   const [username, setUsername] = useState("");
@@ -36,7 +36,6 @@ export default function UserDetails() {
   const { showToast } = useToast();
 
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
@@ -52,9 +51,7 @@ export default function UserDetails() {
       const fileName = uri.split("/").pop();
 
       if (fileSize && fileSize > MaxProfilePictureSize) {
-        showToast({
-          message: "This image is too large. The accepted size is 1MB or less.",
-        });
+        showToast("This image is too large. The accepted size is 5MB or less.");
         return;
       }
 
@@ -69,7 +66,7 @@ export default function UserDetails() {
 
   const handleUpdateUser = async () => {
     if (!username || !firstName || !lastName) {
-      Alert.alert("Error", "Please fill in all fields");
+      showToast("Please fill in all fields");
       return;
     }
 

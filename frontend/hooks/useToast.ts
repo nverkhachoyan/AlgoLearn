@@ -3,21 +3,29 @@ import useTheme from "./useTheme";
 
 const CustomToast = () => {
   const { colors } = useTheme();
-  const showToast = (props: any) => {
-    const { message, ...rest } = props;
-    Toast.show(message, {
-      duration: 3000,
-      position: -50,
-      backgroundColor: colors.backgroundContrast,
-      textStyle: {
-        color: colors.textContrast,
-      },
-      opacity: 1,
-      containerStyle: {
+
+  const showToast = (message: string, props?: any) => {
+    const {
+      duration = 3000,
+      position = -50,
+      backgroundColor = colors.backgroundContrast,
+      textStyle = { color: colors.textContrast },
+      opacity = 1,
+      containerStyle = {
         paddingVertical: 20,
         paddingHorizontal: 20,
       },
-      ...rest,
+      ...restProps
+    } = props || {};
+
+    Toast.show(message, {
+      duration,
+      position,
+      backgroundColor,
+      textStyle,
+      opacity,
+      containerStyle,
+      ...restProps,
     });
   };
 

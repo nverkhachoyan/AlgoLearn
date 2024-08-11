@@ -12,4 +12,5 @@ export type AuthContextType = {
     email: string;
     password: string;
   }) => void;
+  signUp: any;
 };

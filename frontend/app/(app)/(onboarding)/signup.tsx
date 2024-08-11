@@ -18,7 +18,7 @@ import useToast from "@/hooks/useToast";
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthed, checkEmailMutate, doesEmailExist, signInMutate } =
+  const { isAuthed, checkEmailMutate, doesEmailExist, signInMutate, signUp } =
     useAuthContext();
   const { signInWithGoogle } = useAuthContext();
   const colorScheme = useColorScheme();
@@ -43,11 +43,11 @@ export default function SignUp() {
 
   const handleEmailCheck = async () => {
     if (!isValidEmail(email)) {
-      showToast({ message: "Please enter a valid email address." });
+      showToast("Please enter a valid email address.");
       return;
     }
 
-    await checkEmailMutate(email);
+    checkEmailMutate(email);
     setHasCheckedEmail(true);
   };
 
@@ -65,7 +65,7 @@ export default function SignUp() {
       return;
     }
 
-    // Add your sign-up logic here
+    signUp.mutate({ email, password });
   };
 
   const handleContinue = () => {

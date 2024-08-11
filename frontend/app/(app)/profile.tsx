@@ -15,7 +15,7 @@ type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
   const { isAuthed, loading, signOut } = useAuthContext();
-  const { user, updateUser, deleteAccount }: UseUserReturn = useUser();
+  const { user }: UseUserReturn = useUser();
   const { colors } = useTheme();
 
   const handleSignOut = () => {
@@ -50,8 +50,14 @@ export default function Profile() {
           }}
           style={styles.profilePicture}
         />
-        <Text style={[styles.title, { color: colors.text }]}>
-          {user.data.username || user.data.email}
+        {user.data.first_name || user.data.last_name ? (
+          <Text style={[styles.fullName, { color: colors.text }]}>
+            {user.data.first_name + " " + user.data.last_name}
+          </Text>
+        ) : null}
+
+        <Text style={[styles.username, { color: colors.text }]}>
+          {"@" + user.data.username || user.data.email}
         </Text>
         <Text style={[styles.bio, { color: colors.text }]}>
           {user.data.bio || "No bio available"}
@@ -105,14 +111,15 @@ export default function Profile() {
       <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
       <Button
+        title="Account Settings"
         onPress={() => router.replace("/preferences")}
         style={{
           backgroundColor: colors.buttonBackground,
           borderColor: colors.border,
           paddingHorizontal: 15,
         }}
-        textStyle={{ color: colors.buttonText }}
-        icon={{ name: "settings", position: "middle" }}
+        textStyle={{ color: colors.buttonText, fontWeight: "regular" }}
+        icon={{ name: "settings", position: "right" }}
         iconStyle={{ color: colors.buttonText }}
       />
       <View style={styles.separator} />
@@ -150,13 +157,21 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     alignItems: "center",
-    marginBottom: 20,
+    marginVertical: 20,
   },
   profilePicture: {
     width: 100,
     height: 100,
     borderRadius: 50,
     marginBottom: 10,
+  },
+  fullName: {
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  username: {
+    fontSize: 15,
+    fontWeight: "bold",
   },
   title: {
     fontSize: 28,
@@ -165,6 +180,7 @@ const styles = StyleSheet.create({
   bio: {
     fontSize: 16,
     fontStyle: "italic",
+    marginVertical: 15,
   },
   separator: {
     height: 1,
@@ -173,7 +189,6 @@ const styles = StyleSheet.create({
   },
   userInfoContainer: {
     width: "90%",
-    marginVertical: 20,
     padding: 15,
     borderRadius: 10,
     shadowColor: "#000",

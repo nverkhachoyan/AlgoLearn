@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import useTheme from "@/hooks/useTheme";
 import LabeledInput from "@/components/common/LabeledInput";
 import { StickyHeaderSimple } from "@/components/common/StickyHeader";
+import useToast from "@/hooks/useToast";
 
 interface UpdateUserData {
   username?: string;
@@ -32,6 +33,7 @@ export default function Preferences() {
   const { isAuthed, loading, signOut } = useAuthContext();
   const { user, updateUser, deleteAccount }: UseUserReturn = useUser();
   const { colors } = useTheme();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState<UpdateUserData>({
     username: user?.data.username,
@@ -43,6 +45,15 @@ export default function Preferences() {
     location: user?.data.location,
   });
 
+  const handleDeleteAccount = async () => {
+    deleteAccount.mutate(undefined, {
+      onSuccess: () => {
+        showToast("Account successfully deleted");
+        router.replace("/welcome");
+      },
+    });
+  };
+
   const handleSignOut = () => {
     signOut();
     router.replace("/welcome");
@@ -53,7 +64,7 @@ export default function Preferences() {
   };
 
   useEffect(() => {
-    if (!loading && !isAuthed && !user) {
+    if (!isAuthed) {
       router.navigate("/welcome");
     }
   }, [loading, isAuthed, user]);
@@ -179,7 +190,7 @@ export default function Preferences() {
           />
           <Button
             title="Delete Account"
-            onPress={() => deleteAccount.mutate()}
+            onPress={() => handleDeleteAccount()}
             style={{ width: "auto", backgroundColor: colors.dangerBgColor }}
             textStyle={{ color: colors.dangerTextColor }}
             icon={{ name: "remove", type: "fontawesome", position: "right" }}

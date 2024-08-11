@@ -5,7 +5,6 @@ import { DarkTheme, DefaultTheme, Theme } from "@/constants/Colors";
 import { useColorScheme } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RootSiblingParent } from "react-native-root-siblings";
-import { ToastContainer } from "@/components/common/Toast";
 
 const queryClient = new QueryClient();
 

@@ -1,19 +1,19 @@
-import { Toast } from "../components/common/Toast";
+import { Toast, ToastContainerProps } from "../components/common/Toast";
 import useTheme from "./useTheme";
 
 const CustomToast = () => {
   const { colors } = useTheme();
 
-  const showToast = (message: string, props?: any) => {
+  const showToast = (message: string, props?: ToastContainerProps) => {
     const {
       duration = 3000,
       position = -50,
-      backgroundColor = colors.backgroundContrast,
       textStyle = { color: colors.textContrast },
       opacity = 1,
       containerStyle = {
         paddingVertical: 20,
         paddingHorizontal: 20,
+        backgroundColor: colors.backgroundContrast,
       },
       ...restProps
     } = props || {};
@@ -21,7 +21,6 @@ const CustomToast = () => {
     Toast.show(message, {
       duration,
       position,
-      backgroundColor,
       textStyle,
       opacity,
       containerStyle,

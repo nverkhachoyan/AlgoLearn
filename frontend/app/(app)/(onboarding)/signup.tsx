@@ -13,8 +13,8 @@ import Button from "@/components/common/Button";
 import { Feather } from "@expo/vector-icons";
 import { useAuthContext } from "@/context/AuthProvider";
 import { useColorScheme } from "@/components/useColorScheme";
-// import Colors from '@/constants/Colors';
 import useTheme from "@/hooks/useTheme";
+import useToast from "@/hooks/useToast";
 
 export default function SignUp() {
   const router = useRouter();
@@ -27,6 +27,8 @@ export default function SignUp() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [retryPassword, setRetryPassword] = useState<string>("");
+  // const { Toast } = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (isAuthed) {
@@ -41,7 +43,7 @@ export default function SignUp() {
 
   const handleEmailCheck = async () => {
     if (!isValidEmail(email)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      showToast({ message: "Please enter a valid email address." });
       return;
     }
 

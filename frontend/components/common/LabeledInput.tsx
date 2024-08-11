@@ -5,12 +5,13 @@ import useTheme from "@/hooks/useTheme";
 
 interface LabeledInputProps {
   label: string;
-  icon: string;
+  icon: React.ComponentProps<typeof Feather>["name"];
   value: string;
   placeholder: string;
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
+  multiline?: boolean;
 }
 
 const LabeledInput: React.FC<LabeledInputProps> = ({
@@ -21,6 +22,7 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
   onChangeText,
   secureTextEntry = false,
   keyboardType = "default",
+  multiline,
 }) => {
   const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
@@ -52,6 +54,7 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
         keyboardType={keyboardType}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        multiline
       />
     </View>
   );

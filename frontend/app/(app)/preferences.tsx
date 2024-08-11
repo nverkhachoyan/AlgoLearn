@@ -138,7 +138,7 @@ export default function Preferences() {
             placeholder="Bio"
             value={formData.bio || ""}
             onChangeText={(text) => handleChange("bio", text)}
-            multiline
+            multiline={true}
           />
           <LabeledInput
             label="Location"

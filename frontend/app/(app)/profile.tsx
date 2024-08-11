@@ -11,6 +11,8 @@ import { Feather } from "@expo/vector-icons";
 import { useEffect } from "react";
 import useTheme from "@/hooks/useTheme";
 
+type IconType = React.ComponentProps<typeof Feather>["name"];
+
 export default function Profile() {
   const { isAuthed, loading, signOut } = useAuthContext();
   const { user, updateUser, deleteAccount }: UseUserReturn = useUser();
@@ -124,7 +126,7 @@ function UserInfoRow({
   label,
   value,
 }: {
-  icon: string;
+  icon: IconType;
   label: string;
   value: string;
 }) {

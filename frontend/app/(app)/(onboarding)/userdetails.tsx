@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import Button from "@/components/common/Button";
 import { Feather } from "@expo/vector-icons";
@@ -18,19 +18,22 @@ import { useAuthContext } from "@/context/AuthProvider";
 import useTheme from "@/hooks/useTheme";
 import { useUser } from "@/hooks/useUser";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import useToast from "@/hooks/useToast";
 
-const MaxProfilePictureSize = 5 * 1024 * 1024;
+import { ImageFile } from "@/types/CommonTypes";
+
+const MaxProfilePictureSize = 1024 * 1024;
 
 export default function UserDetails() {
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [image, setImage] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const router = useRouter();
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<ImageFile>(null);
   const { isAuthed } = useAuthContext();
   const { colors } = useTheme();
   const { updateUser } = useUser();
+  const { showToast } = useToast();
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -44,9 +47,16 @@ export default function UserDetails() {
     console.log(result);
 
     if (!result.canceled) {
-      const { uri, type } = result.assets[0];
+      const { uri, type, fileSize } = result.assets[0];
       const fileType = type || "image/jpeg"; // default to image/jpeg if type is not available
       const fileName = uri.split("/").pop();
+
+      if (fileSize && fileSize > MaxProfilePictureSize) {
+        showToast({
+          message: "This image is too large. The accepted size is 1MB or less.",
+        });
+        return;
+      }
 
       setImage(uri);
       setImageFile({ uri, name: fileName, type: fileType });

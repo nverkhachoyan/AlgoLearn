@@ -4,6 +4,7 @@ import { getAuthToken } from "@/services/authService";
 
 import { User } from "../types/userTypes";
 import { Response } from "@/types/apiTypes";
+import { ImageFile } from "@/types/CommonTypes";
 
 // Interface for updating user data
 interface UpdateUserData {
@@ -15,7 +16,7 @@ interface UpdateUserData {
   bio?: string;
   location?: string;
   preferences?: JSON;
-  avatar?: File;
+  avatar?: ImageFile;
 }
 
 interface UserWithToken extends User {

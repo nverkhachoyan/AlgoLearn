@@ -9,7 +9,6 @@ import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import useTheme from "@/hooks/useTheme";
 import { StickyHeader } from "@/components/common/StickyHeader";
-import LottieView from "lottie-react-native";
 
 export default function Feed() {
   const {
@@ -66,7 +65,7 @@ export default function Feed() {
       <StickyHeader
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}
-        userAvatar={null}
+        userAvatar={user.profile_picture_url}
         onAvatarPress={() => {
           router.push("/profile");
         }}

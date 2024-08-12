@@ -29,7 +29,7 @@ export function StickyHeader(props: {
         },
       ]}
     >
-      <TouchableOpacity onPress={() => router.replace("/")}>
+      <TouchableOpacity onPress={() => router.navigate("/")}>
         <LottieView
           autoPlay={true}
           loop={false}

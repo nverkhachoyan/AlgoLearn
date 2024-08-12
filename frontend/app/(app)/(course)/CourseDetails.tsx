@@ -175,7 +175,6 @@ export default function CourseDetails() {
         ]}
       >
         <Button
-          // title="Back"
           icon={{
             name: "arrow-left",
             size: 22,
@@ -184,7 +183,7 @@ export default function CourseDetails() {
           }}
           style={{ backgroundColor: colors.buttonBackground }}
           textStyle={{ color: colors.buttonText }}
-          onPress={() => console.log("Start Course")}
+          onPress={() => router.back()}
         />
         <Button
           title="Start Course"
@@ -201,6 +200,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flexGrow: 1,
     justifyContent: "flex-start",
+    paddingVertical: 15,
   },
   container: {
     flex: 1,

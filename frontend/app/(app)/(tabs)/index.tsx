@@ -1,49 +1,29 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, ActivityIndicator } from "react-native";
 import { View, ScrollView, Text } from "@/components/Themed";
 import { useAuthContext } from "@/context/AuthProvider";
 import CourseCard from "@/components/tabs/CourseCard";
 import Button from "@/components/common/Button";
-import { ActivityIndicator } from "react-native";
-import { router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { useEffect, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useUser } from "@/hooks/useUser";
 import { useCourses } from "./hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
 import { StickyHeader } from "@/components/common/StickyHeader";
 
 export default function Home() {
-  const { isAuthed, loading } = useAuthContext();
-  const {
-    user: { data: user },
-  } = useUser();
+  const { isAuthed, user, invalidateAuth } = useAuthContext();
   const { allCourses, isCoursesPending, coursesFetchError } = useCourses();
   const { colors } = useTheme();
   const animation = useRef(null);
 
-  if (loading) {
-    return <Text>Loading...</Text>;
-  }
-
   useEffect(() => {
-    if (!loading && !isAuthed && !user) {
-      router.navigate("/welcome");
+    if (!isAuthed) {
+      console.log("NOT AUTHED BTW");
+      router.replace("/welcome");
     }
-  }, [loading, isAuthed]);
+  }, [isAuthed]);
 
-  if (!isAuthed || !user) {
-    return (
-      <Text>
-        Not logged in
-        <Button
-          title="Clear local storage"
-          onPress={() => AsyncStorage.clear()}
-        />
-      </Text>
-    );
-  }
-
-  if (isCoursesPending) {
+  if (isCoursesPending || user.isPending || !user.data) {
     return (
       <View
         style={{
@@ -54,6 +34,12 @@ export default function Home() {
         }}
       >
         <ActivityIndicator size="large" color="#25A879" />
+        <Button
+          title="Clear local storage"
+          onPress={() => {
+            invalidateAuth();
+          }}
+        />
       </View>
     );
   }
@@ -61,9 +47,9 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <StickyHeader
-        cpus={user.cpus}
-        strikeCount={user.streaks?.length ?? 0}
-        userAvatar={user.profile_picture_url}
+        cpus={user.data.cpus ?? 0}
+        strikeCount={user.data.streaks?.length ?? 0}
+        userAvatar={user.data.profile_picture_url}
         onAvatarPress={() => {
           router.push("/profile");
         }}

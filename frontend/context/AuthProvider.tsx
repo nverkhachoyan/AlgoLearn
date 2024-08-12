@@ -1,53 +1,34 @@
-import React, { useEffect, useCallback } from "react";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { useAuth } from "@/hooks/useAuth";
-import { AuthContextType } from "@/types/authTypes";
-import { createContext, useContext, ReactNode } from "react";
+import React, { useEffect, ReactNode, createContext, useContext } from "react";
+import { useUser, UseUserReturn } from "@/hooks/useUser";
+import { router, usePathname } from "expo-router";
+
+export interface AuthContextType extends UseUserReturn {}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const {
-    token,
-    isAuthed,
-    signOut,
-    handleSuccess,
-    checkAuthState,
-    doesEmailExist,
-    checkEmailMutate,
-    signInMutate,
-    signUp,
-  } = useAuth();
+  const userContext = useUser();
+  const { token, isAuthed, checkAuthState } = userContext;
+  const pathname = usePathname();
 
-  const handleError = useCallback(
-    (error: Error) => {
-      console.error("Authentication error:", error);
-      signOut();
-    },
-    [signOut],
-  );
-
-  const { promptAsync } = useGoogleAuth(handleSuccess, handleError);
-
-  const signInWithGoogle = useCallback(async () => {
-    await promptAsync();
-  }, [promptAsync]);
+  // useEffect(() => {
+  //   if (!isAuthed && pathname.startsWith("(tabs)")) {
+  //     // Adjust the pathname condition
+  //     router.replace("/unauthorized");
+  //   }
+  // }, [isAuthed, pathname]);
 
   useEffect(() => {
     checkAuthState();
-  }, [isAuthed, token]);
+  }, []);
+
+  console.log("isAuthed: ", isAuthed);
+  console.log("user: ", userContext.user);
 
   return (
     <AuthContext.Provider
       value={{
-        signInWithGoogle,
-        signOut,
-        isAuthed,
-        loading: !isAuthed && !!token,
-        checkEmailMutate,
-        doesEmailExist,
-        signInMutate,
-        signUp,
+        ...userContext,
       }}
     >
       {children}

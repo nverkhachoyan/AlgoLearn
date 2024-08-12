@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useAuthContext } from "@/context/AuthProvider";
-import { useUser, UseUserReturn } from "@/hooks/useUser";
 import Button from "@/components/common/Button";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -17,6 +16,11 @@ import useTheme from "@/hooks/useTheme";
 import LabeledInput from "@/components/common/LabeledInput";
 import { StickyHeaderSimple } from "@/components/common/StickyHeader";
 import useToast from "@/hooks/useToast";
+import { ImageFile } from "@/types/CommonTypes";
+import * as ImagePicker from "expo-image-picker";
+import { FontAwesome } from "@expo/vector-icons";
+
+const MaxProfilePictureSize = 5 * 1024 * 1024;
 
 interface UpdateUserData {
   username?: string;
@@ -30,10 +34,12 @@ interface UpdateUserData {
 }
 
 export default function Preferences() {
-  const { isAuthed, loading, signOut } = useAuthContext();
-  const { user, updateUser, deleteAccount }: UseUserReturn = useUser();
+  const { isAuthed, user, updateUser, deleteAccount, signOut } =
+    useAuthContext();
   const { colors } = useTheme();
   const { showToast } = useToast();
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<ImageFile>(null);
 
   const [formData, setFormData] = useState<UpdateUserData>({
     username: user?.data.username,
@@ -45,6 +51,31 @@ export default function Preferences() {
     location: user?.data.location,
   });
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      const { uri, type, fileSize } = result.assets[0];
+      const fileType = type || "image/jpeg"; // default to image/jpeg if type is not available
+      const fileName = uri.split("/").pop();
+
+      if (fileSize && fileSize > MaxProfilePictureSize) {
+        showToast("This image is too large. The accepted size is 5MB or less.");
+        return;
+      }
+
+      setImage(uri);
+      setImageFile({ uri, name: fileName, type: fileType });
+    }
+  };
+
   const handleDeleteAccount = async () => {
     deleteAccount.mutate(undefined, {
       onSuccess: () => {
@@ -55,19 +86,9 @@ export default function Preferences() {
   };
 
   const handleSignOut = () => {
-    signOut();
+    signOut.mutate();
     router.replace("/welcome");
   };
-
-  const handleSave = () => {
-    updateUser.mutate({ ...formData });
-  };
-
-  useEffect(() => {
-    if (!isAuthed) {
-      router.navigate("/welcome");
-    }
-  }, [loading, isAuthed, user]);
 
   if (!isAuthed || !user) {
     return <Text>Not logged in</Text>;
@@ -77,6 +98,22 @@ export default function Preferences() {
     setFormData({
       ...formData,
       [name]: value,
+    });
+  };
+
+  const handleUpdateUser = async () => {
+    const userData = {
+      ...formData,
+      ...(imageFile && { avatar: imageFile }),
+    };
+
+    updateUser.mutate(userData, {
+      onSuccess: () => {
+        showToast("Account updated successfully");
+      },
+      onError: () => {
+        showToast(`Error while updating user: ${updateUser.error?.message}`);
+      },
     });
   };
 
@@ -97,14 +134,30 @@ export default function Preferences() {
         ]}
       >
         <View style={styles.profileHeader}>
-          <Image
-            source={{
-              uri:
-                user.data.profile_picture_url ||
-                "https://picsum.photos/id/64/4326/2884",
-            }}
-            style={styles.profilePicture}
-          />
+          <TouchableOpacity
+            onPress={pickImage}
+            style={styles.profilePictureContainer}
+          >
+            {image ? (
+              <Image source={{ uri: image }} style={styles.image} />
+            ) : (
+              <View style={styles.image}>
+                <Image
+                  source={
+                    user.data.profile_picture_url
+                      ? {
+                          uri: user.data.profile_picture_url,
+                        }
+                      : require("@/assets/images/defaultAvatar.png")
+                  }
+                  style={styles.profilePicture}
+                />
+              </View>
+            )}
+            <View style={styles.uploadAvatarContainer}>
+              <FontAwesome name="edit" style={styles.uploadAvatarText} />
+            </View>
+          </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]}>
             {user.data.username || user.data.email}
           </Text>
@@ -115,19 +168,22 @@ export default function Preferences() {
 
         <View style={styles.form}>
           <LabeledInput
-            label="Username"
-            icon="user"
-            placeholder="Username"
-            value={formData.username || ""}
-            onChangeText={(text) => handleChange("username", text)}
+            label="Bio"
+            icon="file-text"
+            placeholder="Bio"
+            value={formData.bio || ""}
+            onChangeText={(text) => handleChange("bio", text)}
+            multiline={true}
+            numberOfLines={4}
+            maxLength={140}
+            scrollEnabled={true}
           />
           <LabeledInput
-            label="Email"
-            icon="mail"
-            placeholder="Email"
-            value={formData.email || ""}
-            onChangeText={(text) => handleChange("email", text)}
-            keyboardType="email-address"
+            label="Location"
+            icon="map-pin"
+            placeholder="Location"
+            value={formData.location || ""}
+            onChangeText={(text) => handleChange("location", text)}
           />
           <LabeledInput
             label="First Name"
@@ -144,25 +200,25 @@ export default function Preferences() {
             onChangeText={(text) => handleChange("last_name", text)}
           />
           <LabeledInput
-            label="Bio"
-            icon="file-text"
-            placeholder="Bio"
-            value={formData.bio || ""}
-            onChangeText={(text) => handleChange("bio", text)}
-            multiline={true}
+            label="Username"
+            icon="user"
+            placeholder="Username"
+            value={formData.username || ""}
+            onChangeText={(text) => handleChange("username", text)}
           />
           <LabeledInput
-            label="Location"
-            icon="map-pin"
-            placeholder="Location"
-            value={formData.location || ""}
-            onChangeText={(text) => handleChange("location", text)}
+            label="Email"
+            icon="mail"
+            placeholder="Email"
+            value={formData.email || ""}
+            onChangeText={(text) => handleChange("email", text)}
+            keyboardType="email-address"
           />
 
           <Button
             title="Save"
             onPress={() => {
-              handleSave();
+              handleUpdateUser();
             }}
             style={{
               backgroundColor: colors.buttonBackground,
@@ -277,5 +333,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 10,
     width: "80%",
+  },
+  profilePictureContainer: {
+    position: "relative",
+    width: 100,
+    height: 100,
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: 16,
+    overflow: "hidden",
+    borderRadius: 100,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    position: "relative",
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: 16,
+    overflow: "hidden",
+    borderRadius: 100,
+  },
+  uploadAvatarContainer: {
+    width: "100%",
+    fontSize: 16,
+    fontFamily: "OpenSauceOne-Regular",
+    position: "absolute",
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    color: "white",
+    padding: 5,
+    borderBottomStartRadius: 100,
+    borderBottomEndRadius: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uploadAvatarText: {
+    color: "white",
+    fontSize: 16,
+    fontFamily: "OpenSauceOne-Regular",
+    textAlign: "center",
   },
 });

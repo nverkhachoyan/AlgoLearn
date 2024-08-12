@@ -16,7 +16,6 @@ import Button from "@/components/common/Button";
 import { Feather } from "@expo/vector-icons";
 import { useAuthContext } from "@/context/AuthProvider";
 import useTheme from "@/hooks/useTheme";
-import { useUser } from "@/hooks/useUser";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import useToast from "@/hooks/useToast";
 
@@ -30,9 +29,8 @@ export default function UserDetails() {
   const [lastName, setLastName] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<ImageFile>(null);
-  const { isAuthed } = useAuthContext();
+  const { isAuthed, updateUser } = useAuthContext();
   const { colors } = useTheme();
-  const { updateUser } = useUser();
   const { showToast } = useToast();
 
   const pickImage = async () => {
@@ -60,9 +58,9 @@ export default function UserDetails() {
     }
   };
 
-  if (!isAuthed) {
-    router.navigate("/signup");
-  }
+  // if (!isAuthed) {
+  //   router.navigate("/signup");
+  // }
 
   const handleUpdateUser = async () => {
     if (!username || !firstName || !lastName) {
@@ -70,32 +68,22 @@ export default function UserDetails() {
       return;
     }
 
-    try {
-      const userData = {
-        username,
-        first_name: firstName,
-        last_name: lastName,
-      };
+    const userData = {
+      username,
+      first_name: firstName,
+      last_name: lastName,
+      ...(imageFile && { avatar: imageFile }),
+    };
 
-      if (imageFile) {
-        updateUser.mutate({
-          ...userData,
-          avatar: imageFile,
-        });
-      } else {
-        updateUser.mutate(userData);
-      }
-      router.navigate("/pushnotifications");
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    }
+    updateUser.mutate(userData, {
+      onSuccess: () => {
+        router.navigate("/pushnotifications");
+      },
+      onError: () => {
+        showToast(`Error while updating user: ${updateUser.error?.message}`);
+      },
+    });
   };
-
-  useEffect(() => {
-    if (updateUser.error) {
-      console.log("Error while updating user", updateUser.error.message);
-    }
-  }, [updateUser.error]);
 
   return (
     <ScrollView

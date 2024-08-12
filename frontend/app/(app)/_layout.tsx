@@ -1,4 +1,4 @@
-import { Href, Stack, useSegments } from "expo-router";
+import { Href, Stack, useSegments, router, Redirect } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
 import { useFonts } from "expo-font";
@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import useTheme from "@/hooks/useTheme";
 export { ErrorBoundary, useSegments, Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthContext } from "@/context/AuthProvider";
 
 export default function Layout() {
   const { colors } = useTheme();
@@ -23,8 +24,19 @@ export default function Layout() {
     "OpenSauceOne-LightItalic": require("@/assets/fonts/OpenSauceOne-LightItalic.ttf"),
   });
   const segments = useSegments();
+  const { isAuthed, checkAuthState } = useAuthContext();
 
   const shouldSafeAreaBeBlack = segments.includes("(onboarding)" as never);
+
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     await checkAuthState();
+  //   };
+  //   checkAuth();
+  //   if (!isAuthed) {
+  //     <Redirect href="/unauthorized" />;
+  //   }
+  // }, [isAuthed]);
 
   useEffect(() => {
     if (error) throw error;
@@ -62,8 +74,11 @@ export default function Layout() {
           initialRouteName="(tabs)/index"
         >
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen name="(course)" />
           <Stack.Screen name="profile" options={{ presentation: "modal" }} />
           <Stack.Screen name="preferences" />
+          <Stack.Screen name="unauthorized" />
         </Stack>
       </SafeAreaView>
       <SafeAreaView

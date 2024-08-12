@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: algolearn4stml
       POSTGRES_DB: algolearn
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - /mnt/volume_sfo3_01/postgresql_data:/var/lib/postgresql/data
     networks:
@@ -28,7 +28,9 @@ services:
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - PORT=8080
     ports:
-      - '8080:8080'
+      - "8080:8080"
+    volumes:
+      - .:/app
 
 volumes:
   postgres-data:

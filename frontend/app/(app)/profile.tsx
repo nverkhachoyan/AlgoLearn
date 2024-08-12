@@ -2,7 +2,6 @@ import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet, Image } from "react-native";
 import { Text, View } from "@/components/Themed";
 import { useAuthContext } from "@/context/AuthProvider";
-import { useUser, UseUserReturn } from "@/hooks/useUser";
 import Button from "@/components/common/Button";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,12 +13,11 @@ import useTheme from "@/hooks/useTheme";
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
-  const { isAuthed, loading, signOut } = useAuthContext();
-  const { user }: UseUserReturn = useUser();
+  const { isAuthed, user, signOut } = useAuthContext();
   const { colors } = useTheme();
 
   const handleSignOut = () => {
-    signOut();
+    signOut.mutate();
     router.replace("/welcome");
   };
 
@@ -29,12 +27,6 @@ export default function Profile() {
     }
   }, [user, user.error]);
 
-  useEffect(() => {
-    if (!loading && !isAuthed && !user) {
-      router.navigate("/welcome");
-    }
-  }, [loading, isAuthed, user]);
-
   if (!isAuthed || !user) {
     return <Text>Not logged in</Text>;
   }
@@ -43,11 +35,13 @@ export default function Profile() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.profileHeader}>
         <Image
-          source={{
-            uri:
-              user.data.profile_picture_url ||
-              "https://picsum.photos/id/64/4326/2884",
-          }}
+          source={
+            user.data.profile_picture_url
+              ? {
+                  uri: user.data.profile_picture_url,
+                }
+              : require("@/assets/images/defaultAvatar.png")
+          }
           style={styles.profilePicture}
         />
         {user.data.first_name || user.data.last_name ? (
@@ -79,7 +73,14 @@ export default function Profile() {
           value={user.data.username || "N/A"}
         />
         <UserInfoRow icon="cpu" label="CPUS" value={`${user.data.cpus}`} />
-        <UserInfoRow icon="tag" label="Role" value={`${user.data.role}`} />
+        <UserInfoRow
+          icon="tag"
+          label="Role"
+          value={
+            `${user.data.role}`.charAt(0).toUpperCase() +
+            `${user.data.role}`.slice(1)
+          }
+        />
         <UserInfoRow
           icon="calendar"
           label="Created"

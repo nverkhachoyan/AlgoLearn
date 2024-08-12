@@ -8,22 +8,16 @@ import moment from "moment";
 import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import useTheme from "@/hooks/useTheme";
-import { useUser } from "@/hooks/useUser";
 import { StickyHeader } from "@/components/common/StickyHeader";
 import LottieView from "lottie-react-native";
 
 export default function Feed() {
-  const { isAuthed, loading } = useAuthContext();
   const {
-    user: { data: user },
-  } = useUser();
-  const { colors } = useTheme();
+    isAuthed,
 
-  useEffect(() => {
-    if (!loading && !isAuthed && !user) {
-      router.navigate("/welcome");
-    }
-  }, [loading, isAuthed, user]);
+    user: { data: user },
+  } = useAuthContext();
+  const { colors } = useTheme();
 
   const feedItems = [
     {
@@ -62,10 +56,6 @@ export default function Feed() {
         return null;
     }
   };
-
-  if (loading) {
-    return <Text style={styles.loadingText}>Loading...</Text>;
-  }
 
   if (!isAuthed || !user) {
     return <Text style={styles.notLoggedInText}>Not logged in</Text>;

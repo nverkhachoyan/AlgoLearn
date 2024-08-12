@@ -18,23 +18,16 @@ import useToast from "@/hooks/useToast";
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthed, checkEmailMutate, doesEmailExist, signInMutate, signUp } =
+  const { isAuthed, checkEmail, signIn, signUp, signInWithGoogle } =
     useAuthContext();
-  const { signInWithGoogle } = useAuthContext();
   const colorScheme = useColorScheme();
   const { colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
+  const [emailExists, setEmailExists] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [retryPassword, setRetryPassword] = useState<string>("");
-  // const { Toast } = useToast();
   const { showToast } = useToast();
-
-  useEffect(() => {
-    if (isAuthed) {
-      router.navigate("/userdetails");
-    }
-  }, [isAuthed]);
 
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,11 +37,22 @@ export default function SignUp() {
   const handleEmailCheck = async () => {
     if (!isValidEmail(email)) {
       showToast("Please enter a valid email address.");
-      return;
-    }
+    } else {
+      checkEmail.mutate(email, {
+        onSuccess: (res: any) => {
+          console.log("RES", res);
+          console.log("res.data", res.data);
 
-    checkEmailMutate(email);
-    setHasCheckedEmail(true);
+          if (res.data.status === "success") {
+            setHasCheckedEmail(true);
+            setEmailExists(true);
+          }
+        },
+        onError: (error: any) => {
+          showToast(`Error checking email: ${error.message}`);
+        },
+      });
+    }
   };
 
   const handleSignUp = () => {
@@ -62,18 +66,43 @@ export default function SignUp() {
 
     if (password !== retryPassword) {
       Alert.alert("Password Mismatch", "Passwords do not match.");
-      return;
+    } else {
+      signUp.mutate(
+        { email, password },
+        {
+          onSuccess: () => {
+            router.navigate("/userdetails");
+          },
+          onError: (err: any) => {
+            showToast(`${err.response.message}`);
+          },
+        },
+      );
     }
+  };
 
-    signUp.mutate({ email, password });
+  const handleSignIn = () => {
+    signIn.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          router.navigate("/pushnotifications");
+        },
+        onError: (err: any) => {
+          if (err.response.status === 401) {
+            showToast("Incorrect email or password.");
+          }
+        },
+      },
+    );
   };
 
   const handleContinue = () => {
-    if (doesEmailExist === false) {
+    if (checkEmail.isPending) return null;
+    if (emailExists === false) {
       handleSignUp();
     } else {
-      // Add your sign-in logic here
-      signInMutate({ email, password });
+      handleSignIn();
     }
   };
 
@@ -122,7 +151,7 @@ export default function SignUp() {
               autoCapitalize="none"
               secureTextEntry
             />
-            {doesEmailExist === false && (
+            {!emailExists && (
               <TextInput
                 style={[
                   styles.textInput,

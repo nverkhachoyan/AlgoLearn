@@ -5,7 +5,7 @@ export const checkEmailExists = async (email: string) => {
   const response = await api.get(`/checkemail`, {
     params: { email },
   });
-  return response.data;
+  return response;
 };
 
 export const signIn = async (email: string, password: string) => {
@@ -13,7 +13,7 @@ export const signIn = async (email: string, password: string) => {
     email,
     password,
   });
-  return response.data;
+  return response;
 };
 
 export const signUp = async (email: string, password: string) => {

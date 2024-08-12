@@ -12,6 +12,9 @@ interface LabeledInputProps {
   secureTextEntry?: boolean;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
   multiline?: boolean;
+  scrollEnabled?: boolean;
+  numberOfLines?: number;
+  maxLength?: number;
 }
 
 const LabeledInput: React.FC<LabeledInputProps> = ({
@@ -22,30 +25,37 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
   onChangeText,
   secureTextEntry = false,
   keyboardType = "default",
-  multiline,
+  multiline = false,
+  scrollEnabled = false,
+  numberOfLines = 1,
+  maxLength = 100,
 }) => {
   const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <View
-      style={[
-        styles.inputContainer,
-        {
-          borderColor: isFocused ? colors.secondaryBackground : colors.border,
-          backgroundColor: isFocused
-            ? colors.inputBackgroundFocused
-            : colors.inputBackground,
-        },
-      ]}
-    >
-      <Feather name={icon} size={20} color={colors.icon} style={styles.icon} />
-      <Text style={[styles.label, { color: colors.textDimmed }]}>
-        {label}
-        {":"}
-      </Text>
+    <View style={[styles.container]}>
+      <View style={styles.labelContainer}>
+        <Feather
+          name={icon}
+          size={20}
+          color={colors.icon}
+          style={styles.icon}
+        />
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      </View>
+
       <TextInput
-        style={[styles.input, { color: colors.text }]}
+        style={[
+          styles.input,
+          {
+            borderColor: isFocused ? colors.secondaryBackground : colors.border,
+            backgroundColor: isFocused
+              ? colors.inputBackgroundFocused
+              : colors.inputBackground,
+            color: colors.text,
+          },
+        ]}
         placeholder={placeholder}
         placeholderTextColor={colors.placeholderText}
         value={value}
@@ -54,19 +64,26 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
         keyboardType={keyboardType}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        multiline
+        multiline={multiline}
+        scrollEnabled={scrollEnabled}
+        numberOfLines={numberOfLines}
+        maxLength={maxLength}
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flexDirection: "column",
+    marginVertical: 15,
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
+  },
+  labelContainer: {
+    flexDirection: "row",
     marginBottom: 10,
   },
   icon: {
@@ -77,9 +94,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   input: {
-    flex: 1,
-    height: 40,
     fontSize: 16,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    paddingVertical: 20,
   },
 });
 

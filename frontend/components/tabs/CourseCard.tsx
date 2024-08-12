@@ -48,7 +48,7 @@ export default function CourseCard(props: {
         <Button
           title="Details"
           onPress={() =>
-            router.replace(
+            router.navigate(
               `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
             )
           }
@@ -62,7 +62,7 @@ export default function CourseCard(props: {
         />
         <Button
           title={props.buttonTitle || "Continue"}
-          onPress={() => router.replace("/ModuleSession")}
+          onPress={() => router.navigate("ModuleSession" as never)}
           style={{
             backgroundColor: colors.buttonBackground,
           }}

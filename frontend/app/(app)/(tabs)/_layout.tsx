@@ -1,11 +1,13 @@
-import React from "react";
-import { Tabs, useSegments } from "expo-router";
+import React, { useEffect } from "react";
+import { Tabs, useSegments, router } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import { Theme } from "@/constants/Colors";
 import { useClientOnlyValue } from "@/components/useClientOnlyValue";
 import useTheme from "@/hooks/useTheme";
 import { TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useAuthContext } from "@/context/AuthProvider";
+import { MaterialIcons } from "@expo/vector-icons";
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Feather>["name"];
@@ -54,6 +56,8 @@ function HapticTabButton({
 export default function TabLayout() {
   const { colors } = useTheme();
   const segments = useSegments() as string[];
+
+  const { isAuthed, checkAuthState } = useAuthContext(); // Use your AuthContext
 
   const getTabBarIcon =
     (name: React.ComponentProps<typeof Feather>["name"]) =>
@@ -137,6 +141,27 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="leaderboard"
+        options={{
+          tabBarIcon: () => (
+            <MaterialIcons
+              name="leaderboard"
+              size={28}
+              color={colors.tabIconDefault}
+            />
+          ),
+          headerShown: false,
+          tabBarButton: (props) => (
+            <HapticTabButton
+              {...props}
+              backgroundColor={tabBarActiveBackgroundColor("Challenges")}
+            >
+              {props.children}
+            </HapticTabButton>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="feed"
         options={{
           tabBarIcon: getTabBarIcon("inbox"),
@@ -149,14 +174,6 @@ export default function TabLayout() {
               {props.children}
             </HapticTabButton>
           ),
-        }}
-      />
-      {/* Hidden tabs */}
-      <Tabs.Screen
-        name="(course)"
-        options={{
-          headerShown: false,
-          href: null,
         }}
       />
     </Tabs>

@@ -30,13 +30,6 @@ func ValidateEmail(email string) bool {
 	return re.MatchString(email)
 }
 
-// RespondWithJSON sends a JSON response with a given status
-func RespondWithJSON(w http.ResponseWriter, status int, response models.Response) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(response)
-}
-
 // validateRegistrationInput performs input validation for registration
 func validateRegistrationInput(req models.RegistrationRequest) (bool, string) {
 	if len(req.Username) < 5 || len(req.Username) > 20 {
@@ -56,32 +49,45 @@ func CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 
 	user, _ := repository.GetUserByEmail(email)
 	if user != nil {
-		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "success", ErrorCode: errors.ACCOUNT_EXISTS, Message: "An account with this email already exists"})
+		RespondWithJSON(w, http.StatusAccepted,
+			models.Response{
+				Status:    "success",
+				ErrorCode: errors.ACCOUNT_EXISTS,
+				Message:   "An account with this email already exists",
+			})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, models.Response{Status: "error", Message: "An account with this email does not exist"})
+	RespondWithJSON(w, http.StatusOK,
+		models.Response{
+			Status:    "error",
+			ErrorCode: errors.NO_DATA,
+			Message:   "An account with this email does not exist",
+		})
 }
 
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid input"})
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{Status: "error",
+				ErrorCode: errors.INVALID_JSON,
+				Message:   "Invalid JSON"})
 		return
 	}
 
 	if isValid, message := validateRegistrationInput(req); !isValid {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: message})
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{Status: "error",
+				ErrorCode: errors.INVALID_FORM_DATA,
+				Message:   message,
+			})
 		return
 	}
 
 	// Check if user with email already exists
 	userByEmail, _ := repository.GetUserByEmail(req.Email)
-	// if err != nil {
-	// 	log.Printf("Error fetching user by email: %v", err)
-	// 	RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", ErrorCode: "INTERNAL_ERROR", Message: "Internal server error"})
-	// 	return
-	// }
+
 	if userByEmail != nil {
 		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "error", ErrorCode: errors.ACCOUNT_EXISTS, Message: "An account with this email already exists"})
 		return
@@ -90,7 +96,12 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
 		log.Printf("Error hashing password: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INTERNAL_ERROR,
+				Message:   "Internal server error",
+			})
 		return
 	}
 
@@ -109,14 +120,23 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := repository.CreateUser(user); err != nil {
 		log.Printf("Error creating user: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not create user"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+			Status:    "error",
+			ErrorCode: errors.INTERNAL_ERROR,
+			Message:   "Failed to create user",
+		})
 		return
 	}
 
 	token, err := services.GenerateJWT(user.ID)
 	if err != nil {
 		log.Printf("Error generating token: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INTERNAL_ERROR,
+				Message:   "Internal server error",
+			})
 		return
 	}
 
@@ -132,14 +152,19 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 func LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid request"})
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_JSON, Message: "Invalid JSON"})
 		return
 	}
 
 	user, err := repository.GetUserByEmail(req.Email)
 	if err != nil {
 		log.Printf("Login failed for user %s: %v", req.Email, err)
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Invalid email or password"})
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_CREDENTIALS,
+				Message:   "Invalid email or password",
+			})
 		return
 	}
 
@@ -147,14 +172,19 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Login failed for user %s: invalid password", req.Email)
 		log.Printf("Provided password: %s", req.Password)
 		log.Printf("Stored hash: %s", user.PasswordHash)
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Invalid email or password"})
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", ErrorCode: errors.INVALID_CREDENTIALS, Message: "Invalid email or password"})
 		return
 	}
 
 	token, err := services.GenerateJWT(user.ID)
 	if err != nil {
 		log.Printf("Error generating token for user %s: %v", req.Email, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INTERNAL_ERROR,
+				Message:   "Internal server error",
+			})
 		return
 	}
 
@@ -192,13 +222,23 @@ func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int) (st
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	tokenStr := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	if tokenStr == "" {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "You are not authorized to make that request",
+			})
 		return
 	}
 
 	claims, err := services.ValidateJWT(tokenStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "You are not authorized to make that request",
+			})
 		return
 	}
 
@@ -207,14 +247,24 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// Parsing multipart form data
 	err = r.ParseMultipartForm(10 << 20) // 10 MB
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_FORM_DATA, Message: "Invalid Form Data was sent in the request"})
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_FORM_DATA,
+				Message:   "Invalid Form Data was sent in the request",
+			})
 		return
 	}
 
 	var user models.User
 	jsonData := r.FormValue("data")
 	if err := json.Unmarshal([]byte(jsonData), &user); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_JSON, Message: "Invalid JSON was sent in the request"})
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_JSON,
+				Message:   "Invalid JSON was sent in the request",
+			})
 		return
 	}
 
@@ -229,7 +279,12 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		s3Session := config.GetS3Sesssion()
 		avatarURL, err := uploadUserAvatarToS3(s3Session, file, userID)
 		if err != nil {
-			RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", ErrorCode: errors.FILE_UPLOAD_FAILED, Message: "File upload to S3 object storage has failed"})
+			RespondWithJSON(w, http.StatusInternalServerError,
+				models.Response{
+					Status:    "error",
+					ErrorCode: errors.FILE_UPLOAD_FAILED,
+					Message:   "File upload to S3 object storage has failed",
+				})
 			return
 		}
 		user.ProfilePictureURL = avatarURL
@@ -238,7 +293,8 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 			models.Response{
 				Status:    "error",
 				ErrorCode: errors.FILE_UPLOAD_FAILED,
-				Message:   "Error while processing avatar upload, but file is not missing, it's likely something else"})
+				Message:   "Error while processing avatar upload, but file is not missing, it's likely something else",
+			})
 		return
 	}
 
@@ -250,11 +306,24 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 			models.Response{
 				Status:    "error",
 				ErrorCode: errors.DATABASE_FAIL,
-				Message:   "Failed to update the user table in the database, likely issue with repository function, or database is down"})
+				Message:   "Failed to update the user table in the database, likely issue with repository function, or database is down",
+			})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User updated successfully"})
+	newUserData, err := repository.GetUserByID(userID)
+
+	if err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INTERNAL_ERROR,
+				Message:   "Failed to fetch the user that was updated",
+			})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User updated successfully", Data: newUserData})
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {

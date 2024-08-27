@@ -33,7 +33,7 @@ func main() {
 	config.InitLogger()
 	config.InitDB()
 	config.InitOAuth()
-	config.InitS3()
+	config.InitS3() // DigitalOcean Spaces
 	defer func() {
 		if err := config.GetDB().Close(); err != nil {
 			log.Printf("Error closing database: %v\n", err)

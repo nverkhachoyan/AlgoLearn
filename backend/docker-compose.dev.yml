@@ -40,5 +40,8 @@ volumes:
       device: /Users/nverkhachoyan/.local/mnt
       o: bind
 
+  grafana-data:
+    driver: local
+
 networks:
   algolearn-net: {}

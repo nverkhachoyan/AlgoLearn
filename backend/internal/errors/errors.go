@@ -10,4 +10,8 @@ const (
 	INVALID_FORM_DATA      ErrorCode = "INVALID_FORM_DATA"
 	FILE_UPLOAD_FAILED     ErrorCode = "FILE_UPLOAD_FAILED"
 	DATABASE_FAIL          ErrorCode = "DATABASE_FAIL"
+	UNAUTHORIZED           ErrorCode = "UNAUTHORIZED"
+	NO_DATA                ErrorCode = "NO_DATA"
+	INTERNAL_ERROR         ErrorCode = "INTERNAL_ERROR"
+	INVALID_CREDENTIALS    ErrorCode = "INVALID_CREDENTIALS"
 )

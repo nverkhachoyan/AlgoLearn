@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /mnt/volume_sfo3_01/postgresql_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DEVICE}/{POSTGRES_DATA_PATH}:/var/lib/postgresql/data
     networks:
       - algolearn-net
 
@@ -37,7 +37,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /mnt/volume_sfo3_01
+      device: ${POSTGRES_DATA_DEVICE}
       o: bind
 
 networks:

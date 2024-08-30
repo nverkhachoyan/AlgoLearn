@@ -1,5 +1,3 @@
-# Makefile
-
 # Variables
 DOCKER_COMPOSE = docker-compose
 GO = go
@@ -10,17 +8,19 @@ DOCKER_COMPOSE_FILE = docker-compose.yml
 all: run
 
 # Run Docker Compose and the Go application
-run: docker-up run-go
+build: docker-build
+run: docker-up
+down: docker-down
+
+# Build docker services
+docker-build:
+	@echo "Starting Docker Compose services..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) build
 
 # Bring up Docker Compose services
 docker-up:
 	@echo "Starting Docker Compose services..."
-	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up -d
-
-# Run the Go application
-run-go:
-	@echo "Running Go application..."
-	$(GO) run cmd/server/main.go
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up
 
 # Stop Docker Compose services
 docker-down:
@@ -33,4 +33,3 @@ clean:
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down
 
 .PHONY: all run docker-up run-go docker-down clean
-

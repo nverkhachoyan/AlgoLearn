@@ -226,7 +226,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 			models.Response{
 				Status:    "error",
 				ErrorCode: errors.UNAUTHORIZED,
-				Message:   "You are not authorized to make that request",
+				Message:   "You are not authorized to update the user's account",
 			})
 		return
 	}
@@ -329,14 +329,23 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{Status: "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "Unauthorized to retrieve user account",
+			})
 		return
 	}
 
 	user, err := repository.GetUserByID(userID)
 	if err != nil {
 		log.Printf("Error retrieving user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve user"})
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.DATABASE_FAIL,
+				Message:   "Failed to retrieve user from database: " + err.Error(),
+			})
 		return
 	}
 
@@ -346,13 +355,18 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "Unauthorized to delete user account",
+			})
 		return
 	}
 
 	if err := repository.DeleteUser(userID); err != nil {
 		log.Printf("Error deleting user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not delete user"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to delete user account"})
 		return
 	}
 

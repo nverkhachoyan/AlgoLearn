@@ -93,12 +93,12 @@ func SetupRouter() *mux.Router {
 	admin.HandleFunc("/module_question_answers/{id}", handlers.UpdateModuleQuestionAnswer).Methods("PUT")
 	admin.HandleFunc("/module_question_answers/{id}", handlers.DeleteModuleQuestionAnswer).Methods("DELETE")
 
-	// User module sessions endpoints
-	authorized.HandleFunc("/user_module_sessions", handlers.GetAllUserModuleSessions).Methods("GET")
-	authorized.HandleFunc("/user_module_sessions/{id}", handlers.GetUserModuleSessionByID).Methods("GET")
-	authorized.HandleFunc("/user_module_sessions", handlers.CreateUserModuleSession).Methods("POST")
-	authorized.HandleFunc("/user_module_sessions/{id}", handlers.UpdateUserModuleSession).Methods("PUT")
-	authorized.HandleFunc("/user_module_sessions/{id}", handlers.DeleteUserModuleSession).Methods("DELETE")
+	// User module progress endpoints
+	authorized.HandleFunc("/user_module_progress", handlers.GetAllUserModuleProgress).Methods("GET")
+	authorized.HandleFunc("/user_module_progress/{id}", handlers.GetUserModuleProgressByID).Methods("GET")
+	authorized.HandleFunc("/user_module_progress", handlers.CreateUserModuleProgress).Methods("POST")
+	authorized.HandleFunc("/user_module_progress/{id}", handlers.UpdateUserModuleProgress).Methods("PUT")
+	authorized.HandleFunc("/user_module_progress/{id}", handlers.DeleteUserModuleProgress).Methods("DELETE")
 
 	// User answers endpoints
 	authorized.HandleFunc("/user_answers", handlers.GetAllUserAnswers).Methods("GET")

@@ -111,10 +111,12 @@ func handleOAuthUser(w http.ResponseWriter, r *http.Request, email, oauthID, sta
 		if err.Error() == "user not found" {
 			// User does not exist, we create a new one
 			newUser := &models.User{
+				BaseModel: models.BaseModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
 				Email:           email,
 				OAuthID:         oauthID,
-				CreatedAt:       time.Now(),
-				UpdatedAt:       time.Now(),
 				Role:            "user",
 				IsActive:        true,
 				IsEmailVerified: true,

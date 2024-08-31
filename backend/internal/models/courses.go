@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Course struct {
-	ID              int       `json:"id"`
+	BaseModel
 	Name            string    `json:"name"`
 	Description     string    `json:"description"`
 	BackgroundColor string    `json:"background_color"`
@@ -14,18 +14,14 @@ type Course struct {
 	Tags            []string  `json:"tags,omitempty"`
 	Rating          float64   `json:"rating,omitempty"`
 	LearnersCount   int       `json:"learners_count"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
 	LastUpdated     time.Time `json:"last_updated"`
 }
 
 type Unit struct {
-	ID          int       `json:"id"`
-	CourseID    int       `json:"course_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	BaseModel
+	CourseID    int    `json:"course_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // Section Interface and Implementations
@@ -114,30 +110,25 @@ type ModuleContent struct {
 
 // Module represents a module within a unit
 type Module struct {
-	ID          int           `json:"id"`
+	BaseModel
 	UnitID      int           `json:"unit_id"`
+	CourseID    int           `json:"course_id"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Content     ModuleContent `json:"content"` // JSON content
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
 }
 
 // ModuleQuestion and Answer Types
 
 type ModuleQuestion struct {
-	ID        int       `json:"id"`
-	ModuleID  int       `json:"module_id"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	BaseModel
+	ModuleID int    `json:"module_id"`
+	Content  string `json:"content"`
 }
 
 type ModuleQuestionAnswer struct {
-	ID         int       `json:"id"`
-	QuestionID int       `json:"question_id"`
-	Content    string    `json:"content"`
-	IsCorrect  bool      `json:"is_correct"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	BaseModel
+	QuestionID int    `json:"question_id"`
+	Content    string `json:"content"`
+	IsCorrect  bool   `json:"is_correct"`
 }

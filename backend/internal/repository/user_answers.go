@@ -19,17 +19,17 @@ var userAnswerFields = `
 	is_correct
 `
 
-func queryUserAnswer(query string, args ...interface{}) (models.UserAnswer, error) {
+func queryUserAnswer(query string, args ...interface{}) (models.UserQuestionAnswer, error) {
 	db := config.GetDB()
 	row := db.QueryRow(query, args...)
 	return scanUserAnswer(row)
 }
 
-func scanUserAnswer(row *sql.Row) (models.UserAnswer, error) {
-	var answer models.UserAnswer
+func scanUserAnswer(row *sql.Row) (models.UserQuestionAnswer, error) {
+	var answer models.UserQuestionAnswer
 	err := row.Scan(
 		&answer.ID,
-		&answer.UserModuleSessionID,
+		&answer.UserModuleProgressID,
 		&answer.QuestionID,
 		&answer.AnswerID,
 		&answer.AnsweredAt,
@@ -44,7 +44,7 @@ func scanUserAnswer(row *sql.Row) (models.UserAnswer, error) {
 	return answer, nil
 }
 
-func GetUserAnswersBySessionID(sessionID int) ([]models.UserAnswer, error) {
+func GetUserAnswersBySessionID(sessionID int) ([]models.UserQuestionAnswer, error) {
 	db := config.GetDB()
 	query := fmt.Sprintf("SELECT %s FROM user_answers WHERE user_module_session_id = $1", userAnswerFields)
 	rows, err := db.Query(query, sessionID)
@@ -53,12 +53,12 @@ func GetUserAnswersBySessionID(sessionID int) ([]models.UserAnswer, error) {
 	}
 	defer rows.Close()
 
-	var answers []models.UserAnswer
+	var answers []models.UserQuestionAnswer
 	for rows.Next() {
-		var answer models.UserAnswer
+		var answer models.UserQuestionAnswer
 		err := rows.Scan(
 			&answer.ID,
-			&answer.UserModuleSessionID,
+			&answer.UserModuleProgressID,
 			&answer.QuestionID,
 			&answer.AnswerID,
 			&answer.AnsweredAt,
@@ -77,12 +77,12 @@ func GetUserAnswersBySessionID(sessionID int) ([]models.UserAnswer, error) {
 	return answers, nil
 }
 
-func GetUserAnswerByID(id int) (models.UserAnswer, error) {
+func GetUserAnswerByID(id int) (models.UserQuestionAnswer, error) {
 	query := fmt.Sprintf("SELECT %s FROM user_answers WHERE id = $1", userAnswerFields)
 	return queryUserAnswer(query, id)
 }
 
-func CreateUserAnswer(answer *models.UserAnswer) error {
+func CreateUserAnswer(answer *models.UserQuestionAnswer) error {
 	db := config.GetDB()
 	query := `
 	INSERT INTO user_answers (
@@ -94,7 +94,7 @@ func CreateUserAnswer(answer *models.UserAnswer) error {
 	) VALUES ($1, $2, $3, $4, $5)
 	RETURNING id, answered_at`
 	err := db.QueryRow(query,
-		answer.UserModuleSessionID,
+		answer.UserModuleProgressID,
 		answer.QuestionID,
 		answer.AnswerID,
 		time.Now(),
@@ -106,7 +106,7 @@ func CreateUserAnswer(answer *models.UserAnswer) error {
 	return nil
 }
 
-func UpdateUserAnswer(answer *models.UserAnswer) error {
+func UpdateUserAnswer(answer *models.UserQuestionAnswer) error {
 	db := config.GetDB()
 	query := `
 	UPDATE user_answers SET

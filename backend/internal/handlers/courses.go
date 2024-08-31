@@ -150,7 +150,7 @@ func GetAllUnits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	units, err := repository.GetUnitsByCourseID(courseID)
+	units, err := repository.GetAllUnits(courseID)
 	if err != nil {
 		log.Printf("Error fetching units for course %d: %v", courseID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve units"})

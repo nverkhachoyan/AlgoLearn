@@ -1,73 +1,61 @@
--- Users
-INSERT INTO users (username, email, password_hash, oauth_id, role, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, preferences, cpus, created_at, updated_at)
-VALUES 
-('john_doe', 'john@example.com', 'hashedpassword1', 'oauthid1', 'user', 'John', 'Doe', 'http://example.com/john.jpg', NOW(), TRUE, FALSE, 'Bio of John Doe', 'New York', '{}', 100, NOW(), NOW()),
-('jane_smith', 'jane@example.com', 'hashedpassword2', 'oauthid2', 'admin', 'Jane', 'Smith', 'http://example.com/jane.jpg', NOW(), TRUE, TRUE, 'Bio of Jane Smith', 'Los Angeles', '{"theme":"dark"}', 200, NOW(), NOW());
+-- Insert a course
+INSERT INTO courses (created_at, updated_at, name, description, background_color, icon_url, duration, difficulty_level, author, tags, rating, learners_count, last_updated)
+VALUES
+(NOW(), NOW(), 'Introduction to JavaScript', 'Learn the basics of JavaScript, the language of the web.', '#F0DB4F', 'https://example.com/icon.png', '3 hours', 'Beginner', 'Jane Doe', ARRAY['JavaScript', 'Programming', 'Web Development'], 4.5, 1000, NOW())
+RETURNING id;
 
--- Streaks
-INSERT INTO streaks (user_id, start_date, end_date, current_streak, longest_streak, created_at, updated_at)
-VALUES 
-(1, '2024-01-01', '2024-01-10', 10, 10, NOW(), NOW()),
-(2, '2024-01-05', '2024-01-15', 10, 10, NOW(), NOW());
+-- Insert a unit
+INSERT INTO units (created_at, updated_at, course_id, name, description)
+VALUES
+(NOW(), NOW(), 1, 'JavaScript Basics', 'This unit covers the fundamental concepts of JavaScript, including syntax, variables, and functions.')
+RETURNING id;
 
--- Courses
-INSERT INTO courses (name, description, background_color, icon_url, duration, difficulty_level, author, tags, rating, learners_count, created_at, updated_at, last_updated)
-VALUES 
-('Intro to Algorithms', 'Learn the basics of algorithms', '#FF5733', 'http://example.com/algorithms.png', '4 weeks', 'Beginner', 'John Doe', ARRAY['algorithms', 'basics'], 4.5, 150, NOW(), NOW(), NOW()),
-('Advanced Data Structures', 'Deep dive into data structures', '#33FF57', 'http://example.com/datastructures.png', '6 weeks', 'Advanced', 'Jane Smith', ARRAY['data structures', 'advanced'], 4.8, 100, NOW(), NOW(), NOW());
+-- Insert a module
+INSERT INTO modules (created_at, updated_at, unit_id, course_id, name, description, content)
+VALUES
+(NOW(), NOW(), 1, 1, 'Getting Started with JavaScript', 'This module introduces you to JavaScript and helps you set up your environment.', '{"sections": []}')
+RETURNING id;
 
--- Units
-INSERT INTO units (course_id, name, description, created_at, updated_at)
-VALUES 
-(1, 'Basic Algorithms', 'Introduction to basic algorithms', NOW(), NOW()),
-(2, 'Trees and Graphs', 'Advanced concepts of trees and graphs', NOW(), NOW());
+-- Insert Question into module_questions
+INSERT INTO module_questions (created_at, updated_at, module_id, content)
+VALUES
+(NOW(), NOW(), 1, 'Which keyword is used to declare a constant variable in JavaScript?')
+RETURNING id;
 
--- Modules
-INSERT INTO modules (unit_id, name, description, content, created_at, updated_at)
-VALUES 
-(1, 'Sorting Algorithms', 'Learn about sorting algorithms', '{"content": "Sorting algorithms content"}', NOW(), NOW()),
-(2, 'Graph Traversal', 'Learn about graph traversal techniques', '{"content": "Graph traversal content"}', NOW(), NOW());
+-- Insert Options into module_question_answers
+INSERT INTO module_question_answers (created_at, updated_at, question_id, content, is_correct)
+VALUES
+(NOW(), NOW(), 1, 'var', FALSE),
+(NOW(), NOW(), 1, 'let', FALSE),
+(NOW(), NOW(), 1, 'const', TRUE);  -- This is the correct option
 
--- Module Questions
-INSERT INTO module_questions (module_id, content, created_at, updated_at)
-VALUES 
-(1, 'What is the time complexity of quicksort?', NOW(), NOW()),
-(2, 'Explain the difference between DFS and BFS.', NOW(), NOW());
 
--- Module Question Answers
-INSERT INTO module_question_answers (question_id, content, is_correct, created_at, updated_at)
-VALUES 
-(1, 'O(n log n)', TRUE, NOW(), NOW()),
-(1, 'O(n^2)', FALSE, NOW(), NOW()),
-(2, 'DFS uses a stack, BFS uses a queue', TRUE, NOW(), NOW()),
-(2, 'DFS is faster than BFS', FALSE, NOW(), NOW());
+-- Insert Sections into the sections table
+INSERT INTO sections (created_at, updated_at, module_id, type, position, content, url, question_id, correct_answer_ids)
+VALUES
+-- Text Section: Introduction to JavaScript
+(NOW(), NOW(), 1, 'text', 1, '## Welcome to JavaScript: The Language of the Web\n\nJavaScript is a versatile and powerful programming language that brings interactivity and dynamism to web pages. Let''s embark on an exciting journey to learn the fundamentals of JavaScript! [Get started](https://static.vecteezy.com/system/resources/thumbnails/027/254/720/small/colorful-ink-splash-on-transparent-background-png.png)', NULL, NULL, NULL),
 
--- User Module Sessions
-INSERT INTO user_module_sessions (user_id, module_id, started_at, completed_at, progress, current_position, last_accessed)
-VALUES 
-(1, 1, NOW(), NULL, 50.00, 2, NOW()),
-(2, 2, NOW(), '2024-02-01', 100.00, 5, NOW());
+-- Text Section: JavaScript Logo
+(NOW(), NOW(), 1, 'text', 2, '![JavaScript Logo](https://static.vecteezy.com/system/resources/thumbnails/027/254/720/small/colorful-ink-splash-on-transparent-background-png.png)', NULL, NULL, NULL),
 
--- User Answers
-INSERT INTO user_answers (user_module_session_id, question_id, answer_id, answered_at, is_correct)
-VALUES 
-(1, 1, 1, NOW(), TRUE),
-(2, 2, 3, NOW(), TRUE);
+-- Text Section: Key Concepts in JavaScript
+(NOW(), NOW(), 1, 'text', 4, '### Key Concepts in JavaScript\n\n\n1. **Variables**: Store and manipulate data\n2. **Functions**: Reusable blocks of code\n3. **Control Flow**: Make decisions and repeat actions\n4. **Objects**: Organize and structure your code\n\nLet''s start with variables!', NULL, NULL, NULL),
 
--- Achievements
-INSERT INTO achievements (name, description, points, created_at, updated_at)
-VALUES 
-('First Module Completed', 'Complete your first module', 10, NOW(), NOW()),
-('Perfect Score', 'Get a perfect score in a module', 20, NOW(), NOW());
+-- Question Section
+(NOW(), NOW(), 1, 'question', 5, NULL, NULL, 1, ARRAY[3]),  -- Correct answer is answer_id 3 ("const")
 
--- User Achievements
-INSERT INTO user_achievements (user_id, achievement_id, achieved_at, name, description, points)
-VALUES 
-(1, 1, NOW(), 'First Module Completed', 'Complete your first module', 10),
-(2, 2, NOW(), 'Perfect Score', 'Get a perfect score in a module', 20);
+-- Video Section: Introduction Video
+(NOW(), NOW(), 1, 'video', 6, NULL, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', NULL, NULL),
 
--- Notifications
-INSERT INTO notifications (user_id, content, read, created_at)
-VALUES 
-(1, 'You have a new achievement!', FALSE, NOW()),
-(2, 'Your module is complete!', TRUE, NOW());
+-- Code Section: JavaScript Example
+(NOW(), NOW(), 1, 'code', 7, '\n// Declaring variables\nlet age = 25;\nconst PI = 3.14159;\n// Using variables\nconsole.log(`I am ${age} years old`);\nconsole.log(`The value of PI is ${PI}`);\nfunction hello(){const help = "true"}', NULL, NULL, NULL),
+
+-- Text Section: Pro Tip
+(NOW(), NOW(), 1, 'text', 8, '**Pro Tip:** Use `const` for values that won''t change, and `let` for variables that might be reassigned. Avoid using `var` in modern JavaScript.', NULL, NULL, NULL),
+
+-- Text Section: JavaScript in Action
+(NOW(), NOW(), 1, 'text', 9, '![JavaScript in action](https://octodex.github.com/images/minion.png)', NULL, NULL, NULL),
+
+-- Text Section: Conclusion
+(NOW(), NOW(), 1, 'text', 10, 'Now that you''ve learned about variables, you''re ready to start your JavaScript journey! In the next section, we''ll explore functions and how they can make your code more efficient and organized.', NULL, NULL, NULL);

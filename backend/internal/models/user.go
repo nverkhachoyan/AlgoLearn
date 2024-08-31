@@ -5,14 +5,12 @@ import (
 )
 
 type User struct {
-	ID                int               `json:"user_id"`
+	BaseModel
 	Username          string            `json:"username"`
 	Email             string            `json:"email"`
 	OAuthID           string            `json:"oauth_id,omitempty"`
 	Role              string            `json:"role"`
 	PasswordHash      string            `json:"-"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
 	FirstName         string            `json:"first_name,omitempty"`
 	LastName          string            `json:"last_name,omitempty"`
 	ProfilePictureURL string            `json:"profile_picture_url,omitempty"`
@@ -39,7 +37,7 @@ const (
 
 // Tracking user progress for each module
 type UserModuleProgress struct {
-	ID              int                  `json:"id"`
+	BaseModel
 	UserID          int                  `json:"user_id"`
 	ModuleID        int                  `json:"module_id"`
 	StartedAt       time.Time            `json:"started_at"`
@@ -53,10 +51,17 @@ type UserModuleProgress struct {
 
 // User answers for questions in each module
 type UserQuestionAnswer struct {
-	ID                   int       `json:"id"`
+	BaseModel
 	UserModuleProgressID int       `json:"user_module_session_id"`
 	QuestionID           int       `json:"question_id"`
 	AnswerID             int       `json:"answer_id"`
 	AnsweredAt           time.Time `json:"answered_at"`
 	IsCorrect            bool      `json:"is_correct"`
+}
+
+type UserCourse struct {
+	BaseModel
+	UserID                 int `json:"user_id"`
+	CourseID               int `json:"course_id"`
+	LatestModuleProgressID int `json:"latest_module_session_id"`
 }

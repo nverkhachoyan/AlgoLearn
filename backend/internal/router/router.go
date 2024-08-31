@@ -4,7 +4,6 @@ import (
 	"algolearn-backend/internal/handlers"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/pkg/middleware"
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -16,38 +15,36 @@ import (
 // Regular routes are accessible by all users
 
 func SetupRouter() *mux.Router {
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
 	// Welcome endpoint
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		response := models.Response{Status: "success", Message: "Welcome to AlgoLearn API"}
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		handlers.RespondWithJSON(w, http.StatusOK, response)
 	}).Methods("GET")
 
 	// Health check endpoint
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		response := models.Response{Status: "success", Message: "Healthy"}
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		handlers.RespondWithJSON(w, http.StatusOK, response)
 	}).Methods("GET")
 
 	// Email sign-in/sign-up endpoints
-	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
-	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
-	r.HandleFunc("/checkemail", handlers.CheckEmailExists).Methods("GET")
+	router.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
+	router.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+	router.HandleFunc("/checkemail", handlers.CheckEmailExists).Methods("GET")
 
 	// OAuth 2.0 login and callback endpoints
-	r.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")
-	r.HandleFunc("/callback/google", handlers.GoogleCallback).Methods("GET")
-	r.HandleFunc("/callback/apple", handlers.AppleCallback).Methods("GET")
+	router.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")
+	router.HandleFunc("/callback/google", handlers.GoogleCallback).Methods("GET")
+	router.HandleFunc("/callback/apple", handlers.AppleCallback).Methods("GET")
 
 	// Authorized routes
-	authorized := r.PathPrefix("/").Subrouter()
+	authorized := router.PathPrefix("/").Subrouter()
 	authorized.Use(middleware.Auth)
 
 	// Admin endpoints
-	admin := r.PathPrefix("/admin").Subrouter()
+	admin := router.PathPrefix("/admin").Subrouter()
 	admin.Use(middleware.IsAdmin)
 
 	// Admin dashboard endpoint
@@ -59,25 +56,25 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
 	// Courses endpoints
-	r.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
-	r.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
+	router.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
+	router.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
 	admin.HandleFunc("/courses", handlers.CreateCourse).Methods("POST")
 	admin.HandleFunc("/courses/{id}", handlers.UpdateCourse).Methods("PUT")
 	admin.HandleFunc("/courses/{id}", handlers.DeleteCourse).Methods("DELETE")
 
 	// Units endpoints
-	authorized.HandleFunc("/units", handlers.GetAllUnits).Methods("GET")
+	authorized.HandleFunc("/courses/{course_id}/units", handlers.GetAllUnits).Methods("GET")
 	authorized.HandleFunc("/units/{id}", handlers.GetUnitByID).Methods("GET")
-	admin.HandleFunc("/units", handlers.CreateUnit).Methods("POST")
-	admin.HandleFunc("/units/{id}", handlers.UpdateUnit).Methods("PUT")
-	admin.HandleFunc("/units/{id}", handlers.DeleteUnit).Methods("DELETE")
+	admin.HandleFunc("/courses/{course_id}/units", handlers.CreateUnit).Methods("POST")
+	admin.HandleFunc("/units/{unit_id}", handlers.UpdateUnit).Methods("PUT")
+	admin.HandleFunc("/units/{unit_id}", handlers.DeleteUnit).Methods("DELETE")
 
 	// Modules endpoints
-	authorized.HandleFunc("/modules", handlers.GetAllModules).Methods("GET")
-	authorized.HandleFunc("/modules/{id}", handlers.GetModuleByID).Methods("GET")
-	admin.HandleFunc("/modules", handlers.CreateModule).Methods("POST")
-	admin.HandleFunc("/modules/{id}", handlers.UpdateModule).Methods("PUT")
-	admin.HandleFunc("/modules/{id}", handlers.DeleteModule).Methods("DELETE")
+	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.GetAllModulesPartial).Methods("GET")
+	authorized.HandleFunc("/modules/{module_id}", handlers.GetModuleByID).Methods("GET")
+	admin.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.CreateModule).Methods("POST")
+	admin.HandleFunc("/modules/{module_id}", handlers.UpdateModule).Methods("PUT")
+	admin.HandleFunc("/modules/{module_id}", handlers.DeleteModule).Methods("DELETE")
 
 	// Module questions endpoints
 	authorized.HandleFunc("/module_questions", handlers.GetAllModuleQuestions).Methods("GET")
@@ -122,17 +119,9 @@ func SetupRouter() *mux.Router {
 
 	// Notifications endpoints
 	authorized.HandleFunc("/notifications", handlers.GetAllNotifications).Methods("GET")
-	authorized.HandleFunc("/notifications/{id}", handlers.GetNotificationByID).Methods("GET")
-	authorized.HandleFunc("/notifications", handlers.CreateNotification).Methods("POST")
-	authorized.HandleFunc("/notifications/{id}", handlers.UpdateNotification).Methods("PUT")
-	authorized.HandleFunc("/notifications/{id}", handlers.DeleteNotification).Methods("DELETE")
 
 	// Streaks endpoints
 	authorized.HandleFunc("/streaks", handlers.GetAllStreaks).Methods("GET")
-	authorized.HandleFunc("/streaks/{id}", handlers.GetStreakByID).Methods("GET")
-	authorized.HandleFunc("/streaks", handlers.CreateStreak).Methods("POST")
-	authorized.HandleFunc("/streaks/{id}", handlers.UpdateStreak).Methods("PUT")
-	authorized.HandleFunc("/streaks/{id}", handlers.DeleteStreak).Methods("DELETE")
 
-	return r
+	return router
 }

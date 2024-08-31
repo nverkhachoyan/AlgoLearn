@@ -126,7 +126,7 @@ type ModuleQuestion struct {
 	Content  string `json:"content"`
 }
 
-type ModuleQuestionAnswer struct {
+type ModuleQuestionOption struct {
 	BaseModel
 	QuestionID int    `json:"question_id"`
 	Content    string `json:"content"`

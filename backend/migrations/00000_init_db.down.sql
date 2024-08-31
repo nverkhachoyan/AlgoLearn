@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS user_courses CASCADE;
 DROP TABLE IF EXISTS user_question_answers CASCADE;
 DROP TABLE IF EXISTS user_module_progress CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
-DROP TABLE IF EXISTS module_question_answers CASCADE;
+DROP TABLE IF EXISTS module_question_options CASCADE;
 DROP TABLE IF EXISTS module_questions CASCADE;
 DROP TABLE IF EXISTS user_achievements CASCADE;
 DROP TABLE IF EXISTS achievements CASCADE;

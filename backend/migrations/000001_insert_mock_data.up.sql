@@ -22,8 +22,8 @@ VALUES
 (NOW(), NOW(), 1, 'Which keyword is used to declare a constant variable in JavaScript?')
 RETURNING id;
 
--- Insert Options into module_question_answers
-INSERT INTO module_question_answers (created_at, updated_at, question_id, content, is_correct)
+-- Insert Options into module_question_options
+INSERT INTO module_question_options (created_at, updated_at, question_id, content, is_correct)
 VALUES
 (NOW(), NOW(), 1, 'var', FALSE),
 (NOW(), NOW(), 1, 'let', FALSE),

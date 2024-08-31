@@ -18,7 +18,7 @@ import (
 // *** MODULE HANDLERS ***
 // *********************************
 
-func GetAllModules(w http.ResponseWriter, r *http.Request) {
+func GetAllModulesPartial(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	unitID, err := strconv.Atoi(params["unit_id"])
 	if err != nil {
@@ -30,7 +30,7 @@ func GetAllModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modules, err := repository.GetAllModules(unitID)
+	modules, err := repository.GetAllModulesPartial(unitID)
 	if err != nil {
 		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -50,7 +50,7 @@ func GetAllModules(w http.ResponseWriter, r *http.Request) {
 
 func GetModuleByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := strconv.Atoi(params["module_id"])
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
@@ -544,7 +544,7 @@ func CreateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var answer models.ModuleQuestionAnswer
+	var answer models.ModuleQuestionOption
 	if err := json.NewDecoder(r.Body).Decode(&answer); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
@@ -604,7 +604,7 @@ func UpdateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var answer models.ModuleQuestionAnswer
+	var answer models.ModuleQuestionOption
 	if err := json.NewDecoder(r.Body).Decode(&answer); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",

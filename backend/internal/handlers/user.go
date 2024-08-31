@@ -725,3 +725,24 @@ func DeleteUserAnswer(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User answer deleted successfully"})
 }
+
+// **********************
+// **** USER STREAKS ****
+// **********************
+
+func GetAllStreaks(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
+		return
+	}
+
+	streaks, err := repository.GetStreaksByUserID(userID)
+	if err != nil {
+		log.Printf("Error fetching streaks for user %d: %v", userID, err)
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve streaks"})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Streaks retrieved successfully", Data: streaks})
+}

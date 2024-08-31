@@ -104,7 +104,7 @@ CREATE TABLE module_questions (
     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
 );
 
-CREATE TABLE module_question_answers (
+CREATE TABLE module_question_options (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -154,7 +154,7 @@ CREATE TABLE user_question_answers (
     is_correct BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (user_module_progress_id) REFERENCES user_module_progress(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES module_questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (answer_id) REFERENCES module_question_answers(id) ON DELETE CASCADE
+    FOREIGN KEY (answer_id) REFERENCES module_question_options(id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_courses (

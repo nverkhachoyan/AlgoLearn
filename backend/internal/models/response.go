@@ -55,7 +55,7 @@ type ModuleListResponse struct {
 
 type QuestionResponse struct {
 	Question ModuleQuestion         `json:"question"`
-	Answers  []ModuleQuestionAnswer `json:"answers"`
+	Answers  []ModuleQuestionOption `json:"answers"`
 }
 
 type ModuleSessionResponse struct {

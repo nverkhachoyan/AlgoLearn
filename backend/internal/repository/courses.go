@@ -200,10 +200,10 @@ func DeleteUnit(id int) error {
 // **** MODULES ****
 // ********************
 
-// GetAllModules retrieves all modules for a specific unit.
-func GetAllModules(unitID int) ([]models.Module, error) {
+// GetAllModulesPartial retrieves all modules for a specific unit except the content for it.
+func GetAllModulesPartial(unitID int) ([]models.Module, error) {
 	db := config.GetDB()
-	rows, err := db.Query("SELECT * FROM modules WHERE unit_id = $1", unitID)
+	rows, err := db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,6 @@ func GetAllModules(unitID int) ([]models.Module, error) {
 	var modules []models.Module
 	for rows.Next() {
 		var module models.Module
-		var content []byte
 		err := rows.Scan(
 			&module.ID,
 			&module.CreatedAt,
@@ -221,12 +220,11 @@ func GetAllModules(unitID int) ([]models.Module, error) {
 			&module.CourseID,
 			&module.Name,
 			&module.Description,
-			&content,
 		)
 		if err != nil {
 			return nil, err
 		}
-		json.Unmarshal(content, &module.Content)
+
 		modules = append(modules, module)
 	}
 

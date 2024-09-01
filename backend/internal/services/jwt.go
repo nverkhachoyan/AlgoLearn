@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log"
 	"os"
 	"time"
 
@@ -28,19 +29,22 @@ func GenerateJWT(userID int) (string, error) {
 }
 
 func ValidateJWT(tokenString string) (*Claims, error) {
-	claims := &Claims{}
+    claims := &Claims{}
 
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
+    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+        return jwtKey, nil
+    })
 
-	if err != nil {
-		return nil, err
-	}
+    if err != nil {
+        log.Printf("Error parsing JWT: %v", err)
+        return nil, err
+    }
 
-	if !token.Valid {
-		return nil, err
-	}
+    if !token.Valid {
+        log.Println("Invalid JWT token")
+        return nil, err
+    }
 
-	return claims, nil
+    log.Printf("Successfully parsed JWT. UserID: %d", claims.UserID)
+    return claims, nil
 }

@@ -14,4 +14,5 @@ const (
 	NO_DATA                ErrorCode = "NO_DATA"
 	INTERNAL_ERROR         ErrorCode = "INTERNAL_ERROR"
 	INVALID_CREDENTIALS    ErrorCode = "INVALID_CREDENTIALS"
+	INVALID_INPUT          ErrorCode = "INVALID_INPUT"
 )

@@ -2,53 +2,52 @@ package router
 
 import (
 	"algolearn-backend/internal/handlers"
-	"algolearn-backend/internal/models"
 	"algolearn-backend/pkg/middleware"
-	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-// There are three types of routes: Authorized, Admin, and Regular
+// There are three types of routes: Authorized, Admin, and Public
 // Authorized routes are protected by JWT authentication
 // Admin routes are only accessible by admin users with the "admin" role
-// Regular routes are accessible by all users
+// Public routes are accessible by all users
 
 func SetupRouter() *mux.Router {
-	router := mux.NewRouter()
+	// **********************
+	// **** Router Setup ****
+	// **********************
 
-	// Welcome endpoint
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		response := models.Response{Status: "success", Message: "Welcome to AlgoLearn API"}
-		handlers.RespondWithJSON(w, http.StatusOK, response)
-	}).Methods("GET")
-
-	// Health check endpoint
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		response := models.Response{Status: "success", Message: "Healthy"}
-		handlers.RespondWithJSON(w, http.StatusOK, response)
-	}).Methods("GET")
-
-	// Email sign-in/sign-up endpoints
-	router.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
-	router.HandleFunc("/login", handlers.LoginUser).Methods("POST")
-	router.HandleFunc("/checkemail", handlers.CheckEmailExists).Methods("GET")
-
-	// OAuth 2.0 login and callback endpoints
-	router.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")
-	router.HandleFunc("/callback/google", handlers.GoogleCallback).Methods("GET")
-	router.HandleFunc("/callback/apple", handlers.AppleCallback).Methods("GET")
+	public := mux.NewRouter()
 
 	// Authorized routes
-	authorized := router.PathPrefix("/").Subrouter()
+	authorized := public.PathPrefix("/").Subrouter()
 	authorized.Use(middleware.Auth)
 
 	// Admin endpoints
-	admin := router.PathPrefix("/admin").Subrouter()
+	admin := public.PathPrefix("/admin").Subrouter()
+	admin.Use(middleware.Auth)
 	admin.Use(middleware.IsAdmin)
-
-	// Admin dashboard endpoint
 	admin.HandleFunc("", handlers.AdminDashboard).Methods("GET")
+
+	// **************************
+	// **** Router Endpoints ****
+	// **************************
+
+	// Welcome endpoint
+	public.HandleFunc("/", handlers.Welcome).Methods("GET")
+
+	// Health check endpoint
+	public.HandleFunc("/health", handlers.Health).Methods("GET")
+
+	// Email sign-in/sign-up endpoints
+	public.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
+	public.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+	public.HandleFunc("/checkemail", handlers.CheckEmailExists).Methods("GET")
+
+	// OAuth 2.0 login and callback endpoints
+	public.HandleFunc("/login/oauth", handlers.HandleOAuthLogin).Methods("GET")
+	public.HandleFunc("/callback/google", handlers.GoogleCallback).Methods("GET")
+	public.HandleFunc("/callback/apple", handlers.AppleCallback).Methods("GET")
 
 	// User endpoints
 	authorized.HandleFunc("/user", handlers.GetUser).Methods("GET")
@@ -56,39 +55,39 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
 	// Courses endpoints
-	router.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
-	router.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
-	admin.HandleFunc("/courses", handlers.CreateCourse).Methods("POST")
-	admin.HandleFunc("/courses/{id}", handlers.UpdateCourse).Methods("PUT")
-	admin.HandleFunc("/courses/{id}", handlers.DeleteCourse).Methods("DELETE")
+	public.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
+	public.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
+	authorized.HandleFunc("/courses", handlers.CreateCourse).Methods("POST")
+	authorized.HandleFunc("/courses/{id}", handlers.UpdateCourse).Methods("PUT")
+	authorized.HandleFunc("/courses/{id}", handlers.DeleteCourse).Methods("DELETE")
 
 	// Units endpoints
-	authorized.HandleFunc("/courses/{course_id}/units", handlers.GetAllUnits).Methods("GET")
-	authorized.HandleFunc("/units/{id}", handlers.GetUnitByID).Methods("GET")
-	admin.HandleFunc("/courses/{course_id}/units", handlers.CreateUnit).Methods("POST")
-	admin.HandleFunc("/units/{unit_id}", handlers.UpdateUnit).Methods("PUT")
-	admin.HandleFunc("/units/{unit_id}", handlers.DeleteUnit).Methods("DELETE")
+	public.HandleFunc("/courses/{course_id}/units", handlers.GetAllUnits).Methods("GET")
+	public.HandleFunc("/units/{id}", handlers.GetUnitByID).Methods("GET")
+	authorized.HandleFunc("/courses/{course_id}/units", handlers.CreateUnit).Methods("POST")
+	authorized.HandleFunc("/units/{unit_id}", handlers.UpdateUnit).Methods("PUT")
+	authorized.HandleFunc("/units/{unit_id}", handlers.DeleteUnit).Methods("DELETE")
 
 	// Modules endpoints
-	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.GetAllModulesPartial).Methods("GET")
-	authorized.HandleFunc("/modules/{module_id}", handlers.GetModuleByID).Methods("GET")
-	admin.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.CreateModule).Methods("POST")
-	admin.HandleFunc("/modules/{module_id}", handlers.UpdateModule).Methods("PUT")
-	admin.HandleFunc("/modules/{module_id}", handlers.DeleteModule).Methods("DELETE")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.GetAllModulesPartial).Methods("GET")
+	public.HandleFunc("/modules/{module_id}", handlers.GetModuleByID).Methods("GET")
+	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.CreateModule).Methods("POST")
+	authorized.HandleFunc("/modules/{module_id}", handlers.UpdateModule).Methods("PUT")
+	authorized.HandleFunc("/modules/{module_id}", handlers.DeleteModule).Methods("DELETE")
 
 	// Module questions endpoints
-	authorized.HandleFunc("/module_questions", handlers.GetAllModuleQuestions).Methods("GET")
-	authorized.HandleFunc("/module_questions/{id}", handlers.GetModuleQuestionByID).Methods("GET")
-	admin.HandleFunc("/module_questions", handlers.CreateModuleQuestion).Methods("POST")
-	admin.HandleFunc("/module_questions/{id}", handlers.UpdateModuleQuestion).Methods("PUT")
-	admin.HandleFunc("/module_questions/{id}", handlers.DeleteModuleQuestion).Methods("DELETE")
+	public.HandleFunc("/module_questions", handlers.GetAllModuleQuestions).Methods("GET")
+	public.HandleFunc("/module_questions/{id}", handlers.GetModuleQuestionByID).Methods("GET")
+	authorized.HandleFunc("/module_questions", handlers.CreateModuleQuestion).Methods("POST")
+	authorized.HandleFunc("/module_questions/{id}", handlers.UpdateModuleQuestion).Methods("PUT")
+	authorized.HandleFunc("/module_questions/{id}", handlers.DeleteModuleQuestion).Methods("DELETE")
 
 	// Module question answers endpoints
 	authorized.HandleFunc("/module_question_answers", handlers.GetAllModuleQuestionAnswers).Methods("GET")
 	authorized.HandleFunc("/module_question_answers/{id}", handlers.GetModuleQuestionAnswerByID).Methods("GET")
-	admin.HandleFunc("/module_question_answers", handlers.CreateModuleQuestionAnswer).Methods("POST")
-	admin.HandleFunc("/module_question_answers/{id}", handlers.UpdateModuleQuestionAnswer).Methods("PUT")
-	admin.HandleFunc("/module_question_answers/{id}", handlers.DeleteModuleQuestionAnswer).Methods("DELETE")
+	authorized.HandleFunc("/module_question_answers", handlers.CreateModuleQuestionAnswer).Methods("POST")
+	authorized.HandleFunc("/module_question_answers/{id}", handlers.UpdateModuleQuestionAnswer).Methods("PUT")
+	authorized.HandleFunc("/module_question_answers/{id}", handlers.DeleteModuleQuestionAnswer).Methods("DELETE")
 
 	// User module progress endpoints
 	authorized.HandleFunc("/user_module_progress", handlers.GetAllUserModuleProgress).Methods("GET")
@@ -123,5 +122,5 @@ func SetupRouter() *mux.Router {
 	// Streaks endpoints
 	authorized.HandleFunc("/streaks", handlers.GetAllStreaks).Methods("GET")
 
-	return router
+	return public
 }

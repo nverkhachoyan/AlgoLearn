@@ -15,19 +15,18 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(lrw, r)
 
-		config.Log.Infof("%s - [%s] \"%s %s %s\" %d %d",
+		config.Log.Debugf("UserAgent: \"%s\", ResponseTime: \"%s\"",
+			r.UserAgent(),
+			time.Since(start).String(),
+		)
+
+		config.Log.Infof("%s - \"%s %s %s\" %d %d",
 			r.RemoteAddr,
-			time.Now().Format("02/Jan/2006:15:04:05 -0700"),
 			r.Method,
 			r.RequestURI,
 			r.Proto,
 			lrw.statusCode,
 			lrw.responseSize,
-		)
-
-		config.Log.Debugf("UserAgent: \"%s\", ResponseTime: \"%s\"",
-			r.UserAgent(),
-			time.Since(start).String(),
 		)
 
 	})

@@ -8,6 +8,7 @@ import (
 	"algolearn-backend/internal/services"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -20,47 +21,6 @@ func RespondWithJSON(w http.ResponseWriter, status int, response models.Response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(response)
-}
-
-func IsAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := GetUserID(r.Context())
-		if !ok {
-			RespondWithJSON(
-				w,
-				http.StatusUnauthorized,
-				models.Response{
-					Status:    "error",
-					ErrorCode: errors.UNAUTHORIZED,
-					Message:   "You are not authorized to access this endpoint",
-				})
-			return
-		}
-		user, err := repository.GetUserByID(userID)
-		if err != nil {
-			RespondWithJSON(
-				w,
-				http.StatusUnauthorized,
-				models.Response{
-					Status:    "error",
-					ErrorCode: errors.UNAUTHORIZED,
-					Message:   "Failed to identify the user in the system",
-				})
-			return
-		}
-
-		if user.Role == "admin" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		RespondWithJSON(
-			w,
-			http.StatusUnauthorized,
-			models.Response{Status: "error", ErrorCode: errors.UNAUTHORIZED,
-				Message: "You are not authorized to access this endpoint",
-			})
-	})
 }
 
 func Auth(next http.Handler) http.Handler {
@@ -88,8 +48,53 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
+		log.Printf("Authenticated user with ID: %d", claims.UserID)
 		ctx := context.WithValue(r.Context(), userContextKey, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func IsAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := GetUserID(r.Context())
+		if !ok {
+			log.Printf("Failed to retrieve userID from context")
+			RespondWithJSON(
+				w,
+				http.StatusUnauthorized,
+				models.Response{
+					Status:    "error",
+					ErrorCode: errors.UNAUTHORIZED,
+					Message:   "You are not authorized to access this endpoint",
+				})
+			return
+		}
+		log.Printf("Retrieved userID: %d", userID)
+		user, err := repository.GetUserByID(userID)
+		if err != nil {
+			log.Printf("Failed to retrieve user from DB for ID: %d", userID)
+			RespondWithJSON(
+				w,
+				http.StatusUnauthorized,
+				models.Response{
+					Status:    "error",
+					ErrorCode: errors.UNAUTHORIZED,
+					Message:   "Failed to identify the user in the system",
+				})
+			return
+		}
+
+		if user.Role == "admin" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		RespondWithJSON(
+			w,
+			http.StatusUnauthorized,
+			models.Response{Status: "error", ErrorCode: errors.UNAUTHORIZED,
+				Message: "You are not authorized to access this endpoint",
+			})
 	})
 }
 

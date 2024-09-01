@@ -6,7 +6,7 @@ import (
 	"algolearn-backend/internal/models"
 	"database/sql"
 	"encoding/json"
-
+  "fmt"
 	"github.com/lib/pq"
 )
 
@@ -182,12 +182,31 @@ func CreateUnit(unit *models.Unit) error {
 // UpdateUnit updates an existing unit in the database.
 func UpdateUnit(unit *models.Unit) error {
 	db := config.GetDB()
-	_, err := db.Exec(
+
+	result, err := db.Exec(
 		"UPDATE units SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
 		unit.Name, unit.Description, unit.ID,
 	)
-	return err
+
+	if err != nil {
+		config.Log.Errorf("Failed to execute update query: %v", err)
+		return fmt.Errorf("could not update unit: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		config.Log.Errorf("Failed to retrieve affected rows: %v", err)
+		return fmt.Errorf("could not retrieve affected rows: %w", err)
+	}
+
+	// If no rows were affected, return a custom error
+	if rowsAffected == 0 {
+		return fmt.Errorf("no rows were updated, unit with id %d may not exist", unit.ID)
+	}
+
+	return nil
 }
+
 
 // DeleteUnit deletes a unit by its ID.
 func DeleteUnit(id int) error {

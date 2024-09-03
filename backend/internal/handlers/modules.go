@@ -2,11 +2,13 @@
 package handlers
 
 import (
+	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -89,6 +91,19 @@ func CreateModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := mux.Vars(r)
+	courseID, courseIDerr := strconv.Atoi(params["course_id"])
+	unitID, unitIDerr := strconv.Atoi(params["unit_id"])
+	if courseIDerr != nil || unitIDerr != nil {
+		config.Log.Debug("Incorrect course or unit ID format in the route")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			ErrorCode: errors.INVALID_REQUEST,
+			Message:   "Incorrect course or unit ID format in the route",
+		})
+		return
+	}
+
 	// Only admin users can create modules
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
@@ -110,13 +125,29 @@ func CreateModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Setting course and unit IDs we got earlier from the route
+	module.CourseID = courseID
+	module.UnitID = unitID
+
 	if err := repository.CreateModule(&module); err != nil {
 		log.Printf("Error creating module: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not create module",
+			Message:   "Failed to create the module in the database",
 			ErrorCode: errors.DATABASE_FAIL,
 		})
+		return
+	}
+
+	err = module.Validate()
+	if err != nil {
+		config.Log.Debugf("Missing fields in JSON request: %v", err.Error())
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.MISSING_FIELDS,
+				Message:   fmt.Sprintf("Missing fields in JSON request: %v", err.Error()),
+			})
 		return
 	}
 
@@ -150,11 +181,12 @@ func UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	moduleID, err := strconv.Atoi(params["module_id"])
 	if err != nil {
+		config.Log.Debug("Invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			Message:   "Invalid module ID",
+			Message:   "Invalid module ID format in the route",
 			ErrorCode: errors.INVALID_REQUEST,
 		})
 		return
@@ -169,13 +201,13 @@ func UpdateModule(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	module.ID = id
+	module.ID = moduleID
 
 	if err := repository.UpdateModule(&module); err != nil {
-		log.Printf("Error updating module %d: %v", id, err)
+		log.Printf("Error updating module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not update module",
+			Message:   "Failed to update module in the database",
 			ErrorCode: errors.DATABASE_FAIL,
 		})
 		return
@@ -198,6 +230,18 @@ func DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := mux.Vars(r)
+	moduleID, err := strconv.Atoi(params["module_id"])
+	if err != nil {
+		config.Log.Debug("Invalid module ID format in the route")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid module ID format in the route",
+			ErrorCode: errors.INVALID_REQUEST,
+		})
+		return
+	}
+
 	// Only admin users can delete modules
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
@@ -209,19 +253,8 @@ func DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid module ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	if err := repository.DeleteModule(id); err != nil {
-		log.Printf("Error deleting module %d: %v", id, err)
+	if err := repository.DeleteModule(moduleID); err != nil {
+		log.Printf("Error deleting module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not delete module",

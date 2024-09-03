@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Course struct {
 	BaseModel
@@ -116,6 +119,25 @@ type Module struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Content     ModuleContent `json:"content"` // JSON content
+}
+
+func (m *Module) Validate() error {
+	if m.UnitID == 0 {
+		return errors.New("Unit ID is required")
+	}
+	if m.CourseID == 0 {
+		return errors.New("Course ID is required")
+	}
+	if m.Name == "" {
+		return errors.New("Module name required")
+	}
+	if m.Description == "" {
+		return errors.New("Module description required")
+	}
+	if len(m.Content.Sections) == 0 {
+		return errors.New("Module content required")
+	}
+	return nil
 }
 
 // ModuleQuestion and Answer Types

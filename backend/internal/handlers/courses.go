@@ -171,7 +171,7 @@ func UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-  _, err = repository.GetCourseByID(id)
+	_, err = repository.GetCourseByID(id)
 	if err != nil {
 		config.Log.Debugf("Tried to update a course with an invalid course ID: %d\n", id)
 		RespondWithJSON(w, http.StatusBadRequest,
@@ -227,6 +227,18 @@ func DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_INPUT,
+				Message:   "Invalid course ID in the route",
+			})
+		return
+	}
+
 	// Only admin users can update courses
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
@@ -236,18 +248,6 @@ func DeleteCourse(w http.ResponseWriter, r *http.Request) {
 				Status:    "error",
 				ErrorCode: errors.UNAUTHORIZED,
 				Message:   "Only users with the admin role may delete a course",
-			})
-		return
-	}
-
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest,
-			models.Response{
-				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
-				Message:   "Invalid course ID in the route",
 			})
 		return
 	}
@@ -277,77 +277,76 @@ func GetAllUnits(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	courseID, err := strconv.Atoi(params["course_id"])
 	if err != nil {
-    RespondWithJSON(w, http.StatusBadRequest, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.INVALID_INPUT, 
-      Message: "Invalid course ID format",
-    })
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_INPUT,
+				Message:   "Invalid course ID format",
+			})
 		return
 	}
 
 	units, err := repository.GetAllUnits(courseID)
 	if err != nil {
 		log.Printf("Error fetching units for course %d: %v", courseID, err)
-    RespondWithJSON(w, http.StatusInternalServerError, 
-    models.Response{
-      Status: "error", ErrorCode: 
-      errors.DATABASE_FAIL, 
-      Message: "Could not retrieve units",
-    })
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status: "error", ErrorCode: errors.DATABASE_FAIL,
+				Message: "Could not retrieve units",
+			})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, 
-  models.Response{
-    Status: "success", 
-    Message: "Units retrieved successfully", 
-    Data: units,
-  })
+	RespondWithJSON(w, http.StatusOK,
+		models.Response{
+			Status:  "success",
+			Message: "Units retrieved successfully",
+			Data:    units,
+		})
 }
 
 func GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
-    RespondWithJSON(w, http.StatusBadRequest, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.INVALID_INPUT, 
-      Message: "Invalid unit ID",
-    })
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_INPUT,
+				Message:   "Invalid unit ID",
+			})
 		return
 	}
 
 	unit, err := repository.GetUnitByID(id)
 	if err != nil {
 		log.Printf("Error fetching unit %d: %v", id, err)
-    RespondWithJSON(w, http.StatusInternalServerError, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.DATABASE_FAIL,
-      Message: "Could not retrieve unit",
-    })
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.DATABASE_FAIL,
+				Message:   "Could not retrieve unit",
+			})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, 
-  models.Response{
-    Status: "success", 
-    Message: "Unit retrieved successfully", 
-    Data: unit,
-  })
+	RespondWithJSON(w, http.StatusOK,
+		models.Response{
+			Status:  "success",
+			Message: "Unit retrieved successfully",
+			Data:    unit,
+		})
 }
 
 func CreateUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-    RespondWithJSON(w, http.StatusUnauthorized, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.UNAUTHORIZED, 
-      Message: "Unauthorized",
-    })
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "Unauthorized",
+			})
 		return
 	}
 
@@ -355,66 +354,65 @@ func CreateUnit(w http.ResponseWriter, r *http.Request) {
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		config.Log.Debugf("User without admin role tried to create course unit: Detailed Error: %v", err)
-		RespondWithJSON(w, http.StatusForbidden, 
-    models.Response{
-      Status: "error", 
-      Message: "Only users with the admin role may create course units",
-    })
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:  "error",
+				Message: "Only users with the admin role may create course units",
+			})
 		return
 	}
 
 	params := mux.Vars(r)
 	courseID, err := strconv.Atoi(params["course_id"])
-  if err != nil {
-    config.Log.Debugln("Invalid format for course id in route")
-    RespondWithJSON(w, http.StatusBadRequest, models.Response{
-      Status: "error",
-      ErrorCode: errors.INVALID_INPUT,
-      Message: "Invalid format for course id in route",
-    })
-  }
+	if err != nil {
+		config.Log.Debugln("Invalid format for course id in route")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			ErrorCode: errors.INVALID_INPUT,
+			Message:   "Invalid format for course id in route",
+		})
+	}
 
 	var unit models.Unit
 	if err := json.NewDecoder(r.Body).Decode(&unit); err != nil {
-    RespondWithJSON(w, http.StatusBadRequest, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.INVALID_JSON, 
-      Message: "Invalid JSON or mismatching attributes",
-    })
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_JSON,
+				Message:   "Invalid JSON or mismatching attributes",
+			})
 		return
 	}
-  unit.CourseID = courseID
-
+	unit.CourseID = courseID
 
 	if err := repository.CreateUnit(&unit); err != nil {
 		log.Printf("Error creating unit: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.DATABASE_FAIL,
-      Message: err.Error(),
-    })
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.DATABASE_FAIL,
+				Message:   err.Error(),
+			})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusCreated, 
-  models.Response{
-    Status: "success", 
-    Message: "Unit created successfully", 
-    Data: unit,
-  })
+	RespondWithJSON(w, http.StatusCreated,
+		models.Response{
+			Status:  "success",
+			Message: "Unit created successfully",
+			Data:    unit,
+		})
 }
 
 func UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.UNAUTHORIZED, 
-      Message: "You are not authorized to make this request",
-    })
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "You are not authorized to make this request",
+			})
 		return
 	}
 
@@ -422,107 +420,107 @@ func UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		config.Log.Debugf("User without admin role tried to update course unit: Detailed Error: %v", err)
-		RespondWithJSON(w, http.StatusForbidden, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.UNAUTHORIZED,
-      Message: "Only users with admin role are allowed to update course units",
-    })
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "Only users with admin role are allowed to update course units",
+			})
 		return
 	}
 
 	params := mux.Vars(r)
 	unitID, err := strconv.Atoi(params["unit_id"])
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.INVALID_INPUT,
-      Message: "Invalid unit ID format",
-    })
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_INPUT,
+				Message:   "Invalid unit ID format",
+			})
 		return
 	}
 
 	var unit models.Unit
 	if err := json.NewDecoder(r.Body).Decode(&unit); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.INVALID_JSON,
-      Message: "Invalid JSON or mismatching attributes"})
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_JSON,
+				Message:   "Invalid JSON or mismatching attributes"})
 		return
 	}
 	unit.ID = unitID
 
 	if err := repository.UpdateUnit(&unit); err != nil {
 		log.Printf("Error updating unit %d: %v", unitID, err)
-    RespondWithJSON(w, http.StatusInternalServerError, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.DATABASE_FAIL, 
-      Message: err.Error(),
-    })
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.DATABASE_FAIL,
+				Message:   err.Error(),
+			})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, 
-  models.Response{
-    Status: "success", 
-    Message: "Unit updated successfully",
-  })
+	RespondWithJSON(w, http.StatusOK,
+		models.Response{
+			Status:  "success",
+			Message: "Unit updated successfully",
+		})
 }
 
 func DeleteUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.UNAUTHORIZED,
-      Message: "Unauthorized",
-    })
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "Unauthorized",
+			})
+		return
+	}
+
+	params := mux.Vars(r)
+	unitID, err := strconv.Atoi(params["unit_id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.INVALID_INPUT,
+				Message:   "Invalid unit ID format",
+			})
 		return
 	}
 
 	// Only admin users can delete units
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
-    config.Log.Debugf("User without admin role tried to delete course unit")
-    RespondWithJSON(w, http.StatusForbidden, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.UNAUTHORIZED,
-      Message: "Only users with the admin role may delete a course unit",
-    })
+		config.Log.Debugf("User without admin role tried to delete course unit")
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.UNAUTHORIZED,
+				Message:   "Only users with the admin role may delete a course unit",
+			})
 		return
 	}
 
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-    RespondWithJSON(w, http.StatusBadRequest, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.INVALID_INPUT, 
-      Message: "Invalid unit ID",
-    })
+	if err := repository.DeleteUnit(unitID); err != nil {
+		log.Printf("Error deleting unit %d: %v", unitID, err)
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status:    "error",
+				ErrorCode: errors.DATABASE_FAIL,
+				Message:   "Could not delete unit",
+			})
 		return
 	}
 
-	if err := repository.DeleteUnit(id); err != nil {
-		log.Printf("Error deleting unit %d: %v", id, err)
-		RespondWithJSON(w, http.StatusInternalServerError, 
-    models.Response{
-      Status: "error", 
-      ErrorCode: errors.DATABASE_FAIL,
-      Message: "Could not delete unit",
-    })
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, 
-  models.Response{
-    Status: "success", 
-    Message: "Unit deleted successfully",
-  })
+	RespondWithJSON(w, http.StatusOK,
+		models.Response{
+			Status:  "success",
+			Message: "Unit deleted successfully",
+		})
 }

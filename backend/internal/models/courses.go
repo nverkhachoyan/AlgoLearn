@@ -1,7 +1,9 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -109,6 +111,52 @@ func (i ImageSection) GetType() string {
 // ModuleContent contains the list of sections in a module
 type ModuleContent struct {
 	Sections []Section `json:"sections"`
+}
+
+func (mc *ModuleContent) UnmarshalJSON(data []byte) error {
+	// Struct to unmarshal the outer `content` object
+	var rawContent struct {
+		Sections []json.RawMessage `json:"sections"`
+	}
+
+	if err := json.Unmarshal(data, &rawContent); err != nil {
+		return err
+	}
+
+	for _, raw := range rawContent.Sections {
+		var sectionType struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(raw, &sectionType); err != nil {
+			return err
+		}
+
+		var section Section
+		switch sectionType.Type {
+		case "text":
+			section = &TextSection{}
+		case "question":
+			section = &QuestionSection{}
+		case "video":
+			section = &VideoSection{}
+		case "code":
+			section = &CodeSection{}
+		case "lottie":
+			section = &LottieSection{}
+		case "image":
+			section = &ImageSection{}
+		default:
+			return fmt.Errorf("unknown section type: %s", sectionType.Type)
+		}
+
+		if err := json.Unmarshal(raw, section); err != nil {
+			return err
+		}
+
+		mc.Sections = append(mc.Sections, section)
+	}
+
+	return nil
 }
 
 // Module represents a module within a unit

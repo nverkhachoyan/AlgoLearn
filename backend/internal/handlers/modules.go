@@ -50,6 +50,36 @@ func GetAllModulesPartial(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func GetAllModules(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	unitID, err := strconv.Atoi(params["unit_id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid unit ID",
+			ErrorCode: errors.INVALID_REQUEST,
+		})
+		return
+	}
+
+	modules, err := repository.GetAllModules(unitID)
+	if err != nil {
+		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+			Status:    "error",
+			Message:   "Could not retrieve modules",
+			ErrorCode: errors.DATABASE_FAIL,
+		})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, models.Response{
+		Status:  "success",
+		Message: "Modules retrieved successfully",
+		Data:    modules,
+	})
+}
+
 func GetModuleByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["module_id"])
@@ -119,7 +149,7 @@ func CreateModule(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&module); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			Message:   "Invalid input",
+			Message:   err.Error(),
 			ErrorCode: errors.INVALID_JSON,
 		})
 		return
@@ -203,6 +233,17 @@ func UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 	module.ID = moduleID
 
+	_, err = repository.GetModuleByID(moduleID)
+	if err != nil {
+		log.Printf("Error fetching module %d: %v", moduleID, err)
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Status:    "error",
+			Message:   "Module not found",
+			ErrorCode: errors.NO_DATA,
+		})
+		return
+	}
+
 	if err := repository.UpdateModule(&module); err != nil {
 		log.Printf("Error updating module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -253,6 +294,17 @@ func DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = repository.GetModuleByID(moduleID)
+	if err != nil {
+		log.Printf("Error fetching module %d: %v", moduleID, err)
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Status:    "error",
+			Message:   "Module not found",
+			ErrorCode: errors.NO_DATA,
+		})
+		return
+	}
+
 	if err := repository.DeleteModule(moduleID); err != nil {
 		log.Printf("Error deleting module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -287,11 +339,20 @@ func GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
 
 	questions, err := repository.GetQuestionsByModuleID(moduleID)
 	if err != nil {
-		log.Printf("Error fetching questions for module %d: %v", moduleID, err)
+		config.Log.Debugf("Error fetching questions for module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not retrieve questions",
+			Message:   "Failed to retrieve questions from database",
 			ErrorCode: errors.DATABASE_FAIL,
+		})
+		return
+	}
+
+	if len(questions) == 0 {
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Status:  "success",
+			Message: "No questions found for the given module ID",
+			Data:    []models.ModuleQuestion{},
 		})
 		return
 	}
@@ -305,7 +366,7 @@ func GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
 
 func GetModuleQuestionByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := strconv.Atoi(params["module_question_id"])
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
@@ -320,7 +381,7 @@ func GetModuleQuestionByID(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error fetching question %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not retrieve question",
+			Message:   err.Error(),
 			ErrorCode: errors.DATABASE_FAIL,
 		})
 		return
@@ -344,6 +405,16 @@ func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := mux.Vars(r)
+	moduleID, err := strconv.Atoi(params["module_id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid module ID format",
+			ErrorCode: errors.INVALID_REQUEST,
+		})
+	}
+
 	// Only admin users can create questions
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
@@ -364,12 +435,13 @@ func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	question.ModuleID = moduleID
 
 	if err := repository.CreateQuestion(&question); err != nil {
 		log.Printf("Error creating question: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not create question",
+			Message:   err.Error(),
 			ErrorCode: errors.DATABASE_FAIL,
 		})
 		return
@@ -393,6 +465,18 @@ func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := mux.Vars(r)
+	moduleID, moduleIDErr := strconv.Atoi(params["module_id"])
+	moduleQuestionID, moduleQIDerr := strconv.Atoi(params["module_question_id"])
+	if moduleIDErr != nil || moduleQIDerr != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid module or question ID format",
+			ErrorCode: errors.INVALID_REQUEST,
+		})
+		return
+	}
+
 	// Only admin users can update questions
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
@@ -400,17 +484,6 @@ func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 			Status:    "error",
 			Message:   "Access denied",
 			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid question ID",
-			ErrorCode: errors.INVALID_REQUEST,
 		})
 		return
 	}
@@ -424,13 +497,14 @@ func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	question.ID = id
+	question.ModuleID = moduleID
+	question.ID = moduleQuestionID
 
 	if err := repository.UpdateQuestion(&question); err != nil {
-		log.Printf("Error updating question %d: %v", id, err)
+		config.Log.Debugf("Error updating question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not update question",
+			Message:   err.Error(),
 			ErrorCode: errors.DATABASE_FAIL,
 		})
 		return
@@ -453,6 +527,18 @@ func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	params := mux.Vars(r)
+	moduleID, moduleIDErr := strconv.Atoi(params["module_id"])
+	moduleQuestionID, moduleQIDerr := strconv.Atoi(params["module_question_id"])
+	if moduleIDErr != nil || moduleQIDerr != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid module or question ID format",
+			ErrorCode: errors.INVALID_REQUEST,
+		})
+		return
+	}
+
 	// Only admin users can delete questions
 	user, err := repository.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
@@ -464,22 +550,11 @@ func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid question ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	if err := repository.DeleteQuestion(id); err != nil {
-		log.Printf("Error deleting question %d: %v", id, err)
+	if err := repository.DeleteQuestion(moduleID, moduleQuestionID); err != nil {
+		log.Printf("Error deleting question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not delete question",
+			Message:   err.Error(),
 			ErrorCode: errors.DATABASE_FAIL,
 		})
 		return
@@ -495,25 +570,34 @@ func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 // *** MODULE QUESTION ANSWERS HANDLERS ***
 // *********************************
 
-func GetAllModuleQuestionAnswers(w http.ResponseWriter, r *http.Request) {
+func GetAllModuleQuestionOptions(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	questionID, err := strconv.Atoi(params["question_id"])
+	moduleQuestionID, err := strconv.Atoi(params["module_question_id"])
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			Message:   "Invalid question ID",
+			Message:   "Invalid question ID format",
 			ErrorCode: errors.INVALID_REQUEST,
 		})
 		return
 	}
 
-	answers, err := repository.GetAnswersByQuestionID(questionID)
+	answers, err := repository.GetOptionsByQuestionID(moduleQuestionID)
 	if err != nil {
-		log.Printf("Error fetching answers for question %d: %v", questionID, err)
+		log.Printf("Error fetching answers for question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not retrieve answers",
 			ErrorCode: errors.DATABASE_FAIL,
+		})
+		return
+	}
+
+	if len(answers) == 0 {
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Status:  "success",
+			Message: "No answers found for the given question ID",
+			Data:    []models.ModuleQuestionOption{},
 		})
 		return
 	}
@@ -525,9 +609,9 @@ func GetAllModuleQuestionAnswers(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func GetModuleQuestionAnswerByID(w http.ResponseWriter, r *http.Request) {
+func GetModuleQuestionOptionByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
+	id, err := strconv.Atoi(params["module_question_option_id"])
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
@@ -537,7 +621,7 @@ func GetModuleQuestionAnswerByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer, err := repository.GetModuleQuestionAnswerByID(id)
+	answer, err := repository.GetModuleQuestionOptionByID(id)
 	if err != nil {
 		log.Printf("Error fetching answer %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -555,7 +639,7 @@ func GetModuleQuestionAnswerByID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func CreateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
+func CreateModuleQuestionOption(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -564,6 +648,16 @@ func CreateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 			ErrorCode: errors.UNAUTHORIZED,
 		})
 		return
+	}
+
+	params := mux.Vars(r)
+	questionID, err := strconv.Atoi(params["module_question_id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid question ID format",
+			ErrorCode: errors.INVALID_REQUEST,
+		})
 	}
 
 	// Only admin users can create answers
@@ -581,17 +675,18 @@ func CreateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&answer); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			Message:   "Invalid input",
+			Message:   "Invalid JSON input",
 			ErrorCode: errors.INVALID_JSON,
 		})
 		return
 	}
+	answer.QuestionID = questionID
 
-	if err := repository.CreateModuleQuestionAnswer(&answer); err != nil {
+	if err := repository.CreateModuleQuestionOption(&answer); err != nil {
 		log.Printf("Error creating answer: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not create answer",
+			Message:   "Failed to create answer in the database",
 			ErrorCode: errors.DATABASE_FAIL,
 		})
 		return
@@ -604,13 +699,24 @@ func CreateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func UpdateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
+func UpdateModuleQuestionOption(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
 			ErrorCode: errors.UNAUTHORIZED,
+		})
+		return
+	}
+
+	params := mux.Vars(r)
+	answerID, err := strconv.Atoi(params["module_question_option_id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid answer ID",
+			ErrorCode: errors.INVALID_REQUEST,
 		})
 		return
 	}
@@ -626,17 +732,6 @@ func UpdateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid answer ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
 	var answer models.ModuleQuestionOption
 	if err := json.NewDecoder(r.Body).Decode(&answer); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
@@ -646,10 +741,10 @@ func UpdateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	answer.ID = id
+	answer.ID = answerID
 
-	if err := repository.UpdateModuleQuestionAnswer(&answer); err != nil {
-		log.Printf("Error updating answer %d: %v", id, err)
+	if err := repository.UpdateModuleQuestionOption(&answer); err != nil {
+		log.Printf("Error updating answer %d: %v", answerID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not update answer",
@@ -664,13 +759,24 @@ func UpdateModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func DeleteModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
+func DeleteModuleQuestionOption(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
 			ErrorCode: errors.UNAUTHORIZED,
+		})
+		return
+	}
+
+	params := mux.Vars(r)
+	id, err := strconv.Atoi(params["module_question_option_id"])
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Status:    "error",
+			Message:   "Invalid answer ID",
+			ErrorCode: errors.INVALID_REQUEST,
 		})
 		return
 	}
@@ -686,18 +792,7 @@ func DeleteModuleQuestionAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid answer ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	if err := repository.DeleteModuleQuestionAnswer(id); err != nil {
+	if err := repository.DeleteModuleQuestionOption(id); err != nil {
 		log.Printf("Error deleting answer %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",

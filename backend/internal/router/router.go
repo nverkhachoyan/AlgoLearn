@@ -69,25 +69,19 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/units/{unit_id}", handlers.DeleteUnit).Methods("DELETE")
 
 	// Modules endpoints
-	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.GetAllModulesPartial).Methods("GET")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules_partial", handlers.GetAllModulesPartial).Methods("GET")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.GetAllModules).Methods("GET")
 	public.HandleFunc("/modules/{module_id}", handlers.GetModuleByID).Methods("GET")
 	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.CreateModule).Methods("POST")
 	authorized.HandleFunc("/modules/{module_id}", handlers.UpdateModule).Methods("PUT")
 	authorized.HandleFunc("/modules/{module_id}", handlers.DeleteModule).Methods("DELETE")
 
 	// Module questions endpoints
-	public.HandleFunc("/module_questions", handlers.GetAllModuleQuestions).Methods("GET")
-	public.HandleFunc("/module_questions/{id}", handlers.GetModuleQuestionByID).Methods("GET")
-	authorized.HandleFunc("/module_questions", handlers.CreateModuleQuestion).Methods("POST")
-	authorized.HandleFunc("/module_questions/{id}", handlers.UpdateModuleQuestion).Methods("PUT")
-	authorized.HandleFunc("/module_questions/{id}", handlers.DeleteModuleQuestion).Methods("DELETE")
-
-	// Module question answers endpoints
-	authorized.HandleFunc("/module_question_answers", handlers.GetAllModuleQuestionAnswers).Methods("GET")
-	authorized.HandleFunc("/module_question_answers/{id}", handlers.GetModuleQuestionAnswerByID).Methods("GET")
-	authorized.HandleFunc("/module_question_answers", handlers.CreateModuleQuestionAnswer).Methods("POST")
-	authorized.HandleFunc("/module_question_answers/{id}", handlers.UpdateModuleQuestionAnswer).Methods("PUT")
-	authorized.HandleFunc("/module_question_answers/{id}", handlers.DeleteModuleQuestionAnswer).Methods("DELETE")
+	public.HandleFunc("/modules/{module_id}/module_questions", handlers.GetAllModuleQuestions).Methods("GET")
+	public.HandleFunc("/modules/{module_id}/module_questions/{module_question_id}", handlers.GetModuleQuestionByID).Methods("GET")
+	authorized.HandleFunc("/modules/{module_id}/module_questions", handlers.CreateModuleQuestion).Methods("POST")
+	authorized.HandleFunc("/modules/{module_id}/module_questions/{module_question_id}", handlers.UpdateModuleQuestion).Methods("PUT")
+	authorized.HandleFunc("/modules/{module_id}/module_questions/{module_question_id}", handlers.DeleteModuleQuestion).Methods("DELETE")
 
 	// User module progress endpoints
 	authorized.HandleFunc("/user_module_progress", handlers.GetAllUserModuleProgress).Methods("GET")
@@ -95,13 +89,6 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/user_module_progress", handlers.CreateUserModuleProgress).Methods("POST")
 	authorized.HandleFunc("/user_module_progress/{id}", handlers.UpdateUserModuleProgress).Methods("PUT")
 	authorized.HandleFunc("/user_module_progress/{id}", handlers.DeleteUserModuleProgress).Methods("DELETE")
-
-	// User answers endpoints
-	authorized.HandleFunc("/user_answers", handlers.GetAllUserAnswers).Methods("GET")
-	authorized.HandleFunc("/user_answers/{id}", handlers.GetUserAnswerByID).Methods("GET")
-	authorized.HandleFunc("/user_answers", handlers.CreateUserAnswer).Methods("POST")
-	authorized.HandleFunc("/user_answers/{id}", handlers.UpdateUserAnswer).Methods("PUT")
-	authorized.HandleFunc("/user_answers/{id}", handlers.DeleteUserAnswer).Methods("DELETE")
 
 	// Achievements endpoints
 	authorized.HandleFunc("/achievements", handlers.GetAllAchievements).Methods("GET")

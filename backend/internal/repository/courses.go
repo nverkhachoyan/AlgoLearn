@@ -6,7 +6,8 @@ import (
 	"algolearn-backend/internal/models"
 	"database/sql"
 	"encoding/json"
-  "fmt"
+	"fmt"
+
 	"github.com/lib/pq"
 )
 
@@ -187,7 +188,6 @@ func UpdateUnit(unit *models.Unit) error {
 		"UPDATE units SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
 		unit.Name, unit.Description, unit.ID,
 	)
-
 	if err != nil {
 		config.Log.Errorf("Failed to execute update query: %v", err)
 		return fmt.Errorf("could not update unit: %w", err)
@@ -207,7 +207,6 @@ func UpdateUnit(unit *models.Unit) error {
 	return nil
 }
 
-
 // DeleteUnit deletes a unit by its ID.
 func DeleteUnit(id int) error {
 	db := config.GetDB()
@@ -221,6 +220,41 @@ func DeleteUnit(id int) error {
 
 // GetAllModulesPartial retrieves all modules for a specific unit except the content for it.
 func GetAllModulesPartial(unitID int) ([]models.Module, error) {
+	db := config.GetDB()
+	rows, err := db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var modules []models.Module
+	for rows.Next() {
+		var module models.Module
+		err := rows.Scan(
+			&module.ID,
+			&module.CreatedAt,
+			&module.UpdatedAt,
+			&module.UnitID,
+			&module.CourseID,
+			&module.Name,
+			&module.Description,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		modules = append(modules, module)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return modules, nil
+}
+
+// GetAllModulesPartial retrieves all modules for a specific unit except the content for it.
+func GetAllModules(unitID int) ([]models.Module, error) {
 	db := config.GetDB()
 	rows, err := db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
 	if err != nil {

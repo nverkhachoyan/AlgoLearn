@@ -6,7 +6,7 @@ import (
 	"algolearn-backend/internal/models"
 )
 
-func GetAllModuleQuestionAnswers() []models.ModuleQuestionOption {
+func GetAllModuleQuestionOptions() []models.ModuleQuestionOption {
 	db := config.GetDB()
 	rows, err := db.Query("SELECT id, question_id, content, is_correct, created_at, updated_at FROM module_question_options")
 	if err != nil {
@@ -31,7 +31,7 @@ func GetAllModuleQuestionAnswers() []models.ModuleQuestionOption {
 	return answers
 }
 
-func GetAnswersByQuestionID(questionID int) ([]models.ModuleQuestionOption, error) {
+func GetOptionsByQuestionID(questionID int) ([]models.ModuleQuestionOption, error) {
 	db := config.GetDB()
 	rows, err := db.Query("SELECT id, question_id, content, is_correct, created_at, updated_at FROM module_question_options WHERE question_id = $1", questionID)
 	if err != nil {
@@ -56,7 +56,7 @@ func GetAnswersByQuestionID(questionID int) ([]models.ModuleQuestionOption, erro
 	return answers, nil
 }
 
-func GetModuleQuestionAnswerByID(id int) (*models.ModuleQuestionOption, error) {
+func GetModuleQuestionOptionByID(id int) (*models.ModuleQuestionOption, error) {
 	db := config.GetDB()
 	row := db.QueryRow("SELECT id, question_id, content, is_correct, created_at, updated_at FROM module_question_options WHERE id = $1", id)
 
@@ -69,7 +69,7 @@ func GetModuleQuestionAnswerByID(id int) (*models.ModuleQuestionOption, error) {
 	return &answer, nil
 }
 
-func CreateModuleQuestionAnswer(answer *models.ModuleQuestionOption) error {
+func CreateModuleQuestionOption(answer *models.ModuleQuestionOption) error {
 	db := config.GetDB()
 	err := db.QueryRow(
 		"INSERT INTO module_question_options (question_id, content, is_correct) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at",
@@ -78,7 +78,7 @@ func CreateModuleQuestionAnswer(answer *models.ModuleQuestionOption) error {
 	return err
 }
 
-func UpdateModuleQuestionAnswer(answer *models.ModuleQuestionOption) error {
+func UpdateModuleQuestionOption(answer *models.ModuleQuestionOption) error {
 	db := config.GetDB()
 	_, err := db.Exec(
 		"UPDATE module_question_options SET content = $1, is_correct = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
@@ -87,7 +87,7 @@ func UpdateModuleQuestionAnswer(answer *models.ModuleQuestionOption) error {
 	return err
 }
 
-func DeleteModuleQuestionAnswer(id int) error {
+func DeleteModuleQuestionOption(id int) error {
 	db := config.GetDB()
 	_, err := db.Exec("DELETE FROM module_question_options WHERE id = $1", id)
 	return err

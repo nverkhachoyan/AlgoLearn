@@ -23,6 +23,9 @@ func SetupRouter() *mux.Router {
 	courseRepo := repository.NewCourseRepository(db)
 	courseHandler := handlers.NewCourseHandler(courseRepo)
 
+	achievementsRepo := repository.NewAchievementsRepository(db)
+	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
+
 	public := mux.NewRouter()
 
 	// Authorized routes
@@ -97,11 +100,11 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/user_module_progress/{id}", handlers.DeleteUserModuleProgress).Methods("DELETE")
 
 	// Achievements endpoints
-	authorized.HandleFunc("/achievements", handlers.GetAllAchievements).Methods("GET")
-	authorized.HandleFunc("/achievements/{id}", handlers.GetAchievementByID).Methods("GET")
-	authorized.HandleFunc("/achievements", handlers.CreateAchievement).Methods("POST")
-	authorized.HandleFunc("/achievements/{id}", handlers.UpdateAchievement).Methods("PUT")
-	authorized.HandleFunc("/achievements/{id}", handlers.DeleteAchievement).Methods("DELETE")
+	authorized.HandleFunc("/achievements", achievementsHandler.GetAllAchievements).Methods("GET")
+	authorized.HandleFunc("/achievements/{id}", achievementsHandler.GetAchievementByID).Methods("GET")
+	authorized.HandleFunc("/achievements", achievementsHandler.CreateAchievement).Methods("POST")
+	authorized.HandleFunc("/achievements/{id}", achievementsHandler.UpdateAchievement).Methods("PUT")
+	authorized.HandleFunc("/achievements/{id}", achievementsHandler.DeleteAchievement).Methods("DELETE")
 
 	// User achievements endpoints
 	authorized.HandleFunc("/user_achievements", handlers.GetAllUserAchievements).Methods("GET")

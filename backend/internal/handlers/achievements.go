@@ -10,8 +10,24 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetAllAchievements(w http.ResponseWriter, r *http.Request) {
-	achievements, err := repository.GetAllAchievements()
+type AchievementsHandler interface {
+	GetAllAchievements(w http.ResponseWriter, r *http.Request)
+	GetAchievementByID(w http.ResponseWriter, r *http.Request)
+	CreateAchievement(w http.ResponseWriter, r *http.Request)
+	UpdateAchievement(w http.ResponseWriter, r *http.Request)
+	DeleteAchievement(w http.ResponseWriter, r *http.Request)
+}
+
+type achievementsHandler struct {
+	repo repository.AchievementsRepository
+}
+
+func NewAchievementsHandler(repo repository.AchievementsRepository) AchievementsHandler {
+	return &achievementsHandler{repo: repo}
+}
+
+func (h *achievementsHandler) GetAllAchievements(w http.ResponseWriter, r *http.Request) {
+	achievements, err := h.repo.GetAllAchievements()
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
 		return
@@ -26,7 +42,7 @@ func GetAllAchievements(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func GetAchievementByID(w http.ResponseWriter, r *http.Request) {
+func (h *achievementsHandler) GetAchievementByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
@@ -35,7 +51,7 @@ func GetAchievementByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	achievement, err := repository.GetAchievementByID(id)
+	achievement, err := h.repo.GetAchievementByID(id)
 	if err != nil {
 		RespondWithJSON(w, http.StatusNotFound, models.Response{Status: "error", Message: "Achievement not found"})
 		return
@@ -50,7 +66,7 @@ func GetAchievementByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func CreateAchievement(w http.ResponseWriter, r *http.Request) {
+func (h *achievementsHandler) CreateAchievement(w http.ResponseWriter, r *http.Request) {
 	var achievement models.Achievement
 	err := json.NewDecoder(r.Body).Decode(&achievement)
 	if err != nil {
@@ -58,7 +74,7 @@ func CreateAchievement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = repository.CreateAchievement(&achievement)
+	err = h.repo.CreateAchievement(&achievement)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to create achievement"})
 		return
@@ -73,7 +89,7 @@ func CreateAchievement(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, response)
 }
 
-func UpdateAchievement(w http.ResponseWriter, r *http.Request) {
+func (h *achievementsHandler) UpdateAchievement(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
@@ -90,7 +106,7 @@ func UpdateAchievement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	achievement.ID = id
-	err = repository.UpdateAchievement(&achievement)
+	err = h.repo.UpdateAchievement(&achievement)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to update achievement"})
 		return
@@ -105,7 +121,7 @@ func UpdateAchievement(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func DeleteAchievement(w http.ResponseWriter, r *http.Request) {
+func (h *achievementsHandler) DeleteAchievement(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
@@ -114,7 +130,7 @@ func DeleteAchievement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = repository.DeleteAchievement(id)
+	err = h.repo.DeleteAchievement(id)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to delete achievement"})
 		return

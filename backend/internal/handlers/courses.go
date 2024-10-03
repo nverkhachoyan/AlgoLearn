@@ -19,15 +19,33 @@ import (
 // **** COURSES ****
 // *****************
 
-type CourseHandler struct {
+type CourseHandler interface {
+	GetAllCourses(w http.ResponseWriter, r *http.Request)
+	GetCourseByID(w http.ResponseWriter, r *http.Request)
+	CreateCourse(w http.ResponseWriter, r *http.Request)
+	UpdateCourse(w http.ResponseWriter, r *http.Request)
+	DeleteCourse(w http.ResponseWriter, r *http.Request)
+	GetAllUnits(w http.ResponseWriter, r *http.Request)
+	GetUnitByID(w http.ResponseWriter, r *http.Request)
+	CreateUnit(w http.ResponseWriter, r *http.Request)
+	UpdateUnit(w http.ResponseWriter, r *http.Request)
+	DeleteUnit(w http.ResponseWriter, r *http.Request)
+	GetAllModules(w http.ResponseWriter, r *http.Request)
+	GetAllModulesPartial(w http.ResponseWriter, r *http.Request)
+	CreateModule(w http.ResponseWriter, r *http.Request)
+	UpdateModule(w http.ResponseWriter, r *http.Request)
+	DeleteModule(w http.ResponseWriter, r *http.Request)
+}
+
+type courseHandler struct {
 	repo repository.CourseRepository
 }
 
-func NewCourseHandler(repo repository.CourseRepository) *CourseHandler {
-	return &CourseHandler{repo: repo}
+func NewCourseHandler(repo repository.CourseRepository) *courseHandler {
+	return &courseHandler{repo: repo}
 }
 
-func (h *CourseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	courses, err := h.repo.GetAllCourses()
 	if err != nil {
 		config.Log.Debugf("Error fetching courses: %v", err)
@@ -48,7 +66,7 @@ func (h *CourseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
 	if err != nil {
@@ -82,7 +100,7 @@ func (h *CourseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	// userID, ok := middleware.GetUserID(r.Context())
 	// if !ok {
 	// 	config.Log.Debugln("Unauthorized user tried to create course.")
@@ -142,7 +160,7 @@ func (h *CourseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	// userID, ok := middleware.GetUserID(r.Context())
 	// if !ok {
 	// 	config.Log.Debugln("Unauthorized user tried to create course.")
@@ -227,7 +245,7 @@ func (h *CourseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		config.Log.Debugln("Unauthorized user tried to delete a course.")
@@ -286,7 +304,7 @@ func (h *CourseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 // **** UNITS ****
 // ****************
 
-func (h *CourseHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
 	if err != nil {
@@ -318,7 +336,7 @@ func (h *CourseHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
 	if err != nil {
@@ -351,7 +369,7 @@ func (h *CourseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -419,7 +437,7 @@ func (h *CourseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -485,7 +503,7 @@ func (h *CourseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -542,7 +560,7 @@ func (h *CourseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *CourseHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	if err != nil {
@@ -572,7 +590,7 @@ func (h *CourseHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func (h *CourseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	if err != nil {
@@ -602,7 +620,7 @@ func (h *CourseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *CourseHandler) GetModuleByID(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetModuleByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
@@ -632,7 +650,7 @@ func (h *CourseHandler) GetModuleByID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *CourseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -698,7 +716,7 @@ func (h *CourseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *CourseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -770,7 +788,7 @@ func (h *CourseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *CourseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -835,7 +853,7 @@ func (h *CourseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 // *** MODULE QUESTIONS HANDLERS ***
 // *********************************
 
-func (h *CourseHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	moduleID, err := strconv.Atoi(params["module_id"])
 	if err != nil {

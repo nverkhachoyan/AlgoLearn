@@ -1,7 +1,10 @@
 package router
 
 import (
+	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/handlers"
+	"algolearn-backend/internal/repository"
+
 	"algolearn-backend/pkg/middleware"
 
 	"github.com/gorilla/mux"
@@ -16,6 +19,9 @@ func SetupRouter() *mux.Router {
 	// **********************
 	// **** Router Setup ****
 	// **********************
+	db := config.GetDB()
+	courseRepo := repository.NewCourseRepository(db)
+	courseHandler := handlers.NewCourseHandler(courseRepo)
 
 	public := mux.NewRouter()
 
@@ -55,29 +61,29 @@ func SetupRouter() *mux.Router {
 	authorized.HandleFunc("/user", handlers.DeleteUser).Methods("DELETE")
 
 	// Courses endpoints
-	public.HandleFunc("/courses", handlers.GetAllCourses).Methods("GET")
-	public.HandleFunc("/courses/{id}", handlers.GetCourseByID).Methods("GET")
-	authorized.HandleFunc("/courses", handlers.CreateCourse).Methods("POST")
-	authorized.HandleFunc("/courses/{id}", handlers.UpdateCourse).Methods("PUT")
-	authorized.HandleFunc("/courses/{id}", handlers.DeleteCourse).Methods("DELETE")
+	public.HandleFunc("/courses", courseHandler.GetAllCourses).Methods("GET")
+	public.HandleFunc("/courses/{id}", courseHandler.GetCourseByID).Methods("GET")
+	authorized.HandleFunc("/courses", courseHandler.CreateCourse).Methods("POST")
+	authorized.HandleFunc("/courses/{id}", courseHandler.UpdateCourse).Methods("PUT")
+	authorized.HandleFunc("/courses/{id}", courseHandler.DeleteCourse).Methods("DELETE")
 
 	// Units endpoints
-	public.HandleFunc("/courses/{course_id}/units", handlers.GetAllUnits).Methods("GET")
-	public.HandleFunc("/units/{id}", handlers.GetUnitByID).Methods("GET")
-	authorized.HandleFunc("/courses/{course_id}/units", handlers.CreateUnit).Methods("POST")
-	authorized.HandleFunc("/units/{unit_id}", handlers.UpdateUnit).Methods("PUT")
-	authorized.HandleFunc("/units/{unit_id}", handlers.DeleteUnit).Methods("DELETE")
+	public.HandleFunc("/courses/{course_id}/units", courseHandler.GetAllUnits).Methods("GET")
+	public.HandleFunc("/units/{id}", courseHandler.GetUnitByID).Methods("GET")
+	authorized.HandleFunc("/courses/{course_id}/units", courseHandler.CreateUnit).Methods("POST")
+	authorized.HandleFunc("/units/{unit_id}", courseHandler.UpdateUnit).Methods("PUT")
+	authorized.HandleFunc("/units/{unit_id}", courseHandler.DeleteUnit).Methods("DELETE")
 
 	// Modules endpoints
-	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules_partial", handlers.GetAllModulesPartial).Methods("GET")
-	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.GetAllModules).Methods("GET")
-	public.HandleFunc("/modules/{module_id}", handlers.GetModuleByID).Methods("GET")
-	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", handlers.CreateModule).Methods("POST")
-	authorized.HandleFunc("/modules/{module_id}", handlers.UpdateModule).Methods("PUT")
-	authorized.HandleFunc("/modules/{module_id}", handlers.DeleteModule).Methods("DELETE")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules_partial", courseHandler.GetAllModulesPartial).Methods("GET")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", courseHandler.GetAllModules).Methods("GET")
+	public.HandleFunc("/modules/{module_id}", courseHandler.GetModuleByID).Methods("GET")
+	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", courseHandler.CreateModule).Methods("POST")
+	authorized.HandleFunc("/modules/{module_id}", courseHandler.UpdateModule).Methods("PUT")
+	authorized.HandleFunc("/modules/{module_id}", courseHandler.DeleteModule).Methods("DELETE")
 
 	// Module questions endpoints
-	public.HandleFunc("/modules/{module_id}/module_questions", handlers.GetAllModuleQuestions).Methods("GET")
+	public.HandleFunc("/modules/{module_id}/module_questions", courseHandler.GetAllModuleQuestions).Methods("GET")
 	public.HandleFunc("/modules/{module_id}/module_questions/{module_question_id}", handlers.GetModuleQuestionByID).Methods("GET")
 	authorized.HandleFunc("/modules/{module_id}/module_questions", handlers.CreateModuleQuestion).Methods("POST")
 	authorized.HandleFunc("/modules/{module_id}/module_questions/{module_question_id}", handlers.UpdateModuleQuestion).Methods("PUT")

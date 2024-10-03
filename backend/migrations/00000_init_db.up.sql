@@ -30,11 +30,10 @@ CREATE TABLE courses (
     icon_url TEXT,
     duration VARCHAR(50),
     difficulty_level VARCHAR(50),
-    author VARCHAR(255),
+    authors VARCHAR(255)[],
     tags TEXT[],
     rating FLOAT,
-    learners_count INTEGER NOT NULL DEFAULT 0,
-    last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    learners_count INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE units (
@@ -55,7 +54,6 @@ CREATE TABLE modules (
     course_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    content JSONB NOT NULL,
     FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );

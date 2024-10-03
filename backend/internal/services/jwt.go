@@ -11,11 +11,11 @@ import (
 var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 
 type Claims struct {
-	UserID int `json:"user_id"`
+	UserID int64 `json:"user_id"`
 	jwt.StandardClaims
 }
 
-func GenerateJWT(userID int) (string, error) {
+func GenerateJWT(userID int64) (string, error) {
 	expirationTime := time.Now().Add(240 * time.Hour)
 	claims := &Claims{
 		UserID: userID,
@@ -29,22 +29,22 @@ func GenerateJWT(userID int) (string, error) {
 }
 
 func ValidateJWT(tokenString string) (*Claims, error) {
-    claims := &Claims{}
+	claims := &Claims{}
 
-    token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-        return jwtKey, nil
-    })
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtKey, nil
+	})
 
-    if err != nil {
-        log.Printf("Error parsing JWT: %v", err)
-        return nil, err
-    }
+	if err != nil {
+		log.Printf("Error parsing JWT: %v", err)
+		return nil, err
+	}
 
-    if !token.Valid {
-        log.Println("Invalid JWT token")
-        return nil, err
-    }
+	if !token.Valid {
+		log.Println("Invalid JWT token")
+		return nil, err
+	}
 
-    log.Printf("Successfully parsed JWT. UserID: %d", claims.UserID)
-    return claims, nil
+	log.Printf("Successfully parsed JWT. UserID: %d", claims.UserID)
+	return claims, nil
 }

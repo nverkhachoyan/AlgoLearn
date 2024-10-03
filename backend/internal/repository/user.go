@@ -149,13 +149,13 @@ func GetUserByEmail(email string) (*models.User, error) {
 	}
 
 	// Fetch user streaks
-	user.Streaks, err = GetStreaksByUserID(user.ID)
+	user.Streaks, err = GetStreaksByUserID(int(user.ID))
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch user streaks: %v", err)
 	}
 
 	// Fetch user achievements
-	user.Achievements, err = GetUserAchievementsByUserID(user.ID)
+	user.Achievements, err = GetUserAchievementsByUserID(int(user.ID))
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch user achievements: %v", err)
 	}
@@ -263,13 +263,13 @@ func GetAllUsers() ([]models.User, error) {
 		}
 
 		// Fetch user streaks
-		user.Streaks, err = GetStreaksByUserID(user.ID)
+		user.Streaks, err = GetStreaksByUserID(int(user.ID))
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch user streaks: %v", err)
 		}
 
 		// Fetch user achievements
-		user.Achievements, err = GetUserAchievementsByUserID(user.ID)
+		user.Achievements, err = GetUserAchievementsByUserID(int(user.ID))
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch user achievements: %v", err)
 		}

@@ -24,35 +24,67 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ************************************************
-// **** USER ACCOUNT/PROFILE RELATED HANDLERS ****
-// ************************************************
+type UserHandler interface {
+	CheckEmailExists(w http.ResponseWriter, r *http.Request)
+	RegisterUser(w http.ResponseWriter, r *http.Request)
+	LoginUser(w http.ResponseWriter, r *http.Request)
+	UpdateUser(w http.ResponseWriter, r *http.Request)
+	GetUser(w http.ResponseWriter, r *http.Request)
+	DeleteUser(w http.ResponseWriter, r *http.Request)
+	// GetAllUsers(w http.ResponseWriter, r *http.Request)
+	// ChangeUserPassword(w http.ResponseWriter, r *http.Request) TODO: implement
+	GetAllUserAchievements(w http.ResponseWriter, r *http.Request)
+	// GetUserAchievementsByUserID(w http.ResponseWriter, r *http.Request)
+	GetUserAchievementByID(w http.ResponseWriter, r *http.Request)
+	CreateUserAchievement(w http.ResponseWriter, r *http.Request)
+	// UpdateUserAchievement(w http.ResponseWriter, r *http.Request)
+	DeleteUserAchievement(w http.ResponseWriter, r *http.Request)
+	// GetStreaksByUserID(w http.ResponseWriter, r *http.Request)
+	GetAllStreaks(w http.ResponseWriter, r *http.Request)
+	// GetStreakByID(w http.ResponseWriter, r *http.Request)
+	// CreateStreak(w http.ResponseWriter, r *http.Request)
+	// UpdateStreak(w http.ResponseWriter, r *http.Request)
+	// DeleteStreak(w http.ResponseWriter, r *http.Request)
+	// GetUserModuleProgressByUserID(w http.ResponseWriter, r *http.Request)
+	// GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request)
+	CreateUserModuleProgress(w http.ResponseWriter, r *http.Request)
+	UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request)
+	DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request)
+}
+
+type userHandler struct {
+	repo repository.UserRepository
+}
+
+func NewUserHandler(repo repository.UserRepository) UserHandler {
+	return &userHandler{repo: repo}
+}
 
 // ValidateEmail validates the email format
-func ValidateEmail(email string) bool {
+func (h *userHandler) ValidateEmail(email string) bool {
 	const emailRegex = `^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`
 	re := regexp.MustCompile(emailRegex)
 	return re.MatchString(email)
 }
 
 // validateRegistrationInput performs input validation for registration
-func validateRegistrationInput(req models.RegistrationRequest) (bool, string) {
+func (h *userHandler) validateRegistrationInput(req models.RegistrationRequest) (bool, string) {
 	if len(req.Username) < 5 || len(req.Username) > 20 {
 		return false, "Username must be between 5 and 20 characters long"
 	}
 	if len(req.Password) < 8 {
 		return false, "Password must be at least 8 characters long"
 	}
-	if !ValidateEmail(req.Email) {
+	if !h.ValidateEmail(req.Email) {
 		return false, "Invalid email format"
 	}
 	return true, ""
 }
 
-func CheckEmailExists(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 	var email string = r.URL.Query().Get("email")
 
-	user, _ := repository.GetUserByEmail(email)
+	user, _ := h.repo.GetUserByEmail(email)
 	if user != nil {
 		RespondWithJSON(w, http.StatusAccepted,
 			models.Response{
@@ -71,7 +103,7 @@ func CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
@@ -81,7 +113,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isValid, message := validateRegistrationInput(req); !isValid {
+	if isValid, message := h.validateRegistrationInput(req); !isValid {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{Status: "error",
 				ErrorCode: errors.INVALID_FORM_DATA,
@@ -91,7 +123,7 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user with email already exists
-	userByEmail, _ := repository.GetUserByEmail(req.Email)
+	userByEmail, _ := h.repo.GetUserByEmail(req.Email)
 
 	if userByEmail != nil {
 		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "error", ErrorCode: errors.ACCOUNT_EXISTS, Message: "An account with this email already exists"})
@@ -118,14 +150,14 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Username:        req.Username,
 		Email:           req.Email,
 		PasswordHash:    hashedPassword,
-		Role:            "user", // default role
+		Role:            "user",
 		IsActive:        true,
 		IsEmailVerified: false,
-		CPUs:            0,    // default CPUs
-		Preferences:     `{}`, // Default to an empty JSON object as a string
+		CPUs:            0,
+		Preferences:     `{}`,
 	}
 
-	if err := repository.CreateUser(user); err != nil {
+	if err := h.repo.CreateUser(user); err != nil {
 		log.Printf("Error creating user: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
@@ -156,14 +188,14 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, response)
 }
 
-func LoginUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_JSON, Message: "Invalid JSON"})
 		return
 	}
 
-	user, err := repository.GetUserByEmail(req.Email)
+	user, err := h.repo.GetUserByEmail(req.Email)
 	if err != nil {
 		log.Printf("Login failed for user %s: %v", req.Email, err)
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -204,7 +236,6 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-// Uploads avatar to S3 and returns URL
 func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int64) (string, error) {
 	objectKey := "users/" + string(userID) + "/public/avatars/" + uuid.New().String()
 
@@ -215,7 +246,6 @@ func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int64) (
 		ACL:    aws.String("public-read"),
 	}
 
-	// Upload file to S3
 	_, err := s3Session.PutObject(putObjectInput)
 	if err != nil {
 		fmt.Printf("Error uploading user avatar to S3 object storage")
@@ -226,7 +256,7 @@ func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int64) (
 	return avatarURL, nil
 }
 
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	tokenStr := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	if tokenStr == "" {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -275,11 +305,9 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set userID from token
 	user.ID = userID
 	user.UpdatedAt = time.Now()
 
-	// Handling avatar upload if present
 	file, _, err := r.FormFile("avatar")
 	if err == nil {
 		defer file.Close()
@@ -307,7 +335,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Updating user data: %+v\n", user)
 
-	if err := repository.UpdateUser(&user); err != nil {
+	if err := h.repo.UpdateUser(&user); err != nil {
 		log.Printf("Error updating user %d: %v", userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -318,7 +346,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUserData, err := repository.GetUserByID(int(userID))
+	newUserData, err := h.repo.GetUserByID(int(userID))
 
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -333,7 +361,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User updated successfully", Data: newUserData})
 }
 
-func GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -344,7 +372,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := repository.GetUserByID(userID)
+	user, err := h.repo.GetUserByID(userID)
 	if err != nil {
 		log.Printf("Error retrieving user %d: %v", userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -359,7 +387,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User retrieved successfully", Data: user})
 }
 
-func DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -371,7 +399,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.DeleteUser(userID); err != nil {
+	if err := h.repo.DeleteUser(userID); err != nil {
 		log.Printf("Error deleting user %d: %v", userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to delete user account"})
 		return
@@ -381,8 +409,8 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // *** USER ACHIEVEMENTS HANDLERS ***
-func GetAllUserAchievements(w http.ResponseWriter, r *http.Request) {
-	userAchievements, err := repository.GetAllUserAchievements()
+func (h *userHandler) GetAllUserAchievements(w http.ResponseWriter, r *http.Request) {
+	userAchievements, err := h.repo.GetAllUserAchievements()
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
 		return
@@ -397,7 +425,7 @@ func GetAllUserAchievements(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func GetUserAchievementByID(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetUserAchievementByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
@@ -406,7 +434,7 @@ func GetUserAchievementByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userAchievement, err := repository.GetUserAchievementByID(id)
+	userAchievement, err := h.repo.GetUserAchievementByID(id)
 	if err != nil {
 		RespondWithJSON(w, http.StatusNotFound, models.Response{Status: "error", Message: "User achievement not found"})
 		return
@@ -421,7 +449,7 @@ func GetUserAchievementByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func CreateUserAchievement(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) CreateUserAchievement(w http.ResponseWriter, r *http.Request) {
 	var userAchievement models.UserAchievement
 	err := json.NewDecoder(r.Body).Decode(&userAchievement)
 	if err != nil {
@@ -429,7 +457,7 @@ func CreateUserAchievement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = repository.CreateUserAchievement(&userAchievement)
+	err = h.repo.CreateUserAchievement(&userAchievement)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to create user achievement"})
 		return
@@ -444,7 +472,7 @@ func CreateUserAchievement(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, response)
 }
 
-func DeleteUserAchievement(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) DeleteUserAchievement(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
@@ -453,7 +481,7 @@ func DeleteUserAchievement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = repository.DeleteUserAchievement(id)
+	err = h.repo.DeleteUserAchievement(id)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to delete user achievement"})
 		return
@@ -469,14 +497,14 @@ func DeleteUserAchievement(w http.ResponseWriter, r *http.Request) {
 
 // *** USER MODULE PROGRESS ***
 
-func GetAllUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetAllUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
 		return
 	}
 
-	sessions, err := repository.GetUserModuleProgressByUserID(userID)
+	sessions, err := h.repo.GetUserModuleProgressByUserID(userID)
 	if err != nil {
 		log.Printf("Error fetching user_module_sessions for user %d: %v", userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve user_module_sessions"})
@@ -486,7 +514,7 @@ func GetAllUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User module sessions retrieved successfully", Data: sessions})
 }
 
-func GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -500,7 +528,7 @@ func GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := repository.GetUserModuleProgressByID(id, userID)
+	session, err := h.repo.GetUserModuleProgressByID(id, userID)
 	if err != nil {
 		log.Printf("Error fetching user_module_session %d for user %d: %v", id, userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve user_module_session"})
@@ -510,7 +538,7 @@ func GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User module session retrieved successfully", Data: session})
 }
 
-func CreateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) CreateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -524,7 +552,7 @@ func CreateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	progress.UserID = userID
 
-	if err := repository.CreateUserModuleProgress(&progress); err != nil {
+	if err := h.repo.CreateUserModuleProgress(&progress); err != nil {
 		log.Printf("Error creating user_module_session for user %d: %v", userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not create user_module_session"})
 		return
@@ -533,7 +561,7 @@ func CreateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated, models.Response{Status: "success", Message: "User module session created successfully", Data: progress})
 }
 
-func UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -562,7 +590,7 @@ func UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	progress.ID = id
 	progress.UserID = userID
 
-	if err := repository.UpdateUserModuleProgress(&progress); err != nil {
+	if err := h.repo.UpdateUserModuleProgress(&progress); err != nil {
 		log.Printf("Error updating user_module_session %d for user %d: %v", id, userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not update user_module_session"})
 		return
@@ -571,7 +599,7 @@ func UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "User module session updated successfully"})
 }
 
-func DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -585,7 +613,7 @@ func DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repository.DeleteUserModuleProgress(id, userID); err != nil {
+	if err := h.repo.DeleteUserModuleProgress(id, userID); err != nil {
 		log.Printf("Error deleting user_module_session %d for user %d: %v", id, userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not delete user_module_session"})
 		return
@@ -598,14 +626,14 @@ func DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request) {
 // **** USER STREAKS ****
 // **********************
 
-func GetAllStreaks(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetAllStreaks(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
 		return
 	}
 
-	streaks, err := repository.GetStreaksByUserID(userID)
+	streaks, err := h.repo.GetStreaksByUserID(userID)
 	if err != nil {
 		log.Printf("Error fetching streaks for user %d: %v", userID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Could not retrieve streaks"})

@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
@@ -55,6 +56,8 @@ func Auth(next http.Handler) http.Handler {
 }
 
 func IsAdmin(next http.Handler) http.Handler {
+	db := config.GetDB()
+	userRepo := repository.NewUserRepository(db)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := GetUserID(r.Context())
 		if !ok {
@@ -70,7 +73,7 @@ func IsAdmin(next http.Handler) http.Handler {
 			return
 		}
 		log.Printf("Retrieved userID: %d", userID)
-		user, err := repository.GetUserByID(userID)
+		user, err := userRepo.GetUserByID(userID)
 		if err != nil {
 			log.Printf("Failed to retrieve user from DB for ID: %d", userID)
 			RespondWithJSON(

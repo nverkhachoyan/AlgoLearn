@@ -15,10 +15,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// *****************
-// **** COURSES ****
-// *****************
-
 type CourseHandler interface {
 	GetAllCourses(w http.ResponseWriter, r *http.Request)
 	GetCourseByID(w http.ResponseWriter, r *http.Request)
@@ -38,12 +34,17 @@ type CourseHandler interface {
 }
 
 type courseHandler struct {
-	repo repository.CourseRepository
+	repo     repository.CourseRepository
+	userRepo repository.UserRepository
 }
 
-func NewCourseHandler(repo repository.CourseRepository) *courseHandler {
-	return &courseHandler{repo: repo}
+func NewCourseHandler(repo repository.CourseRepository, userRepo repository.UserRepository) CourseHandler {
+	return &courseHandler{repo: repo, userRepo: userRepo}
 }
+
+// *****************
+// **** COURSES ****
+// *****************
 
 func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	courses, err := h.repo.GetAllCourses()
@@ -271,7 +272,7 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can update courses
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		config.Log.Debugln("User without admin role tried to delete a course.")
 		RespondWithJSON(w, http.StatusForbidden,
@@ -382,7 +383,7 @@ func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can create units
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		config.Log.Debugf("User without admin role tried to create course unit: Detailed Error: %v", err)
 		RespondWithJSON(w, http.StatusForbidden,
@@ -450,7 +451,7 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can update units
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		config.Log.Debugf("User without admin role tried to update course unit: Detailed Error: %v", err)
 		RespondWithJSON(w, http.StatusForbidden,
@@ -528,7 +529,7 @@ func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can delete units
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		config.Log.Debugf("User without admin role tried to delete course unit")
 		RespondWithJSON(w, http.StatusForbidden,
@@ -675,7 +676,7 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can create modules
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
@@ -728,7 +729,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can update modules
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
@@ -812,7 +813,7 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can delete modules
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
@@ -892,37 +893,7 @@ func (h *courseHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 	})
 }
 
-func GetModuleQuestionByID(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["module_question_id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid question ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	question, err := repository.GetQuestionByID(id)
-	if err != nil {
-		log.Printf("Error fetching question %d: %v", id, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   err.Error(),
-			ErrorCode: errors.DATABASE_FAIL,
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
-		Message: "Question retrieved successfully",
-		Data:    question,
-	})
-}
-
-func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -944,7 +915,7 @@ func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can create questions
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
@@ -982,7 +953,7 @@ func CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -1006,7 +977,7 @@ func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can update questions
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
@@ -1044,7 +1015,7 @@ func UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -1068,7 +1039,7 @@ func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can delete questions
-	user, err := repository.GetUserByID(userID)
+	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
@@ -1091,247 +1062,5 @@ func DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{
 		Status:  "success",
 		Message: "Question deleted successfully",
-	})
-}
-
-// *********************************
-// *** MODULE QUESTION ANSWERS HANDLERS ***
-// *********************************
-
-func GetAllModuleQuestionOptions(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	moduleQuestionID, err := strconv.Atoi(params["module_question_id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid question ID format",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	answers, err := repository.GetOptionsByQuestionID(moduleQuestionID)
-	if err != nil {
-		log.Printf("Error fetching answers for question %d: %v", moduleQuestionID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "Could not retrieve answers",
-			ErrorCode: errors.DATABASE_FAIL,
-		})
-		return
-	}
-
-	if len(answers) == 0 {
-		RespondWithJSON(w, http.StatusNotFound, models.Response{
-			Status:  "success",
-			Message: "No answers found for the given question ID",
-			Data:    []models.ModuleQuestionOption{},
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
-		Message: "Answers retrieved successfully",
-		Data:    answers,
-	})
-}
-
-func GetModuleQuestionOptionByID(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["module_question_option_id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid answer ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	answer, err := repository.GetModuleQuestionOptionByID(id)
-	if err != nil {
-		log.Printf("Error fetching answer %d: %v", id, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "Could not retrieve answer",
-			ErrorCode: errors.DATABASE_FAIL,
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
-		Message: "Answer retrieved successfully",
-		Data:    answer,
-	})
-}
-
-func CreateModuleQuestionOption(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
-			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	params := mux.Vars(r)
-	questionID, err := strconv.Atoi(params["module_question_id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid question ID format",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-	}
-
-	// Only admin users can create answers
-	user, err := repository.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
-			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	var answer models.ModuleQuestionOption
-	if err := json.NewDecoder(r.Body).Decode(&answer); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid JSON input",
-			ErrorCode: errors.INVALID_JSON,
-		})
-		return
-	}
-	answer.QuestionID = questionID
-
-	if err := repository.CreateModuleQuestionOption(&answer); err != nil {
-		log.Printf("Error creating answer: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "Failed to create answer in the database",
-			ErrorCode: errors.DATABASE_FAIL,
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusCreated, models.Response{
-		Status:  "success",
-		Message: "Answer created successfully",
-		Data:    answer,
-	})
-}
-
-func UpdateModuleQuestionOption(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
-			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	params := mux.Vars(r)
-	answerID, err := strconv.ParseInt(params["module_question_option_id"], 10, 64)
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid answer ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	// Only admin users can update answers
-	user, err := repository.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
-			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	var answer models.ModuleQuestionOption
-	if err := json.NewDecoder(r.Body).Decode(&answer); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid input",
-			ErrorCode: errors.INVALID_JSON,
-		})
-		return
-	}
-	answer.ID = answerID
-
-	if err := repository.UpdateModuleQuestionOption(&answer); err != nil {
-		log.Printf("Error updating answer %d: %v", answerID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "Could not update answer",
-			ErrorCode: errors.DATABASE_FAIL,
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
-		Message: "Answer updated successfully",
-	})
-}
-
-func DeleteModuleQuestionOption(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
-			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["module_question_option_id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid answer ID",
-			ErrorCode: errors.INVALID_REQUEST,
-		})
-		return
-	}
-
-	// Only admin users can delete answers
-	user, err := repository.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
-			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
-		})
-		return
-	}
-
-	if err := repository.DeleteModuleQuestionOption(id); err != nil {
-		log.Printf("Error deleting answer %d: %v", id, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "Could not delete answer",
-			ErrorCode: errors.DATABASE_FAIL,
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
-		Message: "Answer deleted successfully",
 	})
 }

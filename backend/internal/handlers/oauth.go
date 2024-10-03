@@ -15,7 +15,21 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func HandleOAuthLogin(w http.ResponseWriter, r *http.Request) {
+type OauthHandler interface {
+	HandleOAuthLogin(w http.ResponseWriter, r *http.Request)
+	GoogleCallback(w http.ResponseWriter, r *http.Request)
+	AppleCallback(w http.ResponseWriter, r *http.Request)
+}
+
+type oauthHandler struct {
+	userRepo repository.UserRepository
+}
+
+func NewOauthHandler(userRepo repository.UserRepository) OauthHandler {
+	return &oauthHandler{userRepo: userRepo}
+}
+
+func (h *oauthHandler) HandleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 	provider := r.URL.Query().Get("provider")
 	state := r.URL.Query().Get("state")
 	if state == "" {
@@ -36,7 +50,7 @@ func HandleOAuthLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-func GoogleCallback(w http.ResponseWriter, r *http.Request) {
+func (h *oauthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 	if state == "" {
@@ -67,10 +81,10 @@ func GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleOAuthUser(w, r, googleUser.Email, googleUser.ID, state)
+	h.handleOAuthUser(w, r, googleUser.Email, googleUser.ID, state)
 }
 
-func AppleCallback(w http.ResponseWriter, r *http.Request) {
+func (h *oauthHandler) AppleCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 	if state == "" {
@@ -101,12 +115,12 @@ func AppleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handleOAuthUser(w, r, appleUser.Email, appleUser.ID, state)
+	h.handleOAuthUser(w, r, appleUser.Email, appleUser.ID, state)
 }
 
-func handleOAuthUser(w http.ResponseWriter, r *http.Request, email, oauthID, state string) {
+func (h *oauthHandler) handleOAuthUser(w http.ResponseWriter, r *http.Request, email, oauthID, state string) {
 	fmt.Printf("handleOAuthUser - State: %s\n", state) // Debugging state parameter
-	user, err := repository.GetUserByEmail(email)
+	user, err := h.userRepo.GetUserByEmail(email)
 	if err != nil {
 		if err.Error() == "user not found" {
 			// User does not exist, we create a new one
@@ -123,7 +137,7 @@ func handleOAuthUser(w http.ResponseWriter, r *http.Request, email, oauthID, sta
 				CPUs:            0,
 				Preferences:     `{}`,
 			}
-			if err := repository.CreateUser(newUser); err != nil {
+			if err := h.userRepo.CreateUser(newUser); err != nil {
 				http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
 				return
 			}

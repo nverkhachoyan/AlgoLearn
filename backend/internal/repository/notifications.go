@@ -1,13 +1,28 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/models"
+	"database/sql"
 )
 
-func GetAllNotifications() ([]models.Notification, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, user_id, content, read, created_at FROM notifications")
+type NotificationsRepository interface {
+	GetAllNotifications() ([]models.Notification, error)
+	GetNotificationByID(id int) (*models.Notification, error)
+	CreateNotification(notification *models.Notification) error
+	UpdateNotification(notification *models.Notification) error
+	DeleteNotification(id int) error
+}
+
+type notificationsRepository struct {
+	db *sql.DB
+}
+
+func NewNotificationsRepository(db *sql.DB) NotificationsRepository {
+	return &notificationsRepository{db: db}
+}
+
+func (r *notificationsRepository) GetAllNotifications() ([]models.Notification, error) {
+	rows, err := r.db.Query("SELECT id, user_id, content, read, created_at FROM notifications")
 	if err != nil {
 		return nil, err
 	}
@@ -30,9 +45,8 @@ func GetAllNotifications() ([]models.Notification, error) {
 	return notifications, nil
 }
 
-func GetNotificationByID(id int) (*models.Notification, error) {
-	db := config.GetDB()
-	row := db.QueryRow("SELECT id, user_id, content, read, created_at FROM notifications WHERE id = $1", id)
+func (r *notificationsRepository) GetNotificationByID(id int) (*models.Notification, error) {
+	row := r.db.QueryRow("SELECT id, user_id, content, read, created_at FROM notifications WHERE id = $1", id)
 
 	var notification models.Notification
 	err := row.Scan(&notification.ID, &notification.UserID, &notification.Content, &notification.Read, &notification.CreatedAt)
@@ -43,26 +57,23 @@ func GetNotificationByID(id int) (*models.Notification, error) {
 	return &notification, nil
 }
 
-func CreateNotification(notification *models.Notification) error {
-	db := config.GetDB()
-	err := db.QueryRow(
+func (r *notificationsRepository) CreateNotification(notification *models.Notification) error {
+	err := r.db.QueryRow(
 		"INSERT INTO notifications (user_id, content, read) VALUES ($1, $2, $3) RETURNING id, created_at",
 		notification.UserID, notification.Content, notification.Read,
 	).Scan(&notification.ID, &notification.CreatedAt)
 	return err
 }
 
-func UpdateNotification(notification *models.Notification) error {
-	db := config.GetDB()
-	_, err := db.Exec(
+func (r *notificationsRepository) UpdateNotification(notification *models.Notification) error {
+	_, err := r.db.Exec(
 		"UPDATE notifications SET user_id = $1, content = $2, read = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
 		notification.UserID, notification.Content, notification.Read, notification.ID,
 	)
 	return err
 }
 
-func DeleteNotification(id int) error {
-	db := config.GetDB()
-	_, err := db.Exec("DELETE FROM notifications WHERE id = $1", id)
+func (r *notificationsRepository) DeleteNotification(id int) error {
+	_, err := r.db.Exec("DELETE FROM notifications WHERE id = $1", id)
 	return err
 }

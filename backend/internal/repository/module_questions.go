@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/lib/pq"
 )
 
@@ -124,7 +125,7 @@ func UpdateQuestion(question *models.ModuleQuestion) error {
 	}
 	if rowCnt == 0 {
 		// Check if the issue is with the module ID or the question ID
-		exists, checkErr := checkModuleAndQuestionExist(db, question.ID, question.ModuleID)
+		exists, checkErr := checkModuleAndQuestionExist(db, int(question.ID), int(question.ModuleID))
 		if checkErr != nil {
 			return checkErr
 		}

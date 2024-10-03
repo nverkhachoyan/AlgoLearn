@@ -32,4 +32,11 @@ clean:
 	@echo "Cleaning up Docker resources (excluding volumes)..."
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down
 
-.PHONY: all run docker-up run-go docker-down clean
+# Prune Docker resources, including volumes
+prune:
+	@echo "Pruning Docker resources and volumes..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down --volumes
+	@docker system prune -f --volumes
+	@echo "All containers, volumes, and unused Docker resources removed."
+
+.PHONY: all run docker-up docker-down clean prune

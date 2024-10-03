@@ -205,8 +205,8 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Uploads avatar to S3 and returns URL
-func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int) (string, error) {
-	objectKey := "users/" + strconv.Itoa(userID) + "/public/avatars/" + uuid.New().String()
+func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int64) (string, error) {
+	objectKey := "users/" + string(userID) + "/public/avatars/" + uuid.New().String()
 
 	putObjectInput := &s3.PutObjectInput{
 		Bucket: aws.String("algolearn"),
@@ -249,7 +249,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := int(claims.UserID)
+	userID := int64(claims.UserID)
 
 	// Parsing multipart form data
 	err = r.ParseMultipartForm(10 << 20) // 10 MB
@@ -318,7 +318,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUserData, err := repository.GetUserByID(userID)
+	newUserData, err := repository.GetUserByID(int(userID))
 
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,

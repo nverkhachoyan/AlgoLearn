@@ -1,4 +1,3 @@
-// internal/repository/courses.go
 package repository
 
 import (
@@ -7,23 +6,50 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/lib/pq"
 )
 
-// GetAllCourses retrieves all courses from the database.
-func GetAllCourses() ([]models.Course, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT * FROM courses")
+type CourseRepository interface {
+	GetAllCourses() ([]models.Course, error)
+	GetCourseByID(id int64) (*models.Course, error)
+	CreateCourse(course *models.Course) (*models.Course, error)
+	UpdateCourse(course *models.Course) (*models.Course, error)
+	DeleteCourse(id int64) error
+	GetAllUnits(courseID int64) ([]models.Unit, error)
+	GetUnitByID(id int64) (*models.Unit, error)
+	CreateUnit(unit *models.Unit) error
+	UpdateUnit(unit *models.Unit) error
+	DeleteUnit(id int64) error
+	GetAllModulesPartial(unitID int64) ([]models.Module, error)
+	GetAllModules(unitID int64) ([]models.Module, error)
+	GetModuleByID(id int64) (*models.Module, error)
+	CreateModule(module *models.Module) error
+	UpdateModule(module *models.Module) error
+	DeleteModule(id int64) error
+}
+
+type courseRepository struct {
+	db *sql.DB
+}
+
+func NewCourseRepository(db *sql.DB) CourseRepository {
+	return &courseRepository{db: db}
+}
+
+func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
+	rows, err := r.db.Query("SELECT * FROM courses")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var courses []models.Course
+
 	for rows.Next() {
 		var course models.Course
-		var tags pq.StringArray // Use pq.StringArray for scanning PostgreSQL arrays
+
 		err := rows.Scan(
 			&course.ID,
 			&course.CreatedAt,
@@ -34,16 +60,15 @@ func GetAllCourses() ([]models.Course, error) {
 			&course.IconURL,
 			&course.Duration,
 			&course.DifficultyLevel,
-			&course.Author,
-			&tags, // Scan into pq.StringArray
+			&course.Authors,
+			&course.Tags,
 			&course.Rating,
 			&course.LearnersCount,
-			&course.LastUpdated,
 		)
 		if err != nil {
 			return nil, err
 		}
-		course.Tags = []string(tags) // Convert pq.StringArray to []string
+
 		courses = append(courses, course)
 	}
 
@@ -54,13 +79,10 @@ func GetAllCourses() ([]models.Course, error) {
 	return courses, nil
 }
 
-// GetCourseByID retrieves a course by its ID.
-func GetCourseByID(id int) (*models.Course, error) {
-	db := config.GetDB()
-	row := db.QueryRow("SELECT id, created_at, updated_at, name, description, background_color, icon_url, duration, difficulty_level, author, tags, rating, learners_count, last_updated FROM courses WHERE id = $1", id)
+func (r *courseRepository) GetCourseByID(id int64) (*models.Course, error) {
+	row := r.db.QueryRow("SELECT * FROM courses WHERE id = $1", id)
 
 	var course models.Course
-	var tags pq.StringArray
 	err := row.Scan(
 		&course.ID,
 		&course.CreatedAt,
@@ -71,44 +93,190 @@ func GetCourseByID(id int) (*models.Course, error) {
 		&course.IconURL,
 		&course.Duration,
 		&course.DifficultyLevel,
-		&course.Author,
-		&tags,
+		&course.Authors,
+		&course.Tags,
 		&course.Rating,
 		&course.LearnersCount,
-		&course.LastUpdated,
 	)
 	if err != nil {
 		return nil, err
 	}
-	course.Tags = []string(tags)
 
 	return &course, nil
 }
 
-// CreateCourse inserts a new course into the database.
-func CreateCourse(course *models.Course) error {
-	db := config.GetDB()
-	err := db.QueryRow(
-		"INSERT INTO courses (name, description, background_color, icon_url, duration, difficulty_level, author, tags, rating, learners_count) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at",
-		course.Name, course.Description, course.BackgroundColor, course.IconURL, course.Duration, course.DifficultyLevel, course.Author, pq.Array(course.Tags), course.Rating, course.LearnersCount,
-	).Scan(&course.ID, &course.CreatedAt, &course.UpdatedAt)
-	return err
-}
-
-// UpdateCourse updates an existing course in the database.
-func UpdateCourse(course *models.Course) error {
-	db := config.GetDB()
-	_, err := db.Exec(
-		"UPDATE courses SET name = $1, description = $2, background_color = $3, icon_url = $4, duration = $5, difficulty_level = $6, author = $7, tags = $8, rating = $9, learners_count = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11",
-		course.Name, course.Description, course.BackgroundColor, course.IconURL, course.Duration, course.DifficultyLevel, course.Author, pq.Array(course.Tags), course.Rating, course.LearnersCount, course.ID,
+func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, error) {
+	var createdCourse models.Course
+	err := r.db.QueryRow(
+		`INSERT INTO courses 
+				(name, 
+				description, 
+				background_color, 
+				icon_url, 
+				duration, 
+				difficulty_level, 
+				authors, 
+				tags, 
+				rating, 
+				learners_count) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+			RETURNING 
+				name, 
+				description, 
+				background_color, 
+				icon_url, 
+				duration, 
+				difficulty_level, 
+				authors, 
+				tags, 
+				rating, 
+				learners_count`,
+		course.Name,
+		course.Description,
+		course.BackgroundColor,
+		course.IconURL,
+		course.Duration,
+		course.DifficultyLevel,
+		course.Authors,
+		course.Tags,
+		course.Rating,
+		course.LearnersCount,
+	).Scan(
+		&createdCourse.Name,
+		&createdCourse.Description,
+		&createdCourse.BackgroundColor,
+		&createdCourse.IconURL,
+		&createdCourse.Duration,
+		&createdCourse.DifficultyLevel,
+		&createdCourse.Authors,
+		&createdCourse.Tags,
+		&createdCourse.Rating,
+		&createdCourse.LearnersCount,
 	)
-	return err
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &createdCourse, nil
 }
 
-// DeleteCourse deletes a course by its ID.
-func DeleteCourse(id int) error {
-	db := config.GetDB()
-	_, err := db.Exec("DELETE FROM courses WHERE id = $1", id)
+func (r *courseRepository) UpdateCourse(course *models.Course) (*models.Course, error) {
+	query := "UPDATE courses SET "
+	setClauses := []string{}
+	args := []interface{}{}
+	argID := 1
+
+	addSetClause := func(field string, value interface{}) {
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argID))
+		args = append(args, value)
+		argID++
+	}
+
+	// These are custom NullableStringSlice types
+	if len(course.Authors) > 0 {
+		addSetClause("authors", course.Authors)
+
+	}
+	if len(course.Tags) > 0 {
+		addSetClause("tags", course.Tags)
+	}
+
+	if course.Name.Present {
+		if course.Name.Valid {
+			addSetClause("name", course.Name.Val)
+		} else {
+			addSetClause("name", nil)
+		}
+	}
+
+	if course.Description.Present {
+		if course.Description.Valid {
+			addSetClause("description", course.Description.Val)
+		} else {
+			addSetClause("description", nil)
+		}
+	}
+	if course.BackgroundColor.Present {
+		if course.BackgroundColor.Valid {
+			addSetClause("background_color", course.BackgroundColor.Val)
+		} else {
+			addSetClause("background_color", nil)
+		}
+	}
+	if course.IconURL.Present {
+		if course.IconURL.Valid {
+			addSetClause("icon_url", course.IconURL.Val)
+		} else {
+			addSetClause("icon_url", nil)
+		}
+	}
+	if course.Duration.Present {
+		if course.Duration.Valid {
+			addSetClause("duration", course.Duration.Val)
+		} else {
+			addSetClause("duration", nil)
+		}
+	}
+	if course.DifficultyLevel.Present {
+		if course.DifficultyLevel.Valid {
+			addSetClause("difficulty_level", course.DifficultyLevel.Val)
+		} else {
+			addSetClause("difficulty_level", nil)
+		}
+	}
+
+	if course.Rating.Present {
+		if course.Rating.Valid {
+			addSetClause("rating", course.Rating.Val)
+		} else {
+			addSetClause("rating", nil)
+		}
+	}
+	if course.LearnersCount.Present {
+		if course.LearnersCount.Valid {
+			addSetClause("learners_count", course.LearnersCount.Val)
+		} else {
+			addSetClause("learners_count", nil)
+		}
+	}
+
+	setClauses = append(setClauses, "updated_at = CURRENT_TIMESTAMP")
+	query += strings.Join(setClauses, ", ")
+	query += fmt.Sprintf(` WHERE id = $%d RETURNING name, 
+				description, 
+				background_color, 
+				icon_url, 
+				duration, 
+				difficulty_level, 
+				authors, 
+				tags, 
+				rating, 
+				learners_count;`, argID)
+	args = append(args, course.ID)
+
+	var updatedCourse models.Course
+	err := r.db.QueryRow(query, args...).Scan(
+		&updatedCourse.Name,
+		&updatedCourse.Description,
+		&updatedCourse.BackgroundColor,
+		&updatedCourse.IconURL,
+		&updatedCourse.Duration,
+		&updatedCourse.DifficultyLevel,
+		&updatedCourse.Authors,
+		&updatedCourse.Tags,
+		&updatedCourse.Rating,
+		&updatedCourse.LearnersCount,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update course ID %d: %v", course.ID, err)
+	}
+
+	return &updatedCourse, nil
+}
+
+func (r *courseRepository) DeleteCourse(id int64) error {
+	_, err := r.db.Exec("DELETE FROM courses WHERE id = $1", id)
 	return err
 }
 
@@ -116,10 +284,8 @@ func DeleteCourse(id int) error {
 // **** UNITS ****
 // *****************
 
-// GetAllUnits retrieves all units for a specific course.
-func GetAllUnits(courseID int) ([]models.Unit, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT * FROM units WHERE course_id = $1", courseID)
+func (r *courseRepository) GetAllUnits(courseID int64) ([]models.Unit, error) {
+	rows, err := r.db.Query("SELECT * FROM units WHERE course_id = $1", courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,10 +315,8 @@ func GetAllUnits(courseID int) ([]models.Unit, error) {
 	return units, nil
 }
 
-// GetUnitByID retrieves a unit by its ID.
-func GetUnitByID(id int) (*models.Unit, error) {
-	db := config.GetDB()
-	row := db.QueryRow("SELECT id, created_at, updated_at, course_id, name, description FROM units WHERE id = $1", id)
+func (r *courseRepository) GetUnitByID(id int64) (*models.Unit, error) {
+	row := r.db.QueryRow("SELECT id, created_at, updated_at, course_id, name, description FROM units WHERE id = $1", id)
 
 	var unit models.Unit
 	err := row.Scan(
@@ -170,21 +334,16 @@ func GetUnitByID(id int) (*models.Unit, error) {
 	return &unit, nil
 }
 
-// CreateUnit inserts a new unit into the database.
-func CreateUnit(unit *models.Unit) error {
-	db := config.GetDB()
-	err := db.QueryRow(
+func (r *courseRepository) CreateUnit(unit *models.Unit) error {
+	err := r.db.QueryRow(
 		"INSERT INTO units (course_id, name, description) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at",
 		unit.CourseID, unit.Name, unit.Description,
 	).Scan(&unit.ID, &unit.CreatedAt, &unit.UpdatedAt)
 	return err
 }
 
-// UpdateUnit updates an existing unit in the database.
-func UpdateUnit(unit *models.Unit) error {
-	db := config.GetDB()
-
-	result, err := db.Exec(
+func (r *courseRepository) UpdateUnit(unit *models.Unit) error {
+	result, err := r.db.Exec(
 		"UPDATE units SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
 		unit.Name, unit.Description, unit.ID,
 	)
@@ -199,7 +358,6 @@ func UpdateUnit(unit *models.Unit) error {
 		return fmt.Errorf("could not retrieve affected rows: %w", err)
 	}
 
-	// If no rows were affected, return a custom error
 	if rowsAffected == 0 {
 		return fmt.Errorf("no rows were updated, unit with id %d may not exist", unit.ID)
 	}
@@ -207,10 +365,8 @@ func UpdateUnit(unit *models.Unit) error {
 	return nil
 }
 
-// DeleteUnit deletes a unit by its ID.
-func DeleteUnit(id int) error {
-	db := config.GetDB()
-	_, err := db.Exec("DELETE FROM units WHERE id = $1", id)
+func (r *courseRepository) DeleteUnit(id int64) error {
+	_, err := r.db.Exec("DELETE FROM units WHERE id = $1", id)
 	return err
 }
 
@@ -218,10 +374,8 @@ func DeleteUnit(id int) error {
 // **** MODULES ****
 // ********************
 
-// GetAllModulesPartial retrieves all modules for a specific unit except the content for it.
-func GetAllModulesPartial(unitID int) ([]models.Module, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
+func (r *courseRepository) GetAllModulesPartial(unitID int64) ([]models.Module, error) {
+	rows, err := r.db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
 	if err != nil {
 		return nil, err
 	}
@@ -253,10 +407,8 @@ func GetAllModulesPartial(unitID int) ([]models.Module, error) {
 	return modules, nil
 }
 
-// GetAllModulesPartial retrieves all modules for a specific unit except the content for it.
-func GetAllModules(unitID int) ([]models.Module, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
+func (r *courseRepository) GetAllModules(unitID int64) ([]models.Module, error) {
+	rows, err := r.db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
 	if err != nil {
 		return nil, err
 	}
@@ -288,10 +440,8 @@ func GetAllModules(unitID int) ([]models.Module, error) {
 	return modules, nil
 }
 
-// GetModuleByID retrieves a module by its ID, including its sections.
-func GetModuleByID(id int) (*models.Module, error) {
-	db := config.GetDB()
-	row := db.QueryRow("SELECT id, created_at, updated_at, unit_id, course_id, name, description, content FROM modules WHERE id = $1", id)
+func (r *courseRepository) GetModuleByID(id int64) (*models.Module, error) {
+	row := r.db.QueryRow("SELECT id, created_at, updated_at, unit_id, course_id, name, description, content FROM modules WHERE id = $1", id)
 
 	var module models.Module
 	var content []byte
@@ -309,20 +459,33 @@ func GetModuleByID(id int) (*models.Module, error) {
 		return nil, err
 	}
 
-	// Fetch sections for this module
-	sections, err := GetSectionsByModuleID(module.ID)
+	sections, err := r.GetSectionsByModuleID(int(module.ID))
 	if err != nil {
 		return nil, err
 	}
-	module.Content.Sections = sections
+	module.Sections = sections
 
 	return &module, nil
 }
 
-// GetSectionsByModuleID retrieves sections for a given module ID.
-func GetSectionsByModuleID(moduleID int) ([]models.Section, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, type, position, content, url, question_id, question, correct_answer_ids, animation, description FROM sections WHERE module_id = $1 ORDER BY position", moduleID)
+func (r *courseRepository) GetSectionsByModuleID(moduleID int) ([]models.Section, error) {
+	rows, err := r.db.Query(`
+	SELECT 
+		id, 
+		type, 
+		position, 
+		content, 
+		url, 
+		question_id, 
+		question, 
+		correct_answer_ids, 
+		animation, 
+		description 
+		FROM sections 
+	WHERE module_id = $1 
+	ORDER BY position`,
+		moduleID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -330,70 +493,22 @@ func GetSectionsByModuleID(moduleID int) ([]models.Section, error) {
 
 	var sections []models.Section
 	for rows.Next() {
-		var baseSection models.BaseSection
-		var content, url, animation, description sql.NullString
-		var questionID sql.NullInt64
-		var question sql.NullString
-		var sectionID sql.NullInt64
-		var correctAnswerIDs pq.Int64Array
+		var section models.Section
 
 		err := rows.Scan(
-			&sectionID,
-			&baseSection.Type,
-			&baseSection.Position,
-			&content,
-			&url,
-			&questionID,
-			&question,
-			&correctAnswerIDs,
-			&animation,
-			&description,
+			&section.ID,
+			&section.Type,
+			&section.Position,
+			&section.Content,
+			&section.URL,
+			&section.QuestionID,
+			&section.Question,
+			pq.Array(&section.CorrectAnswerIDs),
+			&section.Animation,
+			&section.Description,
 		)
 		if err != nil {
 			return nil, err
-		}
-
-		// Convert pq.Int64Array to []int
-		correctAnswerIDsInt := make([]int, len(correctAnswerIDs))
-		for i, id := range correctAnswerIDs {
-			correctAnswerIDsInt[i] = int(id)
-		}
-
-		var section models.Section
-		switch baseSection.Type {
-		case "text":
-			section = models.TextSection{
-				BaseSection: baseSection,
-				Content:     content.String,
-			}
-		case "question":
-			section = models.QuestionSection{
-				BaseSection:      baseSection,
-				QuestionID:       int(questionID.Int64),
-				Question:         question.String,
-				CorrectAnswerIDs: correctAnswerIDsInt,
-			}
-		case "video":
-			section = models.VideoSection{
-				BaseSection: baseSection,
-				URL:         url.String,
-			}
-		case "code":
-			section = models.CodeSection{
-				BaseSection: baseSection,
-				Content:     content.String,
-			}
-		case "lottie":
-			section = models.LottieSection{
-				BaseSection: baseSection,
-				Animation:   animation.String,
-			}
-		case "image":
-			section = models.ImageSection{
-				BaseSection: baseSection,
-				Url:         url.String,
-				Description: description.String,
-			}
 		}
 
 		sections = append(sections, section)
@@ -406,37 +521,37 @@ func GetSectionsByModuleID(moduleID int) ([]models.Section, error) {
 	return sections, nil
 }
 
-// CreateModule inserts a new module into the database.
-func CreateModule(module *models.Module) error {
-	db := config.GetDB()
-	content, err := json.Marshal(module.Content)
+func (r *courseRepository) CreateModule(module *models.Module) error {
+	sections, err := json.Marshal(module.Sections)
 	if err != nil {
 		return err
 	}
-	err = db.QueryRow(
+	err = r.db.QueryRow(
 		"INSERT INTO modules (unit_id, course_id, name, description, content) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at",
-		module.UnitID, module.CourseID, module.Name, module.Description, content,
+		module.UnitID, module.CourseID, module.Name, module.Description, sections,
 	).Scan(&module.ID, &module.CreatedAt, &module.UpdatedAt)
 	return err
 }
 
-// UpdateModule updates an existing module in the database.
-func UpdateModule(module *models.Module) error {
-	db := config.GetDB()
-	content, err := json.Marshal(module.Content)
+func (r *courseRepository) UpdateModule(module *models.Module) error {
+	content, err := json.Marshal(module.Sections)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(
-		"UPDATE modules SET name = $1, description = $2, content = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
+	_, err = r.db.Exec(
+		`UPDATE modules SET 
+			name = $1, 
+			description = $2, 
+			content = $3, 
+			updated_at = 
+			CURRENT_TIMESTAMP 
+		WHERE id = $4`,
 		module.Name, module.Description, content, module.ID,
 	)
 	return err
 }
 
-// DeleteModule deletes a module by its ID.
-func DeleteModule(id int) error {
-	db := config.GetDB()
-	_, err := db.Exec("DELETE FROM modules WHERE id = $1", id)
+func (r *courseRepository) DeleteModule(id int64) error {
+	_, err := r.db.Exec("DELETE FROM modules WHERE id = $1", id)
 	return err
 }

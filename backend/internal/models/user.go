@@ -37,7 +37,9 @@ const (
 
 // Tracking user progress for each module
 type UserModuleProgress struct {
-	BaseModel
+	ID              int                  `json:"id"`
+	CreatedAt       time.Time            `json:"created_at"`
+	UpdatedAt       time.Time            `json:"updated_at"`
 	UserID          int                  `json:"user_id"`
 	ModuleID        int                  `json:"module_id"`
 	StartedAt       time.Time            `json:"started_at"`

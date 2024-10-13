@@ -75,6 +75,8 @@ func SetupRouter(
 	// Modules endpoints
 	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules_partial", courseHandler.GetAllModulesPartial).Methods("GET")
 	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", courseHandler.GetAllModules).Methods("GET")
+	public.HandleFunc("/units/{unit_id}/modules/{module_id}/", courseHandler.GetModuleByModuleID).Methods("GET")
+
 	// public.HandleFunc("/modules/{module_id}", courseHandler.GetModuleByID).Methods("GET")
 	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", courseHandler.CreateModule).Methods("POST")
 	authorized.HandleFunc("/modules/{module_id}", courseHandler.UpdateModule).Methods("PUT")

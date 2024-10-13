@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/LukaGiorgadze/gonull"
 
 	"github.com/lib/pq"
 )
@@ -24,7 +27,7 @@ type CourseRepository interface {
 	DeleteUnit(id int64) error
 	GetAllModulesPartial(unitID int64) ([]models.Module, error)
 	GetAllModules(unitID int64) ([]models.Module, error)
-	GetModuleByID(id int64) (*models.Module, error)
+	GetModuleByModuleID(unitID int64, moduleID int64) (*models.Module, error)
 	CreateModule(module *models.Module) error
 	UpdateModule(module *models.Module) error
 	DeleteModule(id int64) error
@@ -49,24 +52,29 @@ func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
 
 	for rows.Next() {
 		var course models.Course
+		var difficultyLevel sql.NullString
 
 		err := rows.Scan(
-			&course.ID,
-			&course.CreatedAt,
-			&course.UpdatedAt,
+			&course.BaseModel.ID,
+			&course.BaseModel.CreatedAt,
+			&course.BaseModel.UpdatedAt,
 			&course.Name,
 			&course.Description,
 			&course.BackgroundColor,
 			&course.IconURL,
 			&course.Duration,
-			&course.DifficultyLevel,
-			&course.Authors,
-			&course.Tags,
+			&difficultyLevel,
 			&course.Rating,
 			&course.LearnersCount,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if difficultyLevel.Valid {
+			course.DifficultyLevel = gonull.NewNullable(difficultyLevel.String)
+		} else {
+			course.DifficultyLevel = gonull.NewNullable("")
 		}
 
 		courses = append(courses, course)
@@ -79,26 +87,48 @@ func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
 	return courses, nil
 }
 
-func (r *courseRepository) GetCourseByID(id int64) (*models.Course, error) {
-	row := r.db.QueryRow("SELECT * FROM courses WHERE id = $1", id)
+func (r *courseRepository) GetCourseByID(courseID int64) (*models.Course, error) {
+	query := `
+		SELECT 
+			c.id, c.name, c.description, c.background_color, 
+			c.icon_url, c.duration, c.difficulty_level, c.rating, c.learners_count,
+			COALESCE(jsonb_agg(DISTINCT a.name) FILTER (WHERE a.id IS NOT NULL), '[]') AS authors,
+			COALESCE(jsonb_agg(DISTINCT t.name) FILTER (WHERE t.id IS NOT NULL), '[]') AS tags
+		FROM 
+			courses c
+		LEFT JOIN course_authors ca ON c.id = ca.course_id
+		LEFT JOIN authors a ON ca.author_id = a.id
+		LEFT JOIN course_tags ct ON c.id = ct.course_id
+		LEFT JOIN tags t ON ct.tag_id = t.id
+		WHERE 
+			c.id = $1
+		GROUP BY 
+			c.id;
+	`
 
 	var course models.Course
-	err := row.Scan(
-		&course.ID,
-		&course.CreatedAt,
-		&course.UpdatedAt,
-		&course.Name,
-		&course.Description,
-		&course.BackgroundColor,
-		&course.IconURL,
-		&course.Duration,
-		&course.DifficultyLevel,
-		&course.Authors,
-		&course.Tags,
-		&course.Rating,
-		&course.LearnersCount,
+	var authors, tags []byte
+	var difficultyLevel sql.NullString
+
+	err := r.db.QueryRow(query, courseID).Scan(
+		&course.ID, &course.Name, &course.Description, &course.BackgroundColor,
+		&course.IconURL, &course.Duration, &difficultyLevel, &course.Rating,
+		&course.LearnersCount, &authors, &tags,
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	if difficultyLevel.Valid {
+		course.DifficultyLevel = gonull.NewNullable(difficultyLevel.String)
+	} else {
+		course.DifficultyLevel = gonull.NewNullable("")
+	}
+
+	if err := json.Unmarshal(authors, &course.Authors); err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(tags, &course.Tags); err != nil {
 		return nil, err
 	}
 
@@ -115,12 +145,11 @@ func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, 
 				icon_url, 
 				duration, 
 				difficulty_level, 
-				authors, 
-				tags, 
 				rating, 
 				learners_count) 
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
 			RETURNING 
+				id,
 				name, 
 				description, 
 				background_color, 
@@ -142,6 +171,7 @@ func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, 
 		course.Rating,
 		course.LearnersCount,
 	).Scan(
+		&createdCourse.ID,
 		&createdCourse.Name,
 		&createdCourse.Description,
 		&createdCourse.BackgroundColor,
@@ -375,7 +405,16 @@ func (r *courseRepository) DeleteUnit(id int64) error {
 // ********************
 
 func (r *courseRepository) GetAllModulesPartial(unitID int64) ([]models.Module, error) {
-	rows, err := r.db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
+	rows, err := r.db.Query(`
+	SELECT 	id, 
+		  	created_at, 
+			updated_at, 
+			unit_id, 
+			course_id, 
+			name, 
+			description 
+	FROM modules WHERE unit_id = $1`,
+		unitID)
 	if err != nil {
 		return nil, err
 	}
@@ -408,64 +447,234 @@ func (r *courseRepository) GetAllModulesPartial(unitID int64) ([]models.Module, 
 }
 
 func (r *courseRepository) GetAllModules(unitID int64) ([]models.Module, error) {
-	rows, err := r.db.Query("SELECT id, created_at, updated_at, unit_id, course_id, name, description FROM modules WHERE unit_id = $1", unitID)
+	rows, err := r.db.Query(`
+	SELECT 
+		m.id AS module_id,
+		m.created_at AS module_created_at,
+		m.updated_at AS module_updated_at,
+		m.unit_id,
+		m.course_id,
+		m.name AS module_name,
+		m.description AS module_description,
+		s.id AS section_id,
+		s.type,
+		s.position,
+		s.content,
+		s.question_id,
+		s.question,
+		s.user_answer_id,
+		s.correct_answer_ids,
+		s.url,
+		s.animation,
+		s.description AS section_description
+	FROM 
+		modules m
+	LEFT JOIN 
+		sections s ON m.id = s.module_id
+	WHERE 
+		m.unit_id = $1
+	ORDER BY m.id, s.position;`, unitID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var modules []models.Module
+	var modulesMap = make(map[int64]models.Module)
 	for rows.Next() {
-		var module models.Module
+		var (
+			moduleID          int64
+			createdAt         time.Time
+			updatedAt         time.Time
+			unitID            int64
+			courseID          int64
+			moduleName        string
+			moduleDescription string
+			section           models.Section
+			sectionID         sql.NullInt64
+		)
+
 		err := rows.Scan(
-			&module.ID,
-			&module.CreatedAt,
-			&module.UpdatedAt,
-			&module.UnitID,
-			&module.CourseID,
-			&module.Name,
-			&module.Description,
+			&moduleID,
+			&createdAt,
+			&updatedAt,
+			&unitID,
+			&courseID,
+			&moduleName,
+			&moduleDescription,
+			&sectionID,
+			&section.Type,
+			&section.Position,
+			&section.Content,
+			&section.QuestionID,
+			&section.Question,
+			&section.UserAnswerID,
+			pq.Array(&section.CorrectAnswerIDs),
+			&section.URL,
+			&section.Animation,
+			&section.Description,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		modules = append(modules, module)
+		module, exists := modulesMap[moduleID]
+		if !exists {
+			module = models.Module{
+				BaseModel: models.BaseModel{
+					ID:        moduleID,
+					CreatedAt: createdAt,
+					UpdatedAt: updatedAt,
+				},
+				UnitID:      unitID,
+				CourseID:    courseID,
+				Name:        moduleName,
+				Description: moduleDescription,
+				Sections:    []models.Section{},
+			}
+		}
+
+		if sectionID.Valid {
+			section.ID = sectionID.Int64
+			module.Sections = append(module.Sections, section)
+		}
+
+		modulesMap[moduleID] = module
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
+	var modules []models.Module
+	for _, module := range modulesMap {
+		modules = append(modules, module)
+	}
+
 	return modules, nil
 }
 
-func (r *courseRepository) GetModuleByID(id int64) (*models.Module, error) {
-	row := r.db.QueryRow("SELECT id, created_at, updated_at, unit_id, course_id, name, description, content FROM modules WHERE id = $1", id)
+// func (r *courseRepository) GetModuleByID(id int64) (*models.Module, error) {
+// 	row := r.db.QueryRow("SELECT id, created_at, updated_at, unit_id, course_id, name, description, content FROM modules WHERE id = $1", id)
 
-	var module models.Module
-	var content []byte
-	err := row.Scan(
-		&module.ID,
-		&module.CreatedAt,
-		&module.UpdatedAt,
-		&module.UnitID,
-		&module.CourseID,
-		&module.Name,
-		&module.Description,
-		&content,
-	)
+// 	var module models.Module
+// 	var content []byte
+// 	err := row.Scan(
+// 		&module.ID,
+// 		&module.CreatedAt,
+// 		&module.UpdatedAt,
+// 		&module.UnitID,
+// 		&module.CourseID,
+// 		&module.Name,
+// 		&module.Description,
+// 		&content,
+// 	)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	sections, err := r.GetSectionsByModuleID(int(module.ID))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	module.Sections = sections
+
+// 	return &module, nil
+// }
+
+func (r *courseRepository) GetModuleByModuleID(unitID int64, moduleID int64) (*models.Module, error) {
+	rows, err := r.db.Query(`
+	SELECT 
+		m.id AS module_id,
+		m.created_at AS module_created_at,
+		m.updated_at AS module_updated_at,
+		m.unit_id,
+		m.course_id,
+		m.name AS module_name,
+		m.description AS module_description,
+		s.id AS section_id,
+		s.type,
+		s.position,
+		s.content,
+		s.question_id,
+		s.question,
+		s.user_answer_id,
+		s.correct_answer_ids,
+		s.url,
+		s.animation,
+		s.description AS section_description
+	FROM 
+		modules m
+	LEFT JOIN 
+		sections s ON m.id = s.module_id
+	WHERE 
+		m.unit_id = $1 AND m.id = $2
+	ORDER BY m.id, s.position;`, unitID, moduleID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	sections, err := r.GetSectionsByModuleID(int(module.ID))
-	if err != nil {
+	var module *models.Module
+	for rows.Next() {
+		var (
+			section   models.Section
+			sectionID sql.NullInt64
+		)
+
+		err := rows.Scan(
+			&module.BaseModel.ID,
+			&module.BaseModel.CreatedAt,
+			&module.BaseModel.UpdatedAt,
+			&module.UnitID,
+			&module.CourseID,
+			&module.Name,
+			&module.Description,
+			&sectionID,
+			&section.Type,
+			&section.Position,
+			&section.Content,
+			&section.QuestionID,
+			&section.Question,
+			&section.UserAnswerID,
+			pq.Array(&section.CorrectAnswerIDs),
+			&section.URL,
+			&section.Animation,
+			&section.Description,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if module == nil {
+			module = &models.Module{
+				BaseModel: models.BaseModel{
+					ID:        module.BaseModel.ID,
+					CreatedAt: module.BaseModel.CreatedAt,
+					UpdatedAt: module.BaseModel.UpdatedAt,
+				},
+				UnitID:      module.UnitID,
+				CourseID:    module.CourseID,
+				Name:        module.Name,
+				Description: module.Description,
+				Sections:    []models.Section{},
+			}
+		}
+
+		if sectionID.Valid {
+			section.ID = sectionID.Int64
+			module.Sections = append(module.Sections, section)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	module.Sections = sections
 
-	return &module, nil
+	if module == nil {
+		return nil, sql.ErrNoRows
+	}
+
+	return module, nil
 }
 
 func (r *courseRepository) GetSectionsByModuleID(moduleID int) ([]models.Section, error) {

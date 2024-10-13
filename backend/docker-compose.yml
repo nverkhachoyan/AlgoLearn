@@ -1,17 +1,23 @@
+name: algolearn
 services:
   db:
     image: postgres:latest
     container_name: algolearn_postgres
     environment:
-      POSTGRES_USER: algoadmin
-      POSTGRES_PASSWORD: algolearn4stml
-      POSTGRES_DB: algolearn
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
-      - ${POSTGRES_DATA_DEVICE}/{POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_DEVICE}/${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
     networks:
       - algolearn-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 0s
+      retries: 10
 
   app:
     build:
@@ -19,11 +25,12 @@ services:
       dockerfile: Dockerfile
     container_name: algolearn_app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - algolearn-net
     environment:
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - DATABASE_URL=${DATABASE_URL}
       - PORT=8080
     ports:
       - "8080:8080"

@@ -28,6 +28,7 @@ type CourseHandler interface {
 	DeleteUnit(w http.ResponseWriter, r *http.Request)
 	GetAllModules(w http.ResponseWriter, r *http.Request)
 	GetAllModulesPartial(w http.ResponseWriter, r *http.Request)
+	GetModuleByModuleID(w http.ResponseWriter, r *http.Request)
 	CreateModule(w http.ResponseWriter, r *http.Request)
 	UpdateModule(w http.ResponseWriter, r *http.Request)
 	DeleteModule(w http.ResponseWriter, r *http.Request)
@@ -621,9 +622,10 @@ func (h *courseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *courseHandler) GetModuleByID(w http.ResponseWriter, r *http.Request) {
+func (h *courseHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	id, err := strconv.ParseInt(params["module_id"], 10, 64)
+	unitID, err := strconv.ParseInt(params["units"], 10, 64)
+	moduleID, err := strconv.ParseInt(params["modules"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
@@ -633,9 +635,9 @@ func (h *courseHandler) GetModuleByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	module, err := h.repo.GetModuleByID(id)
+	module, err := h.repo.GetModuleByModuleID(unitID, moduleID)
 	if err != nil {
-		log.Printf("Error fetching module %d: %v", id, err)
+		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not retrieve module",
@@ -740,6 +742,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
+	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
 		config.Log.Debug("Invalid module ID format in the route")
@@ -762,7 +765,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 	module.ID = moduleID
 
-	_, err = h.repo.GetModuleByID(moduleID)
+	_, err = h.repo.GetModuleByModuleID(unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -801,6 +804,7 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
+	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
 		config.Log.Debug("Invalid module ID format in the route")
@@ -823,7 +827,7 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.repo.GetModuleByID(moduleID)
+	_, err = h.repo.GetModuleByModuleID(unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{

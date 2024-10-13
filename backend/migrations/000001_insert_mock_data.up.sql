@@ -1,200 +1,258 @@
--- Insert mock users
-INSERT INTO users (
-    username, email, oauth_id, role, password_hash, first_name, last_name, 
-    profile_picture_url, bio, location, cpus, preferences, learners_count
-) VALUES
-('john_doe', 'john@example.com', NULL, 'student', 'hashed_password_1', 'John', 'Doe', 
- 'https://example.com/john.jpg', 'A passionate learner.', 'Los Angeles', 2, 
- '{"theme":"dark","notifications":true}', 5),
-('jane_smith', 'jane@example.com', NULL, 'teacher', 'hashed_password_2', 'Jane', 'Smith', 
- 'https://example.com/jane.jpg', 'A skilled educator.', 'New York', 4, 
- '{"theme":"light","notifications":false}', 10);
+-- Data Inserts
 
+-- 1. Insert Data into 'users' Table
+INSERT INTO users (id, username, email, role, password_hash, first_name, last_name, is_active, is_email_verified)
+VALUES
+(1, 'admin_user', 'admin@example.com', 'admin', 'hashedpassword1', 'Alice', 'Admin', TRUE, TRUE),
+(2, 'instructor_bob', 'bob@example.com', 'instructor', 'hashedpassword2', 'Bob', 'Builder', TRUE, TRUE),
+(3, 'instructor_carol', 'carol@example.com', 'instructor', 'hashedpassword3', 'Carol', 'Creator', TRUE, TRUE),
+(4, 'student_dave', 'dave@example.com', 'student', 'hashedpassword4', 'Dave', 'Doe', TRUE, TRUE),
+(5, 'student_eve', 'eve@example.com', 'student', 'hashedpassword5', 'Eve', 'Evans', TRUE, TRUE);
 
--- Insert mock courses
-INSERT INTO courses (
-    name, description, background_color, icon_url, duration, difficulty_level, 
-    authors, tags, rating, learners_count
-) VALUES
-('Intro to Algorithms', 'A beginner-friendly course on algorithms.', '#FFFFFF', 
- 'https://example.com/icon1.png', '10 hours', 'Beginner', 
- ARRAY['Jane Smith'], ARRAY['algorithms', 'sorting', 'search'], 4.5, 100),
-('Advanced Databases', 'Deep dive into database management systems.', '#0000FF', 
- 'https://example.com/icon2.png', '20 hours', 'Advanced', 
- ARRAY['John Doe', 'Jane Smith'], ARRAY['databases', 'SQL', 'NoSQL'], 4.7, 200);
+-- 2. Insert Data into 'authors' Table
+INSERT INTO authors (id, name)
+VALUES
+(1, 'Bob Builder'),
+(2, 'Carol Creator'),
+(3, 'Dan Developer'),
+(4, 'Eve Evans'),
+(5, 'Frank Farmer');
 
--- Insert mock units
-INSERT INTO units (course_id, name, description) VALUES
-(1, 'Sorting Algorithms', 'Learn how different sorting algorithms work.'),
-(1, 'Searching Algorithms', 'Explore various searching techniques.'),
-(2, 'SQL Basics', 'Introduction to SQL and relational databases.'),
-(2, 'NoSQL Databases', 'Explore non-relational databases and their advantages.');
+-- 3. Insert Data into 'tags' Table
+INSERT INTO tags (id, name)
+VALUES
+(1, 'Programming'),
+(2, 'Algorithms'),
+(3, 'Data Structures'),
+(4, 'Mathematics'),
+(5, 'Computer Science');
 
+-- 4. Insert Data into 'courses' Table
+INSERT INTO courses (id, name, description, duration, difficulty_level, rating, learners_count)
+VALUES
+(1, 'Introduction to Programming', 'Learn the basics of programming.', 120, 'beginner', 4.5, 100),
+(2, 'Advanced Algorithms', 'Explore advanced algorithm concepts.', 180, 'advanced', 4.7, 80),
+(3, 'Data Structures', 'Understand fundamental data structures.', 150, 'intermediate', 4.6, 90),
+(4, 'Discrete Mathematics', 'Mathematical foundations for CS.', 200, 'intermediate', 4.4, 70),
+(5, 'Machine Learning', 'Introduction to machine learning.', 220, 'expert', 4.8, 60);
 
--- Insert mock modules
-INSERT INTO modules (unit_id, course_id, name, description) VALUES
-(1, 1, 'Bubble Sort', 'Understand how Bubble Sort works.'),
-(1, 1, 'Quick Sort', 'Learn Quick Sort and its efficiency.'),
-(2, 1, 'Binary Search', 'Learn Binary Search and its applications.'),
-(3, 2, 'Writing SQL Queries', 'Learn to write basic SQL queries.'),
-(4, 2, 'Understanding NoSQL', 'Learn the fundamentals of NoSQL databases.');
+-- 5. Insert Data into 'course_authors' Table
+INSERT INTO course_authors (course_id, author_id)
+VALUES
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 2),
+(5, 1),
+(5, 3);
 
+-- 6. Insert Data into 'course_tags' Table
+INSERT INTO course_tags (course_id, tag_id)
+VALUES
+(1, 1),
+(1, 5),
+(2, 2),
+(2, 5),
+(3, 3),
+(3, 5),
+(4, 4),
+(4, 5),
+(5, 1),
+(5, 2),
+(5, 3),
+(5, 5);
 
--- Insert mock module questions
-INSERT INTO module_questions (module_id, content) VALUES
-(1, 'Explain how Bubble Sort works.'),
-(2, 'What is the average-case time complexity of Quick Sort?'),
-(3, 'How does Binary Search differ from Linear Search?'),
-(4, 'Write a SQL query to retrieve all users from the users table.'),
-(5, 'What are the key differences between SQL and NoSQL databases?');
+-- 7. Insert Data into 'units' Table
+INSERT INTO units (id, course_id, name, description)
+VALUES
+(1, 1, 'Basics', 'Introduction to programming basics'),
+(2, 1, 'Control Structures', 'Learn about if statements and loops'),
+(3, 2, 'Sorting Algorithms', 'Deep dive into sorting algorithms'),
+(4, 2, 'Graph Algorithms', 'Explore graph theory and algorithms'),
+(5, 3, 'Fundamental Data Structures', 'Arrays, linked lists, and more');
 
+-- 8. Insert Data into 'questions' Table
+INSERT INTO questions (id, type, question, difficulty_level)
+VALUES
+(1, 'multiple_choice', 'What is the time complexity of binary search?', 'beginner'),
+(2, 'multiple_choice', 'Which data structure uses LIFO?', 'intermediate'),
+(3, 'true_false', 'A queue follows FIFO principle.', 'beginner'),
+(4, 'multiple_choice', 'Which algorithm is used for finding the shortest path?', 'advanced'),
+(5, 'multiple_choice', 'What is a hash table?', 'intermediate');
 
--- Insert mock module question options
+-- 9. Insert Data into 'question_tags' Table
+INSERT INTO question_tags (question_id, tag_id)
+VALUES
+(1, 2),
+(2, 3),
+(3, 3),
+(4, 2),
+(5, 3);
 
--- For Bubble Sort Question (ID 1)
-INSERT INTO module_question_options (question_id, content, is_correct) VALUES
-(1, 'It repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.', TRUE),
-(1, 'It divides the list into smaller sublists, sorts them independently, and then merges them.', FALSE),
-(1, 'It selects the smallest element and places it at the beginning of the list.', FALSE);
+-- 10. Insert Data into 'question_options' Table
+-- Question Options for Question 1
+INSERT INTO question_options (id, question_id, content, is_correct)
+VALUES
+(1, 1, 'O(log n)', TRUE),
+(2, 1, 'O(n)', FALSE),
+(3, 1, 'O(n log n)', FALSE),
+(4, 1, 'O(1)', FALSE);
 
--- For Quick Sort Question (ID 2)
-INSERT INTO module_question_options (question_id, content, is_correct) VALUES
-(2, 'O(n log n)', TRUE),
-(2, 'O(n^2)', FALSE),
-(2, 'O(log n)', FALSE);
+-- Question Options for Question 2
+INSERT INTO question_options (id, question_id, content, is_correct)
+VALUES
+(5, 2, 'Queue', FALSE),
+(6, 2, 'Stack', TRUE),
+(7, 2, 'Array', FALSE),
+(8, 2, 'Tree', FALSE);
 
--- For Binary Search Question (ID 3)
-INSERT INTO module_question_options (question_id, content, is_correct) VALUES
-(3, 'Binary Search requires a sorted list and repeatedly divides the search interval in half.', TRUE),
-(3, 'Binary Search can work on unsorted lists by checking each element sequentially.', FALSE),
-(3, 'Binary Search uses hashing to find elements quickly.', FALSE);
+-- Question Options for Question 3
+INSERT INTO question_options (id, question_id, content, is_correct)
+VALUES
+(9, 3, 'True', TRUE),
+(10, 3, 'False', FALSE);
 
--- For SQL Queries Question (ID 4)
-INSERT INTO module_question_options (question_id, content, is_correct) VALUES
-(4, 'SELECT * FROM users;', TRUE),
-(4, 'GET * FROM users;', FALSE),
-(4, 'FETCH ALL FROM users;', FALSE);
+-- Question Options for Question 4
+INSERT INTO question_options (id, question_id, content, is_correct)
+VALUES
+(11, 4, 'Dijkstra’s Algorithm', TRUE),
+(12, 4, 'Bubble Sort', FALSE),
+(13, 4, 'Binary Search', FALSE),
+(14, 4, 'Quick Sort', FALSE);
 
--- For NoSQL Databases Question (ID 5)
-INSERT INTO module_question_options (question_id, content, is_correct) VALUES
-(5, 'NoSQL databases are schema-less and can handle unstructured data.', TRUE),
-(5, 'NoSQL databases always require fixed schemas.', FALSE),
-(5, 'NoSQL databases cannot scale horizontally.', FALSE);
+-- Question Options for Question 5
+INSERT INTO question_options (id, question_id, content, is_correct)
+VALUES
+(15, 5, 'A tree data structure', FALSE),
+(16, 5, 'A mapping of keys to values', TRUE),
+(17, 5, 'A type of sorting algorithm', FALSE),
+(18, 5, 'An encryption method', FALSE);
 
+-- 11. Insert Data into 'modules' Table
+INSERT INTO modules (id, unit_id, name, description)
+VALUES
+(1, 1, 'Introduction to Variables', 'Learn about variables in programming'),
+(2, 1, 'Data Types', 'Understand different data types'),
+(3, 2, 'If Statements', 'Control flow with if statements'),
+(4, 2, 'Loops', 'Understanding loops'),
+(5, 3, 'Quick Sort Algorithm', 'Implementing Quick Sort');
 
--- Insert mock achievements
-INSERT INTO achievements (name, description, points) VALUES
-('First Login', 'Logged in for the first time.', 10),
-('Completed First Module', 'Completed the first module of any course.', 20),
-('Top Learner', 'Achieved top learner status in a course.', 50);
+-- 12. Insert Data into 'sections' Table
+-- Sections for Module 1
+INSERT INTO sections (id, module_id, type, position)
+VALUES
+(1, 1, 'text', 1),
+(2, 1, 'video', 2),
+(3, 1, 'question', 3),
+(4, 1, 'text', 4),
+(5, 1, 'question', 5);
 
+-- 13. Insert Data into 'text_sections' Table
+-- Text Sections
+INSERT INTO text_sections (section_id, content)
+VALUES
+(1, 'Variables are used to store data in a program.'),
+(4, 'Summary: Variables are fundamental in programming.');
 
--- Insert mock user module progress
-INSERT INTO user_module_progress (
-    user_id, module_id, started_at, progress, current_position, last_accessed, status
-) VALUES
-(1, 1, '2024-10-01T08:00:00Z', 50.0, 1, '2024-10-02T07:30:00Z', 'in_progress'),
-(1, 2, '2024-10-01T09:00:00Z', 100.0, 2, '2024-10-02T07:45:00Z', 'completed'),
-(2, 4, '2024-10-01T10:00:00Z', 75.0, 1, '2024-10-02T07:50:00Z', 'in_progress');
+-- 14. Insert Data into 'video_sections' Table
+-- Video Sections
+INSERT INTO video_sections (section_id, url)
+VALUES
+(2, 'http://example.com/videos/intro_to_variables.mp4');
 
+-- 15. Insert Data into 'question_sections' Table
+-- Question Sections
+INSERT INTO question_sections (section_id, question_id)
+VALUES
+(3, 1),
+(5, 2);
 
--- Insert mock user achievements
-INSERT INTO user_achievements (
-    user_id, achievement_id, achieved_at, name, description, points
-) VALUES
-(1, 1, '2024-10-01T08:05:00Z', 'First Login', 'Logged in for the first time.', 10),
-(1, 2, '2024-10-02T08:00:00Z', 'Completed First Module', 'Completed the first module of any course.', 20),
-(2, 1, '2024-10-01T10:05:00Z', 'First Login', 'Logged in for the first time.', 10);
+-- 16. Insert Data into 'module_questions' Table
+INSERT INTO module_questions (id, module_id, question_id, position)
+VALUES
+(1, 1, 1, 1),
+(2, 1, 2, 2),
+(3, 2, 3, 1),
+(4, 3, 4, 1),
+(5, 4, 5, 1);
 
+-- 17. Insert Data into 'user_module_progress' Table
+INSERT INTO user_module_progress (id, user_id, module_id, started_at, progress, current_section_id, status)
+VALUES
+(1, 4, 1, NOW() - INTERVAL '2 days', 40.0, 2, 'in_progress'),
+(2, 5, 2, NOW() - INTERVAL '1 day', 60.0, 3, 'in_progress'),
+(3, 4, 3, NOW() - INTERVAL '3 days', 100.0, NULL, 'completed'),
+(4, 5, 4, NOW() - INTERVAL '4 days', 100.0, NULL, 'completed'),
+(5, 4, 5, NOW() - INTERVAL '5 days', 20.0, 1, 'in_progress');
 
--- Insert mock user question answers
-INSERT INTO user_question_answers (
-    user_module_progress_id, question_id, answer_id, answered_at, is_correct
-) VALUES
-(1, 1, 1, '2024-10-02T07:35:00Z', TRUE),
-(2, 2, 1, '2024-10-02T07:50:00Z', TRUE),
-(2, 3, 1, '2024-10-02T07:55:00Z', TRUE),
-(3, 4, 1, '2024-10-02T07:58:00Z', TRUE),
-(3, 5, 13, '2024-10-02T08:00:00Z', TRUE);
+-- 18. Insert Data into 'user_courses' Table
+INSERT INTO user_courses (id, user_id, course_id, current_unit_id, current_module_id, latest_module_progress_id)
+VALUES
+(1, 4, 1, 1, 1, 1),
+(2, 5, 1, 1, 2, 2),
+(3, 4, 2, 3, 5, 5),
+(4, 5, 2, 4, 4, 4),
+(5, 4, 3, NULL, NULL, NULL);
 
+-- 19. Insert Data into 'user_section_progress' Table
+INSERT INTO user_section_progress (id, user_id, module_id, section_id, started_at, completed_at, status)
+VALUES
+(1, 4, 1, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 'completed'),
+(2, 4, 1, 2, NOW() - INTERVAL '1 day', NULL, 'in_progress'),
+(3, 5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'completed'),
+(4, 5, 2, 4, NOW(), NULL, 'in_progress'),
+(5, 4, 3, 5, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days', 'completed');
 
--- Insert mock user courses
-INSERT INTO user_courses (
-    user_id, course_id, latest_module_progress_id
-) VALUES
-(1, 1, 1),
-(1, 2, 2),
-(2, 2, 3);
+-- 20. Insert Data into 'user_question_answers' Table
+INSERT INTO user_question_answers (id, user_module_progress_id, question_id, answer_id, answered_at, is_correct)
+VALUES
+(1, 1, 1, 1, NOW() - INTERVAL '2 days', TRUE),
+(2, 1, 2, 6, NOW() - INTERVAL '1 day', TRUE),
+(3, 2, 3, 9, NOW() - INTERVAL '1 day', TRUE),
+(4, 3, 4, 11, NOW() - INTERVAL '3 days', TRUE),
+(5, 5, 5, 16, NOW() - INTERVAL '5 days', TRUE);
 
+-- 21. Insert Data into 'achievements' Table
+INSERT INTO achievements (id, name, description, points)
+VALUES
+(1, 'First Module Completed', 'Complete your first module.', 10),
+(2, 'Quiz Master', 'Answer all quiz questions correctly.', 20),
+(3, 'Course Completion', 'Complete an entire course.', 50),
+(4, 'First Login', 'Login to the platform for the first time.', 5),
+(5, 'Streak Starter', 'Complete modules 5 days in a row.', 15);
 
--- Insert mock streaks
-INSERT INTO streaks (
-    user_id, start_date, end_date, current_streak, longest_streak
-) VALUES
-(1, '2024-09-25', '2024-10-01', 7, 10),
-(2, '2024-09-28', NULL, 5, 5);
+-- 22. Insert Data into 'user_achievements' Table
+INSERT INTO user_achievements (id, user_id, achievement_id, achieved_at)
+VALUES
+(1, 4, 1, NOW() - INTERVAL '2 days'),
+(2, 4, 2, NOW() - INTERVAL '1 day'),
+(3, 5, 1, NOW() - INTERVAL '1 day'),
+(4, 5, 4, NOW() - INTERVAL '4 days'),
+(5, 4, 4, NOW() - INTERVAL '5 days');
 
+-- 23. Insert Data into 'notifications' Table
+INSERT INTO notifications (id, user_id, content, read)
+VALUES
+(1, 4, 'Welcome to the platform!', FALSE),
+(2, 4, 'You have completed a module!', FALSE),
+(3, 5, 'New course available: Advanced Algorithms', FALSE),
+(4, 5, 'Your friend Dave has joined!', FALSE),
+(5, 2, 'A new student enrolled in your course.', FALSE);
 
--- Insert mock notifications
-INSERT INTO notifications (
-    user_id, content, read
-) VALUES
-(1, 'Welcome to AlgoLearn!', FALSE),
-(1, 'You have a new achievement!', FALSE),
-(2, 'Your module progress has been updated.', TRUE);
+-- 24. Insert Data into 'streaks' Table
+INSERT INTO streaks (id, user_id, start_date, end_date, current_streak, longest_streak)
+VALUES
+(1, 4, CURRENT_DATE - INTERVAL '5 days', NULL, 5, 5),
+(2, 5, CURRENT_DATE - INTERVAL '3 days', CURRENT_DATE - INTERVAL '1 day', 0, 3),
+(3, 2, CURRENT_DATE - INTERVAL '10 days', NULL, 10, 10),
+(4, 3, CURRENT_DATE - INTERVAL '7 days', CURRENT_DATE - INTERVAL '2 days', 0, 5),
+(5, 1, CURRENT_DATE - INTERVAL '1 day', NULL, 1, 1);
 
-
--- Insert mock sections
-
--- Sections for Bubble Sort Module (Module ID 1)
-INSERT INTO sections (
-    module_id, type, position, content, question_id, question, user_answer_id, 
-    correct_answer_ids, url, animation, description
-) VALUES
-(1, 'text', 0, 'Bubble Sort is a simple comparison-based sorting algorithm.', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(1, 'image', 1, NULL, NULL, NULL, NULL, NULL, 'https://example.com/bubble_sort.png', NULL, 'Diagram of Bubble Sort algorithm.'),
-(1, 'question', 2, NULL, 1, 'Explain how Bubble Sort works.', 1, ARRAY[1], NULL, NULL, NULL);
-
--- Sections for Quick Sort Module (Module ID 2)
-INSERT INTO sections (
-    module_id, type, position, content, question_id, question, user_answer_id, 
-    correct_answer_ids, url, animation, description
-) VALUES
-(2, 'text', 0, 'Quick Sort is an efficient sorting algorithm, serving as a systematic method for placing the elements of an array in order.', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(2, 'code', 1, 'def quick_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quick_sort(left) + middle + quick_sort(right)', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(2, 'question', 2, NULL, 2, 'What is the average-case time complexity of Quick Sort?', 2, ARRAY[2], NULL, NULL, NULL);
-
--- Sections for Binary Search Module (Module ID 3)
-INSERT INTO sections (
-    module_id, type, position, content, question_id, question, user_answer_id, 
-    correct_answer_ids, url, animation, description
-) VALUES
-(3, 'text', 0, 'Binary Search is a fast search algorithm that works on sorted arrays.', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(3, 'code', 1, 'def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(3, 'question', 2, NULL, 3, 'How does Binary Search differ from Linear Search?', 3, ARRAY[3], NULL, NULL, NULL);
-
--- Sections for Writing SQL Queries Module (Module ID 4)
-INSERT INTO sections (
-    module_id, type, position, content, question_id, question, user_answer_id, 
-    correct_answer_ids, url, animation, description
-) VALUES
-(4, 'text', 0, 'Learn how to write SQL queries to retrieve data.', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(4, 'code', 1, 'SELECT * FROM users;', 
- NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(4, 'question', 2, NULL, 4, 'Write a SQL query to retrieve all users from the users table.', 4, ARRAY[4], NULL, NULL, NULL);
-
--- Sections for Understanding NoSQL Module (Module ID 5)
-INSERT INTO sections (
-    module_id, type, position, content, question_id, question, user_answer_id, 
-    correct_answer_ids, url, animation, description
-) VALUES
-(5, 'text', 0, 'NoSQL databases are designed for distributed data stores and large-scale data needs.', 
-     NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(5, 'video', 1, NULL, NULL, NULL, NULL, NULL, 'https://example.com/nosql_intro.mp4', NULL, 'Introduction to NoSQL databases.'),
-(5, 'question', 2, NULL, 5, 'What are the key differences between SQL and NoSQL databases?', 5, ARRAY[13], NULL, NULL, NULL);
+-- 25. Additional Inserts into 'user_section_progress' Table
+INSERT INTO user_section_progress (id, user_id, module_id, section_id, started_at, completed_at, status)
+VALUES
+(6, 5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'completed'),
+(7, 5, 2, 4, NOW(), NULL, 'in_progress'),
+(8, 4, 5, 5, NOW() - INTERVAL '5 days', NULL, 'in_progress'),
+(9, 4, 1, 3, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 'completed'),
+(10, 4, 1, 5, NOW() - INTERVAL '1 day', NULL, 'in_progress');

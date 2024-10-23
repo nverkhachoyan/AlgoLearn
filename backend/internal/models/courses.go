@@ -1,11 +1,20 @@
 package models
 
 import (
-	"algolearn-backend/internal/utils"
-	"database/sql"
-	"encoding/json"
+	"algolearn-backend/internal/gonull"
 
-	"github.com/LukaGiorgadze/gonull"
+	"database/sql"
+
+	"encoding/json"
+)
+
+type DifficultyLevel string
+
+var (
+	Beginner     DifficultyLevel = "beginner"
+	Intermediate DifficultyLevel = "intermediate"
+	Advanced     DifficultyLevel = "advanced"
+	Expert       DifficultyLevel = "expert"
 )
 
 type Course struct {
@@ -16,8 +25,8 @@ type Course struct {
 	IconURL         gonull.Nullable[string]   `json:"icon_url,omitempty"`
 	Duration        gonull.Nullable[int16]    `json:"duration,omitempty"`
 	DifficultyLevel gonull.Nullable[string]   `json:"difficulty_level,omitempty"`
-	Authors         utils.NullableStringSlice `json:"authors,omitempty"`
-	Tags            utils.NullableStringSlice `json:"tags,omitempty"`
+	Authors         []string 				  `json:"authors,omitempty"`
+	Tags            []string 				  `json:"tags,omitempty"`
 	Rating          gonull.Nullable[float64]  `json:"rating,omitempty"`
 	LearnersCount   gonull.Nullable[int32]    `json:"learners_count"`
 }

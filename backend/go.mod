@@ -3,6 +3,7 @@ module algolearn-backend
 go 1.22.4
 
 require (
+	github.com/LukaGiorgadze/gonull v1.2.0
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.17.1
@@ -17,7 +18,6 @@ require (
 )
 
 require (
-	github.com/LukaGiorgadze/gonull v1.2.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

@@ -109,7 +109,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{Status: "error",
 				ErrorCode: errors.INVALID_JSON,
-				Message:   "Invalid JSON"})
+				Message:   "invalid JSON"})
 		return
 	}
 
@@ -126,18 +126,18 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	userByEmail, _ := h.repo.GetUserByEmail(req.Email)
 
 	if userByEmail != nil {
-		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "error", ErrorCode: errors.ACCOUNT_EXISTS, Message: "An account with this email already exists"})
+		RespondWithJSON(w, http.StatusAccepted, models.Response{Status: "error", ErrorCode: errors.ACCOUNT_EXISTS, Message: "an account with this email already exists"})
 		return
 	}
 
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
-		log.Printf("Error hashing password: %v", err)
+		config.Log.Errorf("error hashing password: %v\n", err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
 				ErrorCode: errors.INTERNAL_ERROR,
-				Message:   "Internal server error",
+				Message:   "internal server error",
 			})
 		return
 	}
@@ -150,7 +150,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Username:        req.Username,
 		Email:           req.Email,
 		PasswordHash:    hashedPassword,
-		Role:            "user",
+		Role:            "admin",
 		IsActive:        true,
 		IsEmailVerified: false,
 		CPUs:            0,

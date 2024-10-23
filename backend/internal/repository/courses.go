@@ -3,34 +3,35 @@ package repository
 import (
 	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/models"
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"strings"
 	"time"
-
-	"github.com/LukaGiorgadze/gonull"
 
 	"github.com/lib/pq"
 )
 
+var ErrUnitNotFound = errors.New("unit not found")
+
 type CourseRepository interface {
-	GetAllCourses() ([]models.Course, error)
-	GetCourseByID(id int64) (*models.Course, error)
-	CreateCourse(course *models.Course) (*models.Course, error)
-	UpdateCourse(course *models.Course) (*models.Course, error)
-	DeleteCourse(id int64) error
-	GetAllUnits(courseID int64) ([]models.Unit, error)
-	GetUnitByID(id int64) (*models.Unit, error)
-	CreateUnit(unit *models.Unit) error
-	UpdateUnit(unit *models.Unit) error
-	DeleteUnit(id int64) error
-	GetAllModulesPartial(unitID int64) ([]models.Module, error)
-	GetAllModules(unitID int64) ([]models.Module, error)
-	GetModuleByModuleID(unitID int64, moduleID int64) (*models.Module, error)
-	CreateModule(module *models.Module) error
-	UpdateModule(module *models.Module) error
-	DeleteModule(id int64) error
+	GetAllCourses(ctx context.Context) ([]models.Course, error)
+	GetCourseByID(ctx context.Context, id int64) (*models.Course, error)
+	CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error)
+	UpdateCourse(ctx context.Context, course *models.Course) (*models.Course, error)
+	DeleteCourse(ctx context.Context, id int64) error
+	GetAllUnits(ctx context.Context, courseID int64) ([]models.Unit, error)
+	GetUnitByID(ctx context.Context, id int64) (*models.Unit, error)
+	CreateUnit(ctx context.Context, unit *models.Unit) (*models.Unit, error)
+	UpdateUnit(ctx context.Context, unit *models.Unit) (*models.Unit, error)
+	DeleteUnit(ctx context.Context, id int64) error
+	GetAllModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error)
+	GetAllModules(ctx context.Context, unitID int64) ([]models.Module, error)
+	GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error)
+	CreateModule(ctx context.Context, module *models.Module) error
+	UpdateModule(ctx context.Context, module *models.Module) error
+	DeleteModule(ctx context.Context, id int64) error
 }
 
 type courseRepository struct {
@@ -41,8 +42,22 @@ func NewCourseRepository(db *sql.DB) CourseRepository {
 	return &courseRepository{db: db}
 }
 
-func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
-	rows, err := r.db.Query("SELECT * FROM courses")
+func (r *courseRepository) GetAllCourses(ctx context.Context) ([]models.Course, error) {
+	rows, err := r.db.QueryContext(
+		ctx,`
+		SELECT
+			c.id, c.created_at, c.updated_at, c.name, c.description, c.background_color,
+			c.icon_url, c.duration, c.difficulty_level, c.rating, c.learners_count,
+			COALESCE(jsonb_agg(DISTINCT a.name) FILTER (WHERE a.id IS NOT NULL), '[]') AS authors,
+			COALESCE(jsonb_agg(DISTINCT t.name) FILTER (WHERE t.id IS NOT NULL), '[]') AS tags
+		FROM
+			courses c
+		LEFT JOIN course_authors ca ON c.id = ca.course_id
+		LEFT JOIN authors a ON ca.author_id = a.id
+		LEFT JOIN course_tags ct ON c.id = ct.course_id
+		LEFT JOIN tags t ON ct.tag_id = t.id
+		GROUP BY c.id;`,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +67,7 @@ func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
 
 	for rows.Next() {
 		var course models.Course
-		var difficultyLevel sql.NullString
+		var authors, tags []byte
 
 		err := rows.Scan(
 			&course.BaseModel.ID,
@@ -63,18 +78,21 @@ func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
 			&course.BackgroundColor,
 			&course.IconURL,
 			&course.Duration,
-			&difficultyLevel,
+			&course.DifficultyLevel,
 			&course.Rating,
 			&course.LearnersCount,
+			&authors,
+			&tags,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		if difficultyLevel.Valid {
-			course.DifficultyLevel = gonull.NewNullable(difficultyLevel.String)
-		} else {
-			course.DifficultyLevel = gonull.NewNullable("")
+		if err := json.Unmarshal(authors, &course.Authors); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(tags, &course.Tags); err != nil {
+			return nil, err
 		}
 
 		courses = append(courses, course)
@@ -87,7 +105,7 @@ func (r *courseRepository) GetAllCourses() ([]models.Course, error) {
 	return courses, nil
 }
 
-func (r *courseRepository) GetCourseByID(courseID int64) (*models.Course, error) {
+func (r *courseRepository) GetCourseByID(ctx context.Context, courseID int64) (*models.Course, error) {
 	query := `
 		SELECT 
 			c.id, c.name, c.description, c.background_color, 
@@ -108,21 +126,22 @@ func (r *courseRepository) GetCourseByID(courseID int64) (*models.Course, error)
 
 	var course models.Course
 	var authors, tags []byte
-	var difficultyLevel sql.NullString
 
 	err := r.db.QueryRow(query, courseID).Scan(
-		&course.ID, &course.Name, &course.Description, &course.BackgroundColor,
-		&course.IconURL, &course.Duration, &difficultyLevel, &course.Rating,
-		&course.LearnersCount, &authors, &tags,
+		&course.ID,
+		&course.Name,
+		&course.Description,
+		&course.BackgroundColor,
+		&course.IconURL,
+		&course.Duration,
+		&course.DifficultyLevel,
+		&course.Rating,
+		&course.LearnersCount,
+		&authors,
+		&tags,
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	if difficultyLevel.Valid {
-		course.DifficultyLevel = gonull.NewNullable(difficultyLevel.String)
-	} else {
-		course.DifficultyLevel = gonull.NewNullable("")
 	}
 
 	if err := json.Unmarshal(authors, &course.Authors); err != nil {
@@ -135,9 +154,29 @@ func (r *courseRepository) GetCourseByID(courseID int64) (*models.Course, error)
 	return &course, nil
 }
 
-func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, error) {
+func (r *courseRepository) CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			err = tx.Rollback()
+			if err != nil {
+				config.Log.Errorf("Failed to roll back database transaction for CreateCourse with ID = %d", course.ID)
+			}
+			return
+		} else {
+			err =tx.Commit()
+			if err != nil {
+				config.Log.Errorf("Failed to commit database transaction for CreateCourse with ID = %d", course.ID)
+			}
+		}
+	}()
+
 	var createdCourse models.Course
-	err := r.db.QueryRow(
+	err = tx.QueryRowContext(
+		ctx,
 		`INSERT INTO courses 
 				(name, 
 				description, 
@@ -147,7 +186,7 @@ func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, 
 				difficulty_level, 
 				rating, 
 				learners_count) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 			RETURNING 
 				id,
 				name, 
@@ -156,8 +195,6 @@ func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, 
 				icon_url, 
 				duration, 
 				difficulty_level, 
-				authors, 
-				tags, 
 				rating, 
 				learners_count`,
 		course.Name,
@@ -166,8 +203,6 @@ func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, 
 		course.IconURL,
 		course.Duration,
 		course.DifficultyLevel,
-		course.Authors,
-		course.Tags,
 		course.Rating,
 		course.LearnersCount,
 	).Scan(
@@ -178,134 +213,191 @@ func (r *courseRepository) CreateCourse(course *models.Course) (*models.Course, 
 		&createdCourse.IconURL,
 		&createdCourse.Duration,
 		&createdCourse.DifficultyLevel,
-		&createdCourse.Authors,
-		&createdCourse.Tags,
 		&createdCourse.Rating,
 		&createdCourse.LearnersCount,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
+	var tags []string
+	for _, tag := range course.Tags {
+		var tagID int64
+		err = tx.QueryRowContext(ctx, `SELECT id FROM tags WHERE name = $1`, tag).Scan(&tagID)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = tx.QueryRowContext(ctx, `INSERT INTO tags (name) VALUES ($1) RETURNING id`, tag).Scan(&tagID)
+			if err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+
+		tags = append(tags, tag)
+		_, err = tx.ExecContext(ctx, `INSERT INTO course_tags (course_id, tag_id) VALUES ($1, $2)`, createdCourse.ID, tagID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	createdCourse.Tags = course.Tags
+
 	return &createdCourse, nil
 }
 
-func (r *courseRepository) UpdateCourse(course *models.Course) (*models.Course, error) {
-	query := "UPDATE courses SET "
-	setClauses := []string{}
-	args := []interface{}{}
-	argID := 1
+func (r *courseRepository) UpdateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
+    tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
+    if err != nil {
+        return nil, err
+    }
+    defer func() {
+        if err != nil {
+            if rollbackErr := tx.Rollback(); rollbackErr != nil {
+                config.Log.Errorf("failed to roll back database transaction for UpdateCourse with ID = %d. %v", course.ID, rollbackErr)
+            }
+            return
+        } else {
+            if commitErr := tx.Commit(); commitErr != nil {
+                config.Log.Errorf("failed to commit database transaction for UpdateCourse with ID = %d. %v", course.ID, commitErr)
+                err = commitErr
+            }
+        }
+    }()
 
-	addSetClause := func(field string, value interface{}) {
-		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argID))
-		args = append(args, value)
-		argID++
-	}
+    updateCourseQuery := `UPDATE courses SET
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        background_color = COALESCE($3, background_color),
+        icon_url = COALESCE($4, icon_url),
+        duration = COALESCE($5, duration),
+        difficulty_level = COALESCE($6::difficulty_level, difficulty_level),
+        rating = COALESCE($7, rating),
+        learners_count = COALESCE($8, learners_count),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $9;`
 
-	// These are custom NullableStringSlice types
-	if len(course.Authors) > 0 {
-		addSetClause("authors", course.Authors)
+    _, err = tx.ExecContext(ctx, updateCourseQuery,
+        course.Name,
+        course.Description,
+        course.BackgroundColor,
+        course.IconURL,
+        course.Duration,
+        course.DifficultyLevel,
+        course.Rating,
+        course.LearnersCount,
+        course.ID,
+    )
+    if err != nil {
+        return nil, fmt.Errorf("failed to update course ID %d: %v", course.ID, err)
+    }
 
-	}
-	if len(course.Tags) > 0 {
-		addSetClause("tags", course.Tags)
-	}
+    if len(course.Tags) > 0 {
+        _, err = tx.ExecContext(ctx, `DELETE FROM course_tags WHERE course_id = $1`, course.ID)
+        if err != nil {
+            return nil, err
+        }
 
-	if course.Name.Present {
-		if course.Name.Valid {
-			addSetClause("name", course.Name.Val)
-		} else {
-			addSetClause("name", nil)
-		}
-	}
+        for _, tag := range course.Tags {
+            var tagID int64
+            err = tx.QueryRowContext(ctx, `SELECT id FROM tags WHERE name = $1`, tag).Scan(&tagID)
+            if errors.Is(err, sql.ErrNoRows) {
+                err = tx.QueryRowContext(ctx, `INSERT INTO tags (name) VALUES ($1) RETURNING id`, tag).Scan(&tagID)
+                if err != nil {
+                    return nil, err
+                }
+            } else if err != nil {
+                return nil, err
+            }
 
-	if course.Description.Present {
-		if course.Description.Valid {
-			addSetClause("description", course.Description.Val)
-		} else {
-			addSetClause("description", nil)
-		}
-	}
-	if course.BackgroundColor.Present {
-		if course.BackgroundColor.Valid {
-			addSetClause("background_color", course.BackgroundColor.Val)
-		} else {
-			addSetClause("background_color", nil)
-		}
-	}
-	if course.IconURL.Present {
-		if course.IconURL.Valid {
-			addSetClause("icon_url", course.IconURL.Val)
-		} else {
-			addSetClause("icon_url", nil)
-		}
-	}
-	if course.Duration.Present {
-		if course.Duration.Valid {
-			addSetClause("duration", course.Duration.Val)
-		} else {
-			addSetClause("duration", nil)
-		}
-	}
-	if course.DifficultyLevel.Present {
-		if course.DifficultyLevel.Valid {
-			addSetClause("difficulty_level", course.DifficultyLevel.Val)
-		} else {
-			addSetClause("difficulty_level", nil)
-		}
-	}
+            _, err = tx.ExecContext(ctx, `INSERT INTO course_tags (course_id, tag_id) VALUES ($1, $2)`, course.ID, tagID)
+            if err != nil {
+                return nil, err
+            }
+        }
+    }
 
-	if course.Rating.Present {
-		if course.Rating.Valid {
-			addSetClause("rating", course.Rating.Val)
-		} else {
-			addSetClause("rating", nil)
-		}
-	}
-	if course.LearnersCount.Present {
-		if course.LearnersCount.Valid {
-			addSetClause("learners_count", course.LearnersCount.Val)
-		} else {
-			addSetClause("learners_count", nil)
-		}
-	}
+    if len(course.Authors) > 0 {
+        _, err = tx.ExecContext(ctx, `DELETE FROM course_authors WHERE course_id = $1`, course.ID)
+        if err != nil {
+            return nil, err
+        }
 
-	setClauses = append(setClauses, "updated_at = CURRENT_TIMESTAMP")
-	query += strings.Join(setClauses, ", ")
-	query += fmt.Sprintf(` WHERE id = $%d RETURNING name, 
-				description, 
-				background_color, 
-				icon_url, 
-				duration, 
-				difficulty_level, 
-				authors, 
-				tags, 
-				rating, 
-				learners_count;`, argID)
-	args = append(args, course.ID)
+        for _, author := range course.Authors {
+            var authorID int64
+            err = tx.QueryRowContext(ctx, `SELECT id FROM authors WHERE name = $1`, author).Scan(&authorID)
+            if errors.Is(err, sql.ErrNoRows) {
+                err = tx.QueryRowContext(ctx, `INSERT INTO authors (name) VALUES ($1) RETURNING id`, author).Scan(&authorID)
+                if err != nil {
+                    return nil, err
+                }
+            } else if err != nil {
+                return nil, err
+            }
 
-	var updatedCourse models.Course
-	err := r.db.QueryRow(query, args...).Scan(
-		&updatedCourse.Name,
-		&updatedCourse.Description,
-		&updatedCourse.BackgroundColor,
-		&updatedCourse.IconURL,
-		&updatedCourse.Duration,
-		&updatedCourse.DifficultyLevel,
-		&updatedCourse.Authors,
-		&updatedCourse.Tags,
-		&updatedCourse.Rating,
-		&updatedCourse.LearnersCount,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to update course ID %d: %v", course.ID, err)
-	}
+            _, err = tx.ExecContext(ctx, `INSERT INTO course_authors (course_id, author_id) VALUES ($1, $2)`, course.ID, authorID)
+            if err != nil {
+                return nil, err
+            }
+        }
+    }
 
-	return &updatedCourse, nil
+    var updatedCourse models.Course
+    var tagsJSON, authorsJSON []byte
+    query := `
+    SELECT
+        c.id,
+        c.name,
+        c.description,
+        c.background_color,
+        c.icon_url,
+        c.duration,
+        c.difficulty_level,
+        c.rating,
+        c.learners_count,
+        COALESCE(json_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL), '[]') AS tags,
+        COALESCE(json_agg(DISTINCT a.name) FILTER (WHERE a.name IS NOT NULL), '[]') AS authors
+    FROM courses c
+    LEFT JOIN course_tags ct ON c.id = ct.course_id
+    LEFT JOIN tags t ON ct.tag_id = t.id
+    LEFT JOIN course_authors ca ON c.id = ca.course_id
+    LEFT JOIN authors a ON ca.author_id = a.id
+    WHERE c.id = $1
+    GROUP BY c.id;
+    `
+
+    row := tx.QueryRowContext(ctx, query, course.ID)
+    err = row.Scan(
+        &updatedCourse.ID,
+        &updatedCourse.Name,
+        &updatedCourse.Description,
+        &updatedCourse.BackgroundColor,
+        &updatedCourse.IconURL,
+        &updatedCourse.Duration,
+        &updatedCourse.DifficultyLevel,
+        &updatedCourse.Rating,
+        &updatedCourse.LearnersCount,
+        &tagsJSON,
+        &authorsJSON,
+    )
+    if err != nil {
+        return nil, err
+    }
+
+    err = json.Unmarshal(tagsJSON, &updatedCourse.Tags)
+    if err != nil {
+        return nil, err
+    }
+
+    err = json.Unmarshal(authorsJSON, &updatedCourse.Authors)
+    if err != nil {
+        return nil, err
+    }
+
+    return &updatedCourse, nil
 }
 
-func (r *courseRepository) DeleteCourse(id int64) error {
+
+func (r *courseRepository) DeleteCourse(ctx context.Context, id int64) error {
 	_, err := r.db.Exec("DELETE FROM courses WHERE id = $1", id)
 	return err
 }
@@ -314,7 +406,7 @@ func (r *courseRepository) DeleteCourse(id int64) error {
 // **** UNITS ****
 // *****************
 
-func (r *courseRepository) GetAllUnits(courseID int64) ([]models.Unit, error) {
+func (r *courseRepository) GetAllUnits(ctx context.Context, courseID int64) ([]models.Unit, error) {
 	rows, err := r.db.Query("SELECT * FROM units WHERE course_id = $1", courseID)
 	if err != nil {
 		return nil, err
@@ -345,7 +437,7 @@ func (r *courseRepository) GetAllUnits(courseID int64) ([]models.Unit, error) {
 	return units, nil
 }
 
-func (r *courseRepository) GetUnitByID(id int64) (*models.Unit, error) {
+func (r *courseRepository) GetUnitByID(ctx context.Context, id int64) (*models.Unit, error) {
 	row := r.db.QueryRow("SELECT id, created_at, updated_at, course_id, name, description FROM units WHERE id = $1", id)
 
 	var unit models.Unit
@@ -357,45 +449,75 @@ func (r *courseRepository) GetUnitByID(id int64) (*models.Unit, error) {
 		&unit.Name,
 		&unit.Description,
 	)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUnitNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
 	return &unit, nil
 }
 
-func (r *courseRepository) CreateUnit(unit *models.Unit) error {
-	err := r.db.QueryRow(
-		"INSERT INTO units (course_id, name, description) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at",
+func (r *courseRepository) CreateUnit(ctx context.Context, unit *models.Unit) (*models.Unit, error) {
+	var newUnit models.Unit
+	err := r.db.QueryRowContext(ctx,
+`INSERT INTO units (course_id, name, description)
+		VALUES ($1, $2, $3)
+		RETURNING
+			id,
+			created_at,
+			updated_at,
+			course_id,
+			name,
+			description;
+		`,
 		unit.CourseID, unit.Name, unit.Description,
-	).Scan(&unit.ID, &unit.CreatedAt, &unit.UpdatedAt)
-	return err
+		).Scan(
+		&newUnit.ID,
+		&newUnit.CreatedAt,
+		&newUnit.UpdatedAt,
+		&newUnit.CourseID,
+		&newUnit.Name,
+		&newUnit.Description,
+		)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newUnit, nil
 }
 
-func (r *courseRepository) UpdateUnit(unit *models.Unit) error {
-	result, err := r.db.Exec(
-		"UPDATE units SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
-		unit.Name, unit.Description, unit.ID,
-	)
-	if err != nil {
-		config.Log.Errorf("Failed to execute update query: %v", err)
-		return fmt.Errorf("could not update unit: %w", err)
+func (r *courseRepository) UpdateUnit(ctx context.Context, unit *models.Unit) (*models.Unit, error) {
+	var newUnit models.Unit
+	row := r.db.QueryRowContext(ctx,
+`UPDATE units
+		SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $3
+		RETURNING
+			id,
+			created_at,
+			updated_at,
+			course_id,
+			name,
+			description;
+		`,
+		unit.Name, unit.Description, unit.ID,).Scan(
+			&newUnit.ID,
+			&newUnit.CreatedAt,
+			&newUnit.UpdatedAt,
+			&newUnit.CourseID,
+			&newUnit.Name,
+			&newUnit.Description,
+			)
+
+	if errors.Is(row, sql.ErrNoRows) {
+		return nil, ErrUnitNotFound
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		config.Log.Errorf("Failed to retrieve affected rows: %v", err)
-		return fmt.Errorf("could not retrieve affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("no rows were updated, unit with id %d may not exist", unit.ID)
-	}
-
-	return nil
+	return &newUnit, nil
 }
 
-func (r *courseRepository) DeleteUnit(id int64) error {
+func (r *courseRepository) DeleteUnit(ctx context.Context, id int64) error {
 	_, err := r.db.Exec("DELETE FROM units WHERE id = $1", id)
 	return err
 }
@@ -404,7 +526,7 @@ func (r *courseRepository) DeleteUnit(id int64) error {
 // **** MODULES ****
 // ********************
 
-func (r *courseRepository) GetAllModulesPartial(unitID int64) ([]models.Module, error) {
+func (r *courseRepository) GetAllModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error) {
 	rows, err := r.db.Query(`
 	SELECT 	id, 
 		  	created_at, 
@@ -446,7 +568,7 @@ func (r *courseRepository) GetAllModulesPartial(unitID int64) ([]models.Module, 
 	return modules, nil
 }
 
-func (r *courseRepository) GetAllModules(unitID int64) ([]models.Module, error) {
+func (r *courseRepository) GetAllModules(ctx context.Context, unitID int64) ([]models.Module, error) {
 	rows, err := r.db.Query(`
 	SELECT 
 		m.id AS module_id,
@@ -581,7 +703,7 @@ func (r *courseRepository) GetAllModules(unitID int64) ([]models.Module, error) 
 // 	return &module, nil
 // }
 
-func (r *courseRepository) GetModuleByModuleID(unitID int64, moduleID int64) (*models.Module, error) {
+func (r *courseRepository) GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error) {
 	rows, err := r.db.Query(`
 	SELECT 
 		m.id AS module_id,
@@ -677,7 +799,7 @@ func (r *courseRepository) GetModuleByModuleID(unitID int64, moduleID int64) (*m
 	return module, nil
 }
 
-func (r *courseRepository) GetSectionsByModuleID(moduleID int) ([]models.Section, error) {
+func (r *courseRepository) GetSectionsByModuleID(ctx context.Context, moduleID int) ([]models.Section, error) {
 	rows, err := r.db.Query(`
 	SELECT 
 		id, 
@@ -730,7 +852,7 @@ func (r *courseRepository) GetSectionsByModuleID(moduleID int) ([]models.Section
 	return sections, nil
 }
 
-func (r *courseRepository) CreateModule(module *models.Module) error {
+func (r *courseRepository) CreateModule(ctx context.Context, module *models.Module) error {
 	sections, err := json.Marshal(module.Sections)
 	if err != nil {
 		return err
@@ -742,7 +864,7 @@ func (r *courseRepository) CreateModule(module *models.Module) error {
 	return err
 }
 
-func (r *courseRepository) UpdateModule(module *models.Module) error {
+func (r *courseRepository) UpdateModule(ctx context.Context, module *models.Module) error {
 	content, err := json.Marshal(module.Sections)
 	if err != nil {
 		return err
@@ -760,7 +882,7 @@ func (r *courseRepository) UpdateModule(module *models.Module) error {
 	return err
 }
 
-func (r *courseRepository) DeleteModule(id int64) error {
+func (r *courseRepository) DeleteModule(ctx context.Context, id int64) error {
 	_, err := r.db.Exec("DELETE FROM modules WHERE id = $1", id)
 	return err
 }

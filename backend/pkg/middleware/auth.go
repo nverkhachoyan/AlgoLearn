@@ -1,4 +1,3 @@
-// pkg/middleware/auth.go
 package middleware
 
 import (
@@ -21,7 +20,11 @@ const userContextKey contextKey = "userID"
 func RespondWithJSON(w http.ResponseWriter, status int, response models.Response) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		config.Log.Errorf("failed to respond with JSON: %v", err.Error())
+		return
+	}
 }
 
 func Auth(next http.Handler) http.Handler {
@@ -101,7 +104,7 @@ func IsAdmin(next http.Handler) http.Handler {
 	})
 }
 
-// Function to retrieve userID from context
+// GetUserID Function to retrieve userID from context
 func GetUserID(ctx context.Context) (int, bool) {
 	userID, ok := ctx.Value(userContextKey).(int)
 	return userID, ok

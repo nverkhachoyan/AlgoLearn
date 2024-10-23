@@ -3,7 +3,7 @@ package handlers
 
 import (
 	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/errors"
+	codes "algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
 	"algolearn-backend/pkg/middleware"
@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"errors"
+
 
 	"github.com/gorilla/mux"
 )
@@ -35,12 +37,12 @@ type CourseHandler interface {
 }
 
 type courseHandler struct {
-	repo     repository.CourseRepository
+	courseRepo     repository.CourseRepository
 	userRepo repository.UserRepository
 }
 
-func NewCourseHandler(repo repository.CourseRepository, userRepo repository.UserRepository) CourseHandler {
-	return &courseHandler{repo: repo, userRepo: userRepo}
+func NewCourseHandler(courseRepo repository.CourseRepository, userRepo repository.UserRepository) CourseHandler {
+	return &courseHandler{courseRepo: courseRepo, userRepo: userRepo}
 }
 
 // *****************
@@ -48,14 +50,15 @@ func NewCourseHandler(repo repository.CourseRepository, userRepo repository.User
 // *****************
 
 func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
-	courses, err := h.repo.GetAllCourses()
+	ctx := r.Context()
+	courses, err := h.courseRepo.GetAllCourses(ctx)
 	if err != nil {
-		config.Log.Debugf("Error fetching courses: %v", err)
+		config.Log.Debugf("error fetching courses: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
-				Message:   "Could not retrieve courses from the database",
+				ErrorCode: codes.DATABASE_FAIL,
+				Message:   "could not retrieve courses from the database",
 			})
 		return
 	}
@@ -63,33 +66,34 @@ func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
 			Status:  "success",
-			Message: "Courses retrieved successfully",
+			Message: "courses retrieved successfully",
 			Data:    courses,
 		})
 }
 
 func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
 	if err != nil {
-		config.Log.Debugf("Tried to retrieve a course with an invalid course ID: %d\n", id)
+		config.Log.Debugf("tried to retrieve a course with an invalid course ID: %d\n", id)
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
-				Message:   "Invalid course ID",
+				ErrorCode: codes.INVALID_INPUT,
+				Message:   "invalid course ID",
 			})
 		return
 	}
 
-	course, err := h.repo.GetCourseByID(id)
+	course, err := h.courseRepo.GetCourseByID(ctx, id)
 	if err != nil {
-		config.Log.Debugf("Error fetching course from database %d: %v", id, err)
+		config.Log.Debugf("error fetching course from database %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
-				Message:   "Could not retrieve course from the database",
+				ErrorCode: codes.DATABASE_FAIL,
+				Message:   "could not retrieve course from the database",
 			})
 		return
 	}
@@ -97,58 +101,74 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
 			Status:  "success",
-			Message: "Course retrieved successfully",
+			Message: "course retrieved successfully",
 			Data:    course,
 		})
 }
 
 func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
-	// userID, ok := middleware.GetUserID(r.Context())
-	// if !ok {
-	// 	config.Log.Debugln("Unauthorized user tried to create course.")
-	// 	RespondWithJSON(w, http.StatusUnauthorized,
-	// 		models.Response{
-	// 			Status:    "error",
-	// 			ErrorCode: errors.UNAUTHORIZED,
-	// 			Message:   "Unauthorized",
-	// 		})
-	// 	return
-	// }
+	ctx := r.Context()
 
-	// Only admin users can create courses
-	// user, err := repository.GetUserByID(userID)
-	// if err != nil || user.Role != "admin" {
-	// 	config.Log.Debugf("UserID: %d\n", userID)
-	// 	config.Log.Debugf("User without admin role tried to create course: Detailed Error: %v", err)
-	// 	RespondWithJSON(w, http.StatusForbidden,
-	// 		models.Response{
-	// 			Status:    "error",
-	// 			ErrorCode: errors.UNAUTHORIZED,
-	// 			Message:   "Only users with the admin role may create a course",
-	// 		})
-	// 	return
-	// }
+	 userID, ok := middleware.GetUserID(ctx)
+	 if !ok {
+	 	config.Log.Debugln("Unauthorized user tried to create course.")
+	 	RespondWithJSON(w, http.StatusUnauthorized,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.UNAUTHORIZED,
+	 			Message:   "Unauthorized",
+	 		})
+	 	return
+	 }
+
+	//	 Only admin users can create courses
+	 user, err := h.userRepo.GetUserByID(userID)
+	 if err != nil || user.Role != "admin" {
+	 	config.Log.Debugf("UserID: %d\n", userID)
+	 	config.Log.Debugf("User without admin role tried to create course: Detailed Error: %v", err)
+	 	RespondWithJSON(w, http.StatusForbidden,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.UNAUTHORIZED,
+	 			Message:   "Only users with the admin role may create a course",
+	 		})
+	 	return
+	 }
 
 	var course models.Course
 	if err := json.NewDecoder(r.Body).Decode(&course); err != nil {
-		config.Log.Debugln("Either incorrect JSON or mismatching attributes")
+		config.Log.Debugln("either incorrect JSON or mismatching attributes" + err.Error())
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_JSON,
-				Message:   "Either incorrect JSON or mismatching attributes",
+				ErrorCode: codes.INVALID_JSON,
+				Message:   "either incorrect JSON or mismatching attributes: " + err.Error(),
 			})
 		return
 	}
 
-	createdCourse, err := h.repo.CreateCourse(&course)
+	// make sure the difficulty level is valid
+	switch course.DifficultyLevel.Val {
+	case string(models.Beginner), string(models.Intermediate), string(models.Advanced), string(models.Expert):
+		break
+	default:
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.INVALID_INPUT,
+				Message:   "invalid difficulty level",
+			})
+		return
+	}
+
+	createdCourse, err := h.courseRepo.CreateCourse(ctx, &course)
 
 	if err != nil {
 		log.Printf("Error creating course: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
+				ErrorCode: codes.DATABASE_FAIL,
 				Message:   "Could not create course",
 			})
 		return
@@ -163,30 +183,31 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
-	// userID, ok := middleware.GetUserID(r.Context())
-	// if !ok {
-	// 	config.Log.Debugln("Unauthorized user tried to create course.")
-	// 	RespondWithJSON(w, http.StatusUnauthorized,
-	// 		models.Response{
-	// 			Status:    "error",
-	// 			ErrorCode: errors.UNAUTHORIZED,
-	// 			Message:   "Unauthorized",
-	// 		})
-	// 	return
-	// }
+	ctx := r.Context()
+	 userID, ok := middleware.GetUserID(ctx)
+	 if !ok {
+	 	config.Log.Debugln("Unauthorized user tried to create course.")
+	 	RespondWithJSON(w, http.StatusUnauthorized,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.UNAUTHORIZED,
+	 			Message:   "Unauthorized",
+	 		})
+	 	return
+	 }
 
-	// // Only admin users can update courses
-	// user, err := repository.GetUserByID(userID)
-	// if err != nil || user.Role != "admin" {
-	// 	config.Log.Debugln("User without admin role tried to update a course.")
-	// 	RespondWithJSON(w, http.StatusForbidden,
-	// 		models.Response{
-	// 			Status:    "error",
-	// 			ErrorCode: errors.UNAUTHORIZED,
-	// 			Message:   "Only users with the admin role may update a course",
-	// 		})
-	// 	return
-	// }
+	 // Only admin users can update courses
+	 user, err := h.userRepo.GetUserByID(userID)
+	 if err != nil || user.Role != "admin" {
+	 	config.Log.Debugln("User without admin role tried to update a course.")
+	 	RespondWithJSON(w, http.StatusForbidden,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.UNAUTHORIZED,
+	 			Message:   "Only users with the admin role may update a course",
+	 		})
+	 	return
+	 }
 
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
@@ -195,19 +216,19 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
+				ErrorCode: codes.INVALID_INPUT,
 				Message:   "Invalid course ID format",
 			})
 		return
 	}
 
-	_, err = h.repo.GetCourseByID(id)
+	_, err = h.courseRepo.GetCourseByID(ctx, id)
 	if err != nil {
 		config.Log.Debugf("Tried to update a course with an invalid course ID: %d\n", id)
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
+				ErrorCode: codes.INVALID_INPUT,
 				Message:   "Invalid course ID",
 			})
 		return
@@ -219,21 +240,21 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_JSON,
+				ErrorCode: codes.INVALID_JSON,
 				Message:   "Either incorrect JSON or mismatching attributes",
 			})
 		return
 	}
 	course.ID = id
 
-	createdCourse, err := h.repo.UpdateCourse(&course)
+	createdCourse, err := h.courseRepo.UpdateCourse(ctx, &course)
 
 	if err != nil {
-		config.Log.Debugf("Error updating course: %v", err)
+		config.Log.Debugf("Error updating course: %v", err.Error())
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
+				ErrorCode: codes.DATABASE_FAIL,
 				Message:   "Could not update course",
 			})
 		return
@@ -248,17 +269,18 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		config.Log.Debugln("Unauthorized user tried to delete a course.")
-		RespondWithJSON(w, http.StatusUnauthorized,
-			models.Response{
-				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
-				Message:   "You are not authorized to delete a course",
-			})
-		return
-	}
+	ctx := r.Context()
+	 userID, ok := middleware.GetUserID(ctx)
+	 if !ok {
+	 	config.Log.Debugln("Unauthorized user tried to delete a course.")
+	 	RespondWithJSON(w, http.StatusUnauthorized,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.UNAUTHORIZED,
+	 			Message:   "You are not authorized to delete a course",
+	 		})
+	 	return
+	 }
 
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
@@ -266,30 +288,30 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
+				ErrorCode: codes.INVALID_INPUT,
 				Message:   "Invalid course ID in the route",
 			})
 		return
 	}
 
 	// Only admin users can update courses
-	user, err := h.userRepo.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		config.Log.Debugln("User without admin role tried to delete a course.")
-		RespondWithJSON(w, http.StatusForbidden,
-			models.Response{
-				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
-				Message:   "Only users with the admin role may delete a course",
-			})
-		return
-	}
+	 user, err := h.userRepo.GetUserByID(userID)
+	 if err != nil || user.Role != "admin" {
+	 	config.Log.Debugln("User without admin role tried to delete a course.")
+	 	RespondWithJSON(w, http.StatusForbidden,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.UNAUTHORIZED,
+	 			Message:   "Only users with the admin role may delete a course",
+	 		})
+	 	return
+	 }
 
-	if err := h.repo.DeleteCourse(id); err != nil {
+	if err := h.courseRepo.DeleteCourse(ctx, id); err != nil {
 		config.Log.Debugf("Error deleting course %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{Status: "error",
-				ErrorCode: errors.DATABASE_FAIL,
+				ErrorCode: codes.DATABASE_FAIL,
 				Message:   "Failed to delete the course from the database",
 			})
 		return
@@ -307,25 +329,26 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 // ****************
 
 func (h *courseHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
-				Message:   "Invalid course ID format",
+				ErrorCode: codes.INVALID_INPUT,
+				Message:   "invalid course ID format",
 			})
 		return
 	}
 
-	units, err := h.repo.GetAllUnits(courseID)
+	units, err := h.courseRepo.GetAllUnits(ctx, courseID)
 	if err != nil {
-		log.Printf("Error fetching units for course %d: %v", courseID, err)
+		config.Log.Errorf("error fetching units for course %d: %v", courseID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
-				Status: "error", ErrorCode: errors.DATABASE_FAIL,
-				Message: "Could not retrieve units",
+				Status: "error", ErrorCode: codes.DATABASE_FAIL,
+				Message: "could not retrieve units",
 			})
 		return
 	}
@@ -339,26 +362,39 @@ func (h *courseHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
-				Message:   "Invalid unit ID",
+				ErrorCode: codes.INVALID_INPUT,
+				Message:   "invalid unit ID",
 			})
 		return
 	}
 
-	unit, err := h.repo.GetUnitByID(id)
+	unit, err := h.courseRepo.GetUnitByID(ctx, id)
 	if err != nil {
-		log.Printf("Error fetching unit %d: %v", id, err)
+		if errors.Is(err, repository.ErrUnitNotFound) {
+            // Return 404 Not Found
+            RespondWithJSON(w, http.StatusNotFound,
+                models.Response{
+                    Status:    "error",
+                    ErrorCode: codes.NO_DATA,
+                    Message:   "unit not found",
+                    Data:      nil,
+                })
+            return
+        }
+
+		log.Printf("error fetching unit %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
-				Message:   "Could not retrieve unit",
+				ErrorCode: codes.DATABASE_FAIL,
+				Message:   "could not retrieve unit",
 			})
 		return
 	}
@@ -366,43 +402,53 @@ func (h *courseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
 			Status:  "success",
-			Message: "Unit retrieved successfully",
+			Message: "unit retrieved successfully",
 			Data:    unit,
 		})
 }
 
 func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized,
-			models.Response{
-				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
-				Message:   "Unauthorized",
-			})
-		return
-	}
+	ctx := r.Context()
+//	userID, ok := middleware.GetUserID(ctx)
+//	if !ok {
+//		RespondWithJSON(w, http.StatusUnauthorized,
+//			models.Response{
+//				Status:    "error",
+//				ErrorCode: codes.UNAUTHORIZED,
+//				Message:   "unauthorized",
+//			})
+//		return
+//	}
 
-	// Only admin users can create units
-	user, err := h.userRepo.GetUserByID(userID)
-	if err != nil || user.Role != "admin" {
-		config.Log.Debugf("User without admin role tried to create course unit: Detailed Error: %v", err)
-		RespondWithJSON(w, http.StatusForbidden,
-			models.Response{
-				Status:  "error",
-				Message: "Only users with the admin role may create course units",
-			})
-		return
-	}
+//	user, err := h.userRepo.GetUserByID(userID)
+//	if err != nil {
+//		RespondWithJSON(w, http.StatusInternalServerError,
+//			models.Response{
+//				Status: "error",
+//				Message: "failed to get user by userID",
+//		})
+//		return
+//	}
+//
+//	// Only admin users can create units
+//	if user.Role != "admin" {
+//		config.Log.Debugf("user without admin role tried to create course unit: Detailed Error: %v\n")
+//		RespondWithJSON(w, http.StatusForbidden,
+//			models.Response{
+//				Status:  "error",
+//				Message: "only users with the admin role may create course units",
+//			})
+//		return
+//	}
 
 	params := mux.Vars(r)
 	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
 	if err != nil {
-		config.Log.Debugln("Invalid format for course id in route")
+		config.Log.Debugln("invalid format for course id in route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			ErrorCode: errors.INVALID_INPUT,
-			Message:   "Invalid format for course id in route",
+			ErrorCode: codes.INVALID_INPUT,
+			Message:   "invalid format for course id in route",
 		})
 	}
 
@@ -411,21 +457,20 @@ func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_JSON,
-				Message:   "Invalid JSON or mismatching attributes",
+				ErrorCode: codes.INVALID_JSON,
+				Message:   "invalid JSON or mismatching attributes",
 			})
 		return
 	}
 	unit.CourseID = courseID
 
-	db := config.GetDB()
-	repo := repository.NewCourseRepository(db)
-	if err := repo.CreateUnit(&unit); err != nil {
-		log.Printf("Error creating unit: %v", err)
+	newUnit, err := h.courseRepo.CreateUnit(ctx, &unit);
+	if err != nil {
+		config.Log.Errorf("error creating unit: %v\n", err.Error())
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
+				ErrorCode: codes.DATABASE_FAIL,
 				Message:   err.Error(),
 			})
 		return
@@ -434,19 +479,20 @@ func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusCreated,
 		models.Response{
 			Status:  "success",
-			Message: "Unit created successfully",
-			Data:    unit,
+			Message: "unit created successfully",
+			Data:    newUnit,
 		})
 }
 
 func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
-				Message:   "You are not authorized to make this request",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "you are not authorized to make this request",
 			})
 		return
 	}
@@ -454,12 +500,12 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	// Only admin users can update units
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
-		config.Log.Debugf("User without admin role tried to update course unit: Detailed Error: %v", err)
+		config.Log.Debugf("user without admin role tried to update course unit: Detailed Error: %v", err)
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
-				Message:   "Only users with admin role are allowed to update course units",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "only users with admin role are allowed to update course units",
 			})
 		return
 	}
@@ -470,7 +516,7 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
+				ErrorCode: codes.INVALID_INPUT,
 				Message:   "Invalid unit ID format",
 			})
 		return
@@ -481,18 +527,19 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_JSON,
+				ErrorCode: codes.INVALID_JSON,
 				Message:   "Invalid JSON or mismatching attributes"})
 		return
 	}
 	unit.ID = unitID
 
-	if err := h.repo.UpdateUnit(&unit); err != nil {
+	newUnit, err := h.courseRepo.UpdateUnit(ctx, &unit);
+	if  err != nil {
 		log.Printf("Error updating unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
+				ErrorCode: codes.DATABASE_FAIL,
 				Message:   err.Error(),
 			})
 		return
@@ -502,16 +549,18 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 		models.Response{
 			Status:  "success",
 			Message: "Unit updated successfully",
+			Data: newUnit,
 		})
 }
 
 func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
-	userID, ok := middleware.GetUserID(r.Context())
+	ctx := r.Context()
+	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
+				ErrorCode: codes.UNAUTHORIZED,
 				Message:   "Unauthorized",
 			})
 		return
@@ -523,7 +572,7 @@ func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.INVALID_INPUT,
+				ErrorCode: codes.INVALID_INPUT,
 				Message:   "Invalid unit ID format",
 			})
 		return
@@ -536,7 +585,7 @@ func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.UNAUTHORIZED,
+				ErrorCode: codes.UNAUTHORIZED,
 				Message:   "Only users with the admin role may delete a course unit",
 			})
 		return
@@ -544,12 +593,12 @@ func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 
 	db := config.GetDB()
 	repo := repository.NewCourseRepository(db)
-	if err := repo.DeleteUnit(unitID); err != nil {
+	if err := repo.DeleteUnit(ctx, unitID); err != nil {
 		log.Printf("Error deleting unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
-				ErrorCode: errors.DATABASE_FAIL,
+				ErrorCode: codes.DATABASE_FAIL,
 				Message:   "Could not delete unit",
 			})
 		return
@@ -563,24 +612,25 @@ func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid unit ID",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
 
-	modules, err := h.repo.GetAllModulesPartial(unitID)
+	modules, err := h.courseRepo.GetAllModulesPartial(ctx, unitID)
 	if err != nil {
 		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not retrieve modules",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -593,24 +643,25 @@ func (h *courseHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *courseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid unit ID",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
 
-	modules, err := h.repo.GetAllModules(unitID)
+	modules, err := h.courseRepo.GetAllModules(ctx, unitID)
 	if err != nil {
 		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not retrieve modules",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -623,6 +674,7 @@ func (h *courseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["units"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["modules"], 10, 64)
@@ -630,18 +682,18 @@ func (h *courseHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
 
-	module, err := h.repo.GetModuleByModuleID(unitID, moduleID)
+	module, err := h.courseRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not retrieve module",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -654,12 +706,13 @@ func (h *courseHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -671,7 +724,7 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 		config.Log.Debug("Incorrect course or unit ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 			Message:   "Incorrect course or unit ID format in the route",
 		})
 		return
@@ -683,7 +736,7 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
 			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -693,7 +746,7 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   err.Error(),
-			ErrorCode: errors.INVALID_JSON,
+			ErrorCode: codes.INVALID_JSON,
 		})
 		return
 	}
@@ -702,12 +755,12 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	module.CourseID = courseID
 	module.UnitID = unitID
 
-	if err := h.repo.CreateModule(&module); err != nil {
+	if err := h.courseRepo.CreateModule(ctx, &module); err != nil {
 		log.Printf("Error creating module: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Failed to create the module in the database",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -720,12 +773,13 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -736,7 +790,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
 			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -749,7 +803,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID format in the route",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
@@ -759,29 +813,29 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid input",
-			ErrorCode: errors.INVALID_JSON,
+			ErrorCode: codes.INVALID_JSON,
 		})
 		return
 	}
 	module.ID = moduleID
 
-	_, err = h.repo.GetModuleByModuleID(unitID, moduleID)
+	_, err = h.courseRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
 			Status:    "error",
 			Message:   "Module not found",
-			ErrorCode: errors.NO_DATA,
+			ErrorCode: codes.NO_DATA,
 		})
 		return
 	}
 
-	if err := h.repo.UpdateModule(&module); err != nil {
+	if err := h.courseRepo.UpdateModule(ctx, &module); err != nil {
 		log.Printf("Error updating module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Failed to update module in the database",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -793,12 +847,13 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -811,7 +866,7 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID format in the route",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
@@ -822,28 +877,28 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
 			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
 
-	_, err = h.repo.GetModuleByModuleID(unitID, moduleID)
+	_, err = h.courseRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
 			Status:    "error",
 			Message:   "Module not found",
-			ErrorCode: errors.NO_DATA,
+			ErrorCode: codes.NO_DATA,
 		})
 		return
 	}
 
-	if err := h.repo.DeleteModule(moduleID); err != nil {
+	if err := h.courseRepo.DeleteModule(ctx, moduleID); err != nil {
 		log.Printf("Error deleting module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Could not delete module",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -865,7 +920,7 @@ func (h *courseHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
@@ -876,7 +931,7 @@ func (h *courseHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Failed to retrieve questions from database",
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -903,7 +958,7 @@ func (h *courseHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -914,7 +969,7 @@ func (h *courseHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID format",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 	}
 
@@ -924,7 +979,7 @@ func (h *courseHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
 			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -934,7 +989,7 @@ func (h *courseHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid input",
-			ErrorCode: errors.INVALID_JSON,
+			ErrorCode: codes.INVALID_JSON,
 		})
 		return
 	}
@@ -945,7 +1000,7 @@ func (h *courseHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   err.Error(),
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -963,7 +1018,7 @@ func (h *courseHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -975,7 +1030,7 @@ func (h *courseHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module or question ID format",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
@@ -986,7 +1041,7 @@ func (h *courseHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
 			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -996,7 +1051,7 @@ func (h *courseHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid input",
-			ErrorCode: errors.INVALID_JSON,
+			ErrorCode: codes.INVALID_JSON,
 		})
 		return
 	}
@@ -1008,7 +1063,7 @@ func (h *courseHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   err.Error(),
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}
@@ -1025,7 +1080,7 @@ func (h *courseHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Status:    "error",
 			Message:   "Unauthorized",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -1037,7 +1092,7 @@ func (h *courseHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module or question ID format",
-			ErrorCode: errors.INVALID_REQUEST,
+			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
 	}
@@ -1048,7 +1103,7 @@ func (h *courseHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Status:    "error",
 			Message:   "Access denied",
-			ErrorCode: errors.UNAUTHORIZED,
+			ErrorCode: codes.UNAUTHORIZED,
 		})
 		return
 	}
@@ -1058,7 +1113,7 @@ func (h *courseHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   err.Error(),
-			ErrorCode: errors.DATABASE_FAIL,
+			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
 	}

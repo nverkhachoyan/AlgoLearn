@@ -1,7 +1,7 @@
 name: algolearn
 services:
   db:
-    image: postgres:latest
+    image: postgres:16.4-bookworm
     container_name: algolearn_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

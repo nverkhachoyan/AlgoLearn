@@ -18,6 +18,8 @@ func SetupRouter(
 	oauthHandler handlers.OauthHandler,
 	notifHandler handlers.NotificationsHandler,
 	courseHandler handlers.CourseHandler,
+	unitHandler handlers.UnitHandler,
+	moduleHandler handlers.ModuleHandler,
 	achievementsHandler handlers.AchievementsHandler,
 	adminDashboardHandler handlers.AdminDashboardHandler,
 ) *mux.Router {
@@ -66,21 +68,21 @@ func SetupRouter(
 	authorized.HandleFunc("/courses/{id}", courseHandler.DeleteCourse).Methods("DELETE")
 
 	// Units endpoints
-	public.HandleFunc("/courses/{course_id}/units", courseHandler.GetAllUnits).Methods("GET")
-	public.HandleFunc("/units/{id}", courseHandler.GetUnitByID).Methods("GET")
-	authorized.HandleFunc("/courses/{course_id}/units", courseHandler.CreateUnit).Methods("POST")
-	authorized.HandleFunc("/units/{unit_id}", courseHandler.UpdateUnit).Methods("PUT")
-	authorized.HandleFunc("/units/{unit_id}", courseHandler.DeleteUnit).Methods("DELETE")
+	public.HandleFunc("/courses/{course_id}/units", unitHandler.GetAllUnits).Methods("GET")
+	public.HandleFunc("/units/{id}", unitHandler.GetUnitByID).Methods("GET")
+	authorized.HandleFunc("/courses/{course_id}/units", unitHandler.CreateUnit).Methods("POST")
+	authorized.HandleFunc("/units/{unit_id}", unitHandler.UpdateUnit).Methods("PUT")
+	authorized.HandleFunc("/units/{unit_id}", unitHandler.DeleteUnit).Methods("DELETE")
 
 	// Modules endpoints
-	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules_partial", courseHandler.GetAllModulesPartial).Methods("GET")
-	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", courseHandler.GetAllModules).Methods("GET")
-	public.HandleFunc("/units/{unit_id}/modules/{module_id}/", courseHandler.GetModuleByModuleID).Methods("GET")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules_partial", moduleHandler.GetAllModulesPartial).Methods("GET")
+	public.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", moduleHandler.GetAllModules).Methods("GET")
+	public.HandleFunc("/units/{unit_id}/modules/{module_id}/", moduleHandler.GetModuleByModuleID).Methods("GET")
 
 	// public.HandleFunc("/modules/{module_id}", courseHandler.GetModuleByID).Methods("GET")
-	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", courseHandler.CreateModule).Methods("POST")
-	authorized.HandleFunc("/modules/{module_id}", courseHandler.UpdateModule).Methods("PUT")
-	authorized.HandleFunc("/modules/{module_id}", courseHandler.DeleteModule).Methods("DELETE")
+	authorized.HandleFunc("/courses/{course_id}/units/{unit_id}/modules", moduleHandler.CreateModule).Methods("POST")
+	authorized.HandleFunc("/modules/{module_id}", moduleHandler.UpdateModule).Methods("PUT")
+	authorized.HandleFunc("/modules/{module_id}", moduleHandler.DeleteModule).Methods("DELETE")
 
 	// Module questions endpoints
 	// public.HandleFunc("/modules/{module_id}/module_questions", courseHandler.GetAllModuleQuestions).Methods("GET")

@@ -19,7 +19,7 @@ import (
 func main() {
 	// Loading env variables
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("error loading .env file")
 	}
 
 	port := os.Getenv("PORT")
@@ -39,7 +39,7 @@ func main() {
 	config.InitS3() // DigitalOcean Spaces
 	defer func() {
 		if err := config.GetDB().Close(); err != nil {
-			log.Printf("Error closing database: %v\n", err)
+			log.Printf("error closing database: %v\n", err)
 		}
 	}()
 
@@ -68,11 +68,9 @@ func main() {
 	userHandler := handlers.NewUserHandler(userRepo)
 	oauthHandler := handlers.NewOauthHandler(userRepo)
 	notifHandler := handlers.NewNotificationsHandler(notifRepo)
-	courseHandler := handlers.NewCourseHandler(
-		courseRepo,
-		moduleRepo,
-		unitRepo,
-		userRepo)
+	courseHandler := handlers.NewCourseHandler(courseRepo, userRepo)
+	unitHandler := handlers.NewUnitHandler(unitRepo, userRepo)
+	moduleHandler := handlers.NewModuleHandler(moduleRepo, userRepo)
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
 	adminDashboardHandler := handlers.NewAdminDashboardHandler()
 
@@ -82,6 +80,8 @@ func main() {
 		oauthHandler,
 		notifHandler,
 		courseHandler,
+		unitHandler,
+		moduleHandler,
 		achievementsHandler,
 		adminDashboardHandler,
 	)

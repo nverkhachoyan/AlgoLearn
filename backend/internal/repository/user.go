@@ -4,6 +4,7 @@ import (
 	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/models"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -11,31 +12,31 @@ import (
 type UserRepository interface {
 	// Account creation
 	CreateUser(user *models.User) error
-	GetUserByID(id int) (*models.User, error)
+	GetUserByID(id int64) (*models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
 	UpdateUser(user *models.User) error
-	DeleteUser(id int) error
+	DeleteUser(id int64) error
 	GetAllUsers() ([]models.User, error)
-	ChangeUserPassword(userID int, newPasswordHash string) error
+	ChangeUserPassword(userID int64, newPasswordHash string) error
 	// User achievements
 	GetAllUserAchievements() ([]models.UserAchievement, error)
-	GetUserAchievementsByUserID(userID int) ([]models.UserAchievement, error)
+	GetUserAchievementsByUserID(userID int64) ([]models.UserAchievement, error)
 	GetUserAchievementByID(id int) (*models.UserAchievement, error)
 	CreateUserAchievement(userAchievement *models.UserAchievement) error
 	UpdateUserAchievement(userAchievement *models.UserAchievement) error
 	DeleteUserAchievement(id int) error
 	// User streaks
-	GetStreaksByUserID(userID int) ([]models.Streak, error)
-	GetStreakByID(id int, userID int) (models.Streak, error)
+	GetStreaksByUserID(userID int64) ([]models.Streak, error)
+	GetStreakByID(id int, userID int64) (models.Streak, error)
 	CreateStreak(streak *models.Streak) error
 	UpdateStreak(streak *models.Streak) error
-	DeleteStreak(id int, userID int) error
+	DeleteStreak(id int, userID int64) error
 	// User progress
-	GetUserModuleProgressByUserID(userID int) ([]models.UserModuleProgress, error)
-	GetUserModuleProgressByID(id int, userID int) (models.UserModuleProgress, error)
+	GetUserModuleProgressByUserID(userID int64) ([]models.UserModuleProgress, error)
+	GetUserModuleProgressByID(id int, userID int64) (models.UserModuleProgress, error)
 	CreateUserModuleProgress(progress *models.UserModuleProgress) error
 	UpdateUserModuleProgress(progress *models.UserModuleProgress) error
-	DeleteUserModuleProgress(id int, userID int) error
+	DeleteUserModuleProgress(id int, userID int64) error
 }
 
 type userRepository struct {
@@ -97,7 +98,7 @@ func scanUser(row *sql.Row) (*models.User, error) {
 		&user.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("user not found")
 	} else if err != nil {
 		return nil, fmt.Errorf("could not scan user: %v", err)
@@ -151,7 +152,7 @@ func (r *userRepository) CreateUser(user *models.User) error {
 	return nil
 }
 
-func (r *userRepository) GetUserByID(id int) (*models.User, error) {
+func (r *userRepository) GetUserByID(id int64) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", userFields)
 	user, err := queryUser(query, id)
 	if err != nil {
@@ -177,7 +178,7 @@ func (r *userRepository) GetUserByEmail(email string) (*models.User, error) {
 	query := fmt.Sprintf("SELECT %s FROM users WHERE email = $1", userFields)
 	user, err := queryUser(query, email)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// No user found with email, no errors
 			return nil, nil
 		}
@@ -186,13 +187,13 @@ func (r *userRepository) GetUserByEmail(email string) (*models.User, error) {
 	}
 
 	// Fetch user streaks
-	user.Streaks, err = r.GetStreaksByUserID(int(user.ID))
+	user.Streaks, err = r.GetStreaksByUserID(user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch user streaks: %v", err)
 	}
 
 	// Fetch user achievements
-	user.Achievements, err = r.GetUserAchievementsByUserID(int(user.ID))
+	user.Achievements, err = r.GetUserAchievementsByUserID(user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch user achievements: %v", err)
 	}
@@ -229,8 +230,8 @@ func (r *userRepository) UpdateUser(user *models.User) error {
 	}
 
 	// Building query dynamically
-	setClauses := []string{}
-	values := []interface{}{}
+	var setClauses []string
+	var values []interface{}
 	i := 1
 	for field, value := range fieldsToUpdate {
 		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, i))
@@ -252,7 +253,7 @@ func (r *userRepository) UpdateUser(user *models.User) error {
 	return nil
 }
 
-func (r *userRepository) DeleteUser(id int) error {
+func (r *userRepository) DeleteUser(id int64) error {
 	query := "DELETE FROM users WHERE id = $1"
 	_, err := r.db.Exec(query, id)
 	if err != nil {
@@ -267,7 +268,12 @@ func (r *userRepository) GetAllUsers() ([]models.User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get users: %v", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf("failed to close rows in repository func GetAllUsers. %v", err.Error())
+		}
+	}(rows)
 
 	var users []models.User
 	for rows.Next() {
@@ -296,13 +302,13 @@ func (r *userRepository) GetAllUsers() ([]models.User, error) {
 		}
 
 		// Fetch user streaks
-		user.Streaks, err = r.GetStreaksByUserID(int(user.ID))
+		user.Streaks, err = r.GetStreaksByUserID(user.ID)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch user streaks: %v", err)
 		}
 
 		// Fetch user achievements
-		user.Achievements, err = r.GetUserAchievementsByUserID(int(user.ID))
+		user.Achievements, err = r.GetUserAchievementsByUserID(user.ID)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch user achievements: %v", err)
 		}
@@ -317,7 +323,7 @@ func (r *userRepository) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-func (r *userRepository) ChangeUserPassword(userID int, newPasswordHash string) error {
+func (r *userRepository) ChangeUserPassword(userID int64, newPasswordHash string) error {
 	query := "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2"
 	_, err := r.db.Exec(query, newPasswordHash, userID)
 	if err != nil {
@@ -360,7 +366,7 @@ func (r *userRepository) scanUserModuleProgress(row *sql.Row) (models.UserModule
 		&progress.Status,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return progress, fmt.Errorf("user_module_progress not found")
 	} else if err != nil {
 		return progress, fmt.Errorf("could not scan user_module_progress: %v", err)
@@ -368,13 +374,20 @@ func (r *userRepository) scanUserModuleProgress(row *sql.Row) (models.UserModule
 	return progress, nil
 }
 
-func (r *userRepository) GetUserModuleProgressByUserID(userID int) ([]models.UserModuleProgress, error) {
+func (r *userRepository) GetUserModuleProgressByUserID(userID int64) ([]models.UserModuleProgress, error) {
 	query := fmt.Sprintf("SELECT %s FROM user_module_progress WHERE user_id = $1", userModuleProgressFields)
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get user_module_progress: %v", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf(
+				"failed to close rows in repository func GetUserModuleProgressByUserID. %v",
+				err.Error())
+		}
+	}(rows)
 
 	var progresses []models.UserModuleProgress
 	for rows.Next() {
@@ -403,7 +416,7 @@ func (r *userRepository) GetUserModuleProgressByUserID(userID int) ([]models.Use
 	return progresses, nil
 }
 
-func (r *userRepository) GetUserModuleProgressByID(id int, userID int) (models.UserModuleProgress, error) {
+func (r *userRepository) GetUserModuleProgressByID(id int, userID int64) (models.UserModuleProgress, error) {
 	query := fmt.Sprintf("SELECT %s FROM user_module_progress WHERE id = $1 AND user_id = $2", userModuleProgressFields)
 	return r.queryUserModuleProgress(query, id, userID)
 }
@@ -461,7 +474,7 @@ func (r *userRepository) UpdateUserModuleProgress(progress *models.UserModulePro
 	return nil
 }
 
-func (r *userRepository) DeleteUserModuleProgress(id int, userID int) error {
+func (r *userRepository) DeleteUserModuleProgress(id int, userID int64) error {
 	query := "DELETE FROM user_module_progress WHERE id = $1 AND user_id = $2"
 	_, err := r.db.Exec(query, id, userID)
 	if err != nil {
@@ -476,7 +489,12 @@ func (r *userRepository) GetAllUserAchievements() ([]models.UserAchievement, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf("failed to close rows in repository func GetAllUserAchievements %v", err.Error())
+		}
+	}(rows)
 
 	var userAchievements []models.UserAchievement
 	for rows.Next() {
@@ -496,13 +514,18 @@ func (r *userRepository) GetAllUserAchievements() ([]models.UserAchievement, err
 }
 
 // GetUserAchievementsByUserID retrieves all achievements for a specific user
-func (r *userRepository) GetUserAchievementsByUserID(userID int) ([]models.UserAchievement, error) {
+func (r *userRepository) GetUserAchievementsByUserID(userID int64) ([]models.UserAchievement, error) {
 	query := `SELECT * FROM user_achievements WHERE user_id = $1`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("could not get user achievements: %v", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf("failed to close rows in repository func in GetUserAchievementsByUserID. %v", err.Error())
+		}
+	}(rows)
 
 	var userAchievements []models.UserAchievement
 	for rows.Next() {
@@ -601,7 +624,7 @@ func (r *userRepository) scanStreak(row *sql.Row) (models.Streak, error) {
 		&streak.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return streak, fmt.Errorf("streak not found")
 	} else if err != nil {
 		return streak, fmt.Errorf("could not scan streak: %v", err)
@@ -610,7 +633,7 @@ func (r *userRepository) scanStreak(row *sql.Row) (models.Streak, error) {
 }
 
 // GetStreaksByUserID retrieves all streaks for a user
-func (r *userRepository) GetStreaksByUserID(userID int) ([]models.Streak, error) {
+func (r *userRepository) GetStreaksByUserID(userID int64) ([]models.Streak, error) {
 	query := fmt.Sprintf(`
 	SELECT
 		id,
@@ -626,7 +649,12 @@ func (r *userRepository) GetStreaksByUserID(userID int) ([]models.Streak, error)
 	if err != nil {
 		return nil, fmt.Errorf("could not get streaks: %v", err)
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf("failed to close rows in repository func in GetStreaksByUserID. %v", err.Error())
+		}
+	}(rows)
 
 	var streaks []models.Streak
 	for rows.Next() {
@@ -655,7 +683,7 @@ func (r *userRepository) GetStreaksByUserID(userID int) ([]models.Streak, error)
 }
 
 // GetStreakByID retrieves a streak by its ID for a user
-func (r *userRepository) GetStreakByID(id int, userID int) (models.Streak, error) {
+func (r *userRepository) GetStreakByID(id int, userID int64) (models.Streak, error) {
 	query := fmt.Sprintf(`SELECT 
 		id,
 	user_id,
@@ -719,7 +747,7 @@ func (r *userRepository) UpdateStreak(streak *models.Streak) error {
 }
 
 // DeleteStreak deletes a streak from the database
-func (r *userRepository) DeleteStreak(id int, userID int) error {
+func (r *userRepository) DeleteStreak(id int, userID int64) error {
 	query := "DELETE FROM streaks WHERE id = $1 AND user_id = $2"
 	_, err := r.db.Exec(query, id, userID)
 	if err != nil {

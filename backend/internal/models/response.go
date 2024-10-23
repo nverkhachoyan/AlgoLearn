@@ -1,11 +1,9 @@
-// internal/models/response.go
 package models
 
 import (
 	"algolearn-backend/internal/errors"
 )
 
-// General response model
 type Response struct {
 	Status    string           `json:"status"`
 	Message   string           `json:"message"`

@@ -1,4 +1,3 @@
-// internal/handlers/courses.go
 package handlers
 
 import (
@@ -8,11 +7,11 @@ import (
 	"algolearn-backend/internal/repository"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
-	"errors"
-
+	"fmt"
 
 	"github.com/gorilla/mux"
 )
@@ -110,27 +109,38 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	 userID, ok := middleware.GetUserID(ctx)
+	 fmt.Printf("UserID in CreateCourse: %v Error: %v", userID, ok)
 	 if !ok {
-	 	config.Log.Debugln("Unauthorized user tried to create course.")
+	 	config.Log.Debugln("unauthorized user tried to create course.")
 	 	RespondWithJSON(w, http.StatusUnauthorized,
 	 		models.Response{
 	 			Status:    "error",
 	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "Unauthorized",
+	 			Message:   "unauthorized",
 	 		})
 	 	return
 	 }
 
 	//	 Only admin users can create courses
 	 user, err := h.userRepo.GetUserByID(userID)
-	 if err != nil || user.Role != "admin" {
-	 	config.Log.Debugf("UserID: %d\n", userID)
-	 	config.Log.Debugf("User without admin role tried to create course: Detailed Error: %v", err)
+	 if err != nil {
+	 	config.Log.Errorf("failed to get user with user ID %d, %v\n", userID, err.Error())
+	 	RespondWithJSON(w, http.StatusForbidden,
+	 		models.Response{
+	 			Status:    "error",
+	 			ErrorCode: codes.DATABASE_FAIL,
+	 			Message:   "failed to get user by ID from database",
+	 		})
+	 	return
+	 }
+
+	 if user.Role != "admin" {
+	 	config.Log.Debugln("user without admin role tried to create course")
 	 	RespondWithJSON(w, http.StatusForbidden,
 	 		models.Response{
 	 			Status:    "error",
 	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "Only users with the admin role may create a course",
+	 			Message:   "only users with the admin role may create a course",
 	 		})
 	 	return
 	 }
@@ -148,8 +158,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// make sure the difficulty level is valid
-	switch course.DifficultyLevel.Val {
-	case string(models.Beginner), string(models.Intermediate), string(models.Advanced), string(models.Expert):
+	switch course.DifficultyLevel {
+	case models.Beginner, models.Intermediate, models.Advanced, models.Expert:
 		break
 	default:
 		RespondWithJSON(w, http.StatusBadRequest,
@@ -409,37 +419,37 @@ func (h *courseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 
 func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-//	userID, ok := middleware.GetUserID(ctx)
-//	if !ok {
-//		RespondWithJSON(w, http.StatusUnauthorized,
-//			models.Response{
-//				Status:    "error",
-//				ErrorCode: codes.UNAUTHORIZED,
-//				Message:   "unauthorized",
-//			})
-//		return
-//	}
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "unauthorized",
+			})
+		return
+	}
 
-//	user, err := h.userRepo.GetUserByID(userID)
-//	if err != nil {
-//		RespondWithJSON(w, http.StatusInternalServerError,
-//			models.Response{
-//				Status: "error",
-//				Message: "failed to get user by userID",
-//		})
-//		return
-//	}
-//
-//	// Only admin users can create units
-//	if user.Role != "admin" {
-//		config.Log.Debugf("user without admin role tried to create course unit: Detailed Error: %v\n")
-//		RespondWithJSON(w, http.StatusForbidden,
-//			models.Response{
-//				Status:  "error",
-//				Message: "only users with the admin role may create course units",
-//			})
-//		return
-//	}
+	user, err := h.userRepo.GetUserByID(userID)
+	if err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Status: "error",
+				Message: "failed to get user by userID",
+		})
+		return
+	}
+
+	// Only admin users can create units
+	if user.Role != "admin" {
+		config.Log.Debugln("user without admin role tried to create course unit")
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:  "error",
+				Message: "only users with the admin role may create course units",
+			})
+		return
+	}
 
 	params := mux.Vars(r)
 	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
@@ -464,7 +474,7 @@ func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	}
 	unit.CourseID = courseID
 
-	newUnit, err := h.courseRepo.CreateUnit(ctx, &unit);
+	newUnit, err := h.courseRepo.CreateUnit(ctx, &unit)
 	if err != nil {
 		config.Log.Errorf("error creating unit: %v\n", err.Error())
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -533,7 +543,7 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	}
 	unit.ID = unitID
 
-	newUnit, err := h.courseRepo.UpdateUnit(ctx, &unit);
+	newUnit, err := h.courseRepo.UpdateUnit(ctx, &unit)
 	if  err != nil {
 		log.Printf("Error updating unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,

@@ -82,7 +82,7 @@ func (h *userHandler) validateRegistrationInput(req models.RegistrationRequest) 
 }
 
 func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
-	var email string = r.URL.Query().Get("email")
+	email := r.URL.Query().Get("email")
 
 	user, _ := h.repo.GetUserByEmail(email)
 	if user != nil {
@@ -346,7 +346,7 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUserData, err := h.repo.GetUserByID(int(userID))
+	newUserData, err := h.repo.GetUserByID(userID)
 
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,

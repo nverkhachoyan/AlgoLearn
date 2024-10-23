@@ -40,7 +40,7 @@ type UserModuleProgress struct {
 	ID              int                  `json:"id"`
 	CreatedAt       time.Time            `json:"created_at"`
 	UpdatedAt       time.Time            `json:"updated_at"`
-	UserID          int                  `json:"user_id"`
+	UserID          int64                  `json:"user_id"`
 	ModuleID        int                  `json:"module_id"`
 	StartedAt       time.Time            `json:"started_at"`
 	CompletedAt     time.Time            `json:"completed_at,omitempty"`

@@ -3,7 +3,6 @@ module algolearn-backend
 go 1.22.4
 
 require (
-	github.com/LukaGiorgadze/gonull v1.2.0
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.17.1

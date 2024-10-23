@@ -59,13 +59,20 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	notifRepo := repository.NewNotificationsRepository(db)
 	courseRepo := repository.NewCourseRepository(db)
+	moduleRepo := repository.NewModuleRepository(db)
+	unitRepo := repository.NewUnitRepository(db)
+
 	achievementsRepo := repository.NewAchievementsRepository(db)
 
 	// Initializing handlers
 	userHandler := handlers.NewUserHandler(userRepo)
 	oauthHandler := handlers.NewOauthHandler(userRepo)
 	notifHandler := handlers.NewNotificationsHandler(notifRepo)
-	courseHandler := handlers.NewCourseHandler(courseRepo, userRepo)
+	courseHandler := handlers.NewCourseHandler(
+		courseRepo,
+		moduleRepo,
+		unitRepo,
+		userRepo)
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
 	adminDashboardHandler := handlers.NewAdminDashboardHandler()
 

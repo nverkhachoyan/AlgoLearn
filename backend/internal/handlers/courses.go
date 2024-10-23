@@ -8,10 +8,10 @@ import (
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"fmt"
 
 	"github.com/gorilla/mux"
 )
@@ -37,16 +37,22 @@ type CourseHandler interface {
 
 type courseHandler struct {
 	courseRepo     repository.CourseRepository
+	moduleRepo repository.ModuleRepository
+	unitRepo repository.UnitRepository
 	userRepo repository.UserRepository
 }
 
-func NewCourseHandler(courseRepo repository.CourseRepository, userRepo repository.UserRepository) CourseHandler {
-	return &courseHandler{courseRepo: courseRepo, userRepo: userRepo}
+func NewCourseHandler(courseRepo repository.CourseRepository,
+	moduleRepo repository.ModuleRepository,
+	unitRepo repository.UnitRepository,
+	userRepo repository.UserRepository) CourseHandler {
+	return &courseHandler{
+		courseRepo: courseRepo,
+		moduleRepo: moduleRepo,
+		unitRepo: unitRepo,
+		userRepo: userRepo,
+	}
 }
-
-// *****************
-// **** COURSES ****
-// *****************
 
 func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -352,7 +358,7 @@ func (h *courseHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	units, err := h.courseRepo.GetAllUnits(ctx, courseID)
+	units, err := h.unitRepo.GetAllUnits(ctx, courseID)
 	if err != nil {
 		config.Log.Errorf("error fetching units for course %d: %v", courseID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -385,7 +391,7 @@ func (h *courseHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	unit, err := h.courseRepo.GetUnitByID(ctx, id)
+	unit, err := h.unitRepo.GetUnitByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrUnitNotFound) {
             // Return 404 Not Found
@@ -474,7 +480,7 @@ func (h *courseHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	}
 	unit.CourseID = courseID
 
-	newUnit, err := h.courseRepo.CreateUnit(ctx, &unit)
+	newUnit, err := h.unitRepo.CreateUnit(ctx, &unit)
 	if err != nil {
 		config.Log.Errorf("error creating unit: %v\n", err.Error())
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -543,7 +549,7 @@ func (h *courseHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	}
 	unit.ID = unitID
 
-	newUnit, err := h.courseRepo.UpdateUnit(ctx, &unit)
+	newUnit, err := h.unitRepo.UpdateUnit(ctx, &unit)
 	if  err != nil {
 		log.Printf("Error updating unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -601,9 +607,7 @@ func (h *courseHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := config.GetDB()
-	repo := repository.NewCourseRepository(db)
-	if err := repo.DeleteUnit(ctx, unitID); err != nil {
+	if err := h.unitRepo.DeleteUnit(ctx, unitID); err != nil {
 		log.Printf("Error deleting unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -634,7 +638,7 @@ func (h *courseHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	modules, err := h.courseRepo.GetAllModulesPartial(ctx, unitID)
+	modules, err := h.moduleRepo.GetAllModulesPartial(ctx, unitID)
 	if err != nil {
 		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -665,7 +669,7 @@ func (h *courseHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modules, err := h.courseRepo.GetAllModules(ctx, unitID)
+	modules, err := h.moduleRepo.GetAllModules(ctx, unitID)
 	if err != nil {
 		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -697,7 +701,7 @@ func (h *courseHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	module, err := h.courseRepo.GetModuleByModuleID(ctx, unitID, moduleID)
+	module, err := h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -765,7 +769,7 @@ func (h *courseHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	module.CourseID = courseID
 	module.UnitID = unitID
 
-	if err := h.courseRepo.CreateModule(ctx, &module); err != nil {
+	if err := h.moduleRepo.CreateModule(ctx, &module); err != nil {
 		log.Printf("Error creating module: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
@@ -829,7 +833,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 	module.ID = moduleID
 
-	_, err = h.courseRepo.GetModuleByModuleID(ctx, unitID, moduleID)
+	_, err = h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -840,7 +844,7 @@ func (h *courseHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.courseRepo.UpdateModule(ctx, &module); err != nil {
+	if err := h.moduleRepo.UpdateModule(ctx, &module); err != nil {
 		log.Printf("Error updating module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
@@ -892,7 +896,7 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.courseRepo.GetModuleByModuleID(ctx, unitID, moduleID)
+	_, err = h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -903,7 +907,7 @@ func (h *courseHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.courseRepo.DeleteModule(ctx, moduleID); err != nil {
+	if err := h.moduleRepo.DeleteModule(ctx, moduleID); err != nil {
 		log.Printf("Error deleting module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",

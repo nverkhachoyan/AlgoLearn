@@ -1,15 +1,14 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
+	"algolearn/internal/models"
+	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 )
-
 
 type CourseRepository interface {
 	GetAllCourses(ctx context.Context) ([]models.Course, error)
@@ -29,7 +28,7 @@ func NewCourseRepository(db *sql.DB) CourseRepository {
 
 func (r *courseRepository) GetAllCourses(ctx context.Context) ([]models.Course, error) {
 	rows, err := r.db.QueryContext(
-		ctx,`
+		ctx, `
 		SELECT
 			c.id, c.created_at, c.updated_at, c.name, c.description, c.background_color,
 			c.icon_url, c.duration, c.difficulty_level, c.rating, c.learners_count,
@@ -140,6 +139,7 @@ func (r *courseRepository) GetCourseByID(_ context.Context, courseID int64) (*mo
 }
 
 func (r *courseRepository) CreateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
+	log := logger.Get()
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, err
@@ -148,13 +148,13 @@ func (r *courseRepository) CreateCourse(ctx context.Context, course *models.Cour
 		if err != nil {
 			err = tx.Rollback()
 			if err != nil {
-				config.Log.Errorf("Failed to roll back database transaction for CreateCourse with ID = %d", course.ID)
+				log.Errorf("Failed to roll back database transaction for CreateCourse with ID = %d", course.ID)
 			}
 			return
 		} else {
-			err =tx.Commit()
+			err = tx.Commit()
 			if err != nil {
-				config.Log.Errorf("Failed to commit database transaction for CreateCourse with ID = %d", course.ID)
+				log.Errorf("Failed to commit database transaction for CreateCourse with ID = %d", course.ID)
 			}
 		}
 	}()
@@ -231,25 +231,26 @@ func (r *courseRepository) CreateCourse(ctx context.Context, course *models.Cour
 }
 
 func (r *courseRepository) UpdateCourse(ctx context.Context, course *models.Course) (*models.Course, error) {
-    tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
-    if err != nil {
-        return nil, err
-    }
-    defer func() {
-        if err != nil {
-            if rollbackErr := tx.Rollback(); rollbackErr != nil {
-                config.Log.Errorf("failed to roll back database transaction for UpdateCourse with ID = %d. %v", course.ID, rollbackErr)
-            }
-            return
-        } else {
-            if commitErr := tx.Commit(); commitErr != nil {
-                config.Log.Errorf("failed to commit database transaction for UpdateCourse with ID = %d. %v", course.ID, commitErr)
-                err = commitErr
-            }
-        }
-    }()
+	log := logger.Get()
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Errorf("failed to roll back database transaction for UpdateCourse with ID = %d. %v", course.ID, rollbackErr)
+			}
+			return
+		} else {
+			if commitErr := tx.Commit(); commitErr != nil {
+				log.Errorf("failed to commit database transaction for UpdateCourse with ID = %d. %v", course.ID, commitErr)
+				err = commitErr
+			}
+		}
+	}()
 
-    updateCourseQuery := `UPDATE courses SET
+	updateCourseQuery := `UPDATE courses SET
         name = COALESCE($1, name),
         description = COALESCE($2, description),
         background_color = COALESCE($3, background_color),
@@ -261,74 +262,74 @@ func (r *courseRepository) UpdateCourse(ctx context.Context, course *models.Cour
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $9;`
 
-    _, err = tx.ExecContext(ctx, updateCourseQuery,
-        course.Name,
-        course.Description,
-        course.BackgroundColor,
-        course.IconURL,
-        course.Duration,
-        course.DifficultyLevel,
-        course.Rating,
-        course.LearnersCount,
-        course.ID,
-    )
-    if err != nil {
-        return nil, fmt.Errorf("failed to update course ID %d: %v", course.ID, err)
-    }
+	_, err = tx.ExecContext(ctx, updateCourseQuery,
+		course.Name,
+		course.Description,
+		course.BackgroundColor,
+		course.IconURL,
+		course.Duration,
+		course.DifficultyLevel,
+		course.Rating,
+		course.LearnersCount,
+		course.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update course ID %d: %v", course.ID, err)
+	}
 
-    if len(course.Tags) > 0 {
-        _, err = tx.ExecContext(ctx, `DELETE FROM course_tags WHERE course_id = $1`, course.ID)
-        if err != nil {
-            return nil, err
-        }
+	if len(course.Tags) > 0 {
+		_, err = tx.ExecContext(ctx, `DELETE FROM course_tags WHERE course_id = $1`, course.ID)
+		if err != nil {
+			return nil, err
+		}
 
-        for _, tag := range course.Tags {
-            var tagID int64
-            err = tx.QueryRowContext(ctx, `SELECT id FROM tags WHERE name = $1`, tag).Scan(&tagID)
-            if errors.Is(err, sql.ErrNoRows) {
-                err = tx.QueryRowContext(ctx, `INSERT INTO tags (name) VALUES ($1) RETURNING id`, tag).Scan(&tagID)
-                if err != nil {
-                    return nil, err
-                }
-            } else if err != nil {
-                return nil, err
-            }
+		for _, tag := range course.Tags {
+			var tagID int64
+			err = tx.QueryRowContext(ctx, `SELECT id FROM tags WHERE name = $1`, tag).Scan(&tagID)
+			if errors.Is(err, sql.ErrNoRows) {
+				err = tx.QueryRowContext(ctx, `INSERT INTO tags (name) VALUES ($1) RETURNING id`, tag).Scan(&tagID)
+				if err != nil {
+					return nil, err
+				}
+			} else if err != nil {
+				return nil, err
+			}
 
-            _, err = tx.ExecContext(ctx, `INSERT INTO course_tags (course_id, tag_id) VALUES ($1, $2)`, course.ID, tagID)
-            if err != nil {
-                return nil, err
-            }
-        }
-    }
+			_, err = tx.ExecContext(ctx, `INSERT INTO course_tags (course_id, tag_id) VALUES ($1, $2)`, course.ID, tagID)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
-    if len(course.Authors) > 0 {
-        _, err = tx.ExecContext(ctx, `DELETE FROM course_authors WHERE course_id = $1`, course.ID)
-        if err != nil {
-            return nil, err
-        }
+	if len(course.Authors) > 0 {
+		_, err = tx.ExecContext(ctx, `DELETE FROM course_authors WHERE course_id = $1`, course.ID)
+		if err != nil {
+			return nil, err
+		}
 
-        for _, author := range course.Authors {
-            var authorID int64
-            err = tx.QueryRowContext(ctx, `SELECT id FROM authors WHERE name = $1`, author).Scan(&authorID)
-            if errors.Is(err, sql.ErrNoRows) {
-                err = tx.QueryRowContext(ctx, `INSERT INTO authors (name) VALUES ($1) RETURNING id`, author).Scan(&authorID)
-                if err != nil {
-                    return nil, err
-                }
-            } else if err != nil {
-                return nil, err
-            }
+		for _, author := range course.Authors {
+			var authorID int64
+			err = tx.QueryRowContext(ctx, `SELECT id FROM authors WHERE name = $1`, author).Scan(&authorID)
+			if errors.Is(err, sql.ErrNoRows) {
+				err = tx.QueryRowContext(ctx, `INSERT INTO authors (name) VALUES ($1) RETURNING id`, author).Scan(&authorID)
+				if err != nil {
+					return nil, err
+				}
+			} else if err != nil {
+				return nil, err
+			}
 
-            _, err = tx.ExecContext(ctx, `INSERT INTO course_authors (course_id, author_id) VALUES ($1, $2)`, course.ID, authorID)
-            if err != nil {
-                return nil, err
-            }
-        }
-    }
+			_, err = tx.ExecContext(ctx, `INSERT INTO course_authors (course_id, author_id) VALUES ($1, $2)`, course.ID, authorID)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
-    var updatedCourse models.Course
-    var tagsJSON, authorsJSON []byte
-    query := `
+	var updatedCourse models.Course
+	var tagsJSON, authorsJSON []byte
+	query := `
     SELECT
         c.id,
         c.name,
@@ -350,37 +351,36 @@ func (r *courseRepository) UpdateCourse(ctx context.Context, course *models.Cour
     GROUP BY c.id;
     `
 
-    row := tx.QueryRowContext(ctx, query, course.ID)
-    err = row.Scan(
-        &updatedCourse.ID,
-        &updatedCourse.Name,
-        &updatedCourse.Description,
-        &updatedCourse.BackgroundColor,
-        &updatedCourse.IconURL,
-        &updatedCourse.Duration,
-        &updatedCourse.DifficultyLevel,
-        &updatedCourse.Rating,
-        &updatedCourse.LearnersCount,
-        &tagsJSON,
-        &authorsJSON,
-    )
-    if err != nil {
-        return nil, err
-    }
+	row := tx.QueryRowContext(ctx, query, course.ID)
+	err = row.Scan(
+		&updatedCourse.ID,
+		&updatedCourse.Name,
+		&updatedCourse.Description,
+		&updatedCourse.BackgroundColor,
+		&updatedCourse.IconURL,
+		&updatedCourse.Duration,
+		&updatedCourse.DifficultyLevel,
+		&updatedCourse.Rating,
+		&updatedCourse.LearnersCount,
+		&tagsJSON,
+		&authorsJSON,
+	)
+	if err != nil {
+		return nil, err
+	}
 
-    err = json.Unmarshal(tagsJSON, &updatedCourse.Tags)
-    if err != nil {
-        return nil, err
-    }
+	err = json.Unmarshal(tagsJSON, &updatedCourse.Tags)
+	if err != nil {
+		return nil, err
+	}
 
-    err = json.Unmarshal(authorsJSON, &updatedCourse.Authors)
-    if err != nil {
-        return nil, err
-    }
+	err = json.Unmarshal(authorsJSON, &updatedCourse.Authors)
+	if err != nil {
+		return nil, err
+	}
 
-    return &updatedCourse, nil
+	return &updatedCourse, nil
 }
-
 
 func (r *courseRepository) DeleteCourse(_ context.Context, id int64) error {
 	_, err := r.db.Exec("DELETE FROM courses WHERE id = $1", id)

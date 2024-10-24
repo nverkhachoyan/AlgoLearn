@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"algolearn-backend/internal/models"
+	"algolearn/internal/models"
 	"database/sql"
 )
 

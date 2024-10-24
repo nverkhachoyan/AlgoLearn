@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
+	"algolearn/internal/config"
+	"algolearn/internal/models"
+	"algolearn/pkg/logger"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -263,6 +264,8 @@ func (r *userRepository) DeleteUser(id int64) error {
 }
 
 func (r *userRepository) GetAllUsers() ([]models.User, error) {
+	log := logger.Get()
+
 	query := fmt.Sprintf("SELECT %s FROM users", userFields)
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -271,7 +274,7 @@ func (r *userRepository) GetAllUsers() ([]models.User, error) {
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("failed to close rows in repository func GetAllUsers. %v", err.Error())
+			log.Errorf("failed to close rows in repository func GetAllUsers. %v", err.Error())
 		}
 	}(rows)
 
@@ -375,6 +378,7 @@ func (r *userRepository) scanUserModuleProgress(row *sql.Row) (models.UserModule
 }
 
 func (r *userRepository) GetUserModuleProgressByUserID(userID int64) ([]models.UserModuleProgress, error) {
+	log := logger.Get()
 	query := fmt.Sprintf("SELECT %s FROM user_module_progress WHERE user_id = $1", userModuleProgressFields)
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
@@ -383,7 +387,7 @@ func (r *userRepository) GetUserModuleProgressByUserID(userID int64) ([]models.U
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf(
+			log.Errorf(
 				"failed to close rows in repository func GetUserModuleProgressByUserID. %v",
 				err.Error())
 		}
@@ -485,6 +489,7 @@ func (r *userRepository) DeleteUserModuleProgress(id int, userID int64) error {
 
 // GetAllUserAchievements retrieves all user achievements
 func (r *userRepository) GetAllUserAchievements() ([]models.UserAchievement, error) {
+	log := logger.Get()
 	rows, err := r.db.Query("SELECT id, user_id, achievement_id, achieved_at FROM user_achievements")
 	if err != nil {
 		return nil, err
@@ -492,7 +497,7 @@ func (r *userRepository) GetAllUserAchievements() ([]models.UserAchievement, err
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("failed to close rows in repository func GetAllUserAchievements %v", err.Error())
+			log.Errorf("failed to close rows in repository func GetAllUserAchievements %v", err.Error())
 		}
 	}(rows)
 
@@ -515,6 +520,7 @@ func (r *userRepository) GetAllUserAchievements() ([]models.UserAchievement, err
 
 // GetUserAchievementsByUserID retrieves all achievements for a specific user
 func (r *userRepository) GetUserAchievementsByUserID(userID int64) ([]models.UserAchievement, error) {
+	log := logger.Get()
 	query := `SELECT * FROM user_achievements WHERE user_id = $1`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
@@ -523,7 +529,7 @@ func (r *userRepository) GetUserAchievementsByUserID(userID int64) ([]models.Use
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("failed to close rows in repository func in GetUserAchievementsByUserID. %v", err.Error())
+			log.Errorf("failed to close rows in repository func in GetUserAchievementsByUserID. %v", err.Error())
 		}
 	}(rows)
 
@@ -634,6 +640,7 @@ func (r *userRepository) scanStreak(row *sql.Row) (models.Streak, error) {
 
 // GetStreaksByUserID retrieves all streaks for a user
 func (r *userRepository) GetStreaksByUserID(userID int64) ([]models.Streak, error) {
+	log := logger.Get()
 	query := fmt.Sprintf(`
 	SELECT
 		id,
@@ -652,7 +659,7 @@ func (r *userRepository) GetStreaksByUserID(userID int64) ([]models.Streak, erro
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("failed to close rows in repository func in GetStreaksByUserID. %v", err.Error())
+			log.Errorf("failed to close rows in repository func in GetStreaksByUserID. %v", err.Error())
 		}
 	}(rows)
 

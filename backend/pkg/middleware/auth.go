@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/errors"
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/services"
+	"algolearn/internal/config"
+	"algolearn/internal/errors"
+	"algolearn/internal/models"
+	"algolearn/internal/repository"
+	"algolearn/internal/services"
+	"algolearn/pkg/logger"
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -18,16 +18,18 @@ type contextKey string
 const userContextKey contextKey = "userID"
 
 func RespondWithJSON(w http.ResponseWriter, status int, response models.Response) {
+	log := logger.Get()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	err := json.NewEncoder(w).Encode(response)
 	if err != nil {
-		config.Log.Errorf("failed to respond with JSON: %v", err.Error())
+		log.Errorf("failed to respond with JSON: %v", err.Error())
 		return
 	}
 }
 
 func Auth(next http.Handler) http.Handler {
+	log := logger.Get()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -59,6 +61,7 @@ func Auth(next http.Handler) http.Handler {
 }
 
 func IsAdmin(next http.Handler) http.Handler {
+	log := logger.Get()
 	db := config.GetDB()
 	userRepo := repository.NewUserRepository(db)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

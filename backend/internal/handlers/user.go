@@ -1,17 +1,17 @@
-// internal/handlers/user.go
 package handlers
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/errors"
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/router"
-	"algolearn-backend/internal/services"
-	"algolearn-backend/pkg/middleware"
+	"algolearn/internal/config"
+	"algolearn/internal/errors"
+	"algolearn/internal/models"
+	"algolearn/internal/repository"
+	"algolearn/internal/router"
+	"algolearn/internal/services"
+	"algolearn/pkg/logger"
+	"algolearn/pkg/middleware"
+
 	"encoding/json"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"regexp"
@@ -106,6 +106,7 @@ func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
@@ -134,7 +135,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	hashedPassword, err := services.HashPassword(req.Password)
 	if err != nil {
-		config.Log.Errorf("error hashing password: %v\n", err)
+		log.Errorf("error hashing password: %v\n", err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
@@ -191,6 +192,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	var req models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", ErrorCode: errors.INVALID_JSON, Message: "Invalid JSON"})
@@ -259,6 +261,7 @@ func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int64) (
 }
 
 func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	tokenStr := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	if tokenStr == "" {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -281,7 +284,7 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := int64(claims.UserID)
+	userID := claims.UserID
 
 	// Parsing multipart form data
 	err = r.ParseMultipartForm(10 << 20) // 10 MB
@@ -364,6 +367,7 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -390,6 +394,7 @@ func (h *userHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -411,7 +416,8 @@ func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // *** USER ACHIEVEMENTS HANDLERS ***
-func (h *userHandler) GetAllUserAchievements(w http.ResponseWriter, r *http.Request) {
+
+func (h *userHandler) GetAllUserAchievements(w http.ResponseWriter, _ *http.Request) {
 	userAchievements, err := h.repo.GetAllUserAchievements()
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
@@ -500,6 +506,7 @@ func (h *userHandler) DeleteUserAchievement(w http.ResponseWriter, r *http.Reque
 // *** USER MODULE PROGRESS ***
 
 func (h *userHandler) GetAllUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -517,6 +524,7 @@ func (h *userHandler) GetAllUserModuleProgress(w http.ResponseWriter, r *http.Re
 }
 
 func (h *userHandler) GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -541,6 +549,7 @@ func (h *userHandler) GetUserModuleProgressByID(w http.ResponseWriter, r *http.R
 }
 
 func (h *userHandler) CreateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -564,6 +573,7 @@ func (h *userHandler) CreateUserModuleProgress(w http.ResponseWriter, r *http.Re
 }
 
 func (h *userHandler) UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -602,6 +612,7 @@ func (h *userHandler) UpdateUserModuleProgress(w http.ResponseWriter, r *http.Re
 }
 
 func (h *userHandler) DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})
@@ -629,6 +640,7 @@ func (h *userHandler) DeleteUserModuleProgress(w http.ResponseWriter, r *http.Re
 // **********************
 
 func (h *userHandler) GetAllStreaks(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Status: "error", Message: "Unauthorized"})

@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"algolearn-backend/internal/config"
-	codes "algolearn-backend/internal/errors"
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/router"
-	"algolearn-backend/pkg/middleware"
+	codes "algolearn/internal/errors"
+	"algolearn/internal/models"
+	"algolearn/internal/repository"
+	"algolearn/internal/router"
+	"algolearn/pkg/logger"
+	"algolearn/pkg/middleware"
+
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -38,6 +38,7 @@ func NewModuleHandler(moduleRepo repository.ModuleRepository,
 }
 
 func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
@@ -70,6 +71,7 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
@@ -102,6 +104,7 @@ func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -116,7 +119,7 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	unitID, unitIDerr := strconv.ParseInt(params["unit_id"], 10, 64)
 	if unitIDerr != nil {
-		config.Log.Debug("incorrect unit ID format in the route")
+		log.Debug("incorrect unit ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			ErrorCode: codes.INVALID_REQUEST,
@@ -167,6 +170,7 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -193,7 +197,7 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
-		config.Log.Debug("Invalid module ID format in the route")
+		log.Debug("Invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID format in the route",
@@ -241,6 +245,7 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -256,7 +261,7 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
-		config.Log.Debug("Invalid module ID format in the route")
+		log.Debug("Invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			Message:   "Invalid module ID format in the route",
@@ -308,6 +313,7 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 // *********************************
 
 func (h *moduleHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	params := mux.Vars(r)
 	moduleID, err := strconv.Atoi(params["module_id"])
 	if err != nil {
@@ -321,7 +327,7 @@ func (h *moduleHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 
 	questions, err := repository.GetQuestionsByModuleID(moduleID)
 	if err != nil {
-		config.Log.Debugf("Error fetching questions for module %d: %v", moduleID, err)
+		log.Debugf("Error fetching questions for module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   "Failed to retrieve questions from database",
@@ -347,6 +353,7 @@ func (h *moduleHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 }
 
 func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -407,6 +414,7 @@ func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
@@ -453,7 +461,7 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	question.ID = moduleQuestionID
 
 	if err := repository.UpdateQuestion(&question); err != nil {
-		config.Log.Debugf("Error updating question %d: %v", moduleQuestionID, err)
+		log.Debugf("Error updating question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
 			Message:   err.Error(),
@@ -469,6 +477,7 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{

@@ -1,4 +1,4 @@
-module algolearn-backend
+module algolearn
 
 go 1.22.4
 

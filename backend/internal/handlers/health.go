@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/router"
+	"algolearn/internal/models"
+	"algolearn/internal/router"
 
 	"net/http"
 )

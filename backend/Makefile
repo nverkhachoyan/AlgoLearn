@@ -10,6 +10,7 @@ all: run
 # Run Docker Compose and the Go application
 build: docker-build
 run: docker-up
+dev: docker-dev
 down: docker-down
 
 # Build docker services
@@ -21,6 +22,12 @@ docker-build:
 docker-up:
 	@echo "Starting Docker Compose services..."
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up
+
+
+# Bring up Docker Compose services for development
+docker-dev:
+	@echo "Starting Docker Compose services..."
+	$(DOCKER_COMPOSE) up -d db
 
 # Stop Docker Compose services
 docker-down:

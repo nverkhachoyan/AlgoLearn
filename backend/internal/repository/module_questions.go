@@ -2,8 +2,9 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
+	"algolearn/internal/config"
+	"algolearn/internal/models"
+	"algolearn/pkg/logger"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -58,10 +59,11 @@ func GetQuestionByID(id int) (*models.ModuleQuestion, error) {
 }
 
 func CreateQuestion(question *models.ModuleQuestion) error {
+	log := logger.Get()
 	db := config.GetDB()
 	stmt, err := db.Prepare("INSERT INTO module_questions (module_id, content) VALUES ($1, $2)")
 	if err != nil {
-		config.Log.Debug(err)
+		log.Debug(err)
 		return err
 	}
 	defer stmt.Close()
@@ -73,18 +75,18 @@ func CreateQuestion(question *models.ModuleQuestion) error {
 			case "23":
 				// Class 23 indicates an integrity constraint violation
 				if pqErr.Code.Name() == "foreign_key_violation" {
-					config.Log.Debug(ErrModuleNotFound, err)
+					log.Debug(ErrModuleNotFound, err)
 					return ErrModuleNotFound
 				}
 			}
 		}
-		config.Log.Debug(err)
+		log.Debug(err)
 		return err
 	}
 
 	rowCnt, err := res.RowsAffected()
 	if err != nil {
-		config.Log.Debug(err)
+		log.Debug(err)
 		return err
 	}
 	if rowCnt == 0 {
@@ -95,10 +97,11 @@ func CreateQuestion(question *models.ModuleQuestion) error {
 }
 
 func UpdateQuestion(question *models.ModuleQuestion) error {
+	log := logger.Get()
 	db := config.GetDB()
 	stmt, err := db.Prepare("UPDATE module_questions SET content = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND module_id = $3")
 	if err != nil {
-		config.Log.Debug(err)
+		log.Debug(err)
 		return err
 	}
 	defer stmt.Close()
@@ -110,12 +113,12 @@ func UpdateQuestion(question *models.ModuleQuestion) error {
 			case "23":
 				// Class 23 indicates an integrity constraint violation
 				if pqErr.Code.Name() == "foreign_key_violation" {
-					config.Log.Debug(ErrModuleNotFound, err)
+					log.Errorf("%s,%s", ErrModuleNotFound, err)
 					return ErrModuleNotFound
 				}
 			}
 		}
-		config.Log.Debug(err)
+		log.Debug(err)
 		return err
 	}
 

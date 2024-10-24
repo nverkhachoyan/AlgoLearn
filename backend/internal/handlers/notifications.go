@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/router"
+	"algolearn/internal/models"
+	"algolearn/internal/router"
 
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/pkg/middleware"
+	"algolearn/internal/repository"
+	"algolearn/pkg/middleware"
 
 	"net/http"
 )

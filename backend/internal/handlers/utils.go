@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"algolearn-backend/internal/models"
+	"algolearn/internal/models"
 	"encoding/json"
 	"net/http"
 )

@@ -1,13 +1,14 @@
 package main
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/handlers"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/router"
+	"algolearn/internal/config"
+	"algolearn/internal/handlers"
+	"algolearn/internal/repository"
+	"algolearn/internal/router"
 
-	"algolearn-backend/pkg/colors"
-	"algolearn-backend/pkg/middleware"
+	"algolearn/pkg/logger"
+	"algolearn/pkg/middleware"
+
 	"log"
 	"net/http"
 	"os"
@@ -34,6 +35,9 @@ func main() {
 
 	// Initialize configs
 	config.InitLogger()
+	log := logger.Get()
+	log.Info("Starting application...")
+
 	config.InitDB()
 	config.InitOAuth()
 	config.InitS3() // DigitalOcean Spaces
@@ -73,6 +77,7 @@ func main() {
 	moduleHandler := handlers.NewModuleHandler(moduleRepo, userRepo)
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
 	adminDashboardHandler := handlers.NewAdminDashboardHandler()
+	healthHandler := handlers.NewHealthHandler()
 
 	// Router setup
 	r := router.NewRouter(
@@ -84,6 +89,7 @@ func main() {
 		notifHandler,
 		achievementsHandler,
 		adminDashboardHandler,
+		healthHandler,
 	)
 
 	// Timeout middleware
@@ -91,6 +97,6 @@ func main() {
 	// Logging middleware
 	loggedRouter := middleware.LoggingMiddleware(timeoutMiddleware(r))
 	// Start server and log
-	log.Println(colors.Purple + "Server is running on port " + port + " " + colors.Reset)
+	log.Println("Server is running on port " + port)
 	log.Fatal(http.ListenAndServe(":"+port, loggedRouter))
 }

@@ -2,8 +2,8 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
+	"algolearn/internal/config"
+	"algolearn/internal/models"
 	"database/sql"
 	"fmt"
 	"time"

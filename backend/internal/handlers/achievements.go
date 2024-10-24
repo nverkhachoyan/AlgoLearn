@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/router"
-	"algolearn-backend/pkg/middleware"
+	"algolearn/internal/models"
+	"algolearn/internal/repository"
+	"algolearn/internal/router"
+	"algolearn/pkg/middleware"
 
 	"encoding/json"
 	"net/http"
@@ -30,7 +30,7 @@ func NewAchievementsHandler(repo repository.AchievementsRepository) Achievements
 	return &achievementsHandler{repo: repo}
 }
 
-func (h *achievementsHandler) GetAllAchievements(w http.ResponseWriter, r *http.Request) {
+func (h *achievementsHandler) GetAllAchievements(w http.ResponseWriter, _ *http.Request) {
 	achievements, err := h.repo.GetAllAchievements()
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})

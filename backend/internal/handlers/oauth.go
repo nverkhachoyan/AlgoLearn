@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/router"
-	"algolearn-backend/internal/services"
+	"algolearn/internal/config"
+	"algolearn/internal/models"
+	"algolearn/internal/repository"
+	"algolearn/internal/router"
+	"algolearn/internal/services"
 
 	"golang.org/x/oauth2"
 )

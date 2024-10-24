@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"algolearn-backend/internal/config"
-	codes "algolearn-backend/internal/errors"
-	"algolearn-backend/internal/models"
-	"algolearn-backend/internal/repository"
-	"algolearn-backend/internal/router"
-	"algolearn-backend/pkg/middleware"
+	codes "algolearn/internal/errors"
+	"algolearn/internal/models"
+	"algolearn/internal/repository"
+	"algolearn/internal/router"
+	"algolearn/pkg/logger"
+	"algolearn/pkg/middleware"
+
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -41,6 +41,7 @@ func NewUnitHandler(
 }
 
 func (h *unitHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
 	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
@@ -56,7 +57,7 @@ func (h *unitHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 
 	units, err := h.unitRepo.GetAllUnits(ctx, courseID)
 	if err != nil {
-		config.Log.Errorf("error fetching units for course %d: %v", courseID, err)
+		log.Errorf("error fetching units for course %d: %v", courseID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status: "error", ErrorCode: codes.DATABASE_FAIL,
@@ -74,6 +75,7 @@ func (h *unitHandler) GetAllUnits(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *unitHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
@@ -120,6 +122,8 @@ func (h *unitHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *unitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
+
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
@@ -144,7 +148,7 @@ func (h *unitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 
 	// Only admin users can create units
 	if user.Role != "admin" {
-		config.Log.Debugln("user without admin role tried to create course unit")
+		log.Debugln("user without admin role tried to create course unit")
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
 				Status:  "error",
@@ -156,7 +160,7 @@ func (h *unitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
 	if err != nil {
-		config.Log.Debugln("invalid format for course id in route")
+		log.Debugln("invalid format for course id in route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			ErrorCode: codes.INVALID_INPUT,
@@ -178,7 +182,7 @@ func (h *unitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 
 	newUnit, err := h.unitRepo.CreateUnit(ctx, &unit)
 	if err != nil {
-		config.Log.Errorf("error creating unit: %v\n", err.Error())
+		log.Errorf("error creating unit: %v\n", err.Error())
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
 				Status:    "error",
@@ -197,6 +201,7 @@ func (h *unitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *unitHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -212,7 +217,7 @@ func (h *unitHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	// Only admin users can update units
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
-		config.Log.Debugf("user without admin role tried to update course unit: Detailed Error: %v", err)
+		log.Debugf("user without admin role tried to update course unit: Detailed Error: %v", err)
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
 				Status:    "error",
@@ -266,6 +271,7 @@ func (h *unitHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *unitHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get()
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(ctx)
 	if !ok {
@@ -293,7 +299,7 @@ func (h *unitHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 	// Only admin users can delete units
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
-		config.Log.Debugf("User without admin role tried to delete course unit")
+		log.Debugf("User without admin role tried to delete course unit")
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
 				Status:    "error",

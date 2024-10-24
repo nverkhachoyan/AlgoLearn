@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
+	"algolearn/internal/models"
+	"algolearn/pkg/logger"
 
 	"context"
 	"database/sql"
@@ -34,6 +34,7 @@ func (r *moduleRepository) GetModules(ctx context.Context, unitID int64, isParti
 }
 
 func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error) {
+	log := logger.Get()
 	rows, err := r.db.QueryContext(ctx, `
 	SELECT 	id,
 		  	created_at,
@@ -49,7 +50,7 @@ func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) 
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("faild to close rows in repo func GetAllModulesPartial. %v", err.Error())
+			log.Errorf("faild to close rows in repo func GetAllModulesPartial. %v", err.Error())
 		}
 	}(rows)
 
@@ -79,6 +80,7 @@ func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) 
 }
 
 func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]models.Module, error) {
+	log := logger.Get()
 	rows, err := r.db.QueryContext(ctx, `
 	SELECT
 		m.id AS module_id,
@@ -113,7 +115,7 @@ func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("faild to close rows in repo func GetAllModules. %v", err.Error())
+			log.Errorf("faild to close rows in repo func GetAllModules. %v", err.Error())
 		}
 	}(rows)
 

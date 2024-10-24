@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"algolearn-backend/internal/config"
-	"algolearn-backend/internal/models"
+	"algolearn/internal/models"
+	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
 	"errors"
@@ -27,6 +27,7 @@ func NewUnitRepository(db *sql.DB) UnitRepository {
 }
 
 func (r *unitRepository) GetAllUnits(_ context.Context, courseID int64) ([]models.Unit, error) {
+	log := logger.Get()
 	rows, err := r.db.Query("SELECT * FROM units WHERE course_id = $1", courseID)
 	if err != nil {
 		return nil, err
@@ -34,7 +35,7 @@ func (r *unitRepository) GetAllUnits(_ context.Context, courseID int64) ([]model
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			config.Log.Errorf("failed to close rows in repository func GetAllUnits. %v", err.Error())
+			log.Errorf("failed to close rows in repository func GetAllUnits. %v", err.Error())
 		}
 	}(rows)
 
@@ -86,7 +87,7 @@ func (r *unitRepository) GetUnitByID(_ context.Context, id int64) (*models.Unit,
 func (r *unitRepository) CreateUnit(ctx context.Context, unit *models.Unit) (*models.Unit, error) {
 	var newUnit models.Unit
 	err := r.db.QueryRowContext(ctx,
-`INSERT INTO units (course_id, name, description)
+		`INSERT INTO units (course_id, name, description)
 		VALUES ($1, $2, $3)
 		RETURNING
 			id,
@@ -97,14 +98,14 @@ func (r *unitRepository) CreateUnit(ctx context.Context, unit *models.Unit) (*mo
 			description;
 		`,
 		unit.CourseID, unit.Name, unit.Description,
-		).Scan(
+	).Scan(
 		&newUnit.ID,
 		&newUnit.CreatedAt,
 		&newUnit.UpdatedAt,
 		&newUnit.CourseID,
 		&newUnit.Name,
 		&newUnit.Description,
-		)
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func (r *unitRepository) CreateUnit(ctx context.Context, unit *models.Unit) (*mo
 func (r *unitRepository) UpdateUnit(ctx context.Context, unit *models.Unit) (*models.Unit, error) {
 	var newUnit models.Unit
 	row := r.db.QueryRowContext(ctx,
-`UPDATE units
+		`UPDATE units
 		SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $3
 		RETURNING
@@ -127,13 +128,13 @@ func (r *unitRepository) UpdateUnit(ctx context.Context, unit *models.Unit) (*mo
 			description;
 		`,
 		unit.Name, unit.Description, unit.ID).Scan(
-			&newUnit.ID,
-			&newUnit.CreatedAt,
-			&newUnit.UpdatedAt,
-			&newUnit.CourseID,
-			&newUnit.Name,
-			&newUnit.Description,
-			)
+		&newUnit.ID,
+		&newUnit.CreatedAt,
+		&newUnit.UpdatedAt,
+		&newUnit.CourseID,
+		&newUnit.Name,
+		&newUnit.Description,
+	)
 
 	if errors.Is(row, sql.ErrNoRows) {
 		return nil, ErrUnitNotFound

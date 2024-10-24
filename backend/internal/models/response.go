@@ -1,7 +1,7 @@
 package models
 
 import (
-	"algolearn-backend/internal/errors"
+	"algolearn/internal/errors"
 )
 
 type Response struct {

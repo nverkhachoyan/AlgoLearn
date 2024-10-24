@@ -5,6 +5,7 @@ import (
 	codes "algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/router"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
 	"errors"
@@ -21,13 +22,13 @@ type UnitHandler interface {
 	CreateUnit(w http.ResponseWriter, r *http.Request)
 	UpdateUnit(w http.ResponseWriter, r *http.Request)
 	DeleteUnit(w http.ResponseWriter, r *http.Request)
-
+	RegisterRoutes(r *router.Router)
 }
 
 type unitHandler struct {
-	courseRepo     repository.CourseRepository
-	unitRepo repository.UnitRepository
-	userRepo repository.UserRepository
+	courseRepo repository.CourseRepository
+	unitRepo   repository.UnitRepository
+	userRepo   repository.UserRepository
 }
 
 func NewUnitHandler(
@@ -89,16 +90,16 @@ func (h *unitHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	unit, err := h.unitRepo.GetUnitByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrUnitNotFound) {
-            // Return 404 Not Found
-            RespondWithJSON(w, http.StatusNotFound,
-                models.Response{
-                    Status:    "error",
-                    ErrorCode: codes.NO_DATA,
-                    Message:   "unit not found",
-                    Data:      nil,
-                })
-            return
-        }
+			// Return 404 Not Found
+			RespondWithJSON(w, http.StatusNotFound,
+				models.Response{
+					Status:    "error",
+					ErrorCode: codes.NO_DATA,
+					Message:   "unit not found",
+					Data:      nil,
+				})
+			return
+		}
 
 		log.Printf("error fetching unit %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -135,9 +136,9 @@ func (h *unitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
-				Status: "error",
+				Status:  "error",
 				Message: "failed to get user by userID",
-		})
+			})
 		return
 	}
 
@@ -245,7 +246,7 @@ func (h *unitHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 	unit.ID = unitID
 
 	newUnit, err := h.unitRepo.UpdateUnit(ctx, &unit)
-	if  err != nil {
+	if err != nil {
 		log.Printf("Error updating unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -260,7 +261,7 @@ func (h *unitHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
 		models.Response{
 			Status:  "success",
 			Message: "Unit updated successfully",
-			Data: newUnit,
+			Data:    newUnit,
 		})
 }
 
@@ -318,4 +319,21 @@ func (h *unitHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 			Status:  "success",
 			Message: "Unit deleted successfully",
 		})
+}
+
+func (h *unitHandler) RegisterRoutes(r *router.Router) {
+	// Course-specific units
+	courseUnitsPublic := r.Group("/courses/{course_id}/units")
+	courseUnitsAuth := r.Group("/courses/{course_id}/units", middleware.Auth)
+
+	courseUnitsPublic.Handle("", h.GetAllUnits, "GET")
+	courseUnitsAuth.Handle("", h.CreateUnit, "POST")
+
+	// Individual unit operations
+	unitsPublic := r.Group("/units")
+	unitsAuth := r.Group("/units", middleware.Auth)
+
+	unitsPublic.Handle("/{id}", h.GetUnitByID, "GET")
+	unitsAuth.Handle("/{unit_id}", h.UpdateUnit, "PUT")
+	unitsAuth.Handle("/{unit_id}", h.DeleteUnit, "DELETE")
 }

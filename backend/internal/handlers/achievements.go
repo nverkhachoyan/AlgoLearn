@@ -3,6 +3,9 @@ package handlers
 import (
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/router"
+	"algolearn-backend/pkg/middleware"
+
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -16,6 +19,7 @@ type AchievementsHandler interface {
 	CreateAchievement(w http.ResponseWriter, r *http.Request)
 	UpdateAchievement(w http.ResponseWriter, r *http.Request)
 	DeleteAchievement(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type achievementsHandler struct {
@@ -142,4 +146,16 @@ func (h *achievementsHandler) DeleteAchievement(w http.ResponseWriter, r *http.R
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (h *achievementsHandler) RegisterRoutes(r *router.Router) {
+	public := r.Group("/achievements")
+	authorized := r.Group("/achievements", middleware.Auth)
+
+	public.Handle("", h.GetAllAchievements, "GET")
+	public.Handle("/{id}", h.GetAchievementByID, "GET")
+
+	authorized.Handle("", h.CreateAchievement, "POST")
+	authorized.Handle("/{id}", h.UpdateAchievement, "PUT")
+	authorized.Handle("/{id}", h.DeleteAchievement, "DELETE")
 }

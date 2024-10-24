@@ -1,7 +1,7 @@
-// internal/config/migrate.go
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -27,7 +27,7 @@ func RunMigrations() {
 		log.Fatalf("Failed to create migrate instance: %v\n", err)
 	}
 
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatalf("Failed to run migrate up: %v\n", err)
 	}
 
@@ -50,7 +50,7 @@ func DownMigration() {
 		log.Fatalf("Failed to create migrate instance: %v\n", err)
 	}
 
-	if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatalf("Failed to run migrate down: %v\n", err)
 	}
 

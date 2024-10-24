@@ -75,13 +75,13 @@ func main() {
 	adminDashboardHandler := handlers.NewAdminDashboardHandler()
 
 	// Router setup
-	r := router.SetupRouter(
+	r := router.NewRouter(
 		userHandler,
-		oauthHandler,
-		notifHandler,
 		courseHandler,
 		unitHandler,
 		moduleHandler,
+		oauthHandler,
+		notifHandler,
 		achievementsHandler,
 		adminDashboardHandler,
 	)

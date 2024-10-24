@@ -10,6 +10,7 @@ import (
 	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/router"
 	"algolearn-backend/internal/services"
 
 	"golang.org/x/oauth2"
@@ -19,6 +20,7 @@ type OauthHandler interface {
 	HandleOAuthLogin(w http.ResponseWriter, r *http.Request)
 	GoogleCallback(w http.ResponseWriter, r *http.Request)
 	AppleCallback(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type oauthHandler struct {
@@ -156,4 +158,13 @@ func (h *oauthHandler) handleOAuthUser(w http.ResponseWriter, r *http.Request, e
 
 	// Include the state parameter in the redirect URL
 	http.Redirect(w, r, "app.algolearn://auth?token="+token+"&state="+state, http.StatusTemporaryRedirect)
+}
+
+func (h *oauthHandler) RegisterRoutes(r *router.Router) {
+	oauth := r.Group("/login/oauth")
+	oauth.Handle("", h.HandleOAuthLogin, "GET")
+
+	callback := r.Group("/callback")
+	callback.Handle("/google", h.GoogleCallback, "GET")
+	callback.Handle("/apple", h.AppleCallback, "GET")
 }

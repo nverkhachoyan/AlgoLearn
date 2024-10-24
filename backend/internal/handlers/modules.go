@@ -5,6 +5,7 @@ import (
 	codes "algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/router"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
 	"log"
@@ -21,18 +22,19 @@ type ModuleHandler interface {
 	CreateModule(w http.ResponseWriter, r *http.Request)
 	UpdateModule(w http.ResponseWriter, r *http.Request)
 	DeleteModule(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type moduleHandler struct {
 	moduleRepo repository.ModuleRepository
-	userRepo repository.UserRepository
+	userRepo   repository.UserRepository
 }
 
 func NewModuleHandler(moduleRepo repository.ModuleRepository,
 	userRepo repository.UserRepository) ModuleHandler {
 	return &moduleHandler{
 		moduleRepo: moduleRepo,
-		userRepo: userRepo,
+		userRepo:   userRepo,
 	}
 }
 
@@ -74,7 +76,7 @@ func (h *moduleHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
-			Message:   "Invalid unit ID",
+			Message:   "invalid unit ID",
 			ErrorCode: codes.INVALID_REQUEST,
 		})
 		return
@@ -82,10 +84,10 @@ func (h *moduleHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 
 	modules, err := h.moduleRepo.GetAllModules(ctx, unitID)
 	if err != nil {
-		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
+		log.Printf("error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Status:    "error",
-			Message:   "Could not retrieve modules",
+			Message:   "could not retrieve modules",
 			ErrorCode: codes.DATABASE_FAIL,
 		})
 		return
@@ -101,8 +103,8 @@ func (h *moduleHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
-	unitID, err := strconv.ParseInt(params["units"], 10, 64)
-	moduleID, err := strconv.ParseInt(params["modules"], 10, 64)
+	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
+	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
@@ -143,14 +145,13 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
-	courseID, courseIDerr := strconv.ParseInt(params["course_id"], 10, 64)
 	unitID, unitIDerr := strconv.ParseInt(params["unit_id"], 10, 64)
-	if courseIDerr != nil || unitIDerr != nil {
-		config.Log.Debug("Incorrect course or unit ID format in the route")
+	if unitIDerr != nil {
+		config.Log.Debug("incorrect unit ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Status:    "error",
 			ErrorCode: codes.INVALID_REQUEST,
-			Message:   "Incorrect course or unit ID format in the route",
+			Message:   "incorrect unit ID format in the route",
 		})
 		return
 	}
@@ -177,7 +178,6 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Setting course and unit IDs we got earlier from the route
-	module.CourseID = courseID
 	module.UnitID = unitID
 
 	if err := h.moduleRepo.CreateModule(ctx, &module); err != nil {
@@ -547,4 +547,18 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 		Status:  "success",
 		Message: "Question deleted successfully",
 	})
+}
+
+func (h *moduleHandler) RegisterRoutes(r *router.Router) {
+	basePath := "/courses/{course_id}/units/{unit_id}/modules"
+	public := r.Group(basePath)
+	authorized := r.Group(basePath, middleware.Auth)
+
+	public.Handle("", h.GetAllModules, "GET")
+	public.Handle("/partial", h.GetAllModulesPartial, "GET")
+	public.Handle("/{module_id}", h.GetModuleByModuleID, "GET")
+
+	authorized.Handle("", h.CreateModule, "POST")
+	authorized.Handle("/{module_id}", h.UpdateModule, "PUT")
+	authorized.Handle("/{module_id}", h.DeleteModule, "DELETE")
 }

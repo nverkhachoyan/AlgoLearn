@@ -5,6 +5,7 @@ import (
 	codes "algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/router"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
 	"fmt"
@@ -21,18 +22,19 @@ type CourseHandler interface {
 	CreateCourse(w http.ResponseWriter, r *http.Request)
 	UpdateCourse(w http.ResponseWriter, r *http.Request)
 	DeleteCourse(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type courseHandler struct {
-	courseRepo     repository.CourseRepository
-	userRepo repository.UserRepository
+	courseRepo repository.CourseRepository
+	userRepo   repository.UserRepository
 }
 
 func NewCourseHandler(courseRepo repository.CourseRepository,
 	userRepo repository.UserRepository) CourseHandler {
 	return &courseHandler{
 		courseRepo: courseRepo,
-		userRepo: userRepo,
+		userRepo:   userRepo,
 	}
 }
 
@@ -96,42 +98,42 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	 userID, ok := middleware.GetUserID(ctx)
-	 fmt.Printf("UserID in CreateCourse: %v Error: %v", userID, ok)
-	 if !ok {
-	 	config.Log.Debugln("unauthorized user tried to create course.")
-	 	RespondWithJSON(w, http.StatusUnauthorized,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "unauthorized",
-	 		})
-	 	return
-	 }
+	userID, ok := middleware.GetUserID(ctx)
+	fmt.Printf("UserID in CreateCourse: %v Error: %v", userID, ok)
+	if !ok {
+		config.Log.Debugln("unauthorized user tried to create course.")
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "unauthorized",
+			})
+		return
+	}
 
 	//	 Only admin users can create courses
-	 user, err := h.userRepo.GetUserByID(userID)
-	 if err != nil {
-	 	config.Log.Errorf("failed to get user with user ID %d, %v\n", userID, err.Error())
-	 	RespondWithJSON(w, http.StatusForbidden,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.DATABASE_FAIL,
-	 			Message:   "failed to get user by ID from database",
-	 		})
-	 	return
-	 }
+	user, err := h.userRepo.GetUserByID(userID)
+	if err != nil {
+		config.Log.Errorf("failed to get user with user ID %d, %v\n", userID, err.Error())
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.DATABASE_FAIL,
+				Message:   "failed to get user by ID from database",
+			})
+		return
+	}
 
-	 if user.Role != "admin" {
-	 	config.Log.Debugln("user without admin role tried to create course")
-	 	RespondWithJSON(w, http.StatusForbidden,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "only users with the admin role may create a course",
-	 		})
-	 	return
-	 }
+	if user.Role != "admin" {
+		config.Log.Debugln("user without admin role tried to create course")
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "only users with the admin role may create a course",
+			})
+		return
+	}
 
 	var course models.Course
 	if err := json.NewDecoder(r.Body).Decode(&course); err != nil {
@@ -182,30 +184,30 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 
 func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	 userID, ok := middleware.GetUserID(ctx)
-	 if !ok {
-	 	config.Log.Debugln("Unauthorized user tried to create course.")
-	 	RespondWithJSON(w, http.StatusUnauthorized,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "Unauthorized",
-	 		})
-	 	return
-	 }
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		config.Log.Debugln("Unauthorized user tried to create course.")
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "Unauthorized",
+			})
+		return
+	}
 
-	 // Only admin users can update courses
-	 user, err := h.userRepo.GetUserByID(userID)
-	 if err != nil || user.Role != "admin" {
-	 	config.Log.Debugln("User without admin role tried to update a course.")
-	 	RespondWithJSON(w, http.StatusForbidden,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "Only users with the admin role may update a course",
-	 		})
-	 	return
-	 }
+	// Only admin users can update courses
+	user, err := h.userRepo.GetUserByID(userID)
+	if err != nil || user.Role != "admin" {
+		config.Log.Debugln("User without admin role tried to update a course.")
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "Only users with the admin role may update a course",
+			})
+		return
+	}
 
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
@@ -268,17 +270,17 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 
 func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	 userID, ok := middleware.GetUserID(ctx)
-	 if !ok {
-	 	config.Log.Debugln("Unauthorized user tried to delete a course.")
-	 	RespondWithJSON(w, http.StatusUnauthorized,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "You are not authorized to delete a course",
-	 		})
-	 	return
-	 }
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		config.Log.Debugln("Unauthorized user tried to delete a course.")
+		RespondWithJSON(w, http.StatusUnauthorized,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "You are not authorized to delete a course",
+			})
+		return
+	}
 
 	params := mux.Vars(r)
 	id, err := strconv.ParseInt(params["id"], 10, 64)
@@ -293,17 +295,17 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Only admin users can update courses
-	 user, err := h.userRepo.GetUserByID(userID)
-	 if err != nil || user.Role != "admin" {
-	 	config.Log.Debugln("User without admin role tried to delete a course.")
-	 	RespondWithJSON(w, http.StatusForbidden,
-	 		models.Response{
-	 			Status:    "error",
-	 			ErrorCode: codes.UNAUTHORIZED,
-	 			Message:   "Only users with the admin role may delete a course",
-	 		})
-	 	return
-	 }
+	user, err := h.userRepo.GetUserByID(userID)
+	if err != nil || user.Role != "admin" {
+		config.Log.Debugln("User without admin role tried to delete a course.")
+		RespondWithJSON(w, http.StatusForbidden,
+			models.Response{
+				Status:    "error",
+				ErrorCode: codes.UNAUTHORIZED,
+				Message:   "Only users with the admin role may delete a course",
+			})
+		return
+	}
 
 	if err := h.courseRepo.DeleteCourse(ctx, id); err != nil {
 		config.Log.Debugf("Error deleting course %d: %v", id, err)
@@ -320,4 +322,19 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 			Status:  "success",
 			Message: "Course deleted successfully",
 		})
+}
+
+func (h *courseHandler) RegisterRoutes(r *router.Router) {
+	// Create route groups
+	public := r.Group("/courses")
+	authorized := r.Group("/courses", middleware.Auth)
+
+	// Public routes
+	public.Handle("", h.GetAllCourses, "GET")
+	public.Handle("/{id}", h.GetCourseByID, "GET")
+
+	// Authorized routes
+	authorized.Handle("", h.CreateCourse, "POST")
+	authorized.Handle("/{id}", h.UpdateCourse, "PUT")
+	authorized.Handle("/{id}", h.DeleteCourse, "DELETE")
 }

@@ -6,6 +6,7 @@ import (
 	"algolearn-backend/internal/errors"
 	"algolearn-backend/internal/models"
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/internal/router"
 	"algolearn-backend/internal/services"
 	"algolearn-backend/pkg/middleware"
 	"encoding/json"
@@ -50,6 +51,7 @@ type UserHandler interface {
 	CreateUserModuleProgress(w http.ResponseWriter, r *http.Request)
 	UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request)
 	DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type userHandler struct {
@@ -641,4 +643,31 @@ func (h *userHandler) GetAllStreaks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{Status: "success", Message: "Streaks retrieved successfully", Data: streaks})
+}
+
+func (h *userHandler) RegisterRoutes(r *router.Router) {
+	// Auth routes (no prefix needed as they're top-level)
+	auth := r.Group("")
+	auth.Handle("/register", h.RegisterUser, "POST")
+	auth.Handle("/login", h.LoginUser, "POST")
+	auth.Handle("/checkemail", h.CheckEmailExists, "GET")
+
+	// User routes
+	//    public := r.Group("/user")
+	authorized := r.Group("/user", middleware.Auth)
+	authorized.Handle("", h.GetUser, "GET")
+	authorized.Handle("", h.UpdateUser, "PUT")
+	authorized.Handle("", h.DeleteUser, "DELETE")
+
+	// User achievements routes
+	//    achievementsPublic := r.Group("/user_achievements")
+	achievementsAuth := r.Group("/user_achievements", middleware.Auth)
+	achievementsAuth.Handle("", h.GetAllUserAchievements, "GET")
+	achievementsAuth.Handle("/{id}", h.GetUserAchievementByID, "GET")
+	achievementsAuth.Handle("", h.CreateUserAchievement, "POST")
+	achievementsAuth.Handle("/{id}", h.DeleteUserAchievement, "DELETE")
+
+	// Streaks routes
+	streaksAuth := r.Group("/streaks", middleware.Auth)
+	streaksAuth.Handle("", h.GetAllStreaks, "GET")
 }

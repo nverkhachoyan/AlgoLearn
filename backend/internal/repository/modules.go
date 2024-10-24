@@ -1,18 +1,16 @@
 package repository
 
 import (
+	"algolearn-backend/internal/config"
 	"algolearn-backend/internal/models"
+
 	"context"
 	"database/sql"
 	"encoding/json"
 	"time"
-
-	"github.com/lib/pq"
 )
 
-
 type ModuleRepository interface {
-
 	GetAllModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error)
 	GetAllModules(ctx context.Context, unitID int64) ([]models.Module, error)
 	GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error)
@@ -29,13 +27,12 @@ func NewModuleRepository(db *sql.DB) ModuleRepository {
 	return &moduleRepository{db: db}
 }
 
-func (r *moduleRepository) GetAllModulesPartial(_ context.Context, unitID int64) ([]models.Module, error) {
-	rows, err := r.db.Query(`
+func (r *moduleRepository) GetAllModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error) {
+	rows, err := r.db.QueryContext(ctx, `
 	SELECT 	id,
 		  	created_at,
 			updated_at,
 			unit_id,
-			course_id,
 			name,
 			description
 	FROM modules WHERE unit_id = $1`,
@@ -43,7 +40,12 @@ func (r *moduleRepository) GetAllModulesPartial(_ context.Context, unitID int64)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf("faild to close rows in repo func GetAllModulesPartial. %v", err.Error())
+		}
+	}(rows)
 
 	var modules []models.Module
 	for rows.Next() {
@@ -53,7 +55,6 @@ func (r *moduleRepository) GetAllModulesPartial(_ context.Context, unitID int64)
 			&module.CreatedAt,
 			&module.UpdatedAt,
 			&module.UnitID,
-			&module.CourseID,
 			&module.Name,
 			&module.Description,
 		)
@@ -71,72 +72,77 @@ func (r *moduleRepository) GetAllModulesPartial(_ context.Context, unitID int64)
 	return modules, nil
 }
 
-func (r *moduleRepository) GetAllModules(_ context.Context, unitID int64) ([]models.Module, error) {
-	rows, err := r.db.Query(`
+func (r *moduleRepository) GetAllModules(ctx context.Context, unitID int64) ([]models.Module, error) {
+	rows, err := r.db.QueryContext(ctx, `
 	SELECT
 		m.id AS module_id,
 		m.created_at AS module_created_at,
 		m.updated_at AS module_updated_at,
-		m.unit_id,
-		m.course_id,
 		m.name AS module_name,
 		m.description AS module_description,
 		s.id AS section_id,
+		s.created_at AS section_created_at,
+		s.updated_at AS section_updated_at,
 		s.type,
 		s.position,
-		s.content,
-		s.question_id,
-		s.question,
-		s.user_answer_id,
-		s.correct_answer_ids,
-		s.url,
-		s.animation,
-		s.description AS section_description
+		ts.content AS text_content,
+		vs.url AS video_url,
+		qs.question_id AS question_id
 	FROM
 		modules m
 	LEFT JOIN
 		sections s ON m.id = s.module_id
+	LEFT JOIN
+		text_sections ts ON s.id = ts.section_id
+	LEFT JOIN
+		video_sections vs ON s.id = vs.section_id
+	LEFT JOIN
+		question_sections qs ON s.id = qs.section_id
 	WHERE
 		m.unit_id = $1
 	ORDER BY m.id, s.position;`, unitID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			config.Log.Errorf("faild to close rows in repo func GetAllModules. %v", err.Error())
+		}
+	}(rows)
 
-	var modulesMap = make(map[int64]models.Module)
+	modulesMap := make(map[int64]models.Module)
 	for rows.Next() {
 		var (
 			moduleID          int64
-			createdAt         time.Time
-			updatedAt         time.Time
-			unitID            int64
-			courseID          int64
-			moduleName        string
-			moduleDescription string
-			section           models.Section
+			moduleCreatedAt   time.Time
+			moduleUpdatedAt   time.Time
+			moduleName        sql.NullString
+			moduleDescription sql.NullString
 			sectionID         sql.NullInt64
+			sectionCreatedAt  sql.NullTime
+			sectionUpdatedAt  sql.NullTime
+			sectionType       sql.NullString
+			sectionPosition   sql.NullInt16
+			textContent       sql.NullString
+			videoUrl          sql.NullString
+			questionId        sql.NullInt64
 		)
 
 		err := rows.Scan(
 			&moduleID,
-			&createdAt,
-			&updatedAt,
-			&unitID,
-			&courseID,
+			&moduleCreatedAt,
+			&moduleUpdatedAt,
 			&moduleName,
 			&moduleDescription,
 			&sectionID,
-			&section.Type,
-			&section.Position,
-			&section.Content,
-			&section.QuestionID,
-			&section.Question,
-			&section.UserAnswerID,
-			pq.Array(&section.CorrectAnswerIDs),
-			&section.URL,
-			&section.Animation,
-			&section.Description,
+			&sectionCreatedAt,
+			&sectionUpdatedAt,
+			&sectionType,
+			&sectionPosition,
+			&textContent,
+			&videoUrl,
+			&questionId,
 		)
 		if err != nil {
 			return nil, err
@@ -147,21 +153,63 @@ func (r *moduleRepository) GetAllModules(_ context.Context, unitID int64) ([]mod
 			module = models.Module{
 				BaseModel: models.BaseModel{
 					ID:        moduleID,
-					CreatedAt: createdAt,
-					UpdatedAt: updatedAt,
+					CreatedAt: moduleCreatedAt,
+					UpdatedAt: moduleUpdatedAt,
 				},
 				UnitID:      unitID,
-				CourseID:    courseID,
-				Name:        moduleName,
-				Description: moduleDescription,
+				Name:        moduleName.String,
+				Description: moduleDescription.String,
 				Sections:    []models.Section{},
 			}
 		}
 
-		if sectionID.Valid {
-			section.ID = sectionID.Int64
-			module.Sections = append(module.Sections, section)
+		var section interface{}
+		switch sectionType.String {
+		case "text":
+			section = models.TextSection{
+				BaseModel: models.BaseModel{
+					ID:        sectionID.Int64,
+					CreatedAt: sectionCreatedAt.Time,
+					UpdatedAt: sectionUpdatedAt.Time,
+				},
+				BaseSection: models.BaseSection{
+					ModuleID: moduleID,
+					Type:     sectionType.String,
+					Position: sectionPosition.Int16,
+				},
+				Content: textContent.String,
+			}
+		case "video":
+			section = models.VideoSection{
+				BaseModel: models.BaseModel{
+					ID:        sectionID.Int64,
+					CreatedAt: sectionCreatedAt.Time,
+					UpdatedAt: sectionUpdatedAt.Time,
+				},
+				BaseSection: models.BaseSection{
+					ModuleID: moduleID,
+					Type:     sectionType.String,
+					Position: sectionPosition.Int16,
+				},
+				Url: videoUrl.String,
+			}
+		case "question":
+			section = models.QuestionSection{
+				BaseModel: models.BaseModel{
+					ID:        sectionID.Int64,
+					CreatedAt: sectionCreatedAt.Time,
+					UpdatedAt: sectionUpdatedAt.Time,
+				},
+				BaseSection: models.BaseSection{
+					ModuleID: moduleID,
+					Type:     sectionType.String,
+					Position: sectionPosition.Int16,
+				},
+				QuestionID: questionId.Int64,
+			}
 		}
+
+		module.Sections = append(module.Sections, section)
 
 		modulesMap[moduleID] = module
 	}
@@ -178,148 +226,163 @@ func (r *moduleRepository) GetAllModules(_ context.Context, unitID int64) ([]mod
 	return modules, nil
 }
 
-// func (r *moduleRepository) GetModuleByID(id int64) (*models.Module, error) {
-// 	row := r.db.QueryRow("SELECT id, created_at, updated_at, unit_id, course_id, name, description, content FROM modules WHERE id = $1", id)
+func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error) {
+	module := models.Module{}
+	isFirstIter := true
 
-// 	var module models.Module
-// 	var content []byte
-// 	err := row.Scan(
-// 		&module.ID,
-// 		&module.CreatedAt,
-// 		&module.UpdatedAt,
-// 		&module.UnitID,
-// 		&module.CourseID,
-// 		&module.Name,
-// 		&module.Description,
-// 		&content,
-// 	)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	sections, err := r.GetSectionsByModuleID(int(module.ID))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	module.Sections = sections
-
-// 	return &module, nil
-// }
-
-func (r *moduleRepository) GetModuleByModuleID(_ context.Context, unitID int64, moduleID int64) (*models.Module, error) {
-	rows, err := r.db.Query(`
-	SELECT
-		m.id AS module_id,
+	rows, err := r.db.QueryContext(ctx,
+		`
+     SELECT
 		m.created_at AS module_created_at,
 		m.updated_at AS module_updated_at,
-		m.unit_id,
-		m.course_id,
 		m.name AS module_name,
 		m.description AS module_description,
 		s.id AS section_id,
+		s.created_at AS section_created_at,
+		s.updated_at AS section_updated_at,
 		s.type,
 		s.position,
-		s.content,
-		s.question_id,
-		s.question,
-		s.user_answer_id,
-		s.correct_answer_ids,
-		s.url,
-		s.animation,
-		s.description AS section_description
+		ts.content AS text_content,
+		vs.url AS video_url,
+		qs.question_id AS question_id
 	FROM
 		modules m
 	LEFT JOIN
 		sections s ON m.id = s.module_id
+	LEFT JOIN
+		text_sections ts ON s.id = ts.section_id
+	LEFT JOIN
+		video_sections vs ON s.id = vs.section_id
+	LEFT JOIN
+		question_sections qs ON s.id = qs.section_id
 	WHERE
 		m.unit_id = $1 AND m.id = $2
-	ORDER BY m.id, s.position;`, unitID, moduleID)
+	ORDER BY m.id, s.position;
+	`, unitID, moduleID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var module *models.Module
+	var (
+		moduleCreatedAt   time.Time
+		moduleUpdatedAt   time.Time
+		moduleName        sql.NullString
+		moduleDescription sql.NullString
+		sectionID         sql.NullInt64
+		sectionCreatedAt  sql.NullTime
+		sectionUpdatedAt  sql.NullTime
+		sectionType       sql.NullString
+		sectionPosition   sql.NullInt16
+		textContent       sql.NullString
+		videoUrl          sql.NullString
+		questionId        sql.NullInt64
+	)
 	for rows.Next() {
-		var (
-			section   models.Section
-			sectionID sql.NullInt64
-		)
-
 		err := rows.Scan(
-			&module.BaseModel.ID,
-			&module.BaseModel.CreatedAt,
-			&module.BaseModel.UpdatedAt,
-			&module.UnitID,
-			&module.CourseID,
-			&module.Name,
-			&module.Description,
+			&moduleCreatedAt,
+			&moduleUpdatedAt,
+			&moduleName,
+			&moduleDescription,
 			&sectionID,
-			&section.Type,
-			&section.Position,
-			&section.Content,
-			&section.QuestionID,
-			&section.Question,
-			&section.UserAnswerID,
-			pq.Array(&section.CorrectAnswerIDs),
-			&section.URL,
-			&section.Animation,
-			&section.Description,
+			&sectionCreatedAt,
+			&sectionUpdatedAt,
+			&sectionType,
+			&sectionPosition,
+			&textContent,
+			&videoUrl,
+			&questionId,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		if module == nil {
-			module = &models.Module{
+		if isFirstIter {
+			module = models.Module{
 				BaseModel: models.BaseModel{
-					ID:        module.BaseModel.ID,
-					CreatedAt: module.BaseModel.CreatedAt,
-					UpdatedAt: module.BaseModel.UpdatedAt,
+					ID:        moduleID,
+					CreatedAt: moduleCreatedAt,
+					UpdatedAt: moduleUpdatedAt,
 				},
-				UnitID:      module.UnitID,
-				CourseID:    module.CourseID,
-				Name:        module.Name,
-				Description: module.Description,
+				UnitID:      unitID,
+				Name:        moduleName.String,
+				Description: moduleDescription.String,
 				Sections:    []models.Section{},
+			}
+			isFirstIter = false
+		}
+
+		var section interface{}
+		switch sectionType.String {
+		case "text":
+			section = models.TextSection{
+				BaseModel: models.BaseModel{
+					ID:        sectionID.Int64,
+					CreatedAt: sectionCreatedAt.Time,
+					UpdatedAt: sectionUpdatedAt.Time,
+				},
+				BaseSection: models.BaseSection{
+					ModuleID: moduleID,
+					Type:     sectionType.String,
+					Position: sectionPosition.Int16,
+				},
+				Content: textContent.String,
+			}
+		case "video":
+			section = models.VideoSection{
+				BaseModel: models.BaseModel{
+					ID:        sectionID.Int64,
+					CreatedAt: sectionCreatedAt.Time,
+					UpdatedAt: sectionUpdatedAt.Time,
+				},
+				BaseSection: models.BaseSection{
+					ModuleID: moduleID,
+					Type:     sectionType.String,
+					Position: sectionPosition.Int16,
+				},
+				Url: videoUrl.String,
+			}
+		case "question":
+			section = models.QuestionSection{
+				BaseModel: models.BaseModel{
+					ID:        sectionID.Int64,
+					CreatedAt: sectionCreatedAt.Time,
+					UpdatedAt: sectionUpdatedAt.Time,
+				},
+				BaseSection: models.BaseSection{
+					ModuleID: moduleID,
+					Type:     sectionType.String,
+					Position: sectionPosition.Int16,
+				},
+				QuestionID: questionId.Int64,
 			}
 		}
 
-		if sectionID.Valid {
-			section.ID = sectionID.Int64
-			module.Sections = append(module.Sections, section)
-		}
+		module.Sections = append(module.Sections, section)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if module == nil {
-		return nil, sql.ErrNoRows
-	}
-
-	return module, nil
+	return &module, nil
 }
 
-func (r *moduleRepository) CreateModule(_ context.Context, module *models.Module) error {
+// TODO: everything below
+
+func (r *moduleRepository) CreateModule(ctx context.Context, module *models.Module) error {
 	sections, err := json.Marshal(module.Sections)
 	if err != nil {
 		return err
 	}
-	err = r.db.QueryRow(
+	err = r.db.QueryRowContext(ctx,
 		"INSERT INTO modules (unit_id, course_id, name, description, content) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at",
-		module.UnitID, module.CourseID, module.Name, module.Description, sections,
+		module.UnitID, module.Name, module.Description, sections,
 	).Scan(&module.ID, &module.CreatedAt, &module.UpdatedAt)
 	return err
 }
 
-func (r *moduleRepository) UpdateModule(_ context.Context, module *models.Module) error {
+func (r *moduleRepository) UpdateModule(ctx context.Context, module *models.Module) error {
 	content, err := json.Marshal(module.Sections)
 	if err != nil {
 		return err
 	}
-	_, err = r.db.Exec(
+	_, err = r.db.ExecContext(ctx,
 		`UPDATE modules SET
 			name = $1,
 			description = $2,
@@ -332,7 +395,7 @@ func (r *moduleRepository) UpdateModule(_ context.Context, module *models.Module
 	return err
 }
 
-func (r *moduleRepository) DeleteModule(_ context.Context, id int64) error {
-	_, err := r.db.Exec("DELETE FROM modules WHERE id = $1", id)
+func (r *moduleRepository) DeleteModule(ctx context.Context, id int64) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM modules WHERE id = $1", id)
 	return err
 }

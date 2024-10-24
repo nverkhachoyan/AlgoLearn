@@ -2,12 +2,17 @@ package handlers
 
 import (
 	"algolearn-backend/internal/models"
+	"algolearn-backend/internal/router"
+
 	"algolearn-backend/internal/repository"
+	"algolearn-backend/pkg/middleware"
+
 	"net/http"
 )
 
 type NotificationsHandler interface {
 	GetAllNotifications(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type notificationsHandler struct {
@@ -32,4 +37,9 @@ func (h *notificationsHandler) GetAllNotifications(w http.ResponseWriter, r *htt
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
+}
+
+func (h *notificationsHandler) RegisterRoutes(r *router.Router) {
+	authorized := r.Group("/notifications", middleware.Auth)
+	authorized.Handle("", h.GetAllNotifications, "GET")
 }

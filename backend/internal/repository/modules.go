@@ -11,8 +11,7 @@ import (
 )
 
 type ModuleRepository interface {
-	GetAllModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error)
-	GetAllModules(ctx context.Context, unitID int64) ([]models.Module, error)
+	GetModules(ctx context.Context, unitID int64, isPartial bool) ([]models.Module, error)
 	GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error)
 	CreateModule(ctx context.Context, module *models.Module) error
 	UpdateModule(ctx context.Context, module *models.Module) error
@@ -27,7 +26,14 @@ func NewModuleRepository(db *sql.DB) ModuleRepository {
 	return &moduleRepository{db: db}
 }
 
-func (r *moduleRepository) GetAllModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error) {
+func (r *moduleRepository) GetModules(ctx context.Context, unitID int64, isPartial bool) ([]models.Module, error) {
+	if isPartial {
+		return r.getModulesPartial(ctx, unitID)
+	}
+	return r.getModulesFull(ctx, unitID)
+}
+
+func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error) {
 	rows, err := r.db.QueryContext(ctx, `
 	SELECT 	id,
 		  	created_at,
@@ -72,7 +78,7 @@ func (r *moduleRepository) GetAllModulesPartial(ctx context.Context, unitID int6
 	return modules, nil
 }
 
-func (r *moduleRepository) GetAllModules(ctx context.Context, unitID int64) ([]models.Module, error) {
+func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]models.Module, error) {
 	rows, err := r.db.QueryContext(ctx, `
 	SELECT
 		m.id AS module_id,

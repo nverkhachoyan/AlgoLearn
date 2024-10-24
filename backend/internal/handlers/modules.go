@@ -16,8 +16,7 @@ import (
 )
 
 type ModuleHandler interface {
-	GetAllModules(w http.ResponseWriter, r *http.Request)
-	GetAllModulesPartial(w http.ResponseWriter, r *http.Request)
+	GetModules(w http.ResponseWriter, r *http.Request)
 	GetModuleByModuleID(w http.ResponseWriter, r *http.Request)
 	CreateModule(w http.ResponseWriter, r *http.Request)
 	UpdateModule(w http.ResponseWriter, r *http.Request)
@@ -38,38 +37,7 @@ func NewModuleHandler(moduleRepo repository.ModuleRepository,
 	}
 }
 
-func (h *moduleHandler) GetAllModulesPartial(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	params := mux.Vars(r)
-	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			Message:   "Invalid unit ID",
-			ErrorCode: codes.INVALID_REQUEST,
-		})
-		return
-	}
-
-	modules, err := h.moduleRepo.GetAllModulesPartial(ctx, unitID)
-	if err != nil {
-		log.Printf("Error fetching modules for unit %d: %v", unitID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "Could not retrieve modules",
-			ErrorCode: codes.DATABASE_FAIL,
-		})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
-		Message: "Modules retrieved successfully",
-		Data:    modules,
-	})
-}
-
-func (h *moduleHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
+func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
@@ -82,7 +50,8 @@ func (h *moduleHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modules, err := h.moduleRepo.GetAllModules(ctx, unitID)
+	isPartial := r.URL.Query().Get("type") == "partial"
+	modules, err := h.moduleRepo.GetModules(ctx, unitID, isPartial)
 	if err != nil {
 		log.Printf("error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -95,7 +64,7 @@ func (h *moduleHandler) GetAllModules(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
 		Status:  "success",
-		Message: "Modules retrieved successfully",
+		Message: "modules retrieved successfully",
 		Data:    modules,
 	})
 }
@@ -554,8 +523,7 @@ func (h *moduleHandler) RegisterRoutes(r *router.Router) {
 	public := r.Group(basePath)
 	authorized := r.Group(basePath, middleware.Auth)
 
-	public.Handle("", h.GetAllModules, "GET")
-	public.Handle("/partial", h.GetAllModulesPartial, "GET")
+	public.Handle("", h.GetModules, "GET")
 	public.Handle("/{module_id}", h.GetModuleByModuleID, "GET")
 
 	authorized.Handle("", h.CreateModule, "POST")

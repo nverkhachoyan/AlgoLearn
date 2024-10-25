@@ -1,25 +1,13 @@
-// internal/pkg/logger/formatter.go
 package logger
 
 import (
+	"algolearn/pkg/colors"
 	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-)
-
-// Colors
-const (
-	Reset  = "\033[0m"
-	Red    = "\033[31m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Blue   = "\033[34m"
-	Purple = "\033[35m"
-	Cyan   = "\033[36m"
-	Gray   = "\033[37m"
 )
 
 type ColoredFormatter struct {
@@ -49,12 +37,12 @@ func (f *ColoredFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	// Write colored output
-	fmt.Fprintf(b, "%s%s%s %s%5s%s",
-		Yellow, timestamp, Reset,
-		levelColor, levelText, Reset)
+	_, _ = fmt.Fprintf(b, "%s%s%s %s%5s%s",
+		colors.Yellow, timestamp, colors.Reset,
+		levelColor, levelText, colors.Reset)
 
 	if fileInfo != "" {
-		fmt.Fprintf(b, " %s%s%s", Cyan, fileInfo, Reset)
+		fmt.Fprintf(b, " %s%s%s", colors.Cyan, fileInfo, colors.Reset)
 	}
 
 	// Message
@@ -62,9 +50,9 @@ func (f *ColoredFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 	// Fields
 	if len(entry.Data) > 0 {
-		fmt.Fprintf(b, " %sfields:%s", Blue, Reset)
+		fmt.Fprintf(b, " %sfields:%s", colors.Blue, colors.Reset)
 		for k, v := range entry.Data {
-			fmt.Fprintf(b, " %s%s%s=%v", Green, k, Reset, v)
+			_, _ = fmt.Fprintf(b, " %s%s%s=%v", colors.Green, k, colors.Reset, v)
 		}
 	}
 
@@ -75,16 +63,16 @@ func (f *ColoredFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 func getLevelColor(level logrus.Level) string {
 	switch level {
 	case logrus.TraceLevel:
-		return Gray
+		return colors.Gray
 	case logrus.DebugLevel:
-		return Blue
+		return colors.Blue
 	case logrus.InfoLevel:
-		return Green
+		return colors.Green
 	case logrus.WarnLevel:
-		return Yellow
+		return colors.Yellow
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
-		return Red
+		return colors.Red
 	default:
-		return Reset
+		return colors.Reset
 	}
 }

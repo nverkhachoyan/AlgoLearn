@@ -45,6 +45,6 @@ func ValidateJWT(tokenString string) (*Claims, error) {
 		return nil, err
 	}
 
-	log.Printf("Successfully parsed JWT. UserID: %d", claims.UserID)
+	//	log.Printf("Successfully parsed JWT. UserID: %d", claims.UserID)
 	return claims, nil
 }

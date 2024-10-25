@@ -1,6 +1,7 @@
 package repository
 
 import (
+	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 
@@ -74,6 +75,10 @@ func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) 
 
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	if len(modules) == 0 {
+		return nil, codes.ErrNotFound
 	}
 
 	return modules, nil
@@ -171,7 +176,7 @@ func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]
 			}
 		}
 
-		var section interface{}
+		var section models.Section
 		switch sectionType.String {
 		case "text":
 			section = models.TextSection{
@@ -229,6 +234,10 @@ func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]
 	var modules []models.Module
 	for _, module := range modulesMap {
 		modules = append(modules, module)
+	}
+
+	if len(modules) == 0 {
+		return nil, codes.ErrNotFound
 	}
 
 	return modules, nil
@@ -319,7 +328,7 @@ func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64
 			isFirstIter = false
 		}
 
-		var section interface{}
+		var section models.Section
 		switch sectionType.String {
 		case "text":
 			section = models.TextSection{
@@ -374,15 +383,151 @@ func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64
 // TODO: everything below
 
 func (r *moduleRepository) CreateModule(ctx context.Context, module *models.Module) error {
-	sections, err := json.Marshal(module.Sections)
+	log := logger.Get()
+
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
-	err = r.db.QueryRowContext(ctx,
-		"INSERT INTO modules (unit_id, course_id, name, description, content) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at",
-		module.UnitID, module.Name, module.Description, sections,
-	).Scan(&module.ID, &module.CreatedAt, &module.UpdatedAt)
+
+	var txErr error
+	defer func() {
+		if err != nil {
+			rbErr := tx.Rollback()
+			if rbErr != nil {
+				log.WithFields(logger.Fields{
+					"func":     "CreateModule",
+					"package":  "repository",
+					"error":    rbErr,
+					"moduleID": module.ID}).Errorf("failed to roll back database transaction")
+			}
+		} else {
+			cmtErr := tx.Commit()
+			if cmtErr != nil {
+				log.WithFields(logger.Fields{
+					"func":     "CreateModule",
+					"package":  "repository",
+					"error":    cmtErr,
+					"moduleID": module.ID}).Errorf("failed to commit database transaction")
+				txErr = cmtErr
+			}
+		}
+	}()
+
+	var newModule models.Module
+	err = tx.QueryRowContext(ctx, `
+	INSERT INTO modules (unit_id, name, description)
+	VALUES ($1, $2, $3)
+	RETURNING id, created_at, updated_at, unit_id, name, description`,
+		module.UnitID, module.Name, module.Description).Scan(
+		&newModule.ID,
+		&newModule.CreatedAt,
+		&newModule.UpdatedAt,
+		&newModule.UnitID,
+		&newModule.Name,
+		&newModule.Description)
+	if err != nil {
+		return err
+	}
+
+	if len(module.Sections) > 0 {
+		err = r.insertSections(ctx, tx, newModule.ID, module.Sections)
+		if err != nil {
+			return err
+		}
+		newModule.Sections = module.Sections
+	}
+
+	if txErr != nil {
+		return txErr
+	}
+
 	return err
+}
+
+func (r *moduleRepository) insertSections(ctx context.Context, tx *sql.Tx, moduleID int64, sections []models.Section) error {
+	log := logger.Get()
+
+	for _, section := range sections {
+		baseSection := section.GetBaseSection()
+		var sectionID int64
+		err := tx.QueryRowContext(ctx, `
+		INSERT INTO sections (module_id, type, position)
+		VALUES ($1, $2, $3) RETURNING id;`, moduleID, baseSection.Type, baseSection.Position).Scan(&sectionID)
+		if err != nil {
+			log.WithFields(logger.Fields{
+				"section_id": sectionID,
+				"module_id":  moduleID,
+			}).Error("failed to insert section base")
+			return err
+		}
+
+		switch s := section.(type) {
+		case models.TextSection:
+			_, err = tx.ExecContext(ctx,
+				`INSERT INTO text_sections (section_id, content)
+				VALUES ($1, $2);`, sectionID, s.Content)
+		case models.VideoSection:
+			_, err = tx.ExecContext(ctx,
+				`INSERT INTO video_sections (section_id, url)
+				VALUES ($1, $2);`, sectionID, s.Url)
+		case models.QuestionSection:
+			// First, we insert the question into the questions
+			var baseModelQuestion models.BaseModel
+			err := tx.QueryRowContext(ctx, `
+			INSERT INTO questions (type, question, difficulty_level)
+			VALUES ($1, $2, $3)
+			RETURNING id, created_at, updated_at;`,
+				s.Question.Type,
+				s.Question.Question,
+				"beginner").Scan(
+				&baseModelQuestion.ID,
+				&baseModelQuestion.CreatedAt,
+				&baseModelQuestion.UpdatedAt,
+			)
+			if err != nil {
+				return err
+			}
+
+			s.BaseModel.ID = sectionID
+			s.BaseModel.CreatedAt = baseModelQuestion.CreatedAt
+			s.BaseModel.UpdatedAt = baseModelQuestion.UpdatedAt
+
+			s.Question.ID = baseModelQuestion.ID
+			s.Question.CreatedAt = baseModelQuestion.CreatedAt
+			s.Question.UpdatedAt = baseModelQuestion.UpdatedAt
+
+			// Then, we insert the options
+			if len(s.Question.Options) > 0 {
+				for _, option := range s.Question.Options {
+					var optionID int64
+					err = tx.QueryRowContext(ctx, `
+					INSERT INTO question_options (question_id, content, is_correct)
+					VALUES ($1, $2, $3)
+					RETURNING id;`,
+						baseModelQuestion.ID,
+						option.Content,
+						option.IsCorrect).Scan(&optionID)
+					option.ID = optionID
+				}
+			}
+
+			// Finally, the question is associated with the question section
+			_, err = tx.ExecContext(ctx, `
+			INSERT INTO question_sections (section_id, question_id)
+			VALUES ($1, $2);`, sectionID, baseModelQuestion.ID)
+
+		}
+		if err != nil {
+			log.WithFields(logger.Fields{
+				"section_id": sectionID,
+				"module_id":  moduleID,
+			}).Error("failed to insert sections")
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *moduleRepository) UpdateModule(ctx context.Context, module *models.Module) error {

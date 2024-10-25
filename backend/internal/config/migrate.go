@@ -1,9 +1,9 @@
 package config
 
 import (
+	"algolearn/pkg/logger"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -12,6 +12,7 @@ import (
 )
 
 func RunMigrations() {
+	log := logger.Get()
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -35,6 +36,7 @@ func RunMigrations() {
 }
 
 func DownMigration() {
+	log := logger.Get()
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),

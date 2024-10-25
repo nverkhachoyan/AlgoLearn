@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"algolearn/internal/router"
+	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
 )
 
@@ -19,8 +20,12 @@ func NewAdminDashboardHandler() AdminDashboardHandler {
 }
 
 func (h *adminDashboardHandler) AdminDashboard(w http.ResponseWriter, _ *http.Request) {
+	log := logger.Get()
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Admin dashboard"))
+	_, err := w.Write([]byte("Admin dashboard"))
+	if err != nil {
+		log.Errorf("failed to write to http byte stream")
+	}
 }
 
 func (h *adminDashboardHandler) RegisterRoutes(r *router.Router) {

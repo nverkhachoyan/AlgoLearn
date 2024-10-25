@@ -1,14 +1,13 @@
 package repository
 
 import (
+	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
 	"errors"
 )
-
-var ErrUnitNotFound = errors.New("unit not found")
 
 type UnitRepository interface {
 	GetAllUnits(ctx context.Context, courseID int64) ([]models.Unit, error)
@@ -76,7 +75,7 @@ func (r *unitRepository) GetUnitByID(_ context.Context, id int64) (*models.Unit,
 		&unit.Description,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrUnitNotFound
+		return nil, codes.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -137,13 +136,22 @@ func (r *unitRepository) UpdateUnit(ctx context.Context, unit *models.Unit) (*mo
 	)
 
 	if errors.Is(row, sql.ErrNoRows) {
-		return nil, ErrUnitNotFound
+		return nil, codes.ErrNotFound
 	}
 
 	return &newUnit, nil
 }
 
 func (r *unitRepository) DeleteUnit(_ context.Context, id int64) error {
-	_, err := r.db.Exec("DELETE FROM units WHERE id = $1", id)
-	return err
+	result, err := r.db.Exec("DELETE FROM units WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if rowsAffected == 0 {
+		return codes.ErrNotFound
+	}
+	
+	return nil
 }

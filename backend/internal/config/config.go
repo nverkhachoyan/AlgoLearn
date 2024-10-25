@@ -1,9 +1,9 @@
 package config
 
 import (
+	"algolearn/pkg/logger"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,6 +35,7 @@ var (
 )
 
 func InitDB() {
+	log := logger.Get()
 	var err error
 
 	dbHost := os.Getenv("DB_HOST")
@@ -60,6 +61,8 @@ func InitDB() {
 }
 
 func InitOAuth() {
+	log := logger.Get()
+
 	googleOauthConfig = &oauth2.Config{
 		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
@@ -80,6 +83,7 @@ func InitOAuth() {
 }
 
 func InitS3() {
+	log := logger.Get()
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(os.Getenv("SPACES_REGION")),

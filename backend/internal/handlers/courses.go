@@ -9,6 +9,7 @@ import (
 	"algolearn/pkg/middleware"
 
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -49,8 +50,8 @@ func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.DATABASE_FAIL,
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
 				Message:   "could not retrieve courses from the database",
 			})
 		return
@@ -58,7 +59,7 @@ func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
-			Status:  "success",
+			Success: true,
 			Message: "courses retrieved successfully",
 			Data:    courses,
 		})
@@ -76,8 +77,8 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_INPUT,
+				Success:   false,
+				ErrorCode: codes.InvalidInput,
 				Message:   "invalid course ID",
 			})
 		return
@@ -91,8 +92,8 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.DATABASE_FAIL,
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
 				Message:   "could not retrieve course from the database",
 			})
 		return
@@ -100,7 +101,7 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
-			Status:  "success",
+			Success: true,
 			Message: "course retrieved successfully",
 			Data:    course,
 		})
@@ -115,8 +116,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debug("unauthorized user tried to create course.")
 		RespondWithJSON(w, http.StatusUnauthorized,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.UNAUTHORIZED,
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
 				Message:   "unauthorized",
 			})
 		return
@@ -128,8 +129,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("failed to get user with user ID %d, %v\n", userID, err.Error())
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.DATABASE_FAIL,
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
 				Message:   "failed to get user by ID from database",
 			})
 		return
@@ -139,8 +140,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugln("user without admin role tried to create course")
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.UNAUTHORIZED,
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
 				Message:   "only users with the admin role may create a course",
 			})
 		return
@@ -151,8 +152,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugln("either incorrect JSON or mismatching attributes" + err.Error())
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_JSON,
+				Success:   false,
+				ErrorCode: codes.InvalidJson,
 				Message:   "either incorrect JSON or mismatching attributes: " + err.Error(),
 			})
 		return
@@ -165,8 +166,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 	default:
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_INPUT,
+				Success:   false,
+				ErrorCode: codes.InvalidInput,
 				Message:   "invalid difficulty level",
 			})
 		return
@@ -178,8 +179,8 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("error creating course: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.DATABASE_FAIL,
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
 				Message:   "could not create course",
 			})
 		return
@@ -187,7 +188,7 @@ func (h *courseHandler) CreateCourse(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusCreated,
 		models.Response{
-			Status:  "success",
+			Success: true,
 			Message: "course created successfully",
 			Data:    createdCourse,
 		})
@@ -201,9 +202,9 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugln("unauthorized user tried to create course.")
 		RespondWithJSON(w, http.StatusUnauthorized,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.UNAUTHORIZED,
-				Message:   "Unauthorized",
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "unauthorized",
 			})
 		return
 	}
@@ -211,12 +212,12 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 	// Only admin users can update courses
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
-		log.Debugln("User without admin role tried to update a course.")
+		log.Debugln("user without admin role tried to update a course.")
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.UNAUTHORIZED,
-				Message:   "Only users with the admin role may update a course",
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "only users with the admin role may update a course",
 			})
 		return
 	}
@@ -227,21 +228,30 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Tried to update course but sent invalid course ID input")
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_INPUT,
+				Success:   false,
+				ErrorCode: codes.InvalidInput,
 				Message:   "Invalid course ID format",
 			})
 		return
 	}
 
 	_, err = h.courseRepo.GetCourseByID(ctx, id)
-	if err != nil {
-		log.Debugf("Tried to update a course with an invalid course ID: %d\n", id)
-		RespondWithJSON(w, http.StatusBadRequest,
+	if errors.Is(err, codes.ErrNotFound) {
+		log.Debugf("course not found: %d\n", id)
+		RespondWithJSON(w, http.StatusNotFound,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_INPUT,
-				Message:   "Invalid course ID",
+				Success:   false,
+				ErrorCode: codes.NoData,
+				Message:   "course not found",
+			})
+		return
+	} else if err != nil {
+		log.Errorln(err.Error())
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   err.Error(),
 			})
 		return
 	}
@@ -251,8 +261,8 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugln("Either incorrect JSON or mismatching attributes")
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_JSON,
+				Success:   false,
+				ErrorCode: codes.InvalidJson,
 				Message:   "Either incorrect JSON or mismatching attributes",
 			})
 		return
@@ -265,16 +275,16 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Error updating course: %v", err.Error())
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.DATABASE_FAIL,
-				Message:   "could not update course",
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to update course",
 			})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
-			Status:  "success",
+			Success: true,
 			Message: "course updated successfully",
 			Data:    createdCourse,
 		})
@@ -288,21 +298,21 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugln("unauthorized user tried to delete a course.")
 		RespondWithJSON(w, http.StatusUnauthorized,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.UNAUTHORIZED,
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
 				Message:   "you are not authorized to delete a course",
 			})
 		return
 	}
 
 	params := mux.Vars(r)
-	id, err := strconv.ParseInt(params["id"], 10, 64)
+	id, err := strconv.ParseInt(params["course_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.INVALID_INPUT,
-				Message:   "Invalid course ID in the route",
+				Success:   false,
+				ErrorCode: codes.InvalidInput,
+				Message:   "invalid course ID in the route",
 			})
 		return
 	}
@@ -313,27 +323,36 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		log.Debugln("User without admin role tried to delete a course.")
 		RespondWithJSON(w, http.StatusForbidden,
 			models.Response{
-				Status:    "error",
-				ErrorCode: codes.UNAUTHORIZED,
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
 				Message:   "Only users with the admin role may delete a course",
 			})
 		return
 	}
 
-	if err := h.courseRepo.DeleteCourse(ctx, id); err != nil {
-		log.Debugf("Error deleting course %d: %v", id, err)
+	err = h.courseRepo.DeleteCourse(ctx, id)
+	if errors.Is(err, codes.ErrNotFound) {
+		log.Infof("attempt to delete course that does not exist %d: %v", id, err)
+		RespondWithJSON(w, http.StatusNotFound,
+			models.Response{Success: false,
+				ErrorCode: codes.NoData,
+				Message:   "course not found",
+			})
+		return
+	} else if err != nil {
+		log.Debugf("error deleting course %d: %v", id, err)
 		RespondWithJSON(w, http.StatusInternalServerError,
-			models.Response{Status: "error",
-				ErrorCode: codes.DATABASE_FAIL,
-				Message:   "Failed to delete the course from the database",
+			models.Response{Success: false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to delete the course from the database",
 			})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
-			Status:  "success",
-			Message: "Course deleted successfully",
+			Success: true,
+			Message: "course deleted successfully",
 		})
 }
 
@@ -344,10 +363,10 @@ func (h *courseHandler) RegisterRoutes(r *router.Router) {
 
 	// Public routes
 	public.Handle("", h.GetAllCourses, "GET")
-	public.Handle("/{id}", h.GetCourseByID, "GET")
+	public.Handle("/{course_id}", h.GetCourseByID, "GET")
 
 	// Authorized routes
 	authorized.Handle("", h.CreateCourse, "POST")
-	authorized.Handle("/{id}", h.UpdateCourse, "PUT")
-	authorized.Handle("/{id}", h.DeleteCourse, "DELETE")
+	authorized.Handle("/{course_id}", h.UpdateCourse, "PUT")
+	authorized.Handle("/{course_id}", h.DeleteCourse, "DELETE")
 }

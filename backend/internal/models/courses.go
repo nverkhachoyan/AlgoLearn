@@ -16,16 +16,16 @@ var (
 
 type Course struct {
 	BaseModel
-	Name            string   `json:"name"`
-	Description     string   `json:"description"`
-	BackgroundColor sql.NullString   `json:"background_color"`
-	IconURL         sql.NullString   `json:"icon_url"`
-	Duration        int16    `json:"duration"`
-	DifficultyLevel DifficultyLevel   `json:"difficulty_level"`
-	Authors         []string          `json:"authors"`
-	Tags            []string          `json:"tags"`
-	Rating          float64   `json:"rating"`
-	LearnersCount   int64     `json:"learners_count"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	BackgroundColor sql.NullString  `json:"background_color"`
+	IconURL         sql.NullString  `json:"icon_url"`
+	Duration        int16           `json:"duration"`
+	DifficultyLevel DifficultyLevel `json:"difficulty_level"`
+	Authors         []string        `json:"authors"`
+	Tags            []string        `json:"tags"`
+	Rating          float64         `json:"rating"`
+	LearnersCount   int64           `json:"learners_count"`
 }
 
 func (c Course) MarshalJSON() ([]byte, error) {
@@ -60,12 +60,11 @@ func (c Course) MarshalJSON() ([]byte, error) {
 	return json.Marshal(data)
 }
 
-
 func (c *Course) UnmarshalJSON(data []byte) error {
 	type Alias Course
 	temp := &struct {
-		BackgroundColor *string         `json:"background_color"`
-		IconURL         *string         `json:"icon_url"`
+		BackgroundColor *string `json:"background_color"`
+		IconURL         *string `json:"icon_url"`
 		*Alias
 	}{
 		Alias: (*Alias)(c),

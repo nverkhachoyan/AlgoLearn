@@ -33,12 +33,12 @@ func NewAchievementsHandler(repo repository.AchievementsRepository) Achievements
 func (h *achievementsHandler) GetAllAchievements(w http.ResponseWriter, _ *http.Request) {
 	achievements, err := h.repo.GetAllAchievements()
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "internal server error"})
 		return
 	}
 
 	response := models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Achievements retrieved successfully",
 		Data:    map[string]interface{}{"achievements": achievements},
 	}
@@ -51,18 +51,18 @@ func (h *achievementsHandler) GetAchievementByID(w http.ResponseWriter, r *http.
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid achievement ID"})
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid achievement ID"})
 		return
 	}
 
 	achievement, err := h.repo.GetAchievementByID(id)
 	if err != nil {
-		RespondWithJSON(w, http.StatusNotFound, models.Response{Status: "error", Message: "Achievement not found"})
+		RespondWithJSON(w, http.StatusNotFound, models.Response{Success: false, Message: "Achievement not found"})
 		return
 	}
 
 	response := models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Achievement retrieved successfully",
 		Data:    map[string]interface{}{"achievement": achievement},
 	}
@@ -74,18 +74,18 @@ func (h *achievementsHandler) CreateAchievement(w http.ResponseWriter, r *http.R
 	var achievement models.Achievement
 	err := json.NewDecoder(r.Body).Decode(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid request payload"})
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid request payload"})
 		return
 	}
 
 	err = h.repo.CreateAchievement(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to create achievement"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to create achievement"})
 		return
 	}
 
 	response := models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Achievement created successfully",
 		Data:    map[string]interface{}{"achievement": achievement},
 	}
@@ -98,27 +98,27 @@ func (h *achievementsHandler) UpdateAchievement(w http.ResponseWriter, r *http.R
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid achievement ID"})
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid achievement ID"})
 		return
 	}
 
 	var achievement models.Achievement
 	err = json.NewDecoder(r.Body).Decode(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid request payload"})
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "invalid request payload"})
 		return
 	}
 
 	achievement.ID = id
 	err = h.repo.UpdateAchievement(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to update achievement"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "failed to update achievement"})
 		return
 	}
 
 	response := models.Response{
-		Status:  "success",
-		Message: "Achievement updated successfully",
+		Success: true,
+		Message: "achievement updated successfully",
 		Data:    map[string]interface{}{"achievement": achievement},
 	}
 
@@ -130,19 +130,19 @@ func (h *achievementsHandler) DeleteAchievement(w http.ResponseWriter, r *http.R
 	idStr := vars["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Status: "error", Message: "Invalid achievement ID"})
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "invalid achievement ID"})
 		return
 	}
 
 	err = h.repo.DeleteAchievement(id)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Failed to delete achievement"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "failed to delete achievement"})
 		return
 	}
 
 	response := models.Response{
-		Status:  "success",
-		Message: "Achievement deleted successfully",
+		Success: true,
+		Message: "achievement deleted successfully",
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)

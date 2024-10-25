@@ -5,7 +5,7 @@ import (
 )
 
 type Response struct {
-	Status    string           `json:"status"`
+	Success   bool             `json:"success"`
 	Message   string           `json:"message"`
 	Data      interface{}      `json:"data,omitempty"`
 	Error     string           `json:"error,omitempty"`

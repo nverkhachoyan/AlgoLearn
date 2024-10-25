@@ -23,15 +23,15 @@ func NewNotificationsHandler(repo repository.NotificationsRepository) Notificati
 	return &notificationsHandler{repo: repo}
 }
 
-func (h *notificationsHandler) GetAllNotifications(w http.ResponseWriter, r *http.Request) {
+func (h *notificationsHandler) GetAllNotifications(w http.ResponseWriter, _ *http.Request) {
 	notifications, err := h.repo.GetAllNotifications()
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Status: "error", Message: "Internal server error"})
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Internal server error"})
 		return
 	}
 
 	response := models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Notifications retrieved successfully",
 		Data:    map[string]interface{}{"notifications": notifications},
 	}

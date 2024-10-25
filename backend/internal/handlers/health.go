@@ -20,13 +20,13 @@ func NewHealthHandler() HealthHandler {
 }
 
 func (h *healthHandler) Welcome(w http.ResponseWriter, _ *http.Request) {
-	response := models.Response{Status: "success", Message: "Welcome to AlgoLearn API"}
+	response := models.Response{Success: true, Message: "Welcome to AlgoLearn API"}
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
 // Health check endpoint
 func (h *healthHandler) Health(w http.ResponseWriter, _ *http.Request) {
-	response := models.Response{Status: "success", Message: "Healthy"}
+	response := models.Response{Success: true, Message: "Healthy"}
 	RespondWithJSON(w, http.StatusOK, response)
 }
 

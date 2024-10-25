@@ -29,14 +29,14 @@ func RespondWithJSON(w http.ResponseWriter, status int, response models.Response
 }
 
 func Auth(next http.Handler) http.Handler {
-	log := logger.Get()
+	//	log := logger.Get()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			RespondWithJSON(
 				w,
 				http.StatusUnauthorized,
-				models.Response{Status: "error", ErrorCode: errors.UNAUTHORIZED,
+				models.Response{Success: false, ErrorCode: errors.Unauthorized,
 					Message: "Authorization header required",
 				})
 			return
@@ -48,13 +48,13 @@ func Auth(next http.Handler) http.Handler {
 			RespondWithJSON(
 				w,
 				http.StatusUnauthorized,
-				models.Response{Status: "error", ErrorCode: errors.UNAUTHORIZED,
+				models.Response{Success: false, ErrorCode: errors.Unauthorized,
 					Message: "Invalid token",
 				})
 			return
 		}
 
-		log.Printf("Authenticated user with ID: %d", claims.UserID)
+		//		log.Printf("Authenticated user with ID: %d", claims.UserID)
 		ctx := context.WithValue(r.Context(), userContextKey, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -72,8 +72,8 @@ func IsAdmin(next http.Handler) http.Handler {
 				w,
 				http.StatusUnauthorized,
 				models.Response{
-					Status:    "error",
-					ErrorCode: errors.UNAUTHORIZED,
+					Success:   false,
+					ErrorCode: errors.Unauthorized,
 					Message:   "You are not authorized to access this endpoint",
 				})
 			return
@@ -86,8 +86,8 @@ func IsAdmin(next http.Handler) http.Handler {
 				w,
 				http.StatusUnauthorized,
 				models.Response{
-					Status:    "error",
-					ErrorCode: errors.UNAUTHORIZED,
+					Success:   false,
+					ErrorCode: errors.Unauthorized,
 					Message:   "Failed to identify the user in the system",
 				})
 			return
@@ -101,7 +101,7 @@ func IsAdmin(next http.Handler) http.Handler {
 		RespondWithJSON(
 			w,
 			http.StatusUnauthorized,
-			models.Response{Status: "error", ErrorCode: errors.UNAUTHORIZED,
+			models.Response{Success: false, ErrorCode: errors.Unauthorized,
 				Message: "You are not authorized to access this endpoint",
 			})
 	})

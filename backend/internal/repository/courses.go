@@ -1,6 +1,7 @@
 package repository
 
 import (
+	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"context"
@@ -27,6 +28,7 @@ func NewCourseRepository(db *sql.DB) CourseRepository {
 }
 
 func (r *courseRepository) GetAllCourses(ctx context.Context) ([]models.Course, error) {
+	log := logger.Get()
 	rows, err := r.db.QueryContext(
 		ctx, `
 		SELECT
@@ -45,7 +47,12 @@ func (r *courseRepository) GetAllCourses(ctx context.Context) ([]models.Course, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Errorf("failed to close rows in repo func GetAllCourses")
+		}
+	}(rows)
 
 	var courses []models.Course
 
@@ -124,7 +131,9 @@ func (r *courseRepository) GetCourseByID(_ context.Context, courseID int64) (*mo
 		&authors,
 		&tags,
 	)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, codes.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -262,13 +271,26 @@ func (r *courseRepository) UpdateCourse(ctx context.Context, course *models.Cour
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $9;`
 
+	var difficultyLevel sql.NullString
+	if course.DifficultyLevel == "" {
+		difficultyLevel = sql.NullString{
+			String: "",
+			Valid:  false,
+		}
+	} else {
+		difficultyLevel = sql.NullString{
+			String: string(course.DifficultyLevel),
+			Valid:  true,
+		}
+	}
+
 	_, err = tx.ExecContext(ctx, updateCourseQuery,
 		course.Name,
 		course.Description,
 		course.BackgroundColor,
 		course.IconURL,
 		course.Duration,
-		course.DifficultyLevel,
+		difficultyLevel,
 		course.Rating,
 		course.LearnersCount,
 		course.ID,
@@ -383,6 +405,19 @@ func (r *courseRepository) UpdateCourse(ctx context.Context, course *models.Cour
 }
 
 func (r *courseRepository) DeleteCourse(_ context.Context, id int64) error {
-	_, err := r.db.Exec("DELETE FROM courses WHERE id = $1", id)
-	return err
+	result, err := r.db.Exec("DELETE FROM courses WHERE id = $1;", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return codes.ErrNotFound
+	}
+
+	return nil
 }

@@ -1,4 +1,3 @@
-// pkg/colors/colors.go
 package colors
 
 const (
@@ -9,5 +8,5 @@ const (
 	Blue   = "\033[34m"
 	Purple = "\033[35m"
 	Cyan   = "\033[36m"
-	White  = "\033[37m"
+	Gray   = "\033[37m"
 )

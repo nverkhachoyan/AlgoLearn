@@ -9,6 +9,8 @@ import (
 	"algolearn/pkg/middleware"
 
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -41,30 +43,40 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
+	query := r.URL.Query()
+
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "invalid unit ID",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
 
-	isPartial := r.URL.Query().Get("type") == "partial"
+	isPartial := query.Get("type") == "partial"
 	modules, err := h.moduleRepo.GetModules(ctx, unitID, isPartial)
-	if err != nil {
+	if errors.Is(err, codes.ErrNotFound) {
 		log.Printf("error fetching modules for unit %d: %v", unitID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
-			Message:   "could not retrieve modules",
-			ErrorCode: codes.DATABASE_FAIL,
+			Success:   false,
+			ErrorCode: codes.NoData,
+			Message:   "no modules were found",
+		})
+		return
+	} else if err != nil {
+		log.Printf("error fetching modules for unit %d: %v", unitID, err)
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: codes.DatabaseFail,
+			Message:   "failed to query modules",
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "modules retrieved successfully",
 		Data:    modules,
 	})
@@ -78,9 +90,9 @@ func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module ID",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
@@ -89,15 +101,15 @@ func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Could not retrieve module",
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Module retrieved successfully",
 		Data:    module,
 	})
@@ -106,12 +118,13 @@ func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	ctx := r.Context()
+
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
-			Message:   "Unauthorized",
-			ErrorCode: codes.UNAUTHORIZED,
+			Success:   false,
+			Message:   "unauthorized",
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -121,8 +134,8 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	if unitIDerr != nil {
 		log.Debug("incorrect unit ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
-			ErrorCode: codes.INVALID_REQUEST,
+			Success:   false,
+			ErrorCode: codes.InvalidRequest,
 			Message:   "incorrect unit ID format in the route",
 		})
 		return
@@ -132,9 +145,9 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
-			Message:   "Access denied",
-			ErrorCode: codes.UNAUTHORIZED,
+			Success:   false,
+			Message:   "access denied",
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -142,12 +155,24 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	var module models.Module
 	if err := json.NewDecoder(r.Body).Decode(&module); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   err.Error(),
-			ErrorCode: codes.INVALID_JSON,
+			ErrorCode: codes.InvalidJson,
 		})
 		return
 	}
+
+	err = module.Validate()
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   err.Error(),
+			ErrorCode: codes.InvalidFormData,
+		})
+		return
+	}
+
+	fmt.Printf("%v", module)
 
 	// Setting course and unit IDs we got earlier from the route
 	module.UnitID = unitID
@@ -155,15 +180,15 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	if err := h.moduleRepo.CreateModule(ctx, &module); err != nil {
 		log.Printf("Error creating module: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Failed to create the module in the database",
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusCreated, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Module created successfully",
 		Data:    module,
 	})
@@ -175,9 +200,9 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Unauthorized",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -186,9 +211,9 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Access denied",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -199,9 +224,9 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Debug("Invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module ID format in the route",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
@@ -209,9 +234,9 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	var module models.Module
 	if err := json.NewDecoder(r.Body).Decode(&module); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid input",
-			ErrorCode: codes.INVALID_JSON,
+			ErrorCode: codes.InvalidJson,
 		})
 		return
 	}
@@ -221,9 +246,9 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Module not found",
-			ErrorCode: codes.NO_DATA,
+			ErrorCode: codes.NoData,
 		})
 		return
 	}
@@ -231,15 +256,15 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	if err := h.moduleRepo.UpdateModule(ctx, &module); err != nil {
 		log.Printf("Error updating module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Failed to update module in the database",
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Module updated successfully",
 	})
 }
@@ -250,9 +275,9 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Unauthorized",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -263,9 +288,9 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Debug("Invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module ID format in the route",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
@@ -274,9 +299,9 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Access denied",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -285,9 +310,9 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Module not found",
-			ErrorCode: codes.NO_DATA,
+			ErrorCode: codes.NoData,
 		})
 		return
 	}
@@ -295,15 +320,15 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	if err := h.moduleRepo.DeleteModule(ctx, moduleID); err != nil {
 		log.Printf("Error deleting module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Could not delete module",
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Module deleted successfully",
 	})
 }
@@ -318,9 +343,9 @@ func (h *moduleHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 	moduleID, err := strconv.Atoi(params["module_id"])
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module ID",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
@@ -329,16 +354,16 @@ func (h *moduleHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		log.Debugf("Error fetching questions for module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Failed to retrieve questions from database",
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	if len(questions) == 0 {
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
-			Status:  "success",
+			Success: true,
 			Message: "No questions found for the given module ID",
 			Data:    []models.ModuleQuestion{},
 		})
@@ -346,7 +371,7 @@ func (h *moduleHandler) GetAllModuleQuestions(w http.ResponseWriter, r *http.Req
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Questions retrieved successfully",
 		Data:    questions,
 	})
@@ -357,9 +382,9 @@ func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Unauthorized",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -368,9 +393,9 @@ func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	moduleID, err := strconv.Atoi(params["module_id"])
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module ID format",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 	}
 
@@ -378,9 +403,9 @@ func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Access denied",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -388,9 +413,9 @@ func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	var question models.ModuleQuestion
 	if err := json.NewDecoder(r.Body).Decode(&question); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid input",
-			ErrorCode: codes.INVALID_JSON,
+			ErrorCode: codes.InvalidJson,
 		})
 		return
 	}
@@ -399,15 +424,15 @@ func (h *moduleHandler) CreateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	if err := repository.CreateQuestion(&question); err != nil {
 		log.Printf("Error creating question: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   err.Error(),
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusCreated, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Question created successfully",
 		Data:    question,
 	})
@@ -418,9 +443,9 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Unauthorized",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -430,9 +455,9 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	moduleQuestionID, moduleQIDerr := strconv.ParseInt(params["module_question_id"], 10, 64)
 	if moduleIDErr != nil || moduleQIDerr != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module or question ID format",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
@@ -441,9 +466,9 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Access denied",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -451,9 +476,9 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	var question models.ModuleQuestion
 	if err := json.NewDecoder(r.Body).Decode(&question); err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid input",
-			ErrorCode: codes.INVALID_JSON,
+			ErrorCode: codes.InvalidJson,
 		})
 		return
 	}
@@ -463,15 +488,15 @@ func (h *moduleHandler) UpdateModuleQuestion(w http.ResponseWriter, r *http.Requ
 	if err := repository.UpdateQuestion(&question); err != nil {
 		log.Debugf("Error updating question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   err.Error(),
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Question updated successfully",
 	})
 }
@@ -481,9 +506,9 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Unauthorized",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -493,9 +518,9 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 	moduleQuestionID, moduleQIDerr := strconv.Atoi(params["module_question_id"])
 	if moduleIDErr != nil || moduleQIDerr != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Invalid module or question ID format",
-			ErrorCode: codes.INVALID_REQUEST,
+			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
@@ -504,9 +529,9 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 	user, err := h.userRepo.GetUserByID(userID)
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   "Access denied",
-			ErrorCode: codes.UNAUTHORIZED,
+			ErrorCode: codes.Unauthorized,
 		})
 		return
 	}
@@ -514,15 +539,15 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 	if err := repository.DeleteQuestion(moduleID, moduleQuestionID); err != nil {
 		log.Printf("Error deleting question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Status:    "error",
+			Success:   false,
 			Message:   err.Error(),
-			ErrorCode: codes.DATABASE_FAIL,
+			ErrorCode: codes.DatabaseFail,
 		})
 		return
 	}
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
-		Status:  "success",
+		Success: true,
 		Message: "Question deleted successfully",
 	})
 }

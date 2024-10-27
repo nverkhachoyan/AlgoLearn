@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import {
   View,
   Text,
@@ -8,26 +8,26 @@ import {
   Pressable,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import {useRouter} from "expo-router";
 import Button from "@/components/common/Button";
-import { Feather } from "@expo/vector-icons";
-import { useAuthContext } from "@/context/AuthProvider";
-import { useColorScheme } from "@/components/useColorScheme";
+import {Feather} from "@expo/vector-icons";
+import {useAuthContext} from "@/context/AuthProvider";
+import {useColorScheme} from "@/components/useColorScheme";
 import useTheme from "@/hooks/useTheme";
 import useToast from "@/hooks/useToast";
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthed, checkEmail, signIn, signUp, signInWithGoogle } =
+  const {isAuthed, checkEmail, signIn, signUp, signInWithGoogle} =
     useAuthContext();
   const colorScheme = useColorScheme();
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
   const [emailExists, setEmailExists] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [retryPassword, setRetryPassword] = useState<string>("");
-  const { showToast } = useToast();
+  const {showToast} = useToast();
 
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,10 +40,10 @@ export default function SignUp() {
     } else {
       checkEmail.mutate(email, {
         onSuccess: (res: any) => {
-          console.log("RES", res);
-          console.log("res.data", res.data);
+//          console.log("RES", res);
+//          console.log("res.data", res.data);
 
-          if (res.data.status === "success") {
+          if (res.data.success) {
             setHasCheckedEmail(true);
             setEmailExists(true);
           }
@@ -68,7 +68,7 @@ export default function SignUp() {
       Alert.alert("Password Mismatch", "Passwords do not match.");
     } else {
       signUp.mutate(
-        { email, password },
+        {email, password},
         {
           onSuccess: () => {
             router.navigate("/userdetails");
@@ -83,7 +83,7 @@ export default function SignUp() {
 
   const handleSignIn = () => {
     signIn.mutate(
-      { email, password },
+      {email, password},
       {
         onSuccess: () => {
           router.navigate("/pushnotifications");
@@ -108,12 +108,12 @@ export default function SignUp() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, {backgroundColor: colors.background}]}
     >
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
-        <Feather name="arrow-left" size={24} color={colors.text} />
+        <Feather name="arrow-left" size={24} color={colors.text}/>
       </Pressable>
-      <Text style={[styles.title, { color: colors.text }]}>
+      <Text style={[styles.title, {color: colors.text}]}>
         Log in or sign up to AlgoLearn
       </Text>
 
@@ -173,8 +173,8 @@ export default function SignUp() {
             <Button
               title="Continue"
               onPress={handleContinue}
-              icon={{ name: "arrow-right", position: "right" }}
-              textStyle={{ color: colors.buttonText }}
+              icon={{name: "arrow-right", position: "right"}}
+              textStyle={{color: colors.buttonText}}
               iconStyle={{
                 position: "absolute",
                 right: 12,
@@ -191,8 +191,8 @@ export default function SignUp() {
           <Button
             title="Continue"
             onPress={handleEmailCheck}
-            icon={{ name: "arrow-right", position: "right" }}
-            textStyle={{ color: colors.buttonText }}
+            icon={{name: "arrow-right", position: "right"}}
+            textStyle={{color: colors.buttonText}}
             iconStyle={{
               position: "absolute",
               right: 12,
@@ -207,9 +207,9 @@ export default function SignUp() {
 
       {/* SEPARATOR */}
       <View style={styles.dividerContainer}>
-        <View style={[styles.line, { backgroundColor: colors.text }]} />
-        <Text style={[styles.orText, { color: colors.text }]}>or</Text>
-        <View style={[styles.line, { backgroundColor: colors.text }]} />
+        <View style={[styles.line, {backgroundColor: colors.text}]}/>
+        <Text style={[styles.orText, {color: colors.text}]}>or</Text>
+        <View style={[styles.line, {backgroundColor: colors.text}]}/>
       </View>
 
       {/* GOOGLE OAUTH BUTTON */}
@@ -223,7 +223,7 @@ export default function SignUp() {
             type: "png",
             src: require("@/assets/icons/google.png"),
           }}
-          iconStyle={{ width: 20, height: 20 }}
+          iconStyle={{width: 20, height: 20}}
           style={{
             backgroundColor:
               (colorScheme ?? "light" === "light") ? "white" : "black",

@@ -79,7 +79,7 @@ func (h *unitHandler) GetUnitByID(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
-	id, err := strconv.ParseInt(params["id"], 10, 64)
+	id, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
@@ -350,18 +350,16 @@ func (h *unitHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *unitHandler) RegisterRoutes(r *router.Router) {
-	// Course-specific units
-	courseUnitsPublic := r.Group("/courses/{course_id}/units")
-	courseUnitsAuth := r.Group("/courses/{course_id}/units", middleware.Auth)
+	// Route groups
+	unitsPublic := r.Group("/courses/{course_id}/units")
+	unitsAuth := r.Group("/courses/{course_id}/units", middleware.Auth)
 
-	courseUnitsPublic.Handle("", h.GetAllUnits, "GET")
-	courseUnitsAuth.Handle("", h.CreateUnit, "POST")
+	// Public
+	unitsPublic.Handle("", h.GetAllUnits, "GET")
+	unitsPublic.Handle("/{unit_id}", h.GetUnitByID, "GET")
 
-	// Individual unit operations
-	unitsPublic := r.Group("/units")
-	unitsAuth := r.Group("/units", middleware.Auth)
-
-	unitsPublic.Handle("/{id}", h.GetUnitByID, "GET")
+	// Authorized
+	unitsAuth.Handle("", h.CreateUnit, "POST")
 	unitsAuth.Handle("/{unit_id}", h.UpdateUnit, "PUT")
 	unitsAuth.Handle("/{unit_id}", h.DeleteUnit, "DELETE")
 }

@@ -5,56 +5,35 @@ import (
 	"algolearn/internal/handlers"
 	"algolearn/internal/repository"
 	"algolearn/internal/router"
+	"fmt"
 
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
-
-	"log"
 	"net/http"
-	"os"
 	"time"
-
-	"github.com/joho/godotenv"
+	fallbackLog "log"
 )
 
 func main() {
-	// Loading env variables
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("error loading .env file")
-	}
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080" // Default port if not specified
-	}
-
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL is not set")
-	}
-
-	// Initialize configs
-	config.InitLogger()
-	log := logger.Get()
+	log := logger.Get().WithBaseFields(logger.Main, "main")
 	log.Info("Starting application...")
 
-	config.InitDB()
-	config.InitOAuth()
-	config.InitS3() // DigitalOcean Spaces
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fallbackLog.Fatalf("failed to load configuration: %v", err)
+	}
+
+
+	config.InitLogger(cfg.App)
+	config.InitDB(cfg.Database)
+	config.InitOAuth(cfg.Auth.OAuth)
+	config.InitS3(cfg.Storage)
 	defer func() {
 		if err := config.GetDB().Close(); err != nil {
 			log.Printf("error closing database: %v\n", err)
 		}
 	}()
-
-	// Check for migrations
-	if os.Getenv("RUN_MIGRATIONS") == "true" {
-		config.RunMigrations()
-	}
-
-	if os.Getenv("RUN_DOWN_MIGRATIONS") == "true" {
-		config.DownMigration()
-	}
+	config.ApplyMigrations()
 
 	// Get DB
 	db := config.GetDB()
@@ -97,6 +76,6 @@ func main() {
 	// Logging middleware
 	loggedRouter := middleware.LoggingMiddleware(timeoutMiddleware(r))
 	// Start server and log
-	log.Println("Server is running on port " + port)
-	log.Fatal(http.ListenAndServe(":"+port, loggedRouter))
+	log.Infof("Server is running on port %d", cfg.App.Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.App.Port), loggedRouter))
 }

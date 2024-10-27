@@ -85,15 +85,28 @@ func (h *userHandler) validateRegistrationInput(req models.RegistrationRequest) 
 }
 
 func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "CheckEmailExists")
+	ctx := r.Context()
 	email := r.URL.Query().Get("email")
 
-	user, _ := h.repo.GetUserByEmail(email)
-	if user != nil {
+	exists, err := h.repo.CheckEmailExists(ctx, email)
+	if err != nil {
+		log.WithError(err).Error("failed to check if email exists")
+		RespondWithJSON(w, http.StatusAccepted,
+			models.Response{
+				Success:   true,
+				ErrorCode: errors.DatabaseFail,
+				Message:   "failed to check if email exists",
+			})
+		return
+	}
+
+	if exists {
 		RespondWithJSON(w, http.StatusAccepted,
 			models.Response{
 				Success:   true,
 				ErrorCode: errors.AccountExists,
-				Message:   "An account with this email already exists",
+				Message:   "an account with this email already exists",
 			})
 		return
 	}
@@ -102,7 +115,7 @@ func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 		models.Response{
 			Success:   false,
 			ErrorCode: errors.NoData,
-			Message:   "An account with this email does not exist",
+			Message:   "an account with this email does not exist",
 		})
 }
 

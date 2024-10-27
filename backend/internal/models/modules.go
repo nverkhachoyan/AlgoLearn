@@ -97,6 +97,7 @@ func (m *Module) Validate() error {
 type Section interface {
 	GetBaseSection() BaseSection
 	GetType() string
+	SetID(ID int64)
 }
 
 type BaseSection struct {
@@ -119,6 +120,10 @@ func (ts TextSection) GetType() string {
 	return ts.Type
 }
 
+func (ts TextSection) SetID(ID int64) {
+	ts.ID = ID
+}
+
 type VideoSection struct {
 	BaseModel
 	BaseSection
@@ -133,11 +138,15 @@ func (vs VideoSection) GetType() string {
 	return vs.Type
 }
 
+func (vs VideoSection) SetID(ID int64) {
+	vs.ID = ID
+}
+
 type QuestionSection struct {
 	BaseModel
 	BaseSection
-	QuestionID int64 `json:"question_id,omitempty"`
-	Question   Question
+	QuestionID int64    `json:"question_id"`
+	Question   Question `json:"question"`
 }
 
 func (qs QuestionSection) GetBaseSection() BaseSection {
@@ -148,19 +157,23 @@ func (qs QuestionSection) GetType() string {
 	return qs.Type
 }
 
+func (qs QuestionSection) SetID(ID int64) {
+	qs.ID = ID
+}
+
 type Question struct {
 	BaseModel
-	Type            string
-	Question        string
-	DifficultyLevel DifficultyLevel
-	Options         []QuestionOption
+	Type            string           `json:"type"`
+	Question        string           `json:"question"`
+	DifficultyLevel DifficultyLevel  `json:"difficulty_level"`
+	Options         []QuestionOption `json:"options"`
 }
 
 type QuestionOption struct {
-	ID         int64
-	QuestionID int64
-	Content    string
-	IsCorrect  bool
+	ID         int64  `json:"id"`
+	QuestionID int64  `json:"question_id"`
+	Content    string `json:"content"`
+	IsCorrect  bool   `json:"is_correct"`
 }
 
 type ModuleQuestion struct {

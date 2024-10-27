@@ -4,6 +4,7 @@ import (
 	"algolearn/internal/config"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ type UserRepository interface {
 	CreateUser(user *models.User) error
 	GetUserByID(id int64) (*models.User, error)
 	GetUserByEmail(email string) (*models.User, error)
+	CheckEmailExists(ctx context.Context, email string) (bool, error)
 	UpdateUser(user *models.User) error
 	DeleteUser(id int64) error
 	GetAllUsers() ([]models.User, error)
@@ -200,6 +202,16 @@ func (r *userRepository) GetUserByEmail(email string) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (r *userRepository) CheckEmailExists(ctx context.Context, email string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT id FROM users WHERE email = $1)`, email).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch user: %v", err)
+	}
+
+	return exists, nil
 }
 
 func (r *userRepository) UpdateUser(user *models.User) error {

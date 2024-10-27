@@ -10,7 +10,6 @@ import (
 
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -83,26 +82,45 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
+	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
 	ctx := r.Context()
 	params := mux.Vars(r)
+
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
-	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "Invalid module ID",
+			Message:   "invalid unit ID parameter in URL",
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+
+	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
+	log.WithField("module_id", moduleID)
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   "invalid module ID parameter in URL",
 			ErrorCode: codes.InvalidRequest,
 		})
 		return
 	}
 
 	module, err := h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
-	if err != nil {
-		log.Printf("Error fetching module %d: %v", moduleID, err)
+	if errors.Is(err, codes.ErrNotFound) {
+		log.WithError(err).Warn("module not found")
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Success:   false,
+			Message:   "could not retrieve module",
+			ErrorCode: codes.NoData,
+		})
+		return
+	} else if err != nil {
+		log.WithError(err).Error("error querying module")
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Success:   false,
-			Message:   "Could not retrieve module",
+			Message:   "could not retrieve module",
 			ErrorCode: codes.DatabaseFail,
 		})
 		return
@@ -110,7 +128,7 @@ func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
 		Success: true,
-		Message: "Module retrieved successfully",
+		Message: "module retrieved successfully",
 		Data:    module,
 	})
 }
@@ -172,8 +190,6 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("%v", module)
-
 	// Setting course and unit IDs we got earlier from the route
 	module.UnitID = unitID
 
@@ -195,7 +211,7 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
+	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -212,7 +228,7 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	if err != nil || user.Role != "admin" {
 		RespondWithJSON(w, http.StatusForbidden, models.Response{
 			Success:   false,
-			Message:   "Access denied",
+			Message:   "access denied",
 			ErrorCode: codes.Unauthorized,
 		})
 		return
@@ -222,7 +238,7 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
 	if err != nil {
-		log.Debug("Invalid module ID format in the route")
+		log.Debug("invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Success:   false,
 			Message:   "Invalid module ID format in the route",
@@ -244,7 +260,7 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
 	if err != nil {
-		log.Printf("Error fetching module %d: %v", moduleID, err)
+		log.Printf("error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
 			Success:   false,
 			Message:   "Module not found",
@@ -254,10 +270,10 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.moduleRepo.UpdateModule(ctx, &module); err != nil {
-		log.Printf("Error updating module %d: %v", moduleID, err)
+		log.Printf("error updating module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Success:   false,
-			Message:   "Failed to update module in the database",
+			Message:   "failed to update module in the database",
 			ErrorCode: codes.DatabaseFail,
 		})
 		return
@@ -265,18 +281,20 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
 		Success: true,
-		Message: "Module updated successfully",
+		Message: "module updated successfully",
+		Data:    module,
 	})
 }
 
 func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
+	log := logger.Get().WithBaseFields(logger.Handler, "DeleteModule")
+
 	ctx := r.Context()
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		RespondWithJSON(w, http.StatusUnauthorized, models.Response{
 			Success:   false,
-			Message:   "Unauthorized",
+			Message:   "unauthorized",
 			ErrorCode: codes.Unauthorized,
 		})
 		return
@@ -285,11 +303,12 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
 	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
+	log.WithField("module_id", moduleID)
 	if err != nil {
-		log.Debug("Invalid module ID format in the route")
+		log.WithError(err).Debug("invalid module ID format in the route")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "Invalid module ID format in the route",
+			Message:   "invalid module ID format in the route",
 			ErrorCode: codes.InvalidRequest,
 		})
 		return
@@ -307,17 +326,34 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
-	if err != nil {
-		log.Printf("Error fetching module %d: %v", moduleID, err)
+	if errors.Is(err, codes.ErrNotFound) {
+		log.WithError(err).Warn("module not fout")
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
 			Success:   false,
-			Message:   "Module not found",
+			Message:   "module not found",
+			ErrorCode: codes.NoData,
+		})
+		return
+	} else if err != nil {
+		log.WithError(err).Error("error fetching module %d: %v", moduleID, err)
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Success:   false,
+			Message:   "module not found",
 			ErrorCode: codes.NoData,
 		})
 		return
 	}
 
-	if err := h.moduleRepo.DeleteModule(ctx, moduleID); err != nil {
+	err = h.moduleRepo.DeleteModule(ctx, moduleID)
+	if errors.Is(err, codes.ErrNotFound) {
+		log.Printf("error deleting module %d: %v", moduleID, err)
+		RespondWithJSON(w, http.StatusNotFound, models.Response{
+			Success:   false,
+			Message:   "could not delete module",
+			ErrorCode: codes.NoData,
+		})
+		return
+	} else if err != nil {
 		log.Printf("Error deleting module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Success:   false,
@@ -537,7 +573,7 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := repository.DeleteQuestion(moduleID, moduleQuestionID); err != nil {
-		log.Printf("Error deleting question %d: %v", moduleQuestionID, err)
+		log.Printf("error deleting question %d: %v", moduleQuestionID, err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Success:   false,
 			Message:   err.Error(),
@@ -548,7 +584,7 @@ func (h *moduleHandler) DeleteModuleQuestion(w http.ResponseWriter, r *http.Requ
 
 	RespondWithJSON(w, http.StatusOK, models.Response{
 		Success: true,
-		Message: "Question deleted successfully",
+		Message: "question deleted successfully",
 	})
 }
 

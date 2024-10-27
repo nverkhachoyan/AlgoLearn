@@ -7,10 +7,12 @@ import {
   Image,
 } from "react-native";
 import LottieView from "lottie-react-native";
-import { useRef, ReactNode } from "react";
-import { Feather } from "@expo/vector-icons";
+import {useRef, ReactNode} from "react";
+import {Feather} from "@expo/vector-icons";
 import useTheme from "@/hooks/useTheme";
-import { router } from "expo-router";
+import {router} from "expo-router";
+import {useUnits} from "@/hooks/useUnits"
+import {useModules} from "@/hooks/useModules";
 
 export function StickyHeader(props: {
   cpus: number;
@@ -18,8 +20,10 @@ export function StickyHeader(props: {
   userAvatar: string | null;
   onAvatarPress: () => void;
 }) {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   const animation = useRef(null);
+
+
   return (
     <View
       style={[
@@ -39,27 +43,27 @@ export function StickyHeader(props: {
         />
       </TouchableOpacity>
       <View style={styles.headerItem}>
-        <Feather name="cpu" size={24} color="#1CC0CB" />
-        <Text style={{ color: colors.text }}>{props.cpus}</Text>
+        <Feather name="cpu" size={24} color="#1CC0CB"/>
+        <Text style={{color: colors.text}}>{props.cpus}</Text>
       </View>
       <View style={styles.headerItem}>
-        <Feather name="zap" size={24} color="#1CC0CB" />
-        <Text style={{ color: colors.text }}>{props.strikeCount}</Text>
+        <Feather name="zap" size={24} color="#1CC0CB"/>
+        <Text style={{color: colors.text}}>{props.strikeCount}</Text>
       </View>
 
       <TouchableOpacity onPress={props.onAvatarPress} style={styles.headerItem}>
         {props.userAvatar ? (
-          <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
+          <Image source={{uri: props.userAvatar}} style={styles.avatar}/>
         ) : (
-          <Feather name="user" size={24} color={colors.icon} />
+          <Feather name="user" size={24} color={colors.icon}/>
         )}
       </TouchableOpacity>
     </View>
   );
 }
 
-export function StickyHeaderSimple({ children }: { children: ReactNode }) {
-  const { colors } = useTheme();
+export function StickyHeaderSimple({children}: { children: ReactNode }) {
+  const {colors} = useTheme();
 
   return (
     <View
@@ -83,7 +87,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 50,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 7 },
+    shadowOffset: {width: 0, height: 7},
     shadowOpacity: 0.05,
     shadowRadius: 3.84,
     borderBottomEndRadius: 8,

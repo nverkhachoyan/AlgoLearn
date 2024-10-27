@@ -4,7 +4,6 @@ import (
 	"algolearn/pkg/logger"
 	"database/sql"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -34,17 +33,17 @@ var (
 	}
 )
 
-func InitDB() {
+func InitDB(cfg DatabaseConfig) {
 	log := logger.Get()
 	var err error
 
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+	dbHost := cfg.Host
+	dbPort := cfg.Port
+	dbUser := cfg.User
+	dbPassword := cfg.Password
+	dbName := cfg.Name
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		dbHost, dbPort, dbUser, dbPassword, dbName,
 	)
 
@@ -60,21 +59,21 @@ func InitDB() {
 	log.Println("Connected to the database successfully")
 }
 
-func InitOAuth() {
+func InitOAuth(cfg OAuthConfig) {
 	log := logger.Get()
 
 	googleOauthConfig = &oauth2.Config{
-		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		ClientID:     cfg.Google.ClientID,
+		ClientSecret: cfg.Google.ClientSecret,
+		RedirectURL:  cfg.Google.RedirectURL,
 		Endpoint:     googleEndpoint,
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 	}
 
 	appleOauthConfig = &oauth2.Config{
-		ClientID:     os.Getenv("APPLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("APPLE_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("APPLE_REDIRECT_URL"),
+		ClientID:     cfg.Apple.ClientID,
+		ClientSecret: cfg.Apple.ClientSecret,
+		RedirectURL:  cfg.Apple.RedirectURL,
 		Endpoint:     appleEndpoint,
 		Scopes:       []string{"name", "email"},
 	}
@@ -82,17 +81,17 @@ func InitOAuth() {
 	log.Println("OAuth configurations initialized successfully")
 }
 
-func InitS3() {
+func InitS3(cfg StorageConfig) {
 	log := logger.Get()
 
 	sess, err := session.NewSession(&aws.Config{
-		Region:           aws.String(os.Getenv("SPACES_REGION")),
-		Endpoint:         aws.String(os.Getenv("SPACES_ENDPOINT")),
-		Credentials:      credentials.NewStaticCredentials(os.Getenv("SPACES_ACCESS_KEY"), os.Getenv("SPACES_SECRET_KEY"), ""),
+		Region:           aws.String(cfg.SpacesRegion),
+		Endpoint:         aws.String(cfg.SpacesEndpoint),
+		Credentials:      credentials.NewStaticCredentials(cfg.SpacesAccessKey, cfg.SpacesSecretKey, ""),
 		S3ForcePathStyle: aws.Bool(true), // Migth be necessary for DigitalOcean Spaces
 	})
 	if err != nil {
-		log.Fatalf("Unable to create AWS session: %v", err)
+		log.Fatalf("unable to create AWS session: %v", err)
 	}
 
 	s3Session = s3.New(sess)

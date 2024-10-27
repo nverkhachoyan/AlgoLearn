@@ -1,58 +1,32 @@
-import { useLocalSearchParams } from "expo-router";
-import { View, ScrollView, Text } from "@/components/Themed";
-import { Feather, MaterialIcons, AntDesign } from "@expo/vector-icons";
-import { StyleSheet, Image, Animated } from "react-native";
-import { useState, useRef } from "react";
+import {useLocalSearchParams} from "expo-router";
+import {View, ScrollView, Text} from "@/components/Themed";
+import {Feather, MaterialIcons, AntDesign} from "@expo/vector-icons";
+import {StyleSheet, Image, Animated} from "react-native";
+import {useState, useRef, useMemo, useEffect} from "react";
 import Button from "@/components/common/Button";
-import { StickyHeader } from "@/components/common/StickyHeader";
-import { useAuthContext } from "@/context/AuthProvider";
-import { router } from "expo-router";
+import {StickyHeader} from "@/components/common/StickyHeader";
+import {useAuthContext} from "@/context/AuthProvider";
+import {router} from "expo-router";
 import TableOfContents from "./components/TableOfContents";
-import { useCourses } from "@/hooks/useCourses";
+import {useCourses} from "@/hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
+import {useUnits} from "@/hooks/useUnits";
+import {Course} from "@/types/courses"
 
 export default function CourseDetails() {
-  const { user } = useAuthContext();
-  const { courseID } = useLocalSearchParams();
-  const { allCourses, isCoursesPending } = useCourses();
-  const { colors } = useTheme();
-  const units = [
-    {
-      unitNumber: "1",
-      unitName: "algorithms",
-      modules: {
-        "1": "module 1",
-        "2": "module 2",
-        "3": "module 3",
-      },
-    },
-    {
-      unitNumber: "2",
-      unitName: "whatever",
-      modules: {
-        "1": "module 1",
-        "2": "module 2",
-        "3": "module 3",
-      },
-    },
-    {
-      unitNumber: "3",
-      unitName: "something",
-      modules: {
-        "1": "module 1",
-        "2": "module 2",
-        "3": "module 3",
-        "4": "module 4",
-        "5": "module 5",
-      },
-    },
-  ];
-
+  const {user} = useAuthContext();
+  const {courseID} = useLocalSearchParams();
+  const {coursesOutline, isCoursesOutlinePending} = useCourses();
+//  const {units: {isPending: isUnitsPending, data: units, error: unitsError}} = useUnits()
+  const {colors} = useTheme();
   const TOCAnimationRef = useRef(new Animated.Value(0)).current;
-  const course = allCourses.find(
-    (course: any) => course.id.toString() === courseID,
-  );
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const course = useMemo(() =>
+      coursesOutline?.find(course => course.id.toString() === courseID),
+    [coursesOutline, courseID]
+  ) as Course;
+
   const animatedHeight = TOCAnimationRef.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 150],
@@ -66,11 +40,15 @@ export default function CourseDetails() {
     }).start(() => setIsCollapsed(!isCollapsed));
   };
 
+  console.log("COURSE", JSON.stringify(course.units[1].modules, null, 2))
+
+  const isLoading = isCoursesOutlinePending;
+
   if (!user) {
     return <Text>Not logged in...</Text>;
   }
 
-  if (!allCourses || isCoursesPending) {
+  if (isLoading) {
     return <Text>Loading...</Text>;
   }
 
@@ -87,7 +65,7 @@ export default function CourseDetails() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollView,
-          { backgroundColor: colors.viewBackground },
+          {backgroundColor: colors.viewBackground},
         ]}
       >
         <View style={styles.container}>
@@ -101,25 +79,25 @@ export default function CourseDetails() {
                   style={styles.icon}
                 />
                 <Text style={styles.courseTitle}>{course.name}</Text>
-                <Text style={styles.courseAuthor}>{course.author}</Text>
+                {course.authors.map(author => <Text key={author.id} style={styles.courseAuthor}>{author.name}</Text>)}
                 <View style={styles.courseMetricsContainer}>
                   <Text>
-                    <Feather name={"percent"} size={15} />{" "}
+                    <Feather name={"percent"} size={15}/>{" "}
                     {" " + course?.difficulty_level}
                   </Text>
                   <Text>
-                    <Feather name={"clock"} size={15} />
+                    <Feather name={"clock"} size={15}/>
                     {" " + course.duration}
                   </Text>
                   <Text>
-                    <Feather name={"star"} size={15} />
+                    <Feather name={"star"} size={15}/>
                     {" " + course.rating}
                   </Text>
                 </View>
                 {/* TABLE OF CONTENTS */}
-                <TableOfContents units={units} />
+                <TableOfContents units={course.units}/>
 
-                <View style={styles.separator} />
+                <View style={styles.separator}/>
                 <View style={styles.courseDescriptionContainer}>
                   <View style={styles.courseInfoTitleContainer}>
                     <MaterialIcons
@@ -135,7 +113,7 @@ export default function CourseDetails() {
                     data structures, and software engineering principles.
                   </Text>
                   <View style={styles.courseInfoTitleContainer}>
-                    <AntDesign name="pushpin" size={24} color={colors.icon} />
+                    <AntDesign name="pushpin" size={24} color={colors.icon}/>
                     <Text style={styles.courseInfoTitle}>Requirements</Text>
                   </View>
                   <Text style={styles.courseDescription}>
@@ -171,7 +149,7 @@ export default function CourseDetails() {
       <View
         style={[
           styles.stickyFooter,
-          { backgroundColor: colors.secondaryBackground },
+          {backgroundColor: colors.secondaryBackground},
         ]}
       >
         <Button
@@ -181,14 +159,14 @@ export default function CourseDetails() {
             color: colors.buttonText,
             position: "middle",
           }}
-          style={{ backgroundColor: colors.buttonBackground }}
-          textStyle={{ color: colors.buttonText }}
+          style={{backgroundColor: colors.buttonBackground}}
+          textStyle={{color: colors.buttonText}}
           onPress={() => router.back()}
         />
         <Button
           title="Start Course"
-          style={{ backgroundColor: colors.buttonBackground, width: "70%" }}
-          textStyle={{ color: colors.buttonText }}
+          style={{backgroundColor: colors.buttonBackground, width: "70%"}}
+          textStyle={{color: colors.buttonText}}
           onPress={() => console.log("Start Course")}
         />
       </View>
@@ -282,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 30,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     borderTopEndRadius: 8,

@@ -1,232 +1,204 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  ScrollView,
-} from "react-native";
-import { Feather, FontAwesome } from "@expo/vector-icons";
-import { Text, View } from "@/components/Themed";
+import React, {useState, useRef} from 'react';
+import {StyleSheet, Animated, LayoutAnimation, Platform, UIManager} from 'react-native';
+import {List, Surface} from 'react-native-paper';
+import {Feather} from "@expo/vector-icons";
+import {Text, View} from "@/components/Themed";
 import useTheme from "@/hooks/useTheme";
+import {Unit} from "@/types/units";
 
-const CourseUnit = React.memo(({ units }: { units: any }) => {
-  const { colors } = useTheme();
-  const [isTOCCollapsed, setIsTOCCollapsed] = useState(true);
-  const [collapsedUnits, setCollapsedUnits] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const TOCAnimationRef = useRef(new Animated.Value(0)).current;
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
-  const animationRefs = useRef<{ [key: string]: Animated.Value }>({});
-  const iconRefs = useRef<{ [key: string]: Animated.Value }>({});
+interface CourseUnitProps {
+  units: Unit[];
+  onModulePress?: (moduleId: number) => void;
+}
 
-  useEffect(() => {
-    units.forEach((unit: any) => {
-      if (!animationRefs.current[unit.unitNumber]) {
-        animationRefs.current[unit.unitNumber] = new Animated.Value(0);
-        iconRefs.current[unit.unitNumber] = new Animated.Value(0);
+const TableOfContents: React.FC<CourseUnitProps> = ({
+                                                      units = [],
+                                                      onModulePress
+                                                    }) => {
+  const {colors} = useTheme();
+  const [isVisible, setIsVisible] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | undefined>();
+
+  // Animation values for rotating chevrons
+  const rotationValues = useRef<{ [key: number]: Animated.Value }>({}).current;
+  const mainRotation = useRef(new Animated.Value(0)).current;
+
+  // Initialize rotation values for each unit
+  React.useEffect(() => {
+    units.forEach(unit => {
+      if (!rotationValues[unit.id]) {
+        rotationValues[unit.id] = new Animated.Value(0);
       }
     });
   }, [units]);
 
-  const calculateTOCHeight = useMemo(() => {
-    let totalHeight = 7; // Base height for the TOC header
-    units.forEach((unit: any) => {
-      totalHeight += 44; // Height for each unit header
-      if (collapsedUnits[unit.unitNumber]) {
-        const moduleCount = Object.keys(unit.modules).length;
-        totalHeight += 44 * moduleCount + 35; // Height for the modules if the unit is uncollapsed
-      }
-    });
-    return totalHeight;
-  }, [units, collapsedUnits]);
+  const configureAnimation = () => {
+    LayoutAnimation.configureNext(
+      LayoutAnimation.create(
+        200,
+        LayoutAnimation.Types.easeInEaseOut,
+        LayoutAnimation.Properties.opacity
+      )
+    );
+  };
 
-  const animateTOC = useCallback(
-    (toValue: number, duration: number) => {
-      Animated.timing(TOCAnimationRef, {
-        toValue,
-        duration,
-        useNativeDriver: false,
-      }).start();
-    },
-    [TOCAnimationRef],
-  );
+  const handleMainPress = () => {
+    configureAnimation();
+    setIsVisible(!isVisible);
+    Animated.timing(mainRotation, {
+      toValue: isVisible ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
 
-  const toggleCollapseTOC = useCallback(() => {
-    const toValue = isTOCCollapsed ? calculateTOCHeight : 0;
-    animateTOC(toValue, 150);
-    setIsTOCCollapsed(!isTOCCollapsed);
-  }, [isTOCCollapsed, calculateTOCHeight, animateTOC]);
+  const handlePress = (id: number) => {
+    configureAnimation();
+    setExpandedId(expandedId === id ? undefined : id);
 
-  const toggleExpandUnit = useCallback(
-    (unitNumber: string) => {
-      const isExpanded = collapsedUnits[unitNumber] || false;
-      const toValue = isExpanded ? 0 : 1;
+    Animated.timing(rotationValues[id], {
+      toValue: expandedId === id ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
 
-      if (animationRefs.current[unitNumber] && iconRefs.current[unitNumber]) {
-        Animated.timing(animationRefs.current[unitNumber], {
-          toValue,
-          duration: 5,
-          useNativeDriver: false,
-        }).start(() => {
-          setCollapsedUnits((prevState) => ({
-            ...prevState,
-            [unitNumber]: !isExpanded,
-          }));
-        });
-
-        Animated.timing(iconRefs.current[unitNumber], {
-          toValue,
-          duration: 5,
-          useNativeDriver: false,
-        }).start(() => {
-          if (!isTOCCollapsed) {
-            animateTOC(calculateTOCHeight, 100);
-          }
-        });
-      }
-    },
-    [collapsedUnits, calculateTOCHeight, animateTOC, isTOCCollapsed],
-  );
-
-  useEffect(() => {
-    if (!isTOCCollapsed) {
-      animateTOC(calculateTOCHeight, 100);
+  const handleModulePress = (moduleId: number) => {
+    if (onModulePress) {
+      onModulePress(moduleId);
     }
-  }, [collapsedUnits, calculateTOCHeight, animateTOC, isTOCCollapsed]);
+  };
+
+  const mainChevronStyle = {
+    transform: [{
+      rotate: mainRotation.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '180deg']
+      })
+    }]
+  };
+
+  if (!units.length) return null;
 
   return (
-    <View style={styles.tocContainer}>
-      <TouchableOpacity onPress={toggleCollapseTOC}>
-        <Text style={styles.tocTitle}>
-          <Feather name="list" /> Table of Contents{" "}
-        </Text>
-      </TouchableOpacity>
-      <Animated.View
-        style={[styles.unitsContainer, { height: TOCAnimationRef }]}
-      >
-        {units.map((unit: any) => {
-          if (
-            !animationRefs.current[unit.unitNumber] ||
-            !iconRefs.current[unit.unitNumber]
-          ) {
-            return null;
-          }
+    <Surface style={styles.container}>
+      <List.Section>
+        <List.Accordion
+          left={props => <Feather {...props} name="list" size={20} color="#fff"/>}
+          right={props => (
+            <Animated.View style={mainChevronStyle}>
+              <Feather {...props} name="chevron-down" size={20} color="#fff"/>
+            </Animated.View>
+          )}
+          title="Table of Contents"
+          expanded={isVisible}
+          onPress={handleMainPress}
+          style={styles.header}
+          titleStyle={styles.headerText}
+        >
+          {units.map((unit, unitIdx) => {
+            const isUnitExpanded = expandedId === unit.id;
+            const rotationStyle = {
+              transform: [{
+                rotate: rotationValues[unit.id]?.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '90deg']
+                }) || '0deg'
+              }]
+            };
 
-          const moduleHeight = animationRefs.current[
-            unit.unitNumber
-          ].interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 44 * Object.keys(unit.modules).length + 35],
-          });
-
-          const iconRotate = iconRefs.current[unit.unitNumber].interpolate({
-            inputRange: [0, 1],
-            outputRange: ["0deg", "90deg"],
-          });
-
-          return (
-            <TouchableOpacity
-              key={unit.unitNumber}
-              onPress={() => toggleExpandUnit(unit.unitNumber)}
-              style={[styles.unitTitle, { backgroundColor: colors.background }]}
-            >
-              <View
-                style={[
-                  styles.unitTitleContainer,
-                  { backgroundColor: colors.background },
-                ]}
+            return (
+              <List.Accordion
+                key={unit.id}
+                id={unit.id}
+                title={`${unitIdx + 1}. ${unit.name}`}
+                expanded={isUnitExpanded}
+                onPress={() => handlePress(unit.id)}
+                style={[styles.unitAccordion, {backgroundColor: colors.background}]}
+                titleStyle={[styles.accordionTitle, {color: colors.text}]}
+                right={props => (
+                  <Animated.View style={rotationStyle}>
+                    <Feather name="chevron-right" size={16} color={colors.text}/>
+                  </Animated.View>
+                )}
               >
-                <Text style={[styles.unitTitleText, { color: colors.text }]}>
-                  {unit.unitNumber}.
-                </Text>
-                <Text style={[styles.unitTitleText, { color: colors.text }]}>
-                  {unit.unitName}
-                </Text>
-                <Animated.View style={{ transform: [{ rotate: iconRotate }] }}>
-                  <FontAwesome name={"chevron-right"} color={colors.text} />
-                </Animated.View>
-              </View>
-              <Animated.View
-                style={[styles.unitContainer, { height: moduleHeight }]}
-              >
-                <View style={styles.modulesContainer}>
-                  {Object.entries(unit.modules).map(([key, module]) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.moduleItem,
-                        { backgroundColor: colors.listBackground },
-                      ]}
-                    >
-                      <Text style={{ color: colors.text }}>
-                        {module as string}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                <View style={styles.contentContainer}>
+                  <Text style={[styles.description, {color: colors.text}]}>
+                    {unit.description}
+                  </Text>
+
+                  <View style={styles.modulesList}>
+                    {unit.modules?.map((module, moduleIdx) => (
+                      <List.Item
+                        key={module.id}
+                        left={props => <Text>{unitIdx + 1}.{moduleIdx + 1}</Text>}
+                        title={module.name}
+                        style={[
+                          styles.moduleItem,
+                          {backgroundColor: colors.listBackground}
+                        ]}
+                        titleStyle={{color: colors.text}}
+                        onPress={() => handleModulePress(module.id)}
+                      />
+                    ))}
+                  </View>
                 </View>
-              </Animated.View>
-            </TouchableOpacity>
-          );
-        })}
-      </Animated.View>
-    </View>
+              </List.Accordion>
+            );
+          })}
+        </List.Accordion>
+      </List.Section>
+    </Surface>
   );
-});
+};
+
 
 const styles = StyleSheet.create({
-  unitTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  unitTitle: {
-    paddingHorizontal: 10,
-    paddingVertical: 13,
-  },
-  unitTitleText: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  unitContainer: {
-    overflow: "hidden",
+  container: {
+    width: '90%',
+    alignSelf: 'center',
+    marginVertical: 10,
     borderRadius: 5,
   },
-  modulesContainer: {
-    backgroundColor: "transparent",
-    marginVertical: 10,
+  header: {
+    backgroundColor: '#0F1421',
+  },
+  headerText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  unitAccordion: {
+//    paddingLeft: 16,
+  },
+  accordionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  contentContainer: {
+    width: "95%",
+//    padding: 6,
+    paddingTop: 0,
+  },
+  description: {
+    fontSize: 16,
+    marginVertical: 16,
+    textAlign: "center"
+  },
+  modulesList: {
+    paddingLeft: 16,
   },
   moduleItem: {
-    height: 40,
-    justifyContent: "center",
+    marginVertical: 4,
     paddingHorizontal: 15,
-    marginVertical: 5,
     borderRadius: 5,
-    backgroundColor: "#fff",
-  },
-  tocContainer: {
-    width: "80%",
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    alignSelf: "center",
-    overflow: "hidden",
-  },
-  unitsContainer: {},
-  tocTitle: {
-    padding: 15,
-    // backgroundColor: "#24272E",
-    backgroundColor: "#0F1421",
-    color: "#fff",
-    fontWeight: "bold",
   },
 });
 
-export default CourseUnit;
+export default React.memo(TableOfContents);

@@ -1,215 +1,166 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
-import { ScrollView, View, Text } from "@/components/Themed";
-import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import {useEffect, useMemo, useState, useCallback} from "react";
+import {TouchableOpacity, StyleSheet} from "react-native";
+import { ActivityIndicator , MD2Colors} from "react-native-paper";
+import {ScrollView, View, Text} from "@/components/Themed";
+import {Feather} from "@expo/vector-icons";
+import {router, useLocalSearchParams} from "expo-router";
 import SectionRenderer from "./components/SectionRenderer";
-import {
-  CodeSection,
-  QuestionSection,
-  Section,
-  TextSection,
-  VideoSection,
-  QuestionState,
-} from "./moduleSessionTypes";
+import {Module} from "@/types/modules";
 import Button from "@/components/common/Button";
-
 import useTheme from "@/hooks/useTheme";
+import {useModules} from "@/hooks/useModules";
+import { Card } from "react-native-paper";
+//import ErrorScreen from "@/components/ErrorScreen";
+//import LoadingScreen from "@/components/LoadingScreen";
 
-export default function ModuleSession(props: any) {
-  const { colors } = useTheme();
-  const content: { sections: Section[] } = {
-    sections: [
-      {
-        type: "text",
-        content:
-          "## Welcome to JavaScript: The Language of the Web\n\nJavaScript is a versatile and powerful programming language that brings interactivity and dynamism to web pages. Let's embark on an exciting journey to learn the fundamentals of JavaScript! [Get started](https://static.vecteezy.com/system/resources/thumbnails/027/254/720/small/colorful-ink-splash-on-transparent-background-png.png)",
-        position: 1,
-      } as TextSection,
-      {
-        type: "text",
-        content:
-          "![JavaScript Logo](https://static.vecteezy.com/system/resources/thumbnails/027/254/720/small/colorful-ink-splash-on-transparent-background-png.png)",
-        position: 2,
-      } as TextSection,
-      {
-        type: "text",
-        content:
-          "### Key Concepts in JavaScript\n\n\n1. **Variables**: Store and manipulate data\n2. **Functions**: Reusable blocks of code\n3. **Control Flow**: Make decisions and repeat actions\n4. **Objects**: Organize and structure your code\n\nLet's start with variables!",
-        position: 4,
-      } as TextSection,
-      {
-        type: "question",
-        question_id: 1,
-        question:
-          "Which keyword is used to declare a constant variable in JavaScript?",
-        options: [
-          { id: 1, content: "var" },
-          { id: 2, content: "let" },
-          { id: 3, content: "const" },
-        ],
-        correct_option_id: 3,
-        position: 5,
-      } as QuestionSection,
-      {
-        type: "video",
-        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        position: 6,
-      } as VideoSection,
-      {
-        type: "code",
-        content:
-          '\n// Declaring variables\nlet age = 25;\nconst PI = 3.14159;\n// Using variables\nconsole.log(`I am ${age} years old`);\nconsole.log(`The value of PI is ${PI}`);\nfunction hello(){const help = "true"}',
-        position: 7,
-      } as CodeSection,
-      {
-        type: "text",
-        content:
-          "**Pro Tip:** Use `const` for values that won't change, and `let` for variables that might be reassigned. Avoid using `var` in modern JavaScript.",
-        position: 8,
-      } as TextSection,
-      {
-        type: "text",
-        content:
-          "![JavaScript in action](https://octodex.github.com/images/minion.png)",
-        position: 9,
-      } as TextSection,
-      {
-        type: "text",
-        content:
-          "Now that you've learned about variables, you're ready to start your JavaScript journey! In the next section, we'll explore functions and how they can make your code more efficient and organized.",
-        position: 10,
-      } as TextSection,
-    ],
-  };
+interface RouteParams {
+  courseId: string;
+  unitId: string;
+  moduleId: string;
+}
 
-  const sections: Section[] = content.sections;
-  const sortedSections = useMemo(
-    () => sections.sort((a, b) => a.position - b.position),
-    [sections],
-  );
-  const [questionsState, setQuestionsState] = useState<
-    Map<number, QuestionState>
-  >(new Map());
+export default function ModuleSession() {
+  const {colors} = useTheme();
+  const params = useLocalSearchParams<RouteParams | any>();
 
-  const [loading, setLoading] = useState(true);
+  // Parse and validate route params
+  const parsedParams = useMemo(() => ({
+    courseId: parseInt(params.courseId ?? '', 10),
+    unitId: parseInt(params.unitId ?? '', 10),
+    moduleId: parseInt(params.moduleId ?? '', 10),
+  }), [params]);
 
-  const handleQuestionAnswer = useCallback(
-    (question_id: number, selected_id: number) => {
-      setQuestionsState((prevQuestionsState) => {
-        const newQuestionsState = new Map(prevQuestionsState);
-        const question = newQuestionsState.get(question_id);
-        if (question) {
-          question.has_answered = true;
-          question.selected_option_id = selected_id;
-          newQuestionsState.set(question_id, { ...question });
-        }
-        return newQuestionsState;
-      });
-    },
-    [],
+  // Validate params early
+  const isValidParams = useMemo(() => (
+    !isNaN(parsedParams.courseId) &&
+    !isNaN(parsedParams.unitId) &&
+    !isNaN(parsedParams.moduleId)
+  ), [parsedParams]);
+
+  // Fetch module data
+  const {module: {data: module, isPending, error}} = useModules(
+    parsedParams.courseId,
+    parsedParams.unitId,
+    parsedParams.moduleId
   );
 
-  useEffect(() => {
-    const questionsMap = new Map();
-    sections.forEach((section) => {
-      if (section.type === "question") {
-        questionsMap.set(section.question_id, {
-          question_id: section.question_id,
-          has_answered: false,
-          selected_option_id: 0,
-        });
-      }
-    });
-    setQuestionsState(questionsMap);
-    setLoading(false);
+  // State management for questions
+  const [questionsState, setQuestionsState] = useState<Map<number, any>>(
+    new Map()
+  );
+
+  // Memoized sections
+  const sortedSections = useMemo(() => {
+    if (!module?.sections) return [];
+    return [...module.sections].sort((a, b) => a.position - b.position);
+  }, [module?.sections]);
+
+//   Initialize questions state
+//  useEffect(() => {
+//    if (!module?.sections) return;
+
+//    const questionsMap = new Map<number, QuestionState>();
+//    module.sections.forEach((section) => {
+//      if (section.type === "question") {
+//        questionsMap.set(section.question_id, {
+//          question_id: section.question_id,
+//          has_answered: false,
+//          selected_option_id: 0,
+//        });
+//      }
+//    });
+//    setQuestionsState(questionsMap);
+//  }, [module?.sections]);
+
+  // Handlers
+//  const handleQuestionAnswer = useCallback((
+//    question_id: number,
+//    selected_id: number
+//  ) => {
+//    setQuestionsState((prev) => {
+//      const next = new Map(prev);
+//      const question = next.get(question_id);
+//      if (question) {
+//        next.set(question_id, {
+//          ...question,
+//          has_answered: true,
+//          selected_option_id: selected_id,
+//        });
+//      }
+//      return next;
+//    });
+//  }, []);
+
+  const handleNextModule = useCallback(() => {
+    // Implement next module logic
+    console.log("Next Module");
   }, []);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Loading...</Text>
-      </View>
-    );
+  // Error and loading states
+  if (!isValidParams) {
+    return <Text>Invalid params</Text>;
   }
 
-  const unitsAndModules = [
-    "Unit 1: Introduction",
-    "Unit 2: Variables",
-    "Unit 3: Functions",
-    // Add more units and modules as needed
-  ];
+  if (error) {
+    return (<Text>Error{error.message}</Text>);
+  }
+
+  if (isPending || !module) {
+    return <ActivityIndicator animating={true} color={MD2Colors.red800} />;
+  }
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.stickyHeader,
-          { backgroundColor: colors.secondaryBackground },
-        ]}
-      >
+      {/* Header */}
+      <View style={[styles.stickyHeader, {backgroundColor: colors.secondaryBackground}]}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Feather name="x" size={18} color={colors.icon} />
+            <Feather name="x" size={18} color={colors.icon}/>
           </TouchableOpacity>
-          {/* <Text style={styles.headerText}>Module 1: JavaScript</Text> */}
-          <View style={styles.currentProgress} />
-          <View style={styles.progressBar} />
+          <Text style={styles.headerText}>{module.name}</Text>
+          <View style={styles.progressContainer}>
+            <View style={[styles.currentProgress, {width: `${5}%`}]}/>
+            <View style={styles.progressBar}/>
+          </View>
         </View>
       </View>
-      <ScrollView
-        // stickyHeaderIndices={[0]}
-        style={{ backgroundColor: colors.background }}
-      >
-        <View
-          style={[
-            styles.viewContainer,
-            { backgroundColor: colors.viewBackground },
-          ]}
-        >
-          {sortedSections.map((section: any) => (
+
+      {/* Content */}
+      <ScrollView style={{backgroundColor: colors.background}}>
+        <View style={[styles.viewContainer, {backgroundColor: colors.viewBackground}]}>
+          {sortedSections.map((section) => (
             <SectionRenderer
               key={section.position}
               section={section}
-              handleQuestionAnswer={handleQuestionAnswer}
-              questionsState={questionsState}
+              handleQuestionAnswer={() => console.log("handled answer")}
+              questionsState={null}
             />
           ))}
           <View style={styles.endOfModule}>
             <Button
               title="Next Module"
-              style={{ backgroundColor: colors.buttonBackground }}
-              textStyle={{ color: colors.buttonText }}
-              onPress={() => console.log("Next Module")}
+              style={{backgroundColor: colors.buttonBackground}}
+              textStyle={{color: colors.buttonText}}
+              onPress={handleNextModule}
             />
           </View>
         </View>
       </ScrollView>
-      {/* STICKY FOOTER */}
-      <View
-        style={[
-          styles.stickyFooter,
-          {
-            backgroundColor: colors.secondaryBackground,
-          },
-        ]}
-      >
+
+      {/* Footer */}
+      <View style={[styles.stickyFooter, {backgroundColor: colors.secondaryBackground}]}>
         <View style={styles.stickyFooterInner}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Feather name="arrow-left" size={18} color={colors.icon} />
+            <Feather name="arrow-left" size={18} color={colors.icon}/>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              router.push("/SessionTOC");
-            }}
-          >
+          <TouchableOpacity onPress={() => router.push("/SessionTOC")}>
             <Text>
-              <Feather name="book-open" color={colors.icon} /> Module 1:
-              Algorithms
+              <Feather name="book-open" color={colors.icon}/>
+              {module.name}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.navigate("/ModuleSession")}>
-            <Feather name="arrow-right" size={18} color={colors.icon} />
+          <TouchableOpacity onPress={handleNextModule}>
+            <Feather name="arrow-right" size={18} color={colors.icon}/>
           </TouchableOpacity>
         </View>
       </View>
@@ -218,6 +169,11 @@ export default function ModuleSession(props: any) {
 }
 
 const styles = StyleSheet.create({
+  progressContainer: {
+    flex: 1,
+    position: 'relative',
+    height: 5,
+  },
   container: {
     flex: 1,
     backgroundColor: "transparent",
@@ -231,7 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 7 },
+    shadowOffset: {width: 0, height: 7},
     shadowOpacity: 0.05,
     shadowRadius: 3.84,
     borderBottomEndRadius: 8,
@@ -245,7 +201,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 30,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     borderTopEndRadius: 8,

@@ -18,7 +18,7 @@ var log *Logger
 
 type Config struct {
 	LogLevel      string
-	Environment string
+	Environment   string
 	LogToFile     bool
 	LogFilePath   string
 	LogToConsole  bool
@@ -27,49 +27,49 @@ type Config struct {
 }
 
 func Initialize(config Config) error {
-    logger := logrus.New()
+	logger := logrus.New()
 
-    level, err := logrus.ParseLevel(config.LogLevel)
-    if err != nil {
-        return fmt.Errorf("invalid log level: %v", err)
-    }
-    logger.SetLevel(level)
+	level, err := logrus.ParseLevel(config.LogLevel)
+	if err != nil {
+		return fmt.Errorf("invalid log level: %v", err)
+	}
+	logger.SetLevel(level)
 
-    if 	config.Environment == "development" {
-        logger.SetFormatter(&ColoredFormatter{
-            TimestampFormat: "2006-01-02 15:04:05",
-        })
+	if config.Environment == "development" {
+		logger.SetFormatter(&ColoredFormatter{
+			TimestampFormat: "2006-01-02 15:04:05",
+		})
 
-        if config.LogToFile {
-            file, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-            if err != nil {
-                return fmt.Errorf("failed to open log file: %v", err)
-            }
+		if config.LogToFile {
+			file, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+			if err != nil {
+				return fmt.Errorf("failed to open log file: %v", err)
+			}
 
-            jsonFormatter := &logrus.JSONFormatter{
-                TimestampFormat: time.RFC3339,
-                CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-                    filename := filepath.Base(f.File)
-                    return "", fmt.Sprintf("%s:%d", filename, f.Line)
-                },
-            }
-            logger.AddHook(NewFileHook(file, jsonFormatter))
-        }
-    } else {
-        logger.SetFormatter(&logrus.JSONFormatter{
-            TimestampFormat: time.RFC3339,
-            CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-                filename := filepath.Base(f.File)
-                return "", fmt.Sprintf("%s:%d", filename, f.Line)
-            },
-        })
-    }
+			jsonFormatter := &logrus.JSONFormatter{
+				TimestampFormat: time.RFC3339,
+				CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+					filename := filepath.Base(f.File)
+					return "", fmt.Sprintf("%s:%d", filename, f.Line)
+				},
+			}
+			logger.AddHook(NewFileHook(file, jsonFormatter))
+		}
+	} else {
+		logger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: time.RFC3339,
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				filename := filepath.Base(f.File)
+				return "", fmt.Sprintf("%s:%d", filename, f.Line)
+			},
+		})
+	}
 
-    logger.SetOutput(os.Stdout)
-    logger.SetReportCaller(config.ReportCaller)
+	logger.SetOutput(os.Stdout)
+	logger.SetReportCaller(config.ReportCaller)
 
-    log = &Logger{logger}
-    return nil
+	log = &Logger{logger}
+	return nil
 }
 
 func Get() *Logger {
@@ -77,6 +77,17 @@ func Get() *Logger {
 		return &Logger{logrus.StandardLogger()}
 	}
 	return log
+}
+
+func (l *Logger) WithBaseFields(logPackage LogPackage, functionName string) *logrus.Entry {
+	return l.WithFields(Fields{
+		"func":    functionName,
+		"package": logPackage,
+	})
+}
+
+func WithFields(entry *logrus.Entry, fields Fields) *logrus.Entry {
+	return entry.WithFields(logrus.Fields(fields))
 }
 
 type Fields logrus.Fields

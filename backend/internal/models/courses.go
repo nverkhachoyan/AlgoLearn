@@ -22,14 +22,14 @@ type Course struct {
 	IconURL         sql.NullString  `json:"icon_url"`
 	Duration        int16           `json:"duration"`
 	DifficultyLevel DifficultyLevel `json:"difficulty_level"`
-	Authors         []string        `json:"authors"`
-	Tags            []string        `json:"tags"`
+	Authors         []Author        `json:"authors"`
+	Tags            []Tag           `json:"tags"`
 	Rating          float64         `json:"rating"`
 	LearnersCount   int64           `json:"learners_count"`
+	Units           []Unit          `json:"units,omitempty"`
 }
 
 func (c Course) MarshalJSON() ([]byte, error) {
-	// Create a map to hold the JSON structure
 	data := map[string]interface{}{
 		"id":               c.ID,
 		"created_at":       c.CreatedAt,
@@ -42,9 +42,9 @@ func (c Course) MarshalJSON() ([]byte, error) {
 		"tags":             c.Tags,
 		"rating":           c.Rating,
 		"learners_count":   c.LearnersCount,
+		"units":            c.Units,
 	}
 
-	// Handle nullable fields
 	if c.BackgroundColor.Valid {
 		data["background_color"] = c.BackgroundColor.String
 	} else {

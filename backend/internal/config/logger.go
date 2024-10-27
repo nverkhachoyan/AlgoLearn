@@ -1,18 +1,14 @@
 package config
 
 import (
-	"os"
-
 	"algolearn/pkg/logger"
 	"log"
 )
 
-func InitLogger() {
-	logLevel := os.Getenv("LOG_LEVEL")
-	environment := os.Getenv("ENVIRONMENT")
+func InitLogger(cfg AppConfig) {
 	err := logger.Initialize(logger.Config{
-		LogLevel:      logLevel,
-		Environment:   environment,
+		LogLevel:      cfg.LogLevel,
+		Environment:   cfg.Environment,
 		LogToFile:     true,
 		LogFilePath:   "logs/app.log",
 		LogToConsole:  true,

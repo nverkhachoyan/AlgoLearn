@@ -10,14 +10,25 @@ import (
 
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
 
+var (
+	maxExpansionDepth  = 3
+	validRelationships = map[string]bool{
+		"units":     true,
+		"modules":   true,
+		"questions": true,
+	}
+)
+
 type CourseHandler interface {
-	GetAllCourses(w http.ResponseWriter, r *http.Request)
+	GetCourses(w http.ResponseWriter, r *http.Request)
 	GetCourseByID(w http.ResponseWriter, r *http.Request)
 	CreateCourse(w http.ResponseWriter, r *http.Request)
 	UpdateCourse(w http.ResponseWriter, r *http.Request)
@@ -38,15 +49,26 @@ func NewCourseHandler(courseRepo repository.CourseRepository,
 	}
 }
 
-func (h *courseHandler) GetAllCourses(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
+func (h *courseHandler) GetCourses(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetCourses")
 	ctx := r.Context()
-	courses, err := h.courseRepo.GetAllCourses(ctx)
+	query := r.URL.Query()
 
+	expand, err := h.validateExpansion(query.Get("expand"))
 	if err != nil {
-		log.WithFields(logger.Fields{
-			"error": err.Error(),
-		}).Error("error fetching courses")
+		log.WithError(err).Error("failed to validate expansion")
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.InvalidRequest,
+				Message:   "failed to validate expansion",
+			})
+		return
+	}
+
+	courses, err := h.courseRepo.GetCourses(ctx, expand)
+	if err != nil {
+		log.WithError(err).Error("error fetching courses")
 
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -69,7 +91,22 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get()
 	ctx := r.Context()
 	params := mux.Vars(r)
-	id, err := strconv.ParseInt(params["id"], 10, 64)
+	query := r.URL.Query()
+
+	expand, err := h.validateExpansion(query.Get("expand"))
+	if err != nil {
+		log.WithError(err).Warn("invalid expansion parameters")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   err.Error(),
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+	log.WithField("expand", expand).
+		Info("fetching course by id")
+
+	id, err := strconv.ParseInt(params["course_id"], 10, 64)
 	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err.Error(),
@@ -84,7 +121,7 @@ func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	course, err := h.courseRepo.GetCourseByID(ctx, id)
+	course, err := h.courseRepo.GetCourseByID(ctx, expand, id)
 	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err.Error(),
@@ -235,7 +272,7 @@ func (h *courseHandler) UpdateCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.courseRepo.GetCourseByID(ctx, id)
+	_, err = h.courseRepo.GetCourseByID(ctx, []string{""}, id)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.Debugf("course not found: %d\n", id)
 		RespondWithJSON(w, http.StatusNotFound,
@@ -356,13 +393,62 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
+func (h *courseHandler) validateExpansion(expandParam string) ([]string, error) {
+	if expandParam == "" {
+		return nil, nil
+	}
+
+	relationships := strings.Split(expandParam, ".")
+
+	if len(relationships) > maxExpansionDepth {
+		return nil, fmt.Errorf("max expansion depth exceeded (max %d)", maxExpansionDepth)
+	}
+
+	validatedExpansions := make([]string, 0, len(relationships))
+	for _, expansion := range relationships {
+		expansion = strings.TrimSpace(expansion)
+		if expansion == "" {
+			continue
+		}
+
+		if !validRelationships[expansion] {
+			return nil, fmt.Errorf("invalid include parameter: %s", expansion)
+		}
+
+		parts := strings.Split(expansion, ".")
+		for i, part := range parts {
+			if !validRelationships[part] {
+				return nil, fmt.Errorf("invalid nested expansion: %s", part)
+			}
+			if i > 0 && !h.isValidNesting(parts[i-1], part) {
+				return nil, fmt.Errorf("invalid nesting: %s cannot be nested under %s", part, parts[i-1])
+			}
+		}
+
+		validatedExpansions = append(validatedExpansions, expansion)
+	}
+
+	return validatedExpansions, nil
+}
+
+func (h *courseHandler) isValidNesting(parent, child string) bool {
+	switch parent {
+	case "units":
+		return child == "modules"
+	case "modules":
+		return child == "questions"
+	default:
+		return false
+	}
+}
+
 func (h *courseHandler) RegisterRoutes(r *router.Router) {
-	// Create route groups
+	// Route groups
 	public := r.Group("/courses")
 	authorized := r.Group("/courses", middleware.Auth)
 
 	// Public routes
-	public.Handle("", h.GetAllCourses, "GET")
+	public.Handle("", h.GetCourses, "GET")
 	public.Handle("/{course_id}", h.GetCourseByID, "GET")
 
 	// Authorized routes

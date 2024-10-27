@@ -1,5 +1,5 @@
-import { fetchCourses } from "@/services/coursesService";
-import { useQuery } from "@tanstack/react-query";
+import {fetchCourses, fetchCoursesOutline} from "@/services/coursesService";
+import {useQuery} from "@tanstack/react-query";
 
 export const useCourses = () => {
   const {
@@ -11,9 +11,21 @@ export const useCourses = () => {
     queryFn: fetchCourses,
   });
 
+  const {
+    data: coursesOutline,
+    isPending: isCoursesOutlinePending,
+    error: coursesOutlineFetchError,
+  } = useQuery({
+    queryKey: ["coursesOutline"],
+    queryFn: fetchCoursesOutline
+  });
+
   return {
     allCourses,
     isCoursesPending,
     coursesFetchError,
+    coursesOutline,
+    isCoursesOutlinePending,
+    coursesOutlineFetchError
   };
 };

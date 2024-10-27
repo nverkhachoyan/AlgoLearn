@@ -5,18 +5,18 @@ import {
   useQueryClient,
   MutationFunction,
 } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import {useState, useCallback} from "react";
 import {
   checkEmailExists,
   signIn,
   signUp,
   getAuthToken,
 } from "@/services/authService";
-import { fetchUser, deleteAccount, updateUser } from "@/services/userServices";
-import { User } from "@/types/userTypes";
-import { Response } from "@/types/apiTypes";
-import { ImageFile } from "@/types/CommonTypes";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import {fetchUser, deleteAccount, updateUser} from "@/services/userServices";
+import {User} from "@/types/userTypes";
+import {Response} from "@/types/apiTypes";
+import {ImageFile} from "@/types/CommonTypes";
+import {useGoogleAuth} from "@/hooks/useGoogleAuth";
 
 // Interface for updating user data
 interface UpdateUserData {
@@ -95,7 +95,7 @@ export const useUser = (): UseUserReturn => {
   // Handle success for sign-in or sign-up
   const handleSuccess = async (token: string) => {
     await AsyncStorage.setItem("authToken", token);
-    setAuthState((prevState) => ({ ...prevState, isAuthed: true, token }));
+    setAuthState((prevState) => ({...prevState, isAuthed: true, token}));
   };
 
   // Handle error in authentication or user management
@@ -105,7 +105,7 @@ export const useUser = (): UseUserReturn => {
   }, []);
 
   // Google sign-in logic
-  const { promptAsync } = useGoogleAuth(handleSuccess, handleError);
+  const {promptAsync} = useGoogleAuth(handleSuccess, handleError);
 
   const signInWithGoogle = useCallback(async () => {
     await promptAsync();
@@ -115,45 +115,45 @@ export const useUser = (): UseUserReturn => {
   const signOutMutation = useMutation({
     mutationFn: async () => {
       await AsyncStorage.removeItem("authToken");
-      setAuthState({ isAuthed: false, token: "" });
+      setAuthState({isAuthed: false, token: ""});
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      queryClient.removeQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({queryKey: ["user"]});
+      queryClient.removeQueries({queryKey: ["user"]});
     },
   });
 
   // Sign in
   const signInMutation = useMutation({
     mutationFn: async ({
-      email,
-      password,
-    }: {
+                         email,
+                         password,
+                       }: {
       email: string;
       password: string;
     }) => {
       const response = await signIn(email, password);
-      if (response.data.status === "success") {
+      if (response.data.success) {
         await handleSuccess(response.data.data.token);
       }
       return response;
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({queryKey: ["user"]});
     },
   });
 
   // Sign up
   const signUpMutation = useMutation({
     mutationFn: async ({
-      email,
-      password,
-    }: {
+                         email,
+                         password,
+                       }: {
       email: string;
       password: string;
     }) => {
       const response = await signUp(email, password);
-      if (response.status === "success") {
+      if (response.success) {
         await handleSuccess(response.data.token);
       }
       return response;
@@ -172,16 +172,16 @@ export const useUser = (): UseUserReturn => {
     try {
       const authToken = await AsyncStorage.getItem("authToken");
       if (authToken) {
-        setAuthState({ isAuthed: true, token: authToken });
-        queryClient.invalidateQueries({ queryKey: ["user"] });
+        setAuthState({isAuthed: true, token: authToken});
+        queryClient.invalidateQueries({queryKey: ["user"]});
         return true;
       } else {
-        setAuthState({ isAuthed: false, token: "" });
+        setAuthState({isAuthed: false, token: ""});
         return false;
       }
     } catch (error) {
       console.error("Failed to check auth state:", error);
-      setAuthState({ isAuthed: false, token: "" });
+      setAuthState({isAuthed: false, token: ""});
       return false;
     }
   };
@@ -189,8 +189,8 @@ export const useUser = (): UseUserReturn => {
   // Invalidate authentication
   const invalidateAuth = async () => {
     await AsyncStorage.removeItem("authToken");
-    setAuthState({ isAuthed: false, token: "" });
-    queryClient.invalidateQueries({ queryKey: ["user"] });
+    setAuthState({isAuthed: false, token: ""});
+    queryClient.invalidateQueries({queryKey: ["user"]});
   };
 
   // Fetch user data
@@ -200,7 +200,7 @@ export const useUser = (): UseUserReturn => {
       const authToken = await getAuthToken();
       if (authToken) {
         const user = await fetchUser(authToken);
-        return { ...user.data, token: authToken };
+        return {...user.data, token: authToken};
       }
       return null;
     },
@@ -215,7 +215,7 @@ export const useUser = (): UseUserReturn => {
       return updateUser(token, data);
     },
     onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ["user"] });
+      await queryClient.cancelQueries({queryKey: ["user"]});
 
       const previousUserData = queryClient.getQueryData(["user"]);
 
@@ -226,10 +226,10 @@ export const useUser = (): UseUserReturn => {
         };
       });
 
-      return { previousUserData };
+      return {previousUserData};
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({queryKey: ["user"]});
     },
   });
 
@@ -238,7 +238,7 @@ export const useUser = (): UseUserReturn => {
     mutationFn: async () => {
       const token = await getAuthToken();
       const response = await deleteAccount(token);
-      if (response.status === "success") {
+      if (response.success) {
         await invalidateAuth();
         return true;
       }

@@ -1,49 +1,49 @@
-import { Image, StyleSheet } from "react-native";
-import { View, Text } from "../Themed";
-import { router, Href } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+import {Image, StyleSheet} from "react-native";
+import {View, Text} from "../Themed";
+import {router, Href} from "expo-router";
+import {Feather} from "@expo/vector-icons";
 import Button from "../common/Button";
-import { AppRoutes } from "@/types/routes";
+import {AppRoutes} from "@/types/routes";
+import {Author} from "@/types/courses";
 import useTheme from "@/hooks/useTheme";
 
 export default function CourseCard(props: {
   courseID: string;
   courseTitle: string;
-  unitInfo: string;
   buttonTitle?: string;
   backgroundColor?: string;
   iconUrl: string;
   description: string;
-  author?: string;
+  authors?: Author[];
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
 }) {
-  const { colors } = useTheme();
+  const {colors} = useTheme();
   return (
     <View
-      style={[styles.container, { backgroundColor: colors.cardBackground }]}
+      style={[styles.container, {backgroundColor: colors.cardBackground}]}
     >
-      <Image source={{ uri: props.iconUrl }} style={styles.icon} />
+      <Image source={{uri: props.iconUrl}} style={styles.icon}/>
       <Text style={styles.title}>{props.courseTitle}</Text>
-      <Text style={styles.author}>{props.author}</Text>
+      {props.authors?.map(author => <Text key={author.id} style={styles.author}>{author.name}</Text>)}
       <View style={styles.info}>
         <Text>
-          <Feather name={"percent"} size={15} /> {" " + props.difficultyLevel}
+          <Feather name={"percent"} size={15}/> {" " + props.difficultyLevel}
         </Text>
         <Text>
-          <Feather name={"clock"} size={15} />
+          <Feather name={"clock"} size={15}/>
           {" " + props.duration}
         </Text>
         <Text>
-          <Feather name={"star"} size={15} />
+          <Feather name={"star"} size={15}/>
           {" " + props.rating}
         </Text>
       </View>
       {/* <Text style={styles.description}>{props.description}</Text> */}
 
-      <View style={styles.separator} />
-      <Text style={styles.unitInfo}>{props.unitInfo}</Text>
+      <View style={styles.separator}/>
+      <Text style={styles.description}>{props.description}</Text>
       <View style={styles.buttonContainer}>
         <Button
           title="Details"
@@ -62,7 +62,10 @@ export default function CourseCard(props: {
         />
         <Button
           title={props.buttonTitle || "Continue"}
-          onPress={() => router.navigate("ModuleSession" as never)}
+          onPress={() =>
+            router.navigate(
+              `ModuleSession/?courseId=${props.courseID}&unitId=1&moduleId=41` as Href<AppRoutes>,
+            )}
           style={{
             backgroundColor: colors.buttonBackground,
           }}
@@ -122,10 +125,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     backgroundColor: "transparent",
-  },
-  unitInfo: {
-    fontSize: 18,
-    textAlign: "center",
   },
   icon: {
     width: 60,

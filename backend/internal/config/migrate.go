@@ -58,3 +58,11 @@ func DownMigration() {
 
 	log.Println("Down migration applied successfully!")
 }
+
+func ApplyMigrations() {
+	if os.Getenv("RUN_MIGRATIONS") == "true" {
+		RunMigrations()
+	} else if os.Getenv("RUN_DOWN_MIGRATIONS") == "true" {
+		DownMigration()
+	}
+}

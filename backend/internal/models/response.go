@@ -12,6 +12,19 @@ type Response struct {
 	ErrorCode errors.ErrorCode `json:"error_code,omitempty"`
 }
 
+type PaginationRequest struct {
+	Page     int `query:"page" binding:"min=1"`
+	PageSize int `query:"page_size" binding:"min=1,max=100"`
+}
+
+type PaginatedResponse struct {
+	Items      interface{} `json:"items"`
+	Total      int64       `json:"total"`
+	PageSize   int         `json:"page_size"`
+	Page       int         `json:"page"`
+	TotalPages int         `json:"total_pages"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -21,52 +34,4 @@ type RegistrationRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-type UserResponse struct {
-	User User `json:"user"`
-}
-
-type CourseResponse struct {
-	Course Course `json:"course"`
-}
-
-type CourseListResponse struct {
-	Courses []Course `json:"courses"`
-}
-
-type UnitResponse struct {
-	Unit Unit `json:"unit"`
-}
-
-type UnitListResponse struct {
-	Units []Unit `json:"units"`
-}
-
-type ModuleResponse struct {
-	Module Module `json:"module"`
-}
-
-type ModuleListResponse struct {
-	Modules []Module `json:"modules"`
-}
-
-type QuestionResponse struct {
-	Question ModuleQuestion         `json:"question"`
-	Answers  []ModuleQuestionOption `json:"answers"`
-}
-
-type ModuleSessionResponse struct {
-	SessionID int                `json:"session_id"`
-	Module    Module             `json:"module"`
-	Progress  float64            `json:"progress"`
-	Position  int                `json:"current_position"`
-	Questions []QuestionResponse `json:"questions"`
-}
-
-type PaginatedResponse struct {
-	Data       interface{} `json:"data"`
-	TotalCount int         `json:"total_count"`
-	Page       int         `json:"page"`
-	PageSize   int         `json:"page_size"`
 }

@@ -29,11 +29,11 @@ type User struct {
 
 type ModuleProgressStatus string
 
-const (
-	InProgress ModuleProgressStatus = "in_progress"
-	Completed  ModuleProgressStatus = "completed"
-	Abandoned  ModuleProgressStatus = "abandoned"
-)
+// const (
+// 	InProgress ModuleProgressStatus = "in_progress"
+// 	Completed  ModuleProgressStatus = "completed"
+// 	Abandoned  ModuleProgressStatus = "abandoned"
+// )
 
 // Tracking user progress for each module
 type UserModuleProgress struct {

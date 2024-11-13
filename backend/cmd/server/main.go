@@ -9,9 +9,9 @@ import (
 
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
+	fallbackLog "log"
 	"net/http"
 	"time"
-	fallbackLog "log"
 )
 
 func main() {
@@ -22,7 +22,6 @@ func main() {
 	if err != nil {
 		fallbackLog.Fatalf("failed to load configuration: %v", err)
 	}
-
 
 	config.InitLogger(cfg.App)
 	config.InitDB(cfg.Database)
@@ -44,6 +43,7 @@ func main() {
 	courseRepo := repository.NewCourseRepository(db)
 	moduleRepo := repository.NewModuleRepository(db)
 	unitRepo := repository.NewUnitRepository(db)
+	progressRepo := repository.NewProgressService(db)
 
 	achievementsRepo := repository.NewAchievementsRepository(db)
 
@@ -57,6 +57,7 @@ func main() {
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
 	adminDashboardHandler := handlers.NewAdminDashboardHandler()
 	healthHandler := handlers.NewHealthHandler()
+	progressHandler := handlers.NewProgressHandler(progressRepo, userRepo)
 
 	// Router setup
 	r := router.NewRouter(
@@ -69,6 +70,7 @@ func main() {
 		achievementsHandler,
 		adminDashboardHandler,
 		healthHandler,
+		progressHandler,
 	)
 
 	// Timeout middleware

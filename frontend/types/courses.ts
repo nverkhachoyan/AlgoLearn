@@ -16,11 +16,6 @@ export interface Course extends BaseModel {
     units: Unit[]
 }
 
-export type Author = {
-    id: number
-    name: string
-}
-
 export interface Author {
     id: number
     name: string

@@ -98,7 +98,7 @@ func (h *progressHandler) GetCoursesProgress(w http.ResponseWriter, r *http.Requ
 
 func (h *progressHandler) RegisterRoutes(r *router.Router) {
 	// Route groups
-	public := r.Group("/progress")
+	public := r.Group("/progress/courses")
 	// authorized := r.Group("/progress", middleware.Auth)
 
 	// Public routes

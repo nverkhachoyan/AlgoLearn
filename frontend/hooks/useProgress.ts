@@ -1,22 +1,50 @@
-import {fetchCoursesProgress} from "@/services/progressService";
-import {useQuery} from "@tanstack/react-query";
+import { fetchCoursesProgress } from "@/services/progressService";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { CourseProgressSummary } from "@/types/progress";
 
-export const useProgress = ({user_id}: {user_id: number}) => {
+interface ProgressParams {
+  user_id: number;
+  pageSize: number;
+}
+
+export const useProgress = ({ user_id, pageSize }: ProgressParams) => {
   const {
-    data: progress,
-    isPending: isProgressPending,
-    error: progressFetchError,
-  } = useQuery({
-    queryKey: ["progress"],
-    queryFn:  async () => {
-        const coursesProgress = await fetchCoursesProgress({user_id});
-        return coursesProgress;
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ["progress", user_id],
+    queryFn: async ({ pageParam = 1 }) => {
+      const res = await fetchCoursesProgress({
+        user_id,
+        page: pageParam,
+        pageSize,
+      });
+      return res;
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.total_pages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
   });
 
+  // flatten all pages into a single array of items
+  const courses = data?.pages.flatMap((page) => page.items) ?? [];
+  const totalItems = data?.pages[0]?.total ?? 0;
+
   return {
-    progress,
-    isProgressPending,
-    progressFetchError,
+    courses,
+    totalItems,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: status === "pending",
+    error,
   };
 };

@@ -47,7 +47,7 @@ func (r *progressRepository) GetCoursesProgress(ctx context.Context, page int, p
                                    ))
                 FROM course_authors ca
                  LEFT JOIN authors a ON a.id = ca.author_id
-                 WHERE author_id = c.id
+                 WHERE ca.course_id = c.id
        ), '[]'::json) AS authors,
        COALESCE((SELECT json_agg(jsonb_build_object(
                                 'id', t.id,

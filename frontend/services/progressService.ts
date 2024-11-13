@@ -1,8 +1,11 @@
 import api from './api';
-import {CourseProgress} from "@/types/progress"
+import {CourseProgressSummary} from "@/types/progress"
+import { PaginatedResponse } from '@/types/apiTypes';
 
-export const fetchCoursesProgress = async ({user_id}: {user_id: number}): Promise<CourseProgress[]> => {
-    const response = await api.get(`progress?user_id=${user_id}`);
+
+
+export const fetchCoursesProgress = async ({user_id, page, pageSize}: {user_id: number, page: number, pageSize: number}): Promise<PaginatedResponse> => {
+    const response = await api.get(`progress/courses?user_id=${user_id}&page=${page}&page_size=${pageSize}`);
     return response.data.data;
 };
 

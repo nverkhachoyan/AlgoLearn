@@ -8,20 +8,23 @@ import {
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
 type FeatherIconName = keyof typeof Feather.glyphMap;
 type FontAwesomeIconName = keyof typeof FontAwesome.glyphMap;
+type IoniconsName = keyof typeof Ionicons.glyphMap;
+
 
 interface ButtonProps {
   onPress: () => void;
   title?: string;
   icon?: {
-    name: FeatherIconName | FontAwesomeIconName;
+    name: FeatherIconName | FontAwesomeIconName | IoniconsName;
     position: "left" | "right" | "middle";
     size?: number;
     color?: string;
-    type?: "feather" | "fontawesome" | "png"; // Type of icon
+    type?: "feather" | "fontawesome" | "ionicons" | "png"; // Type of icon
     src?: string; // Source if type is png
   };
   style?: ViewStyle; // Style for the Pressable
@@ -43,6 +46,17 @@ export default function Button(props: ButtonProps) {
       return (
         <FontAwesome
           name={name as FontAwesomeIconName}
+          size={size}
+          color={color}
+          style={[styles[`icon${icon.position}`], iconStyle]}
+        />
+      );
+    }
+
+    if (type === "ionicons") {
+      return (
+        <Ionicons
+          name={name as IoniconsName}
           size={size}
           color={color}
           style={[styles[`icon${icon.position}`], iconStyle]}

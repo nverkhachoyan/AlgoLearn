@@ -3,37 +3,45 @@ import {View, ScrollView, Text} from "@/components/Themed";
 import {useAuthContext} from "@/context/AuthProvider";
 import CourseCard from "@/components/tabs/CourseCard";
 import Button from "@/components/common/Button";
-import {Redirect, router, useFocusEffect} from "expo-router";
-import {useEffect, useRef} from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import {useCourses} from "@/hooks/useCourses";
+import {router} from "expo-router";
 import useTheme from "@/hooks/useTheme";
 import {StickyHeader} from "@/components/common/StickyHeader";
+import { useProgress } from "@/hooks/useProgress";
+import useToast from "@/hooks/useToast";
 
 export default function Home() {
-  const {isAuthed, user, invalidateAuth} = useAuthContext();
-  const {coursesOutline, isCoursesOutlinePending, coursesOutlineFetchError} = useCourses();
-  const {colors} = useTheme();
-  const animation = useRef(null);
+  const { user, invalidateAuth } = useAuthContext();
+  const {
+    courses,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+  } = useProgress({ user_id: 4, pageSize: 5 });
+  const { colors } = useTheme();
+  const { showToast } = useToast();
 
-  useEffect(() => {
-    if (!isAuthed) {
-      console.log("NOT AUTHED BTW");
-      router.replace("/welcome");
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [isAuthed]);
+  };
 
-  if (isCoursesOutlinePending || user.isPending || !user.data) {
+  // const load = ({ nativeEvent }: any) => {
+  //   const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+  //   const paddingToBottom = 20;
+    
+  //   if (layoutMeasurement.height + contentOffset.y >= 
+  //       contentSize.height - paddingToBottom) {
+  //     handleLoadMore();
+  //   }
+  // };
+
+  if (isLoading || user.isPending || !user.data) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignSelf: "center",
-          justifyContent: "center",
-          gap: 16,
-        }}
-      >
-        <ActivityIndicator size="large" color="#25A879"/>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#25A879" />
         <Button
           title="Clear local storage"
           onPress={() => {
@@ -42,6 +50,10 @@ export default function Home() {
         />
       </View>
     );
+  }
+
+  if (error) {
+    showToast("Failed to fetch courses");
   }
 
   return (
@@ -58,42 +70,75 @@ export default function Home() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          {backgroundColor: colors.viewBackground},
+          { backgroundColor: colors.viewBackground },
         ]}
+  
       >
         <View>
-          <View style={styles.separator}/>
-
+          <View style={styles.separator} />
           <Text style={styles.title}>Currently Learning</Text>
-          <View style={styles.separator}/>
-          {coursesOutline && coursesOutline.length > 0 ? (
-            coursesOutline.map((course: any) => (
-              <CourseCard
-                key={course.id}
-                courseID={course.id.toString()}
-                courseTitle={course.name}
-                backgroundColor={course.background_color}
-                iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
-                description={course.description}
-                authors={course.authors}
-                difficultyLevel={course.difficulty_level}
-                duration={course.duration}
-                rating={course.rating}
-              />
-            ))
+          <View style={styles.separator} />
+          
+          {courses && courses.length > 0 ? (
+            <>
+              {courses.map((course) => (
+                <CourseCard
+                  key={`course-${course.id}`}
+                  courseID={course.id.toString()}
+                  courseTitle={course.name}
+                  backgroundColor={course.background_color}
+                  iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+                  description={course.description}
+                  authors={course.authors}
+                  difficultyLevel={course.difficulty_level}
+                  duration={course.duration}
+                  rating={course.rating}
+                />
+              ))}
+
+              <View style={styles.loadMoreContainer}>
+              {hasNextPage && (
+                  <Button
+                  title={"Load more"}
+                  icon={{
+                    type: "ionicons",
+                    name: 'reload-outline',
+                    position: 'right',
+                    color: colors.textContrast
+                  }}
+                  onPress={handleLoadMore}
+                  style={{
+                    backgroundColor: colors.buttonBackground,
+                  }}
+                  textStyle={{
+                    fontSize: 14,
+                    color: colors.buttonText,
+                  }}
+                />
+              )}
+              
+              {isFetchingNextPage && (
+                <ActivityIndicator size="small" color="#25A879" />
+              )}
+              
+              {!hasNextPage && courses.length > 0 && (
+                <Text style={styles.endMessage}>No more courses to load</Text>
+              )}
+              </View>
+            </>
           ) : (
             <Text>No courses found</Text>
           )}
 
-          <View style={styles.separator}/>
-
+          <View style={styles.separator} />
           <Text style={styles.title}>Other Topics</Text>
-          <View style={styles.separator}/>
+          <View style={styles.separator} />
         </View>
       </ScrollView>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -130,5 +175,23 @@ const styles = StyleSheet.create({
   stickyHeaderTitle: {
     fontSize: 20,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    flex: 1,
+    alignSelf: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  loadMoreContainer: {
+    flex: 1,
+    alignSelf: "center",
+    justifyContent: "center",
+    gap: 16,
+    marginTop: 10
+  },
+  endMessage: {
+    textAlign: "center",
+    padding: 10,
+    color: "#666",
   },
 });

@@ -22,14 +22,14 @@ type CourseProgressSummary struct {
 	Rating          float64                `json:"rating"`
 	CurrentUnit     *UnitProgressSummary   `json:"current_unit"`
 	CurrentModule   *ModuleProgressSummary `json:"current_module"`
-	Units           []*UnitProgressSummary
-	Modules         []*ModuleProgressSummary
+	Units           []*UnitProgressSummary `json:"units"`
 }
 
 type UnitProgressSummary struct {
 	BaseModel
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string                  `json:"name"`
+	Description string                  `json:"description"`
+	Modules     []ModuleProgressSummary `json:"modules"`
 }
 
 type ModuleProgressSummary struct {

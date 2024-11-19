@@ -196,7 +196,7 @@ func (r *progressRepository) GetCourseProgressSummary(ctx context.Context, userI
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
 
 	var course models.CourseProgressSummary
-	var authors, tags, current_unit, current_module []byte
+	var authors, tags, current_unit, current_module, units []byte
 
 	var (
 		backgroundColor sql.NullString
@@ -282,11 +282,11 @@ func (r *progressRepository) GetCourseProgressSummary(ctx context.Context, userI
                      '[]'::jsonb) AS units
 
 	FROM courses c
-			JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = 4
+			JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
 			LEFT JOIN units u ON u.id = uc.current_unit_id
 			LEFT JOIN modules m ON m.id = uc.current_module_id
 			JOIN user_module_progress ump ON ump.module_id = m.id
-	WHERE c.id = 2
+	WHERE c.id = $2
 	ORDER BY c.id, uc.updated_at DESC
 	`, userID, courseID).Scan(
 		&course.ID,
@@ -303,11 +303,27 @@ func (r *progressRepository) GetCourseProgressSummary(ctx context.Context, userI
 		&course.Rating,
 		&current_unit,
 		&current_module,
+		&units,
 	)
 
 	if err != nil {
 		log.WithError(err).Errorf("error with queried rows")
 		return nil, fmt.Errorf("error with queried rows: %w", err)
+	}
+
+	if err = json.Unmarshal(authors, &course.Authors); err != nil {
+		log.WithError(err).Errorf("failed to unmarshal authors")
+		return nil, fmt.Errorf("failed to unmarshal authors")
+	}
+
+	if err = json.Unmarshal(tags, &course.Tags); err != nil {
+		log.WithError(err).Errorf("failed to unmarshal tags")
+		return nil, fmt.Errorf("failed to unmarshal tags")
+	}
+
+	if err = json.Unmarshal(units, &course.Units); err != nil {
+		log.WithError(err).Errorf("failed to unmarshal units")
+		return nil, fmt.Errorf("failed to unmarshal units")
 	}
 
 	return &course, nil

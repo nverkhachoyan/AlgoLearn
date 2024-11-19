@@ -171,7 +171,7 @@ export default function Home() {
           {renderCourseList(learningCourses, "No courses in progress", "learning")}
 
           <View style={styles.loadMoreContainer}>
-            {hasNextExplore && (
+            {hasNextLearning && (
               <Button
                 title="Load more"
                 icon={{
@@ -195,9 +195,6 @@ export default function Home() {
               <ActivityIndicator size="small" color="#25A879" />
             )}
             
-            {!hasNextLearning && learningCourses?.length > 0 && (
-              <Text style={styles.endMessage}>No more courses to load</Text>
-            )}
           </View>
 
           <View style={styles.separator} />

@@ -7,6 +7,7 @@ import {AppRoutes} from "@/types/routes";
 import {Author} from "@/types/courses";
 import useTheme from "@/hooks/useTheme";
 import { Card, Divider, Text as PaperText } from "react-native-paper";
+import { useState } from "react";
 
 
 type CurrentUnit = {
@@ -43,13 +44,30 @@ export default function CourseCard(props: {
   filter?: string
 }) {
   const {colors} = useTheme();
+  const [isCoursePressed, setIsCoursePressed] = useState(false);
+  const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
+
   return (
     <Card
-      style={[styles.container, {backgroundColor: colors.cardBackground}]}
-      onPress={() =>
-        router.navigate(
-          `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
-        )}
+    
+
+    style={[
+      styles.container, 
+      {
+        backgroundColor: isCoursePressed ? '#2e323b' : colors.cardBackground,
+        transform: [{ scale: isCoursePressed ? 1.02 : 1 }],
+        elevation: isCoursePressed ? 8 : 2,
+      }
+    ]}
+    onPress={() => router.navigate(`CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>)}
+    onPressIn={() => setIsCoursePressed(true)}
+    onPressOut={() => setIsCoursePressed(false)}
+    mode="elevated"
+    theme={{
+      animation: {
+        scale: 0.98,
+      },
+    }}
     >
       <Image source={{uri: props.iconUrl}} style={styles.icon}/>
       <Text style={styles.title}>{props.courseTitle}</Text>
@@ -79,7 +97,18 @@ export default function CourseCard(props: {
             router.navigate(
               `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
             )} 
-            style={styles.currentModule} 
+
+            style={[
+              styles.currentModule, 
+              {
+                backgroundColor: '#1d855f',
+                transform: [{ scale: isCurrentModulePressed ? 1.02 : 1 }],
+                elevation: isCurrentModulePressed ? 8 : 2,
+              }
+            ]}
+            onPressIn={() => setIsCurrentModulePressed(true)}
+            onPressOut={() => setIsCurrentModulePressed(false)}
+
             elevation={4}
       >
         <Card.Title 
@@ -219,6 +248,5 @@ const styles = StyleSheet.create({
   },
   currentModule: {
     marginVertical: 10,
-    backgroundColor: "#1d855f",
   }
 });

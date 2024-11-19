@@ -28,16 +28,6 @@ export default function Home() {
     }
   };
 
-  // const load = ({ nativeEvent }: any) => {
-  //   const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-  //   const paddingToBottom = 20;
-    
-  //   if (layoutMeasurement.height + contentOffset.y >= 
-  //       contentSize.height - paddingToBottom) {
-  //     handleLoadMore();
-  //   }
-  // };
-
   if (isLoading || user.isPending || !user.data) {
     return (
       <View style={styles.loadingContainer}>

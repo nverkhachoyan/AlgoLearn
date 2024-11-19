@@ -40,7 +40,7 @@ export default function CourseDetails() {
     }).start(() => setIsCollapsed(!isCollapsed));
   };
 
-  console.log("COURSE", JSON.stringify(course.units[1].modules, null, 2))
+  // console.log("COURSE", JSON.stringify(course.units[1].modules, null, 2))
 
   const isLoading = isCoursesOutlinePending;
 

@@ -40,7 +40,6 @@ export default function CourseCard(props: {
           {" " + props.rating}
         </Text>
       </View>
-      {/* <Text style={styles.description}>{props.description}</Text> */}
 
       <View style={styles.separator}/>
       <Text style={styles.description}>{props.description}</Text>

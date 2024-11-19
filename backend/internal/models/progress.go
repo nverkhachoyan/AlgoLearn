@@ -20,8 +20,10 @@ type CourseProgressSummary struct {
 	Authors         []Author               `json:"authors"`
 	Tags            []Tag                  `json:"tags"`
 	Rating          float64                `json:"rating"`
-	Unit            *UnitProgressSummary   `json:"current_unit"`
-	Module          *ModuleProgressSummary `json:"current_module"`
+	CurrentUnit     *UnitProgressSummary   `json:"current_unit"`
+	CurrentModule   *ModuleProgressSummary `json:"current_module"`
+	Units           []*UnitProgressSummary
+	Modules         []*ModuleProgressSummary
 }
 
 type UnitProgressSummary struct {
@@ -32,7 +34,9 @@ type UnitProgressSummary struct {
 
 type ModuleProgressSummary struct {
 	BaseModel
-	ModuleUnitID int64  `json:"module_unit_id"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
+	ModuleUnitID int64   `json:"module_unit_id"`
+	Name         string  `json:"name"`
+	Description  string  `json:"description"`
+	Progress     float32 `json:"progress,omitempty"`
+	Status       string  `json:"status,omitempty"`
 }

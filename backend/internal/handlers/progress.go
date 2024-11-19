@@ -14,6 +14,7 @@ import (
 
 type ProgressHandler interface {
 	GetCoursesProgress(w http.ResponseWriter, r *http.Request)
+	GetCourseProgress(w http.ResponseWriter, r *http.Request)
 	RegisterRoutes(r *router.Router)
 }
 
@@ -31,6 +32,26 @@ func NewProgressHandler(progressRepo repository.ProgressRepository,
 }
 
 func (h *progressHandler) GetCoursesProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
+	query := r.URL.Query()
+
+	queryType := query.Get("type")
+	log.Infof("Handler called with type %s", queryType)
+
+	switch queryType {
+	case "summary":
+		h.getCoursesProgressSummary(w, r)
+	default:
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.InvalidRequest,
+				Message:   "invalid type in the query parameter",
+			})
+	}
+}
+
+func (h *progressHandler) getCoursesProgressSummary(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
 	ctx := r.Context()
 	query := r.URL.Query()
@@ -67,7 +88,93 @@ func (h *progressHandler) GetCoursesProgress(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	totalCount, courses, err := h.progressRepo.GetCoursesProgress(ctx, int(page), int(pageSize), userID)
+	totalCount, courses, err := h.progressRepo.GetCoursesProgressSummary(ctx, int(page), int(pageSize), userID)
+	if err != nil {
+		log.WithError(err).Error("error fetching courses progress")
+
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "could not retrieve courses progress from the database",
+			})
+		return
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+
+	RespondWithJSON(w, http.StatusOK,
+		models.Response{
+			Success: true,
+			Message: "courses progress retrieved successfully",
+			Data: models.PaginatedResponse{
+				Items:      courses,
+				Total:      totalCount,
+				PageSize:   int(pageSize),
+				Page:       int(page),
+				TotalPages: int(totalPages),
+			},
+		})
+}
+
+func (h *progressHandler) GetCourseProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
+	query := r.URL.Query()
+
+	queryType := query.Get("type")
+	log.Infof("Handler called with type %s", queryType)
+
+	switch queryType {
+	case "summary":
+		h.getCoursesProgressSummary(w, r)
+	default:
+		RespondWithJSON(w, http.StatusBadRequest,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.InvalidRequest,
+				Message:   "invalid type in the query parameter",
+			})
+	}
+}
+
+func (h *progressHandler) getCourseProgressSummary(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
+	ctx := r.Context()
+	query := r.URL.Query()
+	userID, err := strconv.ParseInt(query.Get("user_id"), 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to get user id from query parameters",
+			})
+		return
+	}
+
+	page, err := strconv.ParseInt(query.Get("page"), 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to get page from query parameters",
+			})
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(query.Get("page_size"), 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to get page size from query parameters",
+			})
+		return
+	}
+
+	totalCount, courses, err := h.progressRepo.GetCoursesProgressSummary(ctx, int(page), int(pageSize), userID)
 	if err != nil {
 		log.WithError(err).Error("error fetching courses progress")
 

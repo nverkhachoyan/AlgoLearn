@@ -12,7 +12,8 @@ import (
 type ProgressRepository interface {
 	// StartModuleProgress(ctx context.Context, userID, moduleID int64) (*models.ModuleProgress, error)
 	// GetModuleProgress(ctx context.Context, userID, moduleID int64) (*models.ModuleProgress, error)
-	GetCoursesProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.CourseProgressSummary, error)
+	GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.CourseProgressSummary, error)
+	GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.CourseProgressSummary, error)
 }
 
 type progressRepository struct {
@@ -23,7 +24,7 @@ func NewProgressService(db *sql.DB) ProgressRepository {
 	return &progressRepository{db: db}
 }
 
-func (r *progressRepository) GetCoursesProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.CourseProgressSummary, error) {
+func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.CourseProgressSummary, error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCoursesProgress")
 
 	offset := (page - 1) * pageSize
@@ -57,18 +58,18 @@ func (r *progressRepository) GetCoursesProgress(ctx context.Context, page int, p
                  LEFT JOIN tags t ON t.id = ct.tag_id
                  WHERE ct.course_id = c.id
        ), '[]'::json) AS tags,
-       c.rating,
-       NULLIF(u.id, 0),
-       u.created_at,
-       u.updated_at,
-       NULLIF(u.name, ''),
-       NULLIF(u.description, ''),
-       NULLIF(m.id, 0),
-       m.created_at,
-       m.updated_at,
-       NULLIF(m.unit_id, 0),
-       NULLIF(m.name, ''),
-       NULLIF(m.description, '')
+       	c.rating,
+	   	NULLIF(u.id, 0) AS unit_id,
+		u.created_at AS unit_created_at,
+		u.updated_at AS unit_updated_at,
+		NULLIF(u.name, '') AS unit_name,
+		NULLIF(u.description, '') AS unit_description,
+		NULLIF(m.id, 0) AS module_id,
+		m.created_at AS module_created_at,
+		m.updated_at AS module_updated_at,
+		NULLIF(m.unit_id, 0) AS module_unit_id,
+		NULLIF(m.name, '') AS module_name,
+		NULLIF(m.description, '') AS module_description
 	FROM courses c
 	LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
 	LEFT JOIN units u ON u.id = uc.current_unit_id
@@ -138,9 +139,9 @@ func (r *progressRepository) GetCoursesProgress(ctx context.Context, page int, p
 		course.IconURL = iconURL.String
 
 		if !unitID.Valid {
-			course.Unit = nil
+			course.CurrentUnit = nil
 		} else {
-			course.Unit = &models.UnitProgressSummary{
+			course.CurrentUnit = &models.UnitProgressSummary{
 				BaseModel: models.BaseModel{
 					ID:        unitID.Int64,
 					CreatedAt: unitCreatedAt.Time,
@@ -152,9 +153,9 @@ func (r *progressRepository) GetCoursesProgress(ctx context.Context, page int, p
 		}
 
 		if !moduleID.Valid {
-			course.Module = nil
+			course.CurrentModule = nil
 		} else {
-			course.Module = &models.ModuleProgressSummary{
+			course.CurrentModule = &models.ModuleProgressSummary{
 				BaseModel: models.BaseModel{
 					ID:        moduleID.Int64,
 					CreatedAt: moduleCreatedAt.Time,
@@ -189,4 +190,125 @@ func (r *progressRepository) GetCoursesProgress(ctx context.Context, page int, p
 	}
 
 	return totalCount, courses, nil
+}
+
+func (r *progressRepository) GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.CourseProgressSummary, error) {
+	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
+
+	var course models.CourseProgressSummary
+	var authors, tags, current_unit, current_module []byte
+
+	var (
+		backgroundColor sql.NullString
+		iconURL         sql.NullString
+	)
+
+	err := r.db.QueryRowContext(ctx, `
+	SELECT DISTINCT ON (c.id)
+            c.id,
+            c.created_at,
+            c.updated_at,
+            c.name,
+            c.description,
+            NULLIF(c.background_color, '') AS background_color,
+            NULLIF(c.icon_url, '') AS icon_url,
+            c.duration,
+            c.difficulty_level,
+            COALESCE((SELECT json_agg(jsonb_build_object(
+                    'id', ca.author_id,
+                    'name', a.name
+                                      ))
+                      FROM course_authors ca
+                               LEFT JOIN authors a ON a.id = ca.author_id
+                      WHERE ca.course_id = c.id
+                     ), '[]'::json) AS authors,
+            COALESCE((SELECT json_agg(jsonb_build_object(
+                    'id', t.id,
+                    'name', t.name
+                                      ))
+                      FROM course_tags ct
+                               LEFT JOIN tags t ON t.id = ct.tag_id
+                      WHERE ct.course_id = c.id
+                     ), '[]'::json) AS tags,
+            c.rating,
+            jsonb_build_object(
+                    'id', u.id,
+                    'created_at', u.created_at,
+                    'updated_at', u.updated_at,
+                    'name', u.name,
+                    'description', u.description
+            ) AS current_unit,
+            jsonb_build_object(
+                'id', m.id,
+                'created_at', m.created_at,
+                'updated_at', m.updated_at,
+                'unit_id', m.unit_id,
+                'name', m.name,
+                'description', m.description,
+                'progress', ump.progress,
+                'status', ump.status
+            ) AS current_module,
+            COALESCE((SELECT
+                          jsonb_agg(
+                          jsonb_build_object(
+                          'id', sub_u.id,
+                          'created_at', sub_u.created_at,
+                          'updated_at', sub_u.updated_at,
+                          'course_id', sub_u.course_id,
+                          'name', sub_u.name,
+                          'description', sub_u.description,
+                          'modules', COALESCE((SELECT
+                                        jsonb_agg(
+                                                jsonb_build_object(
+                                                        'id', sub_m.id,
+                                                        'created_at', sub_m.created_at,
+                                                        'updated_at', sub_m.updated_at,
+                                                        'unit_id', sub_m.unit_id,
+                                                        'name', sub_m.name,
+                                                        'description', sub_m.description,
+                                                        'progress', sub_ump.progress,
+                                                        'status', sub_ump.status
+                                                )
+                                        )
+                                    FROM modules AS sub_m
+                                    LEFT JOIN user_module_progress sub_ump ON sub_ump.module_id = sub_m.id
+                                    WHERE sub_u.id = sub_m.unit_id
+                                   ),
+                                   '[]'::jsonb)
+                          ))
+                      FROM units AS sub_u
+                      WHERE sub_u.course_id = c.id
+                          ),
+                     '[]'::jsonb) AS units
+
+	FROM courses c
+			JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = 4
+			LEFT JOIN units u ON u.id = uc.current_unit_id
+			LEFT JOIN modules m ON m.id = uc.current_module_id
+			JOIN user_module_progress ump ON ump.module_id = m.id
+	WHERE c.id = 2
+	ORDER BY c.id, uc.updated_at DESC
+	`, userID, courseID).Scan(
+		&course.ID,
+		&course.CreatedAt,
+		&course.UpdatedAt,
+		&course.Name,
+		&course.Description,
+		&backgroundColor,
+		&iconURL,
+		&course.Duration,
+		&course.DifficultyLevel,
+		&authors,
+		&tags,
+		&course.Rating,
+		&current_unit,
+		&current_module,
+	)
+
+	if err != nil {
+		log.WithError(err).Errorf("error with queried rows")
+		return nil, fmt.Errorf("error with queried rows: %w", err)
+	}
+
+	return &course, nil
 }

@@ -6,6 +6,26 @@ import Button from "../common/Button";
 import {AppRoutes} from "@/types/routes";
 import {Author} from "@/types/courses";
 import useTheme from "@/hooks/useTheme";
+import { Card, Divider, Text as PaperText } from "react-native-paper";
+
+
+type CurrentUnit = {
+  id: number;
+  created_at: Date;
+  updated_at: Date;
+  name: string;
+  description: string;
+}
+
+type CurrentModule = {
+  id: number;
+  created_at: Date;
+  updated_at: Date;
+  module_unit_id?: number;
+  name: string;
+  description: string;
+}
+
 
 export default function CourseCard(props: {
   courseID: string;
@@ -18,11 +38,18 @@ export default function CourseCard(props: {
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
+  currentUnit?: CurrentUnit;
+  currentModule?: CurrentModule;
+  filter?: string
 }) {
   const {colors} = useTheme();
   return (
-    <View
+    <Card
       style={[styles.container, {backgroundColor: colors.cardBackground}]}
+      onPress={() =>
+        router.navigate(
+          `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
+        )}
     >
       <Image source={{uri: props.iconUrl}} style={styles.icon}/>
       <Text style={styles.title}>{props.courseTitle}</Text>
@@ -43,7 +70,64 @@ export default function CourseCard(props: {
 
       <View style={styles.separator}/>
       <Text style={styles.description}>{props.description}</Text>
-      <View style={styles.buttonContainer}>
+
+      <Divider style={{marginVertical: 5}} />
+      {props.currentUnit && 
+      <>
+    
+      <Card onPress={() =>
+            router.navigate(
+              `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
+            )} 
+            style={styles.currentModule} 
+            elevation={4}
+      >
+        <Card.Title 
+        title={`Unit ${props.currentUnit.id} Module ${props.currentModule?.id}`} 
+        titleVariant="titleSmall"
+        />
+        <Card.Content>
+          <PaperText variant="titleLarge">{props.currentModule?.name}</PaperText>
+          <PaperText variant="bodyMedium">{props.currentModule?.description}</PaperText>
+        </Card.Content>
+        <Divider style={{
+            backgroundColor: "#E8E8E8",
+            borderWidth: 0.1,
+            width: "80%",
+            alignSelf: "center",
+            marginTop: 15,
+            marginBottom: 5
+            }}/>
+        <Card.Actions style={{
+          flex: 1,
+          flexDirection: "column",
+        }}>
+          <Button title="Jump back in" 
+            onPress={() => {}} 
+            style={{
+              marginVertical: 5,
+              backgroundColor: "white"
+            }} 
+            textStyle={{
+              fontSize: 14,
+              color:"#24272E"}}
+            iconStyle={{
+              color:"#24272E"
+            }}
+            icon={{
+              type: "feather",
+              name: "arrow-right",
+              position: "right"
+            }}
+            />
+        </Card.Actions>
+      </Card>
+      </>
+      }
+
+      {props.filter === "explore" &&
+      (
+        <View style={styles.buttonContainer}>
         <Button
           title="Details"
           onPress={() =>
@@ -60,7 +144,7 @@ export default function CourseCard(props: {
           }}
         />
         <Button
-          title={props.buttonTitle || "Continue"}
+          title={props.buttonTitle || "Enroll"}
           onPress={() =>
             router.navigate(
               `ModuleSession/?courseId=${props.courseID}&unitId=1&moduleId=41` as Href<AppRoutes>,
@@ -73,8 +157,10 @@ export default function CourseCard(props: {
             color: colors.buttonText,
           }}
         />
-      </View>
-    </View>
+      </View> 
+      )}
+      
+    </Card>
   );
 }
 
@@ -131,4 +217,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginVertical: 10,
   },
+  currentModule: {
+    marginVertical: 10,
+    backgroundColor: "#1d855f",
+  }
 });

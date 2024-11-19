@@ -5,7 +5,7 @@ import {
   useQueryClient,
   MutationFunction,
 } from "@tanstack/react-query";
-import {useState, useCallback} from "react";
+import {useState, useCallback, useEffect} from "react";
 import {
   checkEmailExists,
   signIn,
@@ -60,6 +60,7 @@ export type UseUserReturn = {
   updateUser: UpdateUserObject;
   deleteAccount: DeleteAccountObject;
   isAuthed: boolean;
+  isInitialized: boolean;
   token: string;
   signOut: {
     mutate: () => void;
@@ -90,12 +91,51 @@ export const useUser = (): UseUserReturn => {
   const [authState, setAuthState] = useState({
     isAuthed: false,
     token: "",
+    isInitialized: false,
   });
+
+  // Initialize auth state on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const authToken = await AsyncStorage.getItem("authToken");
+        if (authToken) {
+          setAuthState({
+            isAuthed: true,
+            token: authToken,
+            isInitialized: true
+          });
+          queryClient.invalidateQueries({queryKey: ["user"]});
+        } else {
+          setAuthState({
+            isAuthed: false,
+            token: "",
+            isInitialized: true
+          });
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth state:", error);
+        setAuthState({
+          isAuthed: false,
+          token: "",
+          isInitialized: true
+        });
+      }
+    };
+
+    initAuth();
+  }, []);
 
   // Handle success for sign-in or sign-up
   const handleSuccess = async (token: string) => {
     await AsyncStorage.setItem("authToken", token);
-    setAuthState((prevState) => ({...prevState, isAuthed: true, token}));
+    setAuthState((prevState) => ({
+      ...prevState,
+      isAuthed: true,
+      token,
+      isInitialized: true
+    }));
+    queryClient.invalidateQueries({queryKey: ["user"]});
   };
 
   // Handle error in authentication or user management
@@ -115,7 +155,11 @@ export const useUser = (): UseUserReturn => {
   const signOutMutation = useMutation({
     mutationFn: async () => {
       await AsyncStorage.removeItem("authToken");
-      setAuthState({isAuthed: false, token: ""});
+      setAuthState({
+        isAuthed: false,
+        token: "",
+        isInitialized: true
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: ["user"]});
@@ -126,9 +170,9 @@ export const useUser = (): UseUserReturn => {
   // Sign in
   const signInMutation = useMutation({
     mutationFn: async ({
-                         email,
-                         password,
-                       }: {
+      email,
+      password,
+    }: {
       email: string;
       password: string;
     }) => {
@@ -138,6 +182,15 @@ export const useUser = (): UseUserReturn => {
       }
       return response;
     },
+    onError: (error) => {
+      console.error("Sign in error:", error);
+      setAuthState((prevState) => ({
+        ...prevState,
+        isAuthed: false,
+        token: "",
+        isInitialized: true
+      }));
+    },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: ["user"]});
     },
@@ -146,9 +199,9 @@ export const useUser = (): UseUserReturn => {
   // Sign up
   const signUpMutation = useMutation({
     mutationFn: async ({
-                         email,
-                         password,
-                       }: {
+      email,
+      password,
+    }: {
       email: string;
       password: string;
     }) => {
@@ -158,10 +211,19 @@ export const useUser = (): UseUserReturn => {
       }
       return response;
     },
+    onError: (error) => {
+      console.error("Sign up error:", error);
+      setAuthState((prevState) => ({
+        ...prevState,
+        isAuthed: false,
+        token: "",
+        isInitialized: true
+      }));
+    },
   });
 
   // Check if email exists
-  const checkEmailMutatation = useMutation({
+  const checkEmailMutation = useMutation({
     mutationFn: async (email: string) => {
       return await checkEmailExists(email);
     },
@@ -172,16 +234,28 @@ export const useUser = (): UseUserReturn => {
     try {
       const authToken = await AsyncStorage.getItem("authToken");
       if (authToken) {
-        setAuthState({isAuthed: true, token: authToken});
+        setAuthState({
+          isAuthed: true,
+          token: authToken,
+          isInitialized: true
+        });
         queryClient.invalidateQueries({queryKey: ["user"]});
         return true;
       } else {
-        setAuthState({isAuthed: false, token: ""});
+        setAuthState({
+          isAuthed: false,
+          token: "",
+          isInitialized: true
+        });
         return false;
       }
     } catch (error) {
       console.error("Failed to check auth state:", error);
-      setAuthState({isAuthed: false, token: ""});
+      setAuthState({
+        isAuthed: false,
+        token: "",
+        isInitialized: true
+      });
       return false;
     }
   };
@@ -189,22 +263,31 @@ export const useUser = (): UseUserReturn => {
   // Invalidate authentication
   const invalidateAuth = async () => {
     await AsyncStorage.removeItem("authToken");
-    setAuthState({isAuthed: false, token: ""});
+    setAuthState({
+      isAuthed: false,
+      token: "",
+      isInitialized: true
+    });
     queryClient.invalidateQueries({queryKey: ["user"]});
+    queryClient.removeQueries({queryKey: ["user"]});
   };
 
   // Fetch user data
-  const userMutation = useQuery({
+  const userQuery = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
       const authToken = await getAuthToken();
-      if (authToken) {
-        const user = await fetchUser(authToken);
-        return {...user.data, token: authToken};
+      if (!authToken) {
+        throw new Error("No auth token found");
       }
-      return null;
+      const user = await fetchUser(authToken);
+      if (!user || !user.data) {
+        throw new Error("Failed to fetch user data");
+      }
+      return {...user.data, token: authToken};
     },
-    enabled: authState.isAuthed,
+    enabled: authState.isAuthed && authState.isInitialized,
+    retry: 1,
   });
 
   // Update user data
@@ -212,21 +295,25 @@ export const useUser = (): UseUserReturn => {
     mutationFn: async (data: UpdateUserData) => {
       await checkAuthState();
       const token = await getAuthToken();
+      if (!token) {
+        throw new Error("No auth token found");
+      }
       return updateUser(token, data);
     },
     onMutate: async (newData) => {
       await queryClient.cancelQueries({queryKey: ["user"]});
-
       const previousUserData = queryClient.getQueryData(["user"]);
-
-      queryClient.setQueryData(["user"], (old: any) => {
-        return {
-          ...old,
-          ...newData, // Optimistically update the user data
-        };
-      });
-
+      queryClient.setQueryData(["user"], (old: any) => ({
+        ...old,
+        ...newData,
+      }));
       return {previousUserData};
+    },
+    onError: (error, variables, context) => {
+      console.error("Update user error:", error);
+      if (context?.previousUserData) {
+        queryClient.setQueryData(["user"], context.previousUserData);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: ["user"]});
@@ -237,6 +324,9 @@ export const useUser = (): UseUserReturn => {
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
       const token = await getAuthToken();
+      if (!token) {
+        throw new Error("No auth token found");
+      }
       const response = await deleteAccount(token);
       if (response.success) {
         await invalidateAuth();
@@ -244,10 +334,16 @@ export const useUser = (): UseUserReturn => {
       }
       return false;
     },
+    onError: (error) => {
+      console.error("Delete account error:", error);
+    },
+    onSuccess: () => {
+      queryClient.removeQueries({queryKey: ["user"]});
+    },
   });
 
   return {
-    // Auth state
+    isInitialized: authState.isInitialized,
     isAuthed: authState.isAuthed,
     token: authState.token,
     signOut: {
@@ -264,16 +360,14 @@ export const useUser = (): UseUserReturn => {
     },
     checkAuthState,
     checkEmail: {
-      mutate: checkEmailMutatation.mutate,
-      data: checkEmailMutatation.data,
-      isPending: checkEmailMutatation.isPending,
+      mutate: checkEmailMutation.mutate,
+      data: checkEmailMutation.data,
+      isPending: checkEmailMutation.isPending,
     },
-
-    // User state
     user: {
-      isPending: userMutation.isPending,
-      data: userMutation.data,
-      error: userMutation.error,
+      isPending: userQuery.isPending,
+      data: userQuery.data,
+      error: userQuery.error,
     },
     updateUser: {
       mutate: updateUserMutation.mutate,
@@ -283,13 +377,11 @@ export const useUser = (): UseUserReturn => {
     },
     deleteAccount: {
       mutateAsync: deleteAccountMutation.mutateAsync,
-      mutate: deleteAccountMutation.mutateAsync,
+      mutate: deleteAccountMutation.mutate,
       data: deleteAccountMutation.data,
       isPending: deleteAccountMutation.isPending,
       error: deleteAccountMutation.error,
     },
-
-    // Additional utilities
     handleSuccess,
     handleError,
     signInWithGoogle,

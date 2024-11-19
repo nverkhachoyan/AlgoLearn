@@ -5,6 +5,7 @@ import { Seperator } from "@/components/common/Seperator";
 import React from "react";
 import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
+
 import useTheme from "@/hooks/useTheme";
 import { StickyHeader } from "@/components/common/StickyHeader";
 
@@ -124,7 +125,7 @@ export default function Leaderboard() {
                   </Text>
                 </View>
                 <MaterialIcons
-                  name={item.icon}
+                  name={item.icon as any}
                   size={28}
                   color={getRandomColor()}
                   style={styles.leaderboardItemIcon}

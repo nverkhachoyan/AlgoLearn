@@ -15,7 +15,7 @@ import {useAuthContext} from "@/context/AuthProvider";
 import {useColorScheme} from "@/components/useColorScheme";
 import useTheme from "@/hooks/useTheme";
 import useToast from "@/hooks/useToast";
-
+ 
 export default function SignUp() {
   const router = useRouter();
   const {isAuthed, checkEmail, signIn, signUp, signInWithGoogle} =

@@ -1,13 +1,12 @@
 import { fetchCoursesProgress } from "@/services/progressService";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { CourseProgressSummary } from "@/types/progress";
+import { UseProgressParams } from "@/types/hooks";
 
-interface ProgressParams {
-  user_id: number;
-  pageSize: number;
-}
 
-export const useProgress = ({ user_id, pageSize }: ProgressParams) => {
+export const useProgress = ({ user_id, page, pageSize, filter, type }: UseProgressParams) => {
+  console.log('useProgress called with filter:', filter);
+
   const {
     data,
     fetchNextPage,
@@ -16,13 +15,16 @@ export const useProgress = ({ user_id, pageSize }: ProgressParams) => {
     status,
     error,
   } = useInfiniteQuery({
-    queryKey: ["progress", user_id],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryKey: ["progress", filter, type, user_id],
+    queryFn: async () => {
       const res = await fetchCoursesProgress({
         user_id,
-        page: pageParam,
+        page,
         pageSize,
+        filter,
+        type
       });
+      console.log(`Data fetched for ${filter}:`, res);
       return res;
     },
     getNextPageParam: (lastPage) => {

@@ -90,7 +90,9 @@ func (h *progressHandler) getCoursesProgressSummary(w http.ResponseWriter, r *ht
 		return
 	}
 
-	totalCount, courses, err := h.progressRepo.GetCoursesProgressSummary(ctx, int(page), int(pageSize), userID)
+	queryFilter := query.Get("filter")
+
+	totalCount, courses, err := h.progressRepo.GetCoursesProgressSummary(ctx, int(page), int(pageSize), userID, queryFilter)
 	if err != nil {
 		log.WithError(err).Error("error fetching courses progress")
 

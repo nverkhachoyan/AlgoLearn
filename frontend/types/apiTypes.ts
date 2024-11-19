@@ -1,5 +1,5 @@
 export type Response = {
-  status?: string;
+  success?: boolean;
   message?: string;
   data?: JSON | PaginatedResponse;
   error?: string;

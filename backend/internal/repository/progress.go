@@ -13,7 +13,7 @@ type ProgressRepository interface {
 	// StartModuleProgress(ctx context.Context, userID, moduleID int64) (*models.ModuleProgress, error)
 	// GetModuleProgress(ctx context.Context, userID, moduleID int64) (*models.ModuleProgress, error)
 	GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.CourseProgressSummary, error)
-	GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.CourseProgressSummary, error)
+	GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.CourseProgressSummary, error)
 }
 
 type progressRepository struct {
@@ -24,14 +24,25 @@ func NewProgressService(db *sql.DB) ProgressRepository {
 	return &progressRepository{db: db}
 }
 
-func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.CourseProgressSummary, error) {
+func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.CourseProgressSummary, error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCoursesProgress")
 
 	offset := (page - 1) * pageSize
 	var totalCount int64
 
-	rows, err := r.db.QueryContext(ctx, `
-	SELECT DISTINCT ON (c.id)
+	filterClause := ""
+	switch queryFilter {
+	case "learning":
+		filterClause = "WHERE (uc.current_unit_id IS NOT NULL OR uc.current_module_id IS NOT NULL) AND uc.user_id = $1"
+	case "explore":
+		filterClause = "WHERE (uc.current_unit_id IS NULL AND uc.current_module_id IS NULL OR uc.user_id != $1 OR uc.user_id IS NULL)"
+	default:
+		// No filter, return all courses
+		filterClause = "WHERE true"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT DISTINCT ON (c.id)
 	   COUNT(*) OVER() AS total_count,
        c.id,
        c.created_at,
@@ -74,9 +85,11 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 	LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
 	LEFT JOIN units u ON u.id = uc.current_unit_id
 	LEFT JOIN modules m ON m.id = uc.current_module_id
+	%s
 	ORDER BY c.id, uc.updated_at DESC
-	LIMIT $2 OFFSET $3
-	`, userID, pageSize, offset)
+	LIMIT $2 OFFSET $3`, filterClause)
+
+	rows, err := r.db.QueryContext(ctx, query, userID, pageSize, offset)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get courses progress")
 		return 0, nil, err

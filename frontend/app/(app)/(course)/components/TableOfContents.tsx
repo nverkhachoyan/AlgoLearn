@@ -1,101 +1,163 @@
-import React, {useState, useRef} from 'react';
-import {StyleSheet, Animated, LayoutAnimation, Platform, UIManager} from 'react-native';
-import {List, Surface} from 'react-native-paper';
-import {Feather} from "@expo/vector-icons";
-import {Text, View} from "@/components/Themed";
-import useTheme from "@/hooks/useTheme";
-import {Unit} from "@/types/units";
-import { UnitProgressSummary } from '@/types/progress';
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  StyleSheet,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
+import { List, Surface } from "react-native-paper";
+import { Feather } from "@expo/vector-icons";
+import { Text, View } from "@/components/Themed";
+import { UnitProgressSummary } from "@/types/progress";
 
 // Enable LayoutAnimation for Android
-if (Platform.OS === 'android') {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-interface CourseUnitProps {
+interface TableOfContentsProps {
   units: UnitProgressSummary[];
   onModulePress?: (moduleId: number) => void;
 }
 
-const TableOfContents: React.FC<CourseUnitProps> = ({
-                                                      units = [],
-                                                      onModulePress
-                                                    }) => {
-  const {colors} = useTheme();
-  const [isVisible, setIsVisible] = useState(true);
-  const [expandedId, setExpandedId] = useState<number | undefined>();
+const ANIMATION_DURATION = 200;
 
-  // Animation values for rotating chevrons
-  const rotationValues = useRef<{ [key: number]: Animated.Value }>({}).current;
-  const mainRotation = useRef(new Animated.Value(0)).current;
+const configureAnimation = () => {
+  LayoutAnimation.configureNext(
+    LayoutAnimation.create(
+      ANIMATION_DURATION,
+      LayoutAnimation.Types.easeInEaseOut,
+      LayoutAnimation.Properties.opacity
+    )
+  );
+};
 
-  // Initialize rotation values for each unit
-  React.useEffect(() => {
-    units.forEach(unit => {
-      if (!rotationValues[unit.id]) {
-        rotationValues[unit.id] = new Animated.Value(0);
-      }
-    });
-  }, [units]);
-
-  const configureAnimation = () => {
-    LayoutAnimation.configureNext(
-      LayoutAnimation.create(
-        200,
-        LayoutAnimation.Types.easeInEaseOut,
-        LayoutAnimation.Properties.opacity
-      )
+const ChevronIcon: React.FC<{ rotation: Animated.Value; color: string }> =
+  React.memo(({ rotation, color }) => {
+    const rotationStyle = useMemo(
+      () => ({
+        transform: [
+          {
+            rotate: rotation.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["0deg", "90deg"],
+            }),
+          },
+        ],
+      }),
+      [rotation]
     );
-  };
 
-  const handleMainPress = () => {
+    return (
+      <Animated.View style={rotationStyle}>
+        <Feather name="chevron-right" size={16} color={color} />
+      </Animated.View>
+    );
+  });
+
+const ModuleItem: React.FC<{
+  module: UnitProgressSummary["modules"][0];
+  unitNumber: number;
+  moduleNumber: number;
+  onPress: (moduleId: number) => void;
+  backgroundColor: string;
+  textColor: string;
+}> = React.memo(
+  ({
+    module,
+    unitNumber,
+    moduleNumber,
+    onPress,
+    backgroundColor,
+    textColor,
+  }) => (
+    <List.Item
+      left={() => (
+        <Text style={{ color: "#fff" }}>{`${unitNumber}.${moduleNumber}`}</Text>
+      )}
+      title={module.name}
+      style={[styles.moduleItem, { backgroundColor }]}
+      titleStyle={{ color: textColor }}
+      onPress={() => onPress(module.id)}
+    />
+  )
+);
+
+const TableOfContents: React.FC<TableOfContentsProps> = ({
+  units = [],
+  onModulePress,
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [expandedId, setExpandedId] = useState<number>();
+
+  const mainRotation = useMemo(() => new Animated.Value(1), []);
+  const unitRotations = useMemo(
+    () =>
+      Object.fromEntries(units.map((unit) => [unit.id, new Animated.Value(0)])),
+    [units]
+  );
+
+  const handleMainPress = useCallback(() => {
     configureAnimation();
-    setIsVisible(!isVisible);
+    setIsVisible((prev) => !prev);
     Animated.timing(mainRotation, {
       toValue: isVisible ? 0 : 1,
-      duration: 200,
+      duration: ANIMATION_DURATION,
       useNativeDriver: true,
     }).start();
-  };
+  }, [isVisible, mainRotation]);
 
-  const handlePress = (id: number) => {
-    configureAnimation();
-    setExpandedId(expandedId === id ? undefined : id);
+  const handleUnitPress = useCallback(
+    (id: number) => {
+      configureAnimation();
+      setExpandedId((prevId) => (prevId === id ? undefined : id));
 
-    Animated.timing(rotationValues[id], {
-      toValue: expandedId === id ? 0 : 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
+      Animated.timing(unitRotations[id], {
+        toValue: expandedId === id ? 0 : 1,
+        duration: ANIMATION_DURATION,
+        useNativeDriver: true,
+      }).start();
+    },
+    [expandedId, unitRotations]
+  );
 
-  const handleModulePress = (moduleId: number) => {
-    if (onModulePress) {
-      onModulePress(moduleId);
-    }
-  };
+  const handleModulePress = useCallback(
+    (moduleId: number) => {
+      onModulePress?.(moduleId);
+    },
+    [onModulePress]
+  );
 
-  const mainChevronStyle = {
-    transform: [{
-      rotate: mainRotation.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '180deg']
-      })
-    }]
-  };
+  const mainChevronStyle = useMemo(
+    () => ({
+      transform: [
+        {
+          rotate: mainRotation.interpolate({
+            inputRange: [0, 1],
+            outputRange: ["180deg", "0deg"],
+          }),
+        },
+      ],
+    }),
+    [mainRotation]
+  );
 
   if (!units.length) return null;
 
   return (
-    <Surface style={styles.container}>
-      <List.Section>
+    <Surface style={styles.container} elevation={4}>
+      <List.Section style={styles.section}>
         <List.Accordion
-          left={props => <Feather {...props} name="list" size={20} color="#fff"/>}
-          right={props => (
+          left={(props) => (
+            <Feather {...props} name="list" size={20} color="#fff" />
+          )}
+          right={(props) => (
             <Animated.View style={mainChevronStyle}>
-              <Feather {...props} name="chevron-down" size={20} color="#fff"/>
+              <Feather {...props} name="chevron-down" size={20} color="#fff" />
             </Animated.View>
           )}
           title="Table of Contents"
@@ -104,96 +166,80 @@ const TableOfContents: React.FC<CourseUnitProps> = ({
           style={styles.header}
           titleStyle={styles.headerText}
         >
-          {units.map((unit, unitIdx) => {
-            const isUnitExpanded = expandedId === unit.id;
-            const rotationStyle = {
-              transform: [{
-                rotate: rotationValues[unit.id]?.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '90deg']
-                }) || '0deg'
-              }]
-            };
-
-            return (
-              <List.Accordion
-                key={unit.id}
-                id={unit.id}
-                title={`${unit.unit_number}. ${unit.name}`}
-                expanded={isUnitExpanded}
-                onPress={() => handlePress(unit.id)}
-                style={[styles.unitAccordion, {backgroundColor: colors.background}]}
-                titleStyle={[styles.accordionTitle, {color: colors.text}]}
-                right={props => (
-                  <Animated.View style={rotationStyle}>
-                    <Feather name="chevron-right" size={16} color={colors.text}/>
-                  </Animated.View>
-                )}
-              >
-                <View style={styles.contentContainer}>
-                  <Text style={[styles.description, {color: colors.text}]}>
-                    {unit.description}
-                  </Text>
-
-                  <View style={styles.modulesList}>
-                    {unit.modules?.map((module, moduleIdx) => (
-                      <List.Item
-                        key={module.id}
-                        left={props => <Text>{unitIdx + 1}.{moduleIdx + 1}</Text>}
-                        title={module.name}
-                        style={[
-                          styles.moduleItem,
-                          {backgroundColor: colors.listBackground}
-                        ]}
-                        titleStyle={{color: colors.text}}
-                        onPress={() => handleModulePress(module.id)}
-                      />
-                    ))}
-                  </View>
+          {units.map((unit) => (
+            <List.Accordion
+              key={unit.id}
+              title={`${unit.unit_number}. ${unit.name}`}
+              expanded={expandedId === unit.id}
+              onPress={() => handleUnitPress(unit.id)}
+              style={[styles.unitAccordion, { backgroundColor: "#121212" }]}
+              titleStyle={[styles.accordionTitle, { color: "#fff" }]}
+              right={() => (
+                <ChevronIcon rotation={unitRotations[unit.id]} color="#fff" />
+              )}
+            >
+              <View style={styles.contentContainer}>
+                <Text style={[styles.description, { color: "#fff" }]}>
+                  {unit.description}
+                </Text>
+                <View style={styles.modulesList}>
+                  {unit.modules?.map((module) => (
+                    <ModuleItem
+                      key={module.id}
+                      module={module}
+                      unitNumber={unit.unit_number}
+                      moduleNumber={module.module_number}
+                      onPress={handleModulePress}
+                      backgroundColor={"#2D3338"}
+                      textColor="#fff"
+                    />
+                  ))}
                 </View>
-              </List.Accordion>
-            );
-          })}
+              </View>
+            </List.Accordion>
+          ))}
         </List.Accordion>
       </List.Section>
     </Surface>
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
-    width: '90%',
-    alignSelf: 'center',
-    marginVertical: 10,
-    borderRadius: 5,
+    width: "90%",
+    backgroundColor: "#1A2942",
+    alignSelf: "center",
+    borderRadius: 15,
+    overflow: "hidden",
+  },
+  section: {
+    backgroundColor: "#1A2942",
   },
   header: {
-    backgroundColor: '#0F1421',
+    backgroundColor: "#1A2942",
   },
   headerText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   unitAccordion: {
-//    paddingLeft: 16,
+    paddingLeft: 16,
   },
   accordionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   contentContainer: {
     width: "95%",
-//    padding: 6,
-    paddingTop: 0,
   },
   description: {
     fontSize: 16,
     marginVertical: 16,
-    textAlign: "center"
+    textAlign: "center",
   },
   modulesList: {
     paddingLeft: 16,
+    paddingBottom: 16,
   },
   moduleItem: {
     marginVertical: 4,

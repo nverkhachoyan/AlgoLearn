@@ -19,14 +19,15 @@ export interface CourseProgressSummary extends BaseModel {
     rating: number
     current_unit: UnitProgressSummary
     current_module: ModuleProgressSummary
+    units: UnitProgressSummary[]
 }
 
 export interface UnitProgressSummary extends BaseModel {
     unit_number: number
     name: string
     description: string
+    modules: ModuleProgressSummary[]
 }
-
 
 export interface ModuleProgressSummary extends BaseModel {
     module_number: number

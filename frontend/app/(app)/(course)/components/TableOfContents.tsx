@@ -5,6 +5,7 @@ import {Feather} from "@expo/vector-icons";
 import {Text, View} from "@/components/Themed";
 import useTheme from "@/hooks/useTheme";
 import {Unit} from "@/types/units";
+import { UnitProgressSummary } from '@/types/progress';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android') {
@@ -14,7 +15,7 @@ if (Platform.OS === 'android') {
 }
 
 interface CourseUnitProps {
-  units: Unit[];
+  units: UnitProgressSummary[];
   onModulePress?: (moduleId: number) => void;
 }
 

@@ -1,31 +1,38 @@
-import {useLocalSearchParams} from "expo-router";
-import {View, ScrollView, Text} from "@/components/Themed";
-import {Feather, MaterialIcons, AntDesign} from "@expo/vector-icons";
-import {StyleSheet, Image, Animated} from "react-native";
-import {useState, useRef, useMemo, useEffect} from "react";
+import { useLocalSearchParams } from "expo-router";
+import { View, ScrollView, Text } from "@/components/Themed";
+import { Feather, MaterialIcons, AntDesign } from "@expo/vector-icons";
+import { StyleSheet, Image, Animated } from "react-native";
+import { useState, useRef, useMemo, useEffect } from "react";
 import Button from "@/components/common/Button";
-import {StickyHeader} from "@/components/common/StickyHeader";
-import {useAuthContext} from "@/context/AuthProvider";
-import {router} from "expo-router";
+import { StickyHeader } from "@/components/common/StickyHeader";
+import { useAuthContext } from "@/context/AuthProvider";
+import { router } from "expo-router";
 import TableOfContents from "./components/TableOfContents";
-import {useCourses} from "@/hooks/useCourses";
+import { useCourses } from "@/hooks/useCourses";
 import useTheme from "@/hooks/useTheme";
-import {useUnits} from "@/hooks/useUnits";
-import {Course} from "@/types/courses"
+import { useUnits } from "@/hooks/useUnits";
+import { Course } from "@/types/courses";
+import { useProgress } from "@/hooks/useProgress";
+import { Card, Divider, Text as PaperText } from "react-native-paper";
 
 export default function CourseDetails() {
-  const {user} = useAuthContext();
-  const {courseID} = useLocalSearchParams();
-  const {coursesOutline, isCoursesOutlinePending} = useCourses();
-//  const {units: {isPending: isUnitsPending, data: units, error: unitsError}} = useUnits()
-  const {colors} = useTheme();
+  const { user } = useAuthContext();
+  const { courseID } = useLocalSearchParams();
+
+  const { course, isCoursePending, courseError } = useProgress({
+    user_id: 4,
+    course_id: parseInt(courseID[0]),
+    filter: "all",
+    type: "summary",
+  });
+
+  //  const {units: {isPending: isUnitsPending, data: units, error: unitsError}} = useUnits()
+  const { colors } = useTheme();
   const TOCAnimationRef = useRef(new Animated.Value(0)).current;
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
 
-  const course = useMemo(() =>
-      coursesOutline?.find(course => course.id.toString() === courseID),
-    [coursesOutline, courseID]
-  ) as Course;
+  console.log("COURSE OUTLINE", course);
 
   const animatedHeight = TOCAnimationRef.interpolate({
     inputRange: [0, 1],
@@ -40,24 +47,17 @@ export default function CourseDetails() {
     }).start(() => setIsCollapsed(!isCollapsed));
   };
 
-  // console.log("COURSE", JSON.stringify(course.units[1].modules, null, 2))
-
-  const isLoading = isCoursesOutlinePending;
-
-  if (!user) {
-    return <Text>Not logged in...</Text>;
-  }
-
-  if (isLoading) {
+  if (isCoursePending) {
     return <Text>Loading...</Text>;
   }
 
   return (
-    <View 
-      style={[styles.container,
+    <View
+      style={[
+        styles.container,
         {
-          backgroundColor: colors.background
-        }
+          backgroundColor: colors.background,
+        },
       ]}
     >
       <StickyHeader
@@ -71,7 +71,7 @@ export default function CourseDetails() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollView,
-          {backgroundColor: colors.viewBackground},
+          { backgroundColor: colors.viewBackground },
         ]}
       >
         <View style={styles.container}>
@@ -85,25 +85,99 @@ export default function CourseDetails() {
                   style={styles.icon}
                 />
                 <Text style={styles.courseTitle}>{course.name}</Text>
-                {course.authors.map(author => <Text key={author.id} style={styles.courseAuthor}>{author.name}</Text>)}
+                {course.authors.map((author) => (
+                  <Text key={author.id} style={styles.courseAuthor}>
+                    {author.name}
+                  </Text>
+                ))}
                 <View style={styles.courseMetricsContainer}>
                   <Text>
-                    <Feather name={"percent"} size={15}/>{" "}
+                    <Feather name={"percent"} size={15} />{" "}
                     {" " + course?.difficulty_level}
                   </Text>
                   <Text>
-                    <Feather name={"clock"} size={15}/>
+                    <Feather name={"clock"} size={15} />
                     {" " + course.duration}
                   </Text>
                   <Text>
-                    <Feather name={"star"} size={15}/>
+                    <Feather name={"star"} size={15} />
                     {" " + course.rating}
                   </Text>
                 </View>
-                {/* TABLE OF CONTENTS */}
-                <TableOfContents units={course.units}/>
 
-                <View style={styles.separator}/>
+                <Card
+                  onPress={() =>
+                    router.navigate(
+                      `CourseDetails/?courseID=${course.id}` as any
+                    )
+                  }
+                  style={[
+                    styles.currentModule,
+                    {
+                      backgroundColor: "#1d855f",
+                      transform: [{ scale: isCurrentModulePressed ? 1.02 : 1 }],
+                      elevation: isCurrentModulePressed ? 8 : 2,
+                    },
+                  ]}
+                  onPressIn={() => setIsCurrentModulePressed(true)}
+                  onPressOut={() => setIsCurrentModulePressed(false)}
+                  elevation={4}
+                >
+                  <Card.Title
+                    title={`Unit ${course.current_unit.unit_number} Module ${course.current_module?.module_number}`}
+                    titleVariant="titleSmall"
+                  />
+                  <Card.Content>
+                    <PaperText variant="titleLarge">
+                      {course.current_module?.name}
+                    </PaperText>
+                    <PaperText variant="bodyMedium">
+                      {course.current_module?.description}
+                    </PaperText>
+                  </Card.Content>
+                  <Divider
+                    style={{
+                      backgroundColor: "#E8E8E8",
+                      borderWidth: 0.1,
+                      width: "80%",
+                      alignSelf: "center",
+                      marginTop: 15,
+                      marginBottom: 5,
+                    }}
+                  />
+                  <Card.Actions
+                    style={{
+                      flex: 1,
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Button
+                      title="Jump back in"
+                      onPress={() => {}}
+                      style={{
+                        marginVertical: 5,
+                        backgroundColor: "white",
+                      }}
+                      textStyle={{
+                        fontSize: 14,
+                        color: "#24272E",
+                      }}
+                      iconStyle={{
+                        color: "#24272E",
+                      }}
+                      icon={{
+                        type: "feather",
+                        name: "arrow-right",
+                        position: "right",
+                      }}
+                    />
+                  </Card.Actions>
+                </Card>
+
+                {/* TABLE OF CONTENTS */}
+                <TableOfContents units={course.units} />
+
+                <View style={styles.separator} />
                 <View style={styles.courseDescriptionContainer}>
                   <View style={styles.courseInfoTitleContainer}>
                     <MaterialIcons
@@ -114,18 +188,16 @@ export default function CourseDetails() {
                     <Text style={styles.courseInfoTitle}>Description</Text>
                   </View>
                   <Text style={styles.courseDescription}>
-                    This course provides an in-depth look at the fundamentals of
-                    computer science. You will learn the basics of algorithms,
-                    data structures, and software engineering principles.
+                    {course.description}
                   </Text>
                   <View style={styles.courseInfoTitleContainer}>
-                    <AntDesign name="pushpin" size={24} color={colors.icon}/>
-                    <Text style={styles.courseInfoTitle}>Requirements</Text>
+                    <AntDesign name="pushpin" size={24} color={colors.icon} />
+                    <Text style={styles.courseInfoTitle}>
+                      {course.requirements}
+                    </Text>
                   </View>
                   <Text style={styles.courseDescription}>
-                    No prior programming experience is required. A willingness
-                    to learn and a basic understanding of mathematics is
-                    helpful.
+                    {course.requirements}
                   </Text>
                   <View style={styles.courseInfoTitleContainer}>
                     <AntDesign
@@ -138,11 +210,7 @@ export default function CourseDetails() {
                     </Text>
                   </View>
                   <Text style={styles.courseDescription}>
-                    By the end of this course, you will have a solid
-                    understanding of algorithms, data structures, and
-                    problem-solving techniques. You will be able to write
-                    efficient code and understand the principles of software
-                    engineering.
+                    {course.what_you_learn}
                   </Text>
                 </View>
               </View>
@@ -155,7 +223,7 @@ export default function CourseDetails() {
       <View
         style={[
           styles.stickyFooter,
-          {backgroundColor: colors.secondaryBackground},
+          { backgroundColor: colors.secondaryBackground },
         ]}
       >
         <Button
@@ -165,14 +233,14 @@ export default function CourseDetails() {
             color: colors.buttonText,
             position: "middle",
           }}
-          style={{backgroundColor: colors.buttonBackground}}
-          textStyle={{color: colors.buttonText}}
+          style={{ backgroundColor: colors.buttonBackground }}
+          textStyle={{ color: colors.buttonText }}
           onPress={() => router.back()}
         />
         <Button
           title="Start Course"
-          style={{backgroundColor: colors.buttonBackground, width: "70%"}}
-          textStyle={{color: colors.buttonText}}
+          style={{ backgroundColor: colors.buttonBackground, width: "70%" }}
+          textStyle={{ color: colors.buttonText }}
           onPress={() => console.log("Start Course")}
         />
       </View>
@@ -266,10 +334,48 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 30,
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     borderTopEndRadius: 8,
     borderTopStartRadius: 8,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    marginVertical: 18,
+    backgroundColor: "transparent",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 5,
+  },
+  author: {
+    fontSize: 16,
+    fontStyle: "italic",
+    textAlign: "center",
+    marginVertical: 5,
+  },
+  description: {
+    fontSize: 16,
+    textAlign: "center",
+    marginVertical: 10,
+  },
+  info: {
+    fontSize: 20,
+    textAlign: "center",
+    marginVertical: 5,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "transparent",
+  },
+  currentModule: {
+    width: "80%",
+    marginVertical: 10,
+    alignSelf: "center",
   },
 });

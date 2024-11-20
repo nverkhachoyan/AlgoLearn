@@ -59,7 +59,7 @@ export default function CourseCard(props: {
         elevation: isCoursePressed ? 8 : 2,
       }
     ]}
-    onPress={() => router.navigate(`CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>)}
+    onPress={() => router.navigate(`CourseDetails/?courseID=${props.courseID}` as any)}
     onPressIn={() => setIsCoursePressed(true)}
     onPressOut={() => setIsCoursePressed(false)}
     mode="elevated"
@@ -95,7 +95,7 @@ export default function CourseCard(props: {
     
       <Card onPress={() =>
             router.navigate(
-              `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
+              `CourseDetails/?courseID=${props.courseID}` as any,
             )} 
 
             style={[
@@ -161,7 +161,7 @@ export default function CourseCard(props: {
           title="Details"
           onPress={() =>
             router.navigate(
-              `CourseDetails/?courseID=${props.courseID}` as Href<AppRoutes>,
+              `CourseDetails/?courseID=${props.courseID}` as any,
             )
           }
           style={{
@@ -176,7 +176,7 @@ export default function CourseCard(props: {
           title={props.buttonTitle || "Enroll"}
           onPress={() =>
             router.navigate(
-              `ModuleSession/?courseId=${props.courseID}&unitId=1&moduleId=41` as Href<AppRoutes>,
+              `ModuleSession/?courseId=${props.courseID}&unitId=1&moduleId=41` as any,
             )}
           style={{
             backgroundColor: colors.buttonBackground,

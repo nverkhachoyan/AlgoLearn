@@ -18,7 +18,10 @@ export default function Explore() {
 
 
   return (
-    <View         style={styles.container}>
+    <View  
+    style={[styles.container, {
+      backgroundColor: colors.background
+    }]}>
             <StickyHeader
         cpus={user.data.cpus ?? 0}
         strikeCount={user.data.streaks?.length ?? 0}

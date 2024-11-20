@@ -67,11 +67,12 @@ export default function Layout() {
         edges={["left", "right"]}
         style={{
           flex: 1,
+          backgroundColor: "red"
         }}
       >
         <Stack
           screenOptions={{ headerShown: false }}
-          initialRouteName="(tabs)/index"
+          initialRouteName="(tabs)"
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(onboarding)" />

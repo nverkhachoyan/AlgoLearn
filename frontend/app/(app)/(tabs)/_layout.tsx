@@ -34,10 +34,8 @@ function HapticTabButton({
       onPress={handlePress}
       style={{
         flex: 1,
-        paddingTop: 5,
-        paddingBottom: 5,
+        marginTop: 10,
         borderRadius: 8,
-        marginHorizontal: 20,
       }}
     >
       <View
@@ -45,6 +43,8 @@ function HapticTabButton({
           flex: 1,
           backgroundColor: isSelected ? backgroundColor : "transparent",
           borderRadius: 8,
+          padding: 4,
+          alignSelf: "center"
         }}
       >
         {children}
@@ -86,8 +86,8 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -7 },
           shadowOpacity: 0.05,
           shadowRadius: 3.84,
-          borderTopStartRadius: 8,
-          borderTopEndRadius: 8,
+          // borderTopStartRadius: 8,
+          // borderTopEndRadius: 8
         },
       }}
     >

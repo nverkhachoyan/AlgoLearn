@@ -61,7 +61,9 @@ export default function Feed() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {
+      backgroundColor: colors.background
+    }]}>
       <StickyHeader
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}

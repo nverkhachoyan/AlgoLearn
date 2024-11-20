@@ -147,7 +147,9 @@ export default function Home() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {
+      backgroundColor: colors.background
+    }]}>
       <StickyHeader
         cpus={user.data?.cpus ?? 0}
         strikeCount={user.data?.streaks?.length ?? 0}
@@ -241,8 +243,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "transparent",
+    flex: 1
   },
   scrollContent: {
     flexGrow: 1,

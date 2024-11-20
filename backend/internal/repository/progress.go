@@ -42,7 +42,7 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 	}
 
 	query := fmt.Sprintf(`
-		SELECT DISTINCT ON (c.id)
+	SELECT DISTINCT ON (c.id)
 	   COUNT(*) OVER() AS total_count,
        c.id,
        c.created_at,
@@ -73,11 +73,13 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 	   	NULLIF(u.id, 0) AS unit_id,
 		u.created_at AS unit_created_at,
 		u.updated_at AS unit_updated_at,
+		u.unit_number AS unit_number,
 		NULLIF(u.name, '') AS unit_name,
 		NULLIF(u.description, '') AS unit_description,
 		NULLIF(m.id, 0) AS module_id,
 		m.created_at AS module_created_at,
 		m.updated_at AS module_updated_at,
+		m.module_number AS module_number,
 		NULLIF(m.unit_id, 0) AS module_unit_id,
 		NULLIF(m.name, '') AS module_name,
 		NULLIF(m.description, '') AS module_description
@@ -107,11 +109,13 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 			unitID          sql.NullInt64
 			unitCreatedAt   sql.NullTime
 			unitUpdatedAt   sql.NullTime
+			unitNumber      sql.NullInt16
 			unitName        sql.NullString
 			unitDesc        sql.NullString
 			moduleID        sql.NullInt64
 			moduleCreatedAt sql.NullTime
 			moduleUpdatedAt sql.NullTime
+			moduleNumber    sql.NullInt16
 			moduleUnitID    sql.NullInt64
 			moduleName      sql.NullString
 			moduleDesc      sql.NullString
@@ -134,11 +138,13 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 			&unitID,
 			&unitCreatedAt,
 			&unitUpdatedAt,
+			&unitNumber,
 			&unitName,
 			&unitDesc,
 			&moduleID,
 			&moduleCreatedAt,
 			&moduleUpdatedAt,
+			&moduleNumber,
 			&moduleUnitID,
 			&moduleName,
 			&moduleDesc,
@@ -160,6 +166,7 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 					CreatedAt: unitCreatedAt.Time,
 					UpdatedAt: unitUpdatedAt.Time,
 				},
+				UnitNumber:  unitNumber.Int16,
 				Name:        unitName.String,
 				Description: unitDesc.String,
 			}
@@ -174,6 +181,7 @@ func (r *progressRepository) GetCoursesProgressSummary(ctx context.Context, page
 					CreatedAt: moduleCreatedAt.Time,
 					UpdatedAt: moduleUpdatedAt.Time,
 				},
+				ModuleNumber: moduleNumber.Int16,
 				ModuleUnitID: moduleUnitID.Int64,
 				Name:         moduleName.String,
 				Description:  moduleDesc.String,
@@ -267,6 +275,7 @@ func (r *progressRepository) GetCourseProgressSummary(ctx context.Context, userI
                           'id', sub_u.id,
                           'created_at', sub_u.created_at,
                           'updated_at', sub_u.updated_at,
+                          'unit_number', sub_u.unit_number,
                           'course_id', sub_u.course_id,
                           'name', sub_u.name,
                           'description', sub_u.description,
@@ -276,6 +285,7 @@ func (r *progressRepository) GetCourseProgressSummary(ctx context.Context, userI
                                                         'id', sub_m.id,
                                                         'created_at', sub_m.created_at,
                                                         'updated_at', sub_m.updated_at,
+														'module_number', sub_m.module_number,
                                                         'unit_id', sub_m.unit_id,
                                                         'name', sub_m.name,
                                                         'description', sub_m.description,

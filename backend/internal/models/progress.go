@@ -27,6 +27,7 @@ type CourseProgressSummary struct {
 
 type UnitProgressSummary struct {
 	BaseModel
+	UnitNumber  int16                   `json:"unit_number"`
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
 	Modules     []ModuleProgressSummary `json:"modules"`
@@ -34,6 +35,7 @@ type UnitProgressSummary struct {
 
 type ModuleProgressSummary struct {
 	BaseModel
+	ModuleNumber int16   `json:"module_number"`
 	ModuleUnitID int64   `json:"module_unit_id"`
 	Name         string  `json:"name"`
 	Description  string  `json:"description"`

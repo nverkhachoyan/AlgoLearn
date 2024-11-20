@@ -33,6 +33,7 @@ SELECT DISTINCT ON (c.id)
             'id', u.id,
             'created_at', u.created_at,
             'updated_at', u.updated_at,
+            'unit_number', u.unit_number,
             'name', u.name,
             'description', u.description
     ) AS current_unit,
@@ -40,6 +41,7 @@ SELECT DISTINCT ON (c.id)
             'id', m.id,
             'created_at', m.created_at,
             'updated_at', m.updated_at,
+            'module_number', m.module_number,
             'unit_id', m.unit_id,
             'name', m.name,
             'description', m.description,

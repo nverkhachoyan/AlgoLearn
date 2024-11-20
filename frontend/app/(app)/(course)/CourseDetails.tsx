@@ -53,7 +53,13 @@ export default function CourseDetails() {
   }
 
   return (
-    <>
+    <View 
+      style={[styles.container,
+        {
+          backgroundColor: colors.background
+        }
+      ]}
+    >
       <StickyHeader
         cpus={user.data.cpus}
         strikeCount={user.data.streaks?.length ?? 0}
@@ -170,7 +176,7 @@ export default function CourseDetails() {
           onPress={() => console.log("Start Course")}
         />
       </View>
-    </>
+    </View>
   );
 }
 

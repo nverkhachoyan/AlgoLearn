@@ -66,12 +66,13 @@ export default function Layout() {
       <SafeAreaView
         edges={["left", "right"]}
         style={{
-          flex: 1,
-          backgroundColor: "red"
+          flex: 1
         }}
       >
         <Stack
-          screenOptions={{ headerShown: false }}
+          screenOptions={{ 
+            headerShown: false
+          }}
           initialRouteName="(tabs)"
         >
           <Stack.Screen name="(tabs)" />

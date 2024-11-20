@@ -68,7 +68,11 @@ export default function Leaderboard() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container,
+      {
+        backgroundColor: colors.background
+      }
+    ]}>
       <StickyHeader
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}
@@ -77,7 +81,6 @@ export default function Leaderboard() {
           router.push("/profile");
         }}
       />
-
       <ScrollView
         style={[styles.scrollContainer, { backgroundColor: colors.background }]}
       >

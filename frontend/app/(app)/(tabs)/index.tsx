@@ -1,14 +1,13 @@
-import {StyleSheet, ActivityIndicator} from "react-native";
-import {View, ScrollView, Text} from "@/components/Themed";
-import {useAuthContext} from "@/context/AuthProvider";
-import CourseCard from "@/components/tabs/CourseCard";
+import { StyleSheet, ActivityIndicator } from "react-native";
+import { View, ScrollView, Text } from "@/components/Themed";
+import { useAuthContext } from "@/context/AuthProvider";
+import CourseCard from "./components/CourseCard";
 import Button from "@/components/common/Button";
-import {router} from "expo-router";
+import { router } from "expo-router";
 import useTheme from "@/hooks/useTheme";
-import {StickyHeader} from "@/components/common/StickyHeader";
+import { StickyHeader } from "@/components/common/StickyHeader";
 import { useProgress } from "@/hooks/useProgress";
 import useToast from "@/hooks/useToast";
-
 
 interface Course {
   id: number;
@@ -23,7 +22,6 @@ interface Course {
   current_module: any | null;
 }
 
-
 export default function Home() {
   const { user, isAuthed, invalidateAuth, isInitialized } = useAuthContext();
   const {
@@ -33,12 +31,12 @@ export default function Home() {
     isFetchingNextPage: isFetchingNextLearning,
     isLoading: isLoadingLearning,
     error: learningError,
-  } = useProgress({ 
-    user_id: 4, 
-    page: 1, 
-    pageSize: 5, 
-    type: "summary", 
-    filter: "learning" 
+  } = useProgress({
+    user_id: 4,
+    page: 1,
+    pageSize: 5,
+    type: "summary",
+    filter: "learning",
   });
   const {
     courses: exploreCourses,
@@ -47,12 +45,12 @@ export default function Home() {
     isFetchingNextPage: isFetchingNextExplore,
     isLoading: isLoadingExplore,
     error: exploreError,
-  } = useProgress({ 
-    user_id: 4, 
-    page: 1, 
-    pageSize: 5, 
-    type: "summary", 
-    filter: "explore" 
+  } = useProgress({
+    user_id: 4,
+    page: 1,
+    pageSize: 5,
+    type: "summary",
+    filter: "explore",
   });
   const { colors } = useTheme();
   const { showToast } = useToast();
@@ -63,18 +61,18 @@ export default function Home() {
     }
   };
 
-  const handleLoadMoreExplore =  () => {
+  const handleLoadMoreExplore = () => {
     if (hasNextExplore && !isFetchingNextExplore) {
-      fetchNextExplore()
+      fetchNextExplore();
     }
-  }
+  };
 
   if (!isInitialized) {
-    return  <ActivityIndicator size="large" color="#25A879" />;
+    return <ActivityIndicator size="large" color="#25A879" />;
   }
 
-   // Then check if user is authenticated
-   if (!isAuthed) {
+  // Then check if user is authenticated
+  if (!isAuthed) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.title}>Please sign in</Text>
@@ -85,7 +83,7 @@ export default function Home() {
       </View>
     );
   }
-  
+
   if (user.isPending) {
     return (
       <View style={styles.loadingContainer}>
@@ -104,52 +102,63 @@ export default function Home() {
     showToast("Failed to fetch courses");
   }
 
-
-  const renderCourseList = (courseList: Course[], emptyMessage: string, filter: string) => {
+  const renderCourseList = (
+    courseList: Course[],
+    emptyMessage: string,
+    filter: string
+  ) => {
     if (courseList.length === 0) {
       return <Text style={styles.emptyMessage}>{emptyMessage}</Text>;
     }
 
     return courseList.map((course) => {
-
       if (filter === "learning") {
-        return <CourseCard
-        key={`course-${course.id}`}
-        courseID={course.id.toString()}
-        courseTitle={course.name}
-        backgroundColor={course.background_color || colors.cardBackground}
-        iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
-        description={course.description}
-        authors={course.authors}
-        difficultyLevel={course.difficulty_level}
-        duration={course.duration + ''}
-        rating={course.rating}
-        currentUnit={course.current_unit}
-        currentModule={course.current_module}
-        filter="learning"
-      />
+        return (
+          <CourseCard
+            key={`course-${course.id}`}
+            courseID={course.id.toString()}
+            courseTitle={course.name}
+            backgroundColor={course.background_color || colors.cardBackground}
+            iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+            description={course.description}
+            authors={course.authors}
+            difficultyLevel={course.difficulty_level}
+            duration={course.duration + ""}
+            rating={course.rating}
+            currentUnit={course.current_unit}
+            currentModule={course.current_module}
+            filter="learning"
+          />
+        );
       } else if (filter === "explore") {
-        return <CourseCard
-        key={`course-${course.id}`}
-        courseID={course.id.toString()}
-        courseTitle={course.name}
-        backgroundColor={course.background_color || colors.cardBackground}
-        iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
-        description={course.description}
-        authors={course.authors}
-        difficultyLevel={course.difficulty_level}
-        duration={course.duration + ''}
-        rating={course.rating}
-        filter="explore"
-      />
+        return (
+          <CourseCard
+            key={`course-${course.id}`}
+            courseID={course.id.toString()}
+            courseTitle={course.name}
+            backgroundColor={course.background_color || colors.cardBackground}
+            iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+            description={course.description}
+            authors={course.authors}
+            difficultyLevel={course.difficulty_level}
+            duration={course.duration + ""}
+            rating={course.rating}
+            filter="explore"
+          />
+        );
       }
     });
   };
 
   return (
-    <View style={[styles.container, {
-      backgroundColor: colors.background
-    }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
       <StickyHeader
         cpus={user.data?.cpus ?? 0}
         strikeCount={user.data?.streaks?.length ?? 0}
@@ -169,8 +178,12 @@ export default function Home() {
           <View style={styles.separator} />
           <Text style={styles.title}>Currently Learning</Text>
           <View style={styles.separator} />
-          
-          {renderCourseList(learningCourses, "No courses in progress", "learning")}
+
+          {renderCourseList(
+            learningCourses,
+            "No courses in progress",
+            "learning"
+          )}
 
           <View style={styles.loadMoreContainer}>
             {hasNextLearning && (
@@ -178,9 +191,9 @@ export default function Home() {
                 title="Load more"
                 icon={{
                   type: "ionicons",
-                  name: 'reload-outline',
-                  position: 'right',
-                  color: colors.textContrast
+                  name: "reload-outline",
+                  position: "right",
+                  color: colors.textContrast,
                 }}
                 onPress={handleLoadMoreLearning}
                 style={{
@@ -192,17 +205,16 @@ export default function Home() {
                 }}
               />
             )}
-            
+
             {isFetchingNextLearning && (
               <ActivityIndicator size="small" color="#25A879" />
             )}
-            
           </View>
 
           <View style={styles.separator} />
           <Text style={styles.title}>Explore Courses</Text>
           <View style={styles.separator} />
-          
+
           {renderCourseList(exploreCourses, "No courses to explore", "explore")}
 
           <View style={styles.loadMoreContainer}>
@@ -211,9 +223,9 @@ export default function Home() {
                 title="Load more"
                 icon={{
                   type: "ionicons",
-                  name: 'reload-outline',
-                  position: 'right',
-                  color: colors.textContrast
+                  name: "reload-outline",
+                  position: "right",
+                  color: colors.textContrast,
                 }}
                 onPress={handleLoadMoreExplore}
                 style={{
@@ -225,11 +237,11 @@ export default function Home() {
                 }}
               />
             )}
-            
+
             {isFetchingNextExplore && (
               <ActivityIndicator size="small" color="#25A879" />
             )}
-            
+
             {!hasNextExplore && exploreCourses?.length > 0 && (
               <Text style={styles.endMessage}>No more courses to load</Text>
             )}
@@ -240,10 +252,9 @@ export default function Home() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -287,7 +298,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     justifyContent: "center",
     gap: 16,
-    marginTop: 10
+    marginTop: 10,
   },
   endMessage: {
     textAlign: "center",
@@ -295,9 +306,9 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   emptyMessage: {
-    textAlign: 'center',
+    textAlign: "center",
     padding: 16,
-    color: '#666',
-    fontStyle: 'italic',
+    color: "#666",
+    fontStyle: "italic",
   },
 });

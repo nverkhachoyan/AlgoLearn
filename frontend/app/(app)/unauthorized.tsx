@@ -1,14 +1,7 @@
 import { StyleSheet } from "react-native";
-import { View, ScrollView, Text } from "@/components/Themed";
+import { View, Text } from "@/components/Themed";
 import { useAuthContext } from "@/context/AuthProvider";
-import CourseCard from "@/components/tabs/CourseCard";
 import Button from "@/components/common/Button";
-import { ActivityIndicator } from "react-native";
-import { router } from "expo-router";
-import { useEffect, useRef } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import useTheme from "@/hooks/useTheme";
-import { StickyHeader } from "@/components/common/StickyHeader";
 
 export default function Home() {
   const { invalidateAuth } = useAuthContext();

@@ -1,4 +1,3 @@
-// CourseDetails.tsx
 import { useLocalSearchParams, router } from "expo-router";
 import { View, ScrollView, Text } from "@/components/Themed";
 import { StyleSheet } from "react-native";

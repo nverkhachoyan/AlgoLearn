@@ -1,9 +1,8 @@
 import { Image, StyleSheet } from "react-native";
 import { View, Text } from "@/components/Themed";
-import { router, Href } from "expo-router";
+import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import Button from "@/components/common/Button";
-import { AppRoutes } from "@/types/routes";
 import { Author } from "@/types/courses";
 import useTheme from "@/hooks/useTheme";
 import { Card, Divider, Text as PaperText } from "react-native-paper";

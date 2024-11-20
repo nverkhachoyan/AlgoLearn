@@ -2,7 +2,6 @@ import { useState } from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import { Searchbar } from "react-native-paper";
 import { Text, View } from "@/components/Themed";
-import Button from "@/components/common/Button";
 import { useAuthContext } from "@/context/AuthProvider";
 import { router } from "expo-router";
 import { StickyHeader } from "@/components/common/StickyHeader";

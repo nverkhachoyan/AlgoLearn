@@ -37,8 +37,7 @@ CREATE TABLE courses (
     icon_url TEXT,
     duration INTEGER,
     difficulty_level difficulty_level,
-    rating FLOAT,
-    learners_count INTEGER NOT NULL DEFAULT 0
+    rating FLOAT
 );
 
 -- Authors and Course Authors Tables
@@ -74,6 +73,7 @@ CREATE TABLE units (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    unit_number INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
@@ -104,9 +104,12 @@ CREATE TABLE modules (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    module_number INTEGER NOT NULL,
     unit_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
+    requirements TEXT,
+    what_you_learn TEXT,
     FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE
 );
 
@@ -305,8 +308,25 @@ ADD CONSTRAINT uniq_user_achievement UNIQUE (user_id, achievement_id);
 ALTER TABLE user_module_progress
 ADD CHECK (progress >= 0.0 AND progress <= 100.0);
 
+-- Create unique constraints to ensure no duplicate numbers within same parent
+ALTER TABLE units
+ADD CONSTRAINT unique_unit_number_per_course UNIQUE (course_id, unit_number);
+
+ALTER TABLE modules
+ADD CONSTRAINT unique_module_number_per_unit UNIQUE (unit_id, module_number);
+
+-- Create indexes for efficient ordering
+CREATE INDEX idx_units_course_number ON units(course_id, unit_number);
+CREATE INDEX idx_modules_unit_number ON modules(unit_id, module_number);
+
+-- Add check constraints to ensure positive numbers
+ALTER TABLE units
+ADD CONSTRAINT positive_unit_number CHECK (unit_number > 0);
+
+ALTER TABLE modules
+ADD CONSTRAINT positive_module_number CHECK (module_number > 0);
+
 -- Optional: Full-Text Search Indexes (If needed)
 -- CREATE INDEX idx_courses_description ON courses USING GIN (to_tsvector('english', description));
 
 -- Note: Implement triggers or application logic as needed to automatically update timestamps and enforce data integrity.
-

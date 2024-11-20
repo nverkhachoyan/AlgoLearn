@@ -28,13 +28,13 @@ VALUES
 ('Computer Science');
 
 -- 4. Insert Data into 'courses' Table
-INSERT INTO courses (name, description, duration, difficulty_level, rating, learners_count)
+INSERT INTO courses (name, description, duration, difficulty_level, rating)
 VALUES
-('Introduction to Programming', 'Learn the basics of programming.', 120, 'beginner', 4.5, 100),
-('Advanced Algorithms', 'Explore advanced algorithm concepts.', 180, 'advanced', 4.7, 80),
-('Data Structures', 'Understand fundamental data structures.', 150, 'intermediate', 4.6, 90),
-('Discrete Mathematics', 'Mathematical foundations for CS.', 200, 'intermediate', 4.4, 70),
-('Machine Learning', 'Introduction to machine learning.', 220, 'expert', 4.8, 60);
+('Introduction to Programming', 'Learn the basics of programming.', 120, 'beginner', 4.5),
+('Advanced Algorithms', 'Explore advanced algorithm concepts.', 180, 'advanced', 4.7),
+('Data Structures', 'Understand fundamental data structures.', 150, 'intermediate', 4.6),
+('Discrete Mathematics', 'Mathematical foundations for CS.', 200, 'intermediate', 4.4),
+('Machine Learning', 'Introduction to machine learning.', 220, 'expert', 4.8);
 
 -- 5. Insert Data into 'course_authors' Table
 INSERT INTO course_authors (course_id, author_id)
@@ -63,13 +63,13 @@ VALUES
 (5, 5);
 
 -- 7. Insert Data into 'units' Table
-INSERT INTO units (course_id, name, description)
+INSERT INTO units (course_id, unit_number, name, description)
 VALUES
-(1, 'Basics', 'Introduction to programming basics'),
-(1, 'Control Structures', 'Learn about if statements and loops'),
-(2, 'Sorting Algorithms', 'Deep dive into sorting algorithms'),
-(2, 'Graph Algorithms', 'Explore graph theory and algorithms'),
-(3, 'Fundamental Data Structures', 'Arrays, linked lists, and more');
+(1, 1, 'Basics', 'Introduction to programming basics'),
+(1, 2, 'Control Structures', 'Learn about if statements and loops'),
+(2, 1, 'Sorting Algorithms', 'Deep dive into sorting algorithms'),
+(2, 2, 'Graph Algorithms', 'Explore graph theory and algorithms'),
+(3, 1, 'Fundamental Data Structures', 'Arrays, linked lists, and more');
 
 -- 8. Insert Data into 'questions' Table
 INSERT INTO questions (type, question, difficulty_level)
@@ -129,13 +129,13 @@ VALUES
 (5, 'An encryption method', FALSE);
 
 -- 11. Insert Data into 'modules' Table
-INSERT INTO modules (unit_id, name, description)
+INSERT INTO modules (unit_id, module_number, name, description)
 VALUES
-(1, 'Introduction to Variables', 'Learn about variables in programming'),
-(1, 'Data Types', 'Understand different data types'),
-(2, 'If Statements', 'Control flow with if statements'),
-(2, 'Loops', 'Understanding loops'),
-(3, 'Quick Sort Algorithm', 'Implementing Quick Sort');
+(1, 1, 'Introduction to Variables', 'Learn about variables in programming'),
+(1, 2, 'Data Types', 'Understand different data types'),
+(2, 1, 'If Statements', 'Control flow with if statements'),
+(2, 2, 'Loops', 'Understanding loops'),
+(3, 1, 'Quick Sort Algorithm', 'Implementing Quick Sort');
 
 -- 12. Insert Data into 'sections' Table
 -- Sections for Module 1

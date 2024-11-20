@@ -20,12 +20,14 @@ export interface CourseProgressSummary extends BaseModel {
 }
 
 export interface UnitProgressSummary extends BaseModel {
+    unit_number: number
     name: string
     description: string
 }
 
 
 export interface ModuleProgressSummary extends BaseModel {
+    module_number: number
     module_unit_id: number
     name: string
     description: string

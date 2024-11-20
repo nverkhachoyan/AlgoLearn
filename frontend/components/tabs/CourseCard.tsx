@@ -8,25 +8,7 @@ import {Author} from "@/types/courses";
 import useTheme from "@/hooks/useTheme";
 import { Card, Divider, Text as PaperText } from "react-native-paper";
 import { useState } from "react";
-
-
-type CurrentUnit = {
-  id: number;
-  created_at: Date;
-  updated_at: Date;
-  name: string;
-  description: string;
-}
-
-type CurrentModule = {
-  id: number;
-  created_at: Date;
-  updated_at: Date;
-  module_unit_id?: number;
-  name: string;
-  description: string;
-}
-
+import { UnitProgressSummary, ModuleProgressSummary } from "@/types/progress";
 
 export default function CourseCard(props: {
   courseID: string;
@@ -39,8 +21,8 @@ export default function CourseCard(props: {
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
-  currentUnit?: CurrentUnit;
-  currentModule?: CurrentModule;
+  currentUnit?: UnitProgressSummary;
+  currentModule?: ModuleProgressSummary;
   filter?: string
 }) {
   const {colors} = useTheme();
@@ -112,7 +94,7 @@ export default function CourseCard(props: {
             elevation={4}
       >
         <Card.Title 
-        title={`Unit ${props.currentUnit.id} Module ${props.currentModule?.id}`} 
+        title={`Unit ${props.currentUnit.unit_number} Module ${props.currentModule?.module_number}`} 
         titleVariant="titleSmall"
         />
         <Card.Content>

@@ -118,7 +118,7 @@ const TableOfContents: React.FC<CourseUnitProps> = ({
               <List.Accordion
                 key={unit.id}
                 id={unit.id}
-                title={`${unitIdx + 1}. ${unit.name}`}
+                title={`${unit.unit_number}. ${unit.name}`}
                 expanded={isUnitExpanded}
                 onPress={() => handlePress(unit.id)}
                 style={[styles.unitAccordion, {backgroundColor: colors.background}]}

@@ -13,6 +13,8 @@ type CourseProgressSummary struct {
 	BaseModel
 	Name            string                 `json:"name"`
 	Description     string                 `json:"description"`
+	Requirements    string                 `json:"requirements"`
+	WhatYouLearn    string                 `json:"what_you_learn"`
 	BackgroundColor string                 `json:"background_color"`
 	IconURL         string                 `json:"icon_url"`
 	Duration        int16                  `json:"duration"`
@@ -39,6 +41,6 @@ type ModuleProgressSummary struct {
 	ModuleUnitID int64   `json:"module_unit_id"`
 	Name         string  `json:"name"`
 	Description  string  `json:"description"`
-	Progress     float32 `json:"progress,omitempty"`
-	Status       string  `json:"status,omitempty"`
+	Progress     float32 `json:"progress"`
+	Status       string  `json:"status"`
 }

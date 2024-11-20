@@ -28,13 +28,13 @@ VALUES
 ('Computer Science');
 
 -- 4. Insert Data into 'courses' Table
-INSERT INTO courses (name, description, duration, difficulty_level, rating)
+INSERT INTO courses (name, description, requirements, what_you_learn, duration, difficulty_level, rating)
 VALUES
-('Introduction to Programming', 'Learn the basics of programming.', 120, 'beginner', 4.5),
-('Advanced Algorithms', 'Explore advanced algorithm concepts.', 180, 'advanced', 4.7),
-('Data Structures', 'Understand fundamental data structures.', 150, 'intermediate', 4.6),
-('Discrete Mathematics', 'Mathematical foundations for CS.', 200, 'intermediate', 4.4),
-('Machine Learning', 'Introduction to machine learning.', 220, 'expert', 4.8);
+('Introduction to Programming', 'Learn the basics of programming.', 'Reading', 'The Alphabet', 120, 'beginner', 4.5),
+('Advanced Algorithms', 'Explore advanced algorithm concepts.', 'Reading', 'The Alphabet', 180, 'advanced', 4.7),
+('Data Structures', 'Understand fundamental data structures.', 'Reading', 'The Alphabet', 150, 'intermediate', 4.6),
+('Discrete Mathematics', 'Mathematical foundations for CS.', 'Reading', 'The Alphabet', 200, 'intermediate', 4.4),
+('Machine Learning', 'Introduction to machine learning.', 'Reading', 'The Alphabet', 220, 'expert', 4.8);
 
 -- 5. Insert Data into 'course_authors' Table
 INSERT INTO course_authors (course_id, author_id)

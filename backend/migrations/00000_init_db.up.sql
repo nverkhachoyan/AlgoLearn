@@ -33,6 +33,8 @@ CREATE TABLE courses (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
+    requirements TEXT,
+    what_you_learn TEXT,
     background_color VARCHAR(7),
     icon_url TEXT,
     duration INTEGER,
@@ -108,8 +110,6 @@ CREATE TABLE modules (
     unit_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    requirements TEXT,
-    what_you_learn TEXT,
     FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE
 );
 
@@ -303,6 +303,9 @@ CREATE INDEX idx_user_question_answers_question_id ON user_question_answers(ques
 -- Unique Constraints
 ALTER TABLE user_achievements
 ADD CONSTRAINT uniq_user_achievement UNIQUE (user_id, achievement_id);
+
+ALTER TABLE user_courses
+ADD CONSTRAINT uniq_user_course UNIQUE (user_id, course_id);
 
 -- Check Constraints
 ALTER TABLE user_module_progress

@@ -8,6 +8,8 @@ type Status = "uninitiated" | "in_progress" | "completed" | "abandoned"
 export interface CourseProgressSummary extends BaseModel {
     name: string
     description: string
+    requirements: string
+    what_you_learn: string
     background_color: string
     icon_url: string
     duration: number

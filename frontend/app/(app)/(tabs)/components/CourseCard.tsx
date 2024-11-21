@@ -1,13 +1,16 @@
 import { Image, StyleSheet } from "react-native";
-import { View, Text } from "@/components/Themed";
+import { View, Text } from "@/src/components/Themed";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import Button from "@/components/common/Button";
-import { Author } from "@/types/courses";
-import useTheme from "@/hooks/useTheme";
+import Button from "@/src/components/common/Button";
+import { Author } from "@/src/types/courses";
+import useTheme from "@/src/hooks/useTheme";
 import { Card, Divider, Text as PaperText } from "react-native-paper";
 import { useState } from "react";
-import { UnitProgressSummary, ModuleProgressSummary } from "@/types/progress";
+import {
+  UnitProgressSummary,
+  ModuleProgressSummary,
+} from "@/src/types/progress";
 
 export default function CourseCard(props: {
   courseID: string;
@@ -20,8 +23,8 @@ export default function CourseCard(props: {
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
-  currentUnit?: UnitProgressSummary;
-  currentModule?: ModuleProgressSummary;
+  currentUnit: UnitProgressSummary;
+  currentModule: ModuleProgressSummary;
   filter?: string;
 }) {
   const { colors } = useTheme();
@@ -41,7 +44,7 @@ export default function CourseCard(props: {
         },
       ]}
       onPress={() =>
-        router.navigate(`CourseDetails/?courseID=${props.courseID}` as any)
+        router.navigate(`(course)/${props.courseID}/details` as any)
       }
       onPressIn={() => setIsCoursePressed(true)}
       onPressOut={() => setIsCoursePressed(false)}
@@ -81,9 +84,18 @@ export default function CourseCard(props: {
         <>
           <Card
             onPress={() =>
-              router.navigate(
-                `CourseDetails/?courseID=${props.courseID}` as any
-              )
+              router.push({
+                pathname:
+                  "/(app)/(course)/[courseId]/(module)/[moduleId]/module-session",
+                params: {
+                  courseId: props.courseID, // Make sure this is passed as a prop
+                  moduleId: props.currentModule.id,
+                  unitId: props.currentUnit?.id,
+                  userId: 4,
+                  type: "full",
+                  include: "progress",
+                },
+              })
             }
             style={[
               styles.currentModule,
@@ -128,9 +140,18 @@ export default function CourseCard(props: {
               <Button
                 title="Jump back in"
                 onPress={() =>
-                  router.navigate(
-                    `ModuleSession/?courseId=${props.courseID}&unitId=${props.currentUnit?.id}&moduleId=${props.currentModule?.id}` as any
-                  )
+                  router.push({
+                    pathname:
+                      "/(app)/(course)/[courseId]/(module)/[moduleId]/module-session",
+                    params: {
+                      courseId: props.courseID,
+                      moduleId: props.currentModule.id,
+                      unitId: props.currentUnit?.id,
+                      userId: 4,
+                      type: "full",
+                      include: "progress",
+                    },
+                  })
                 }
                 style={{
                   marginVertical: 5,

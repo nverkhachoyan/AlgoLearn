@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
-import { View, Text } from "@/components/Themed";
-import { useAuthContext } from "@/context/AuthProvider";
-import Button from "@/components/common/Button";
+import { View, Text } from "@/src/components/Themed";
+import { useAuthContext } from "@/src/context/AuthProvider";
+import Button from "@/src/components/common/Button";
 
 export default function Home() {
   const { invalidateAuth } = useAuthContext();

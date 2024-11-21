@@ -6,17 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { Text, View } from "@/components/Themed";
-import { useAuthContext } from "@/context/AuthProvider";
-import Button from "@/components/common/Button";
+import { Text, View } from "@/src/components/Themed";
+import { useAuthContext } from "@/src/context/AuthProvider";
+import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import useTheme from "@/hooks/useTheme";
-import LabeledInput from "@/components/common/LabeledInput";
-import { StickyHeaderSimple } from "@/components/common/StickyHeader";
-import useToast from "@/hooks/useToast";
-import { ImageFile } from "@/types/CommonTypes";
+import useTheme from "@/src/hooks/useTheme";
+import LabeledInput from "@/src/components/common/LabeledInput";
+import { StickyHeaderSimple } from "@/src/components/common/StickyHeader";
+import useToast from "@/src/hooks/useToast";
+import { ImageFile } from "@/src/types/CommonTypes";
 import * as ImagePicker from "expo-image-picker";
 import { FontAwesome } from "@expo/vector-icons";
 

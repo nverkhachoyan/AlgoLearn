@@ -1,13 +1,13 @@
 import { StyleSheet, TouchableOpacity } from "react-native";
-import { Text, View, ScrollView } from "@/components/Themed";
-import { useAuthContext } from "@/context/AuthProvider";
-import { Seperator } from "@/components/common/Seperator";
+import { Text, View, ScrollView } from "@/src/components/Themed";
+import { useAuthContext } from "@/src/context/AuthProvider";
+import { Seperator } from "@/src/components/common/Seperator";
 import React from "react";
 import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 
-import useTheme from "@/hooks/useTheme";
-import { StickyHeader } from "@/components/common/StickyHeader";
+import useTheme from "@/src/hooks/useTheme";
+import { StickyHeader } from "@/src/components/common/StickyHeader";
 
 export default function Leaderboard() {
   const {
@@ -68,11 +68,14 @@ export default function Leaderboard() {
   }
 
   return (
-    <View style={[styles.container,
-      {
-        backgroundColor: colors.background
-      }
-    ]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
       <StickyHeader
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}

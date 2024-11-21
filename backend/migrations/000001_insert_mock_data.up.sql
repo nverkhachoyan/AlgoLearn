@@ -78,7 +78,12 @@ VALUES
 ('multiple_choice', 'Which data structure uses LIFO?', 'intermediate'),
 ('true_false', 'A queue follows FIFO principle.', 'beginner'),
 ('multiple_choice', 'Which algorithm is used for finding the shortest path?', 'advanced'),
-('multiple_choice', 'What is a hash table?', 'intermediate');
+('multiple_choice', 'What is a hash table?', 'intermediate'),
+('multiple_choice', 'What is the average time complexity of QuickSort?', 'intermediate'),
+('multiple_choice', 'Which pivot selection strategy is commonly used in QuickSort implementations?', 'intermediate'),
+('true_false', 'QuickSort is an in-place sorting algorithm.', 'beginner'),
+('multiple_choice', 'What is the worst case scenario for QuickSort?', 'advanced'),
+('multiple_choice', 'Which of these scenarios would make QuickSort perform poorly?', 'advanced');
 
 -- 9. Insert Data into 'question_tags' Table
 INSERT INTO question_tags (question_id, tag_id)
@@ -87,46 +92,76 @@ VALUES
 (2, 3),
 (3, 3),
 (4, 2),
-(5, 3);
+(5, 3),
+(6, 2),
+(6, 5),
+(7, 2),
+(7, 5),
+(8, 2),
+(8, 5),
+(9, 2),
+(9, 5),
+(10, 2),
+(10, 5);
 
 -- 10. Insert Data into 'question_options' Table
--- Question Options for Question 1
 INSERT INTO question_options (question_id, content, is_correct)
 VALUES
+-- Binary Search Question
 (1, 'O(log n)', TRUE),
 (1, 'O(n)', FALSE),
 (1, 'O(n log n)', FALSE),
-(1, 'O(1)', FALSE);
+(1, 'O(1)', FALSE),
 
--- Question Options for Question 2
-INSERT INTO question_options (question_id, content, is_correct)
-VALUES
+-- LIFO Question
 (2, 'Queue', FALSE),
 (2, 'Stack', TRUE),
 (2, 'Array', FALSE),
-(2, 'Tree', FALSE);
+(2, 'Tree', FALSE),
 
--- Question Options for Question 3
-INSERT INTO question_options (question_id, content, is_correct)
-VALUES
+-- FIFO Question
 (3, 'True', TRUE),
-(3, 'False', FALSE);
+(3, 'False', FALSE),
 
--- Question Options for Question 4
-INSERT INTO question_options (question_id, content, is_correct)
-VALUES
-(4, 'Dijkstra’s Algorithm', TRUE),
+-- Shortest Path Question
+(4, 'Dijkstras Algorithm', TRUE),
 (4, 'Bubble Sort', FALSE),
 (4, 'Binary Search', FALSE),
-(4, 'Quick Sort', FALSE);
+(4, 'Quick Sort', FALSE),
 
--- Question Options for Question 5
-INSERT INTO question_options (question_id, content, is_correct)
-VALUES
+-- Hash Table Question
 (5, 'A tree data structure', FALSE),
 (5, 'A mapping of keys to values', TRUE),
 (5, 'A type of sorting algorithm', FALSE),
-(5, 'An encryption method', FALSE);
+(5, 'An encryption method', FALSE),
+
+-- QuickSort Time Complexity Question
+(6, 'O(n log n)', TRUE),
+(6, 'O(n)', FALSE),
+(6, 'O(n²)', FALSE),
+(6, 'O(log n)', FALSE),
+
+-- QuickSort Pivot Selection Question
+(7, 'Middle element', TRUE),
+(7, 'First element', FALSE),
+(7, 'Last element', FALSE),
+(7, 'Random element', FALSE),
+
+-- QuickSort In-Place Question
+(8, 'True', TRUE),
+(8, 'False', FALSE),
+
+-- QuickSort Worst Case Question
+(9, 'Already sorted array', TRUE),
+(9, 'Random array', FALSE),
+(9, 'Nearly sorted array', FALSE),
+(9, 'Array with few duplicates', FALSE),
+
+-- QuickSort Poor Performance Question
+(10, 'Array with all identical elements', TRUE),
+(10, 'Array with distinct elements', FALSE),
+(10, 'Array with few duplicates', FALSE),
+(10, 'Array with random elements', FALSE);
 
 -- 11. Insert Data into 'modules' Table
 INSERT INTO modules (unit_id, module_number, name, description)
@@ -138,7 +173,6 @@ VALUES
 (3, 1, 'Quick Sort Algorithm', 'Implementing Quick Sort');
 
 -- 12. Insert Data into 'sections' Table
--- Sections for Module 1
 INSERT INTO sections (module_id, type, position)
 VALUES
 (1, 'text', 1),
@@ -148,20 +182,17 @@ VALUES
 (1, 'question', 5);
 
 -- 13. Insert Data into 'text_sections' Table
--- Text Sections
 INSERT INTO text_sections (section_id, content)
 VALUES
 (1, 'Variables are used to store data in a program.'),
 (4, 'Summary: Variables are fundamental in programming.');
 
 -- 14. Insert Data into 'video_sections' Table
--- Video Sections
 INSERT INTO video_sections (section_id, url)
 VALUES
 (2, 'http://example.com/videos/intro_to_variables.mp4');
 
 -- 15. Insert Data into 'question_sections' Table
--- Question Sections
 INSERT INTO question_sections (section_id, question_id)
 VALUES
 (3, 1),
@@ -174,7 +205,12 @@ VALUES
 (1, 2, 2),
 (2, 3, 1),
 (3, 4, 1),
-(4, 5, 1);
+(4, 5, 1),
+(5, 6, 1),
+(5, 7, 2),
+(5, 8, 3),
+(5, 9, 4),
+(5, 10, 5);
 
 -- 17. Insert Data into 'user_module_progress' Table
 INSERT INTO user_module_progress (user_id, module_id, started_at, progress, current_section_id, status)
@@ -248,7 +284,7 @@ VALUES
 (3, CURRENT_DATE - INTERVAL '7 days', CURRENT_DATE - INTERVAL '2 days', 0, 5),
 (1, CURRENT_DATE - INTERVAL '1 day', NULL, 1, 1);
 
--- 25. Additional Inserts into 'user_section_progress' Table
+-- 25. Insert Data into 'user_section_progress' Table
 INSERT INTO user_section_progress (user_id, module_id, section_id, started_at, completed_at, status)
 VALUES
 (5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'completed'),

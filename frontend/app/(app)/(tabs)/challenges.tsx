@@ -1,18 +1,23 @@
 import { StyleSheet } from "react-native";
 
-import { Text, View } from "@/components/Themed";
-import Button from "@/components/common/Button";
-import { useAuthContext } from "@/context/AuthProvider";
+import { Text, View } from "@/src/components/Themed";
+import Button from "@/src/components/common/Button";
+import { useAuthContext } from "@/src/context/AuthProvider";
 import { router } from "expo-router";
-import useTheme from "@/hooks/useTheme";
+import useTheme from "@/src/hooks/useTheme";
 
 export default function Challenges() {
-  const {colors} = useTheme();
-  
+  const { colors } = useTheme();
+
   return (
-    <View style={[styles.container, {
-      backgroundColor: colors.background
-    }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
       <Text style={styles.title}>Challenges</Text>
     </View>
   );

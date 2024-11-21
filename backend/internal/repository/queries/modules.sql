@@ -2,9 +2,7 @@
 -- modules.sql
 
 -- name: GetModuleProgressFull
-
-SELECT jsonb_agg(
-        jsonb_build_object(
+SELECT jsonb_build_object(
         'id', m.id,
         'created_at', m.created_at,
         'updated_at', m.updated_at,
@@ -15,7 +13,7 @@ SELECT jsonb_agg(
         'progress', ump.progress,
         'status', ump.status,
         'sections', COALESCE((
-                SELECT jsonb_agg(
+                SELECT DISTINCT jsonb_agg(
                                 jsonb_build_object(
                                 'id', s.id,
                                 'created_at', s.created_at,
@@ -55,7 +53,7 @@ SELECT jsonb_agg(
                                                         ), NULL)
                                                 )
                                                 FROM question_sections qs
-                                                LEFT JOIN questions q ON q.id = qs.question_id
+                                                JOIN questions q ON q.id = qs.question_id
                                                 LEFT JOIN user_question_answers uqn ON uqn.question_id = qs.question_id
                                                 WHERE qs.section_id = s.id
                                         )
@@ -69,11 +67,16 @@ SELECT jsonb_agg(
                                 
                         )
                 FROM sections s
-                LEFT JOIN user_section_progress usp ON usp.section_id = s.id
+                JOIN (
+                    SELECT DISTINCT ON (section_id) *
+                    FROM user_section_progress
+                ) usp ON usp.section_id = s.id
                 WHERE s.module_id = m.id
                         ), '[]'::jsonb)
                 )
-        )
 FROM modules AS m
-LEFT JOIN user_module_progress ump ON ump.module_id = m.id
-WHERE m.unit_id = 3 AND m.id = 8;
+JOIN user_module_progress ump ON ump.module_id = m.id
+WHERE m.unit_id = 1 AND m.id = 1;
+
+SELECT * FROM user_section_progress
+WHERE module_id = 1;

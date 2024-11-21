@@ -2,11 +2,11 @@ import React, { useEffect } from "react";
 import { Tabs, useSegments, router } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import { Theme } from "@/constants/Colors";
-import { useClientOnlyValue } from "@/components/useClientOnlyValue";
-import useTheme from "@/hooks/useTheme";
+import { useClientOnlyValue } from "@/src/components/useClientOnlyValue";
+import useTheme from "@/src/hooks/useTheme";
 import { TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useAuthContext } from "@/context/AuthProvider";
+import { useAuthContext } from "@/src/context/AuthProvider";
 import { MaterialIcons } from "@expo/vector-icons";
 
 function TabBarIcon(props: {
@@ -44,7 +44,7 @@ function HapticTabButton({
           backgroundColor: isSelected ? backgroundColor : "transparent",
           borderRadius: 8,
           padding: 4,
-          alignSelf: "center"
+          alignSelf: "center",
         }}
       >
         {children}
@@ -170,6 +170,12 @@ export default function TabLayout() {
               {props.children}
             </HapticTabButton>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="components/CourseCard"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

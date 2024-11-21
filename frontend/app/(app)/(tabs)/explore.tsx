@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import { Searchbar } from "react-native-paper";
-import { Text, View } from "@/components/Themed";
-import { useAuthContext } from "@/context/AuthProvider";
+import { Text, View } from "@/src/components/Themed";
+import { useAuthContext } from "@/src/context/AuthProvider";
 import { router } from "expo-router";
-import { StickyHeader } from "@/components/common/StickyHeader";
-import useTheme from "@/hooks/useTheme";
+import { StickyHeader } from "@/src/components/common/StickyHeader";
+import useTheme from "@/src/hooks/useTheme";
 import CourseCard from "./components/CourseCard";
-import { useCourses } from "@/hooks/useCourses";
+import { useCourses } from "@/src/hooks/useCourses";
 
 export default function Explore() {
   const { isAuthed, user, invalidateAuth } = useAuthContext();

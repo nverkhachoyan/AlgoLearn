@@ -1,14 +1,14 @@
 import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet, Image } from "react-native";
-import { Text, View } from "@/components/Themed";
-import { useAuthContext } from "@/context/AuthProvider";
-import Button from "@/components/common/Button";
+import { Text, View } from "@/src/components/Themed";
+import { useAuthContext } from "@/src/context/AuthProvider";
+import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import moment from "moment";
 import { Feather } from "@expo/vector-icons";
 import { useEffect } from "react";
-import useTheme from "@/hooks/useTheme";
+import useTheme from "@/src/hooks/useTheme";
 
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
@@ -93,7 +93,7 @@ export default function Profile() {
             user.data.last_login_at === "0001-01-01T00:00:00Z"
               ? "Never"
               : moment(user.data.last_login_at).format(
-                  "MMMM Do YYYY, h:mm:ss a",
+                  "MMMM Do YYYY, h:mm:ss a"
                 )
           }
         />

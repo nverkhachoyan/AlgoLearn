@@ -52,8 +52,7 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 	var moduleJson []byte
 	var module models.Module
 	err = r.db.QueryRowContext(ctx, `
-	SELECT 
-        jsonb_build_object(
+SELECT jsonb_build_object(
         'id', m.id,
         'created_at', m.created_at,
         'updated_at', m.updated_at,
@@ -64,7 +63,7 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
         'progress', ump.progress,
         'status', ump.status,
         'sections', COALESCE((
-                SELECT jsonb_agg(
+                SELECT DISTINCT jsonb_agg(
                                 jsonb_build_object(
                                 'id', s.id,
                                 'created_at', s.created_at,
@@ -104,7 +103,7 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
                                                         ), NULL)
                                                 )
                                                 FROM question_sections qs
-                                                LEFT JOIN questions q ON q.id = qs.question_id
+                                                JOIN questions q ON q.id = qs.question_id
                                                 LEFT JOIN user_question_answers uqn ON uqn.question_id = qs.question_id
                                                 WHERE qs.section_id = s.id
                                         )
@@ -118,13 +117,17 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
                                 
                         )
                 FROM sections s
-                LEFT JOIN user_section_progress usp ON usp.section_id = s.id
+                JOIN (
+                    SELECT DISTINCT ON (section_id) *
+                    FROM user_section_progress
+                ) usp ON usp.section_id = s.id
                 WHERE s.module_id = m.id
                         ), '[]'::jsonb)
                 )
-	FROM modules AS m
-	LEFT JOIN user_module_progress ump ON ump.module_id = m.id
-	WHERE m.unit_id = $1 AND m.id = $2`, unitID, moduleID).
+FROM modules AS m
+JOIN user_module_progress ump ON ump.module_id = m.id
+WHERE m.unit_id = $1 AND m.id = $2;
+	`, unitID, moduleID).
 	Scan(&moduleJson)
 
 	if err != nil {

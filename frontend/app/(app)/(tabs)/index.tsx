@@ -1,13 +1,13 @@
 import { StyleSheet, ActivityIndicator } from "react-native";
-import { View, ScrollView, Text } from "@/components/Themed";
-import { useAuthContext } from "@/context/AuthProvider";
+import { View, ScrollView, Text } from "@/src/components/Themed";
+import { useAuthContext } from "@/src/context/AuthProvider";
 import CourseCard from "./components/CourseCard";
-import Button from "@/components/common/Button";
+import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
-import useTheme from "@/hooks/useTheme";
-import { StickyHeader } from "@/components/common/StickyHeader";
-import { useProgress } from "@/hooks/useProgress";
-import useToast from "@/hooks/useToast";
+import useTheme from "@/src/hooks/useTheme";
+import { StickyHeader } from "@/src/components/common/StickyHeader";
+import { useProgress } from "@/src/hooks/useProgress";
+import useToast from "@/src/hooks/useToast";
 
 interface Course {
   id: number;
@@ -143,6 +143,8 @@ export default function Home() {
             difficultyLevel={course.difficulty_level}
             duration={course.duration + ""}
             rating={course.rating}
+            currentUnit={course.current_unit}
+            currentModule={course.current_module}
             filter="explore"
           />
         );

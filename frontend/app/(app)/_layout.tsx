@@ -4,10 +4,10 @@ import "react-native-reanimated";
 import { useFonts } from "expo-font";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect } from "react";
-import useTheme from "@/hooks/useTheme";
+import useTheme from "@/src/hooks/useTheme";
 export { ErrorBoundary, useSegments, Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthContext } from "@/context/AuthProvider";
+import { useAuthContext } from "@/src/context/AuthProvider";
 
 export default function Layout() {
   const { colors } = useTheme();
@@ -26,7 +26,7 @@ export default function Layout() {
   const segments = useSegments();
   const { isAuthed, checkAuthState } = useAuthContext();
 
-  const shouldSafeAreaBeBlack = segments.includes("(onboarding)" as never);
+  const shouldSafeAreaBeBlack = segments.includes("(auth)" as never);
 
   // useEffect(() => {
   //   const checkAuth = async () => {
@@ -66,18 +66,18 @@ export default function Layout() {
       <SafeAreaView
         edges={["left", "right"]}
         style={{
-          flex: 1
+          flex: 1,
         }}
       >
         <Stack
-          screenOptions={{ 
-            headerShown: false
+          screenOptions={{
+            headerShown: false,
           }}
           initialRouteName="(tabs)"
         >
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(onboarding)" />
-          <Stack.Screen name="(course)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(course)/[courseId]" />
           <Stack.Screen name="profile" options={{ presentation: "modal" }} />
           <Stack.Screen name="preferences" />
           <Stack.Screen name="unauthorized" />

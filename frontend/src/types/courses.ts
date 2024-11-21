@@ -1,20 +1,9 @@
 import { BaseModel } from "@/src/types/base";
 import { DifficultyLevel } from "@/src/types/enums";
-import { Unit } from "@/src/types/units";
+import { Unit } from "./units";
+import { Module } from "./modules";
 
-export interface Course extends BaseModel {
-  name: string;
-  description: string;
-  backgroundColor?: string;
-  iconUrl?: string;
-  duration: number;
-  difficultyLevel: DifficultyLevel;
-  authors: Author[];
-  tags: string[];
-  rating: number;
-  learnersCount?: number;
-  units: Unit[];
-}
+type Status = "uninitiated" | "in_progress" | "completed" | "abandoned";
 
 export interface Author {
   id: number;
@@ -24,4 +13,21 @@ export interface Author {
 export interface Tag {
   id: number;
   name: string;
+}
+
+export interface Course extends BaseModel {
+  name: string;
+  description: string;
+  requirements: string;
+  whatYouLearn: string;
+  backgroundColor: string;
+  iconUrl: string;
+  duration: number;
+  difficultyLevel: DifficultyLevel;
+  authors: Author[];
+  tags: Tag[];
+  rating: number;
+  currentUnit: Unit;
+  currentModule: Module;
+  units: Unit[];
 }

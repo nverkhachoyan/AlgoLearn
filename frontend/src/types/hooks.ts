@@ -5,4 +5,5 @@ export interface UseProgressParams {
   pageSize?: number;
   filter?: "learning" | "explore" | "all";
   type?: "summary" | "brief" | "full";
+  include?: "progress";
 }

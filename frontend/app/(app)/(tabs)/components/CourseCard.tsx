@@ -7,10 +7,8 @@ import { Author } from "@/src/types/courses";
 import useTheme from "@/src/hooks/useTheme";
 import { Card, Divider, Text as PaperText } from "react-native-paper";
 import { useState } from "react";
-import {
-  UnitProgressSummary,
-  ModuleProgressSummary,
-} from "@/src/types/progress";
+import { Unit } from "@/src/types/units";
+import { Module } from "@/src/types/modules";
 
 export default function CourseCard(props: {
   courseID: string;
@@ -23,8 +21,8 @@ export default function CourseCard(props: {
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
-  currentUnit?: UnitProgressSummary;
-  currentModule?: ModuleProgressSummary;
+  currentUnit?: Unit;
+  currentModule?: Module;
   filter?: string;
 }) {
   const { colors } = useTheme();
@@ -44,7 +42,12 @@ export default function CourseCard(props: {
         },
       ]}
       onPress={() =>
-        router.navigate(`(course)/${props.courseID}/details` as any)
+        router.push({
+          pathname: "/course/[courseId]/details",
+          params: {
+            courseId: props.courseID,
+          },
+        })
       }
       onPressIn={() => setIsCoursePressed(true)}
       onPressOut={() => setIsCoursePressed(false)}
@@ -85,8 +88,7 @@ export default function CourseCard(props: {
           <Card
             onPress={() =>
               router.push({
-                pathname:
-                  "/(app)/(course)/[courseId]/(module)/[moduleId]/module-session",
+                pathname: "/course/[courseId]/module/[moduleId]/module-session",
                 params: {
                   courseId: props.courseID, // Make sure this is passed as a prop
                   moduleId: props.currentModule?.id as number,
@@ -142,7 +144,7 @@ export default function CourseCard(props: {
                 onPress={() =>
                   router.push({
                     pathname:
-                      "/(app)/(course)/[courseId]/(module)/[moduleId]/module-session",
+                      "/(app)/course/[courseId]/module/[moduleId]/module-session",
                     params: {
                       courseId: props.courseID,
                       moduleId: props.currentModule?.id as number,

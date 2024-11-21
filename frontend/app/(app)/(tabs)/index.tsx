@@ -6,9 +6,9 @@ import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 import useTheme from "@/src/hooks/useTheme";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
-import { useProgress } from "@/src/hooks/useProgress";
+import { useCourses } from "@/src/hooks/useCourses";
 import useToast from "@/src/hooks/useToast";
-import { CourseProgressSummary } from "@/src/types/progress";
+import { Course } from "@/src/types/courses";
 
 export default function Home() {
   const {
@@ -26,7 +26,7 @@ export default function Home() {
     isFetchingNextPage: isFetchingNextLearning,
     isLoading: isLoadingLearning,
     error: learningError,
-  } = useProgress({
+  } = useCourses({
     userId: 4,
     page: 1,
     pageSize: 5,
@@ -40,7 +40,7 @@ export default function Home() {
     isFetchingNextPage: isFetchingNextExplore,
     isLoading: isLoadingExplore,
     error: exploreError,
-  } = useProgress({
+  } = useCourses({
     userId: 4,
     page: 1,
     pageSize: 5,
@@ -98,7 +98,7 @@ export default function Home() {
   }
 
   const renderCourseList = (
-    courseList: CourseProgressSummary[],
+    courseList: Course[],
     emptyMessage: string,
     filter: string
   ) => {

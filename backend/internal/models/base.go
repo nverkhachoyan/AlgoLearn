@@ -7,3 +7,8 @@ type BaseModel struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
+
+type QueryParams struct {
+	Type string 
+	Include string
+}

@@ -22,7 +22,14 @@ export const fetchModuleFull = async ({
   include: string;
 }): Promise<Module> => {
   const response = await api.get(
-    `/courses/${courseId}/units/${unitId}/modules/${moduleId}?user_id=${userId}&type=${type}&include=${include}`
+    `/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
+    {
+      params: {
+        userId,
+        type,
+        include,
+      },
+    }
   );
   return response.data.data;
 };

@@ -9,7 +9,7 @@ import {
 import { List, Surface } from "react-native-paper";
 import { Feather } from "@expo/vector-icons";
 import { Text, View } from "@/src/components/Themed";
-import { UnitProgressSummary } from "@/src/types/progress";
+import { Unit } from "@/src/types/units";
 
 // Enable LayoutAnimation for Android
 if (
@@ -20,7 +20,7 @@ if (
 }
 
 interface TableOfContentsProps {
-  units: UnitProgressSummary[];
+  units: Unit[];
   onModulePress?: (moduleId: number) => void;
 }
 
@@ -60,7 +60,7 @@ const ChevronIcon: React.FC<{ rotation: Animated.Value; color: string }> =
   });
 
 const ModuleItem: React.FC<{
-  module: UnitProgressSummary["modules"][0];
+  module: Unit["modules"][0];
   unitNumber: number;
   moduleNumber: number;
   onPress: (moduleId: number) => void;

@@ -13,8 +13,7 @@ export default function Explore() {
   const { isAuthed, user, invalidateAuth } = useAuthContext();
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const { coursesOutline, isCoursesOutlinePending, coursesOutlineFetchError } =
-    useCourses();
+  const { courses } = useCourses({ userId: 4, type: "summary" });
 
   return (
     <View
@@ -49,8 +48,8 @@ export default function Explore() {
             style={styles.searchBar}
           />
           <View style={styles.separator} />
-          {coursesOutline && coursesOutline.length > 0 ? (
-            coursesOutline.map((course: any) => (
+          {courses && courses.length > 0 ? (
+            courses.map((course: any) => (
               <CourseCard
                 key={course.id}
                 courseID={course.id.toString()}

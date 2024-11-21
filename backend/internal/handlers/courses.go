@@ -29,7 +29,7 @@ var (
 
 type CourseHandler interface {
 	GetCourses(w http.ResponseWriter, r *http.Request)
-	GetCourseByID(w http.ResponseWriter, r *http.Request)
+	GetCourse(w http.ResponseWriter, r *http.Request)
 	CreateCourse(w http.ResponseWriter, r *http.Request)
 	UpdateCourse(w http.ResponseWriter, r *http.Request)
 	DeleteCourse(w http.ResponseWriter, r *http.Request)
@@ -53,95 +53,98 @@ func NewCourseHandler(courseRepo repository.CourseRepository,
 
 func (h *courseHandler) GetCourses(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get().WithBaseFields(logger.Handler, "GetCourses")
-	ctx := r.Context()
 	query := r.URL.Query()
 
-	expand, err := h.validateExpansion(query.Get("expand"))
+	queryParams := models.ModuleQueryParams {
+		Type: query.Get("type"),
+		Include: query.Get("include"),
+	}
+
+	if queryParams.Type == "summary" && queryParams.Include == "progress" {
+		h.getCoursesProgressSummary(w, r)
+		return
+	}
+
+	log.Warn("possibly incorrect or missing query parameters")
+	RespondWithJSON(w, http.StatusBadRequest, models.Response{
+		Success: false,
+		Message: "possibly incorrect or missing query parameters",
+		ErrorCode: codes.InvalidRequest,
+	})
+}
+
+func (h *courseHandler) GetCourse(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetCourseProgress")
+	ctx := r.Context()
+	query := r.URL.Query()
+	params := mux.Vars(r)
+
+	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
 	if err != nil {
-		log.WithError(err).Error("failed to validate expansion")
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to get user id from query parameters",
+			})
+		return
+	}
+
+	courseID, err := strconv.ParseInt(params["courseId"], 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: codes.DatabaseFail,
+				Message:   "failed to get course id from query parameters",
+			})
+		return
+	}
+
+	queryType := query.Get("type")
+	log.Infof("Handler called with type %s", queryType)
+
+	var course *models.Course
+	switch queryType {
+	case "summary":
+		course, err = h.courseRepo.GetCourseProgressSummary(ctx, userID, courseID)
+		if err != nil {
+			log.WithError(err).Error("error fetching courses progress")
+	
+			RespondWithJSON(w, http.StatusInternalServerError,
+				models.Response{
+					Success:   false,
+					ErrorCode: codes.DatabaseFail,
+					Message:   "could not retrieve courses progress from the database",
+				})
+			return
+		}
+	case "full":
+		course, err = h.courseRepo.GetCourseProgressFull(ctx, userID, courseID)
+		if err != nil {
+			log.WithError(err).Error("error fetching courses progress")
+	
+			RespondWithJSON(w, http.StatusInternalServerError,
+				models.Response{
+					Success:   false,
+					ErrorCode: codes.DatabaseFail,
+					Message:   "could not retrieve courses progress from the database",
+				})
+			return
+		}
+	default:
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Success:   false,
 				ErrorCode: codes.InvalidRequest,
-				Message:   "failed to validate expansion",
+				Message:   "invalid type in the query parameter",
 			})
-		return
-	}
-
-	courses, err := h.courseRepo.GetCourses(ctx, expand)
-	if err != nil {
-		log.WithError(err).Error("error fetching courses")
-
-		RespondWithJSON(w, http.StatusInternalServerError,
-			models.Response{
-				Success:   false,
-				ErrorCode: codes.DatabaseFail,
-				Message:   "could not retrieve courses from the database",
-			})
-		return
 	}
 
 	RespondWithJSON(w, http.StatusOK,
 		models.Response{
 			Success: true,
-			Message: "courses retrieved successfully",
-			Data:    courses,
-		})
-}
-
-func (h *courseHandler) GetCourseByID(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	ctx := r.Context()
-	params := mux.Vars(r)
-	query := r.URL.Query()
-
-	expand, err := h.validateExpansion(query.Get("expand"))
-	if err != nil {
-		log.WithError(err).Warn("invalid expansion parameters")
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Success:   false,
-			Message:   err.Error(),
-			ErrorCode: codes.InvalidRequest,
-		})
-		return
-	}
-	log.WithField("expand", expand).
-		Info("fetching course by id")
-
-	id, err := strconv.ParseInt(params["course_id"], 10, 64)
-	if err != nil {
-		log.WithFields(logger.Fields{
-			"error": err.Error(),
-		}).Errorf("tried to retrieve a course with an invalid course ID: %d\n", id)
-
-		RespondWithJSON(w, http.StatusBadRequest,
-			models.Response{
-				Success:   false,
-				ErrorCode: codes.InvalidInput,
-				Message:   "invalid course ID",
-			})
-		return
-	}
-
-	course, err := h.courseRepo.GetCourseByID(ctx, expand, id)
-	if err != nil {
-		log.WithFields(logger.Fields{
-			"error": err.Error(),
-		}).Errorf("error fetching course from database %d: %v", id, err)
-
-		RespondWithJSON(w, http.StatusInternalServerError,
-			models.Response{
-				Success:   false,
-				ErrorCode: codes.DatabaseFail,
-				Message:   "could not retrieve course from the database",
-			})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK,
-		models.Response{
-			Success: true,
-			Message: "course retrieved successfully",
+			Message: "course progress retrieved successfully",
 			Data:    course,
 		})
 }
@@ -345,7 +348,7 @@ func (h *courseHandler) DeleteCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
-	id, err := strconv.ParseInt(params["course_id"], 10, 64)
+	id, err := strconv.ParseInt(params["courseId"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
@@ -472,7 +475,7 @@ func (h *courseHandler) getCoursesProgressSummary(w http.ResponseWriter, r *http
 	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
 	ctx := r.Context()
 	query := r.URL.Query()
-	userID, err := strconv.ParseInt(query.Get("user_id"), 10, 64)
+	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -494,7 +497,7 @@ func (h *courseHandler) getCoursesProgressSummary(w http.ResponseWriter, r *http
 		return
 	}
 
-	pageSize, err := strconv.ParseInt(query.Get("page_size"), 10, 64)
+	pageSize, err := strconv.ParseInt(query.Get("pageSize"), 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -542,7 +545,7 @@ func (h *courseHandler) GetCourseProgress(w http.ResponseWriter, r *http.Request
 	query := r.URL.Query()
 	params := mux.Vars(r)
 
-	userID, err := strconv.ParseInt(query.Get("user_id"), 10, 64)
+	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -553,7 +556,7 @@ func (h *courseHandler) GetCourseProgress(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	courseID, err := strconv.ParseInt(params["course_id"], 10, 64)
+	courseID, err := strconv.ParseInt(params["courseId"], 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -620,12 +623,12 @@ func (h *courseHandler) RegisterRoutes(r *router.Router) {
 
 	// Public routes
 	public.Handle("", h.GetCourses, "GET")
-	public.Handle("/{course_id}", h.GetCourseByID, "GET")
+	public.Handle("/{courseId}", h.GetCourse, "GET")
 
 	// Authorized routes
 	authorized.Handle("", h.CreateCourse, "POST")
-	authorized.Handle("/{course_id}", h.UpdateCourse, "PUT")
-	authorized.Handle("/{course_id}", h.DeleteCourse, "DELETE")
+	authorized.Handle("/{courseId}", h.UpdateCourse, "PUT")
+	authorized.Handle("/{courseId}", h.DeleteCourse, "DELETE")
 
 	// **************
 	// WITH PROGRESS
@@ -636,5 +639,5 @@ func (h *courseHandler) RegisterRoutes(r *router.Router) {
 
 	// Public routes
 	progressPublic.Handle("", h.GetCoursesProgress, "GET")
-	progressPublic.Handle("/{course_id}", h.GetCourseProgress, "GET")
+	progressPublic.Handle("/{courseId}", h.GetCourseProgress, "GET")
 }

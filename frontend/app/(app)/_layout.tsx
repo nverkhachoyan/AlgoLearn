@@ -77,7 +77,7 @@ export default function Layout() {
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(course)/[courseId]" />
+          <Stack.Screen name="course" />
           <Stack.Screen name="profile" options={{ presentation: "modal" }} />
           <Stack.Screen name="preferences" />
           <Stack.Screen name="unauthorized" />

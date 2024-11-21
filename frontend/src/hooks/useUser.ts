@@ -16,7 +16,7 @@ import {
   fetchUser,
   deleteAccount,
   updateUser,
-} from "@/src/features/user/userServices";
+} from "@/src/features/user/api/queries";
 import { User } from "@/src/types/userTypes";
 import { Response } from "@/src/types/apiTypes";
 import { ImageFile } from "@/src/types/CommonTypes";

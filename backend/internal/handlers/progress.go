@@ -122,32 +122,11 @@ func (h *progressHandler) getCoursesProgressSummary(w http.ResponseWriter, r *ht
 }
 
 func (h *progressHandler) GetCourseProgress(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
-	query := r.URL.Query()
-
-	queryType := query.Get("type")
-	log.Infof("Handler called with type %s", queryType)
-
-	switch queryType {
-	case "summary":
-		h.getCourseProgressSummary(w, r)
-	default:
-		RespondWithJSON(w, http.StatusBadRequest,
-			models.Response{
-				Success:   false,
-				ErrorCode: codes.InvalidRequest,
-				Message:   "invalid type in the query parameter",
-			})
-	}
-}
-
-func (h *progressHandler) getCourseProgressSummary(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get().WithBaseFields(logger.Handler, "GetCourseProgress")
 	ctx := r.Context()
 	query := r.URL.Query()
 	params := mux.Vars(r)
 
-	// TODO: Switch to using middleware to get userID
 	userID, err := strconv.ParseInt(query.Get("user_id"), 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
@@ -170,17 +149,44 @@ func (h *progressHandler) getCourseProgressSummary(w http.ResponseWriter, r *htt
 		return
 	}
 
-	course, err := h.progressRepo.GetCourseProgressSummary(ctx, userID, courseID)
-	if err != nil {
-		log.WithError(err).Error("error fetching courses progress")
+	queryType := query.Get("type")
+	log.Infof("Handler called with type %s", queryType)
 
-		RespondWithJSON(w, http.StatusInternalServerError,
+	var course *models.CourseProgress
+	switch queryType {
+	case "summary":
+		course, err = h.progressRepo.GetCourseProgressSummary(ctx, userID, courseID)
+		if err != nil {
+			log.WithError(err).Error("error fetching courses progress")
+	
+			RespondWithJSON(w, http.StatusInternalServerError,
+				models.Response{
+					Success:   false,
+					ErrorCode: codes.DatabaseFail,
+					Message:   "could not retrieve courses progress from the database",
+				})
+			return
+		}
+	case "full":
+		course, err = h.progressRepo.GetCourseProgressFull(ctx, userID, courseID)
+		if err != nil {
+			log.WithError(err).Error("error fetching courses progress")
+	
+			RespondWithJSON(w, http.StatusInternalServerError,
+				models.Response{
+					Success:   false,
+					ErrorCode: codes.DatabaseFail,
+					Message:   "could not retrieve courses progress from the database",
+				})
+			return
+		}
+	default:
+		RespondWithJSON(w, http.StatusBadRequest,
 			models.Response{
 				Success:   false,
-				ErrorCode: codes.DatabaseFail,
-				Message:   "could not retrieve courses progress from the database",
+				ErrorCode: codes.InvalidRequest,
+				Message:   "invalid type in the query parameter",
 			})
-		return
 	}
 
 	RespondWithJSON(w, http.StatusOK,

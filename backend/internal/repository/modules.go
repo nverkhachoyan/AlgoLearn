@@ -5,6 +5,7 @@ import (
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"fmt"
+
 	"github.com/lib/pq"
 
 	"context"
@@ -196,7 +197,7 @@ func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]
 					Type:     sectionType.String,
 					Position: sectionPosition.Int16,
 				},
-				Content: textContent.String,
+				// Content: textContent.String,
 			}
 		case "video":
 			section = models.VideoSection{
@@ -210,7 +211,7 @@ func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]
 					Type:     sectionType.String,
 					Position: sectionPosition.Int16,
 				},
-				Url: videoUrl.String,
+				// Url: videoUrl.String,
 			}
 		case "question":
 			section = models.QuestionSection{
@@ -369,7 +370,7 @@ func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64
 						Type:     sectionType.String,
 						Position: sectionPosition.Int16,
 					},
-					Content: textContent.String,
+					// Content: textContent.String,
 				}
 			case "video":
 				section = &models.VideoSection{
@@ -383,7 +384,7 @@ func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64
 						Type:     sectionType.String,
 						Position: sectionPosition.Int16,
 					},
-					Url: videoUrl.String,
+					// Url: videoUrl.String,
 				}
 			case "question":
 				questionSection := &models.QuestionSection{
@@ -549,13 +550,14 @@ func (r *moduleRepository) CreateModule(ctx context.Context, module *models.Modu
 
 	var newModule models.Module
 	err = tx.QueryRowContext(ctx, `
-	INSERT INTO modules (unit_id, name, description)
-	VALUES ($1, $2, $3)
-	RETURNING id, created_at, updated_at, unit_id, name, description`,
-		module.UnitID, module.Name, module.Description).Scan(
+	INSERT INTO modules (unit_id, module_number, name, description)
+	VALUES ($1, $2, $3, $4)
+	RETURNING id, created_at, updated_at, module_number, unit_id, name, description`,
+		module.UnitID, 3, module.Name, module.Description).Scan(
 		&newModule.ID,
 		&newModule.CreatedAt,
 		&newModule.UpdatedAt,
+		&newModule.ModuleNumber,
 		&newModule.UnitID,
 		&newModule.Name,
 		&newModule.Description)
@@ -614,7 +616,7 @@ func (r *moduleRepository) insertSections(ctx context.Context, tx *sql.Tx, modul
 			newSection.BaseModel.ID = sectionID
 			_, err = tx.ExecContext(ctx,
 				`INSERT INTO video_sections (section_id, url)
-				VALUES ($1, $2)`, sectionID, s.Url)
+				VALUES ($1, $2)`, sectionID)
 			updatedSection = newSection
 		case models.QuestionSection:
 			newSection := s

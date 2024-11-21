@@ -67,7 +67,7 @@ func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) 
 			&module.ID,
 			&module.CreatedAt,
 			&module.UpdatedAt,
-			&module.UnitID,
+			&module.ModuleUnitID,
 			&module.Name,
 			&module.Description,
 		)
@@ -176,7 +176,7 @@ func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]
 					CreatedAt: moduleCreatedAt,
 					UpdatedAt: moduleUpdatedAt,
 				},
-				UnitID:      unitID,
+				ModuleUnitID:      unitID,
 				Name:        moduleName.String,
 				Description: moduleDescription.String,
 				Sections:    []models.Section{},
@@ -347,7 +347,7 @@ func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64
 					CreatedAt: moduleCreatedAt,
 					UpdatedAt: moduleUpdatedAt,
 				},
-				UnitID:      unitID,
+				ModuleUnitID:      unitID,
 				Name:        moduleName.String,
 				Description: moduleDescription.String,
 				Sections:    []models.Section{},
@@ -553,12 +553,12 @@ func (r *moduleRepository) CreateModule(ctx context.Context, module *models.Modu
 	INSERT INTO modules (unit_id, module_number, name, description)
 	VALUES ($1, $2, $3, $4)
 	RETURNING id, created_at, updated_at, module_number, unit_id, name, description`,
-		module.UnitID, 3, module.Name, module.Description).Scan(
+		module.ModuleUnitID, 3, module.Name, module.Description).Scan(
 		&newModule.ID,
 		&newModule.CreatedAt,
 		&newModule.UpdatedAt,
 		&newModule.ModuleNumber,
-		&newModule.UnitID,
+		&newModule.ModuleUnitID,
 		&newModule.Name,
 		&newModule.Description)
 	if err != nil {
@@ -568,7 +568,7 @@ func (r *moduleRepository) CreateModule(ctx context.Context, module *models.Modu
 	module.ID = newModule.ID
 	module.CreatedAt = newModule.CreatedAt
 	module.UpdatedAt = newModule.UpdatedAt
-	module.UnitID = newModule.UnitID
+	module.ModuleUnitID = newModule.ModuleUnitID
 	module.Name = newModule.Name
 	module.Description = newModule.Description
 
@@ -731,7 +731,7 @@ func (r *moduleRepository) UpdateModule(ctx context.Context, module *models.Modu
 		&module.ID,
 		&module.CreatedAt,
 		&module.UpdatedAt,
-		&module.UnitID,
+		&module.ModuleUnitID,
 		&module.Name,
 		&module.Description)
 	if errors.Is(err, sql.ErrNoRows) {

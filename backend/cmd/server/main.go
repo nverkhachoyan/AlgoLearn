@@ -42,8 +42,6 @@ func main() {
 	notifRepo := repository.NewNotificationsRepository(db)
 	courseRepo := repository.NewCourseRepository(db)
 	moduleRepo := repository.NewModuleRepository(db)
-	unitRepo := repository.NewUnitRepository(db)
-	progressRepo := repository.NewProgressService(db)
 
 	achievementsRepo := repository.NewAchievementsRepository(db)
 
@@ -52,25 +50,21 @@ func main() {
 	oauthHandler := handlers.NewOauthHandler(userRepo)
 	notifHandler := handlers.NewNotificationsHandler(notifRepo)
 	courseHandler := handlers.NewCourseHandler(courseRepo, userRepo)
-	unitHandler := handlers.NewUnitHandler(unitRepo, userRepo)
 	moduleHandler := handlers.NewModuleHandler(moduleRepo, userRepo)
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
 	adminDashboardHandler := handlers.NewAdminDashboardHandler()
 	healthHandler := handlers.NewHealthHandler()
-	progressHandler := handlers.NewProgressHandler(progressRepo, userRepo)
 
 	// Router setup
 	r := router.NewRouter(
 		userHandler,
 		courseHandler,
-		unitHandler,
 		moduleHandler,
 		oauthHandler,
 		notifHandler,
 		achievementsHandler,
 		adminDashboardHandler,
 		healthHandler,
-		progressHandler,
 	)
 
 	// Timeout middleware

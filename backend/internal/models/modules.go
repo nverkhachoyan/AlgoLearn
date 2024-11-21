@@ -1,77 +1,71 @@
 package models
 
-import (
-	"encoding/json"
-	"fmt"
-)
+// type Module struct {
+// 	BaseModel
+// 	ModuleNumber int16 `json:"module_number"`
+// 	UnitID      int64     `json:"unit_id"`
+// 	Name        string    `json:"name"`
+// 	Description string    `json:"description"`
+// 	Sections    []Section `json:"sections,omitempty"`
+// }
 
-type Module struct {
-	BaseModel
-	ModuleNumber int16 `json:"module_number"`
-	UnitID      int64     `json:"unit_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Sections    []Section `json:"sections,omitempty"`
-}
+// func (m *Module) UnmarshalJSON(data []byte) error {
+// 	type TempModule struct {
+// 		BaseModel
+// 		UnitID      int64             `json:"unit_id"`
+// 		Name        string            `json:"name"`
+// 		Description string            `json:"description"`
+// 		Sections    []json.RawMessage `json:"sections,omitempty"`
+// 	}
 
-func (m *Module) UnmarshalJSON(data []byte) error {
-	type TempModule struct {
-		BaseModel
-		UnitID      int64             `json:"unit_id"`
-		Name        string            `json:"name"`
-		Description string            `json:"description"`
-		Sections    []json.RawMessage `json:"sections,omitempty"`
-	}
-	
+// 	var temp TempModule
+// 	if err := json.Unmarshal(data, &temp); err != nil {
+// 		return fmt.Errorf("failed to unmarshal module: %w", err)
+// 	}
 
-	var temp TempModule
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("failed to unmarshal module: %w", err)
-	}
+// 	m.BaseModel = temp.BaseModel
+// 	m.UnitID = temp.UnitID
+// 	m.Name = temp.Name
+// 	m.Description = temp.Description
 
-	m.BaseModel = temp.BaseModel
-	m.UnitID = temp.UnitID
-	m.Name = temp.Name
-	m.Description = temp.Description
+// 	m.Sections = make([]Section, 0, len(temp.Sections))
+// 	for _, rawSection := range temp.Sections {
+// 		var baseSection struct {
+// 			Type string `json:"type"`
+// 		}
+// 		if err := json.Unmarshal(rawSection, &baseSection); err != nil {
+// 			return fmt.Errorf("failed to unmarshal section type: %w", err)
+// 		}
 
-	m.Sections = make([]Section, 0, len(temp.Sections))
-	for _, rawSection := range temp.Sections {
-		var baseSection struct {
-			Type string `json:"type"`
-		}
-		if err := json.Unmarshal(rawSection, &baseSection); err != nil {
-			return fmt.Errorf("failed to unmarshal section type: %w", err)
-		}
+// 		var section Section
+// 		switch baseSection.Type {
+// 		case "text":
+// 			var s TextSection
+// 			if err := json.Unmarshal(rawSection, &s); err != nil {
+// 				return fmt.Errorf("failed to unmarshal text section: %w", err)
+// 			}
+// 			section = s
+// 		case "video":
+// 			var s VideoSection
+// 			if err := json.Unmarshal(rawSection, &s); err != nil {
+// 				return fmt.Errorf("failed to unmarshal video section: %w", err)
+// 			}
+// 			section = s
+// 		case "question":
+// 			var s QuestionSection
+// 			if err := json.Unmarshal(rawSection, &s); err != nil {
+// 				return fmt.Errorf("failed to unmarshal question section: %w", err)
+// 			}
+// 			section = s
+// 		default:
+// 			return fmt.Errorf("unknown section type: %s", baseSection.Type)
+// 		}
 
-		var section Section
-		switch baseSection.Type {
-		case "text":
-			var s TextSection
-			if err := json.Unmarshal(rawSection, &s); err != nil {
-				return fmt.Errorf("failed to unmarshal text section: %w", err)
-			}
-			section = s
-		case "video":
-			var s VideoSection
-			if err := json.Unmarshal(rawSection, &s); err != nil {
-				return fmt.Errorf("failed to unmarshal video section: %w", err)
-			}
-			section = s
-		case "question":
-			var s QuestionSection
-			if err := json.Unmarshal(rawSection, &s); err != nil {
-				return fmt.Errorf("failed to unmarshal question section: %w", err)
-			}
-			section = s
-		default:
-			return fmt.Errorf("unknown section type: %s", baseSection.Type)
-		}
+// 		m.Sections = append(m.Sections, section)
+// 	}
 
-		m.Sections = append(m.Sections, section)
-	}
-
-	return nil
-}
+// 	return nil
+// }
 
 // func (m *Module) Validate() error {
 // 	positions := make(map[int16]bool)

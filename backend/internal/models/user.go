@@ -8,15 +8,15 @@ type User struct {
 	BaseModel
 	Username          string            `json:"username"`
 	Email             string            `json:"email"`
-	OAuthID           string            `json:"oauth_id,omitempty"`
+	OAuthID           string            `json:"oauthId,omitempty"`
 	Role              string            `json:"role"`
 	PasswordHash      string            `json:"-"`
-	FirstName         string            `json:"first_name,omitempty"`
-	LastName          string            `json:"last_name,omitempty"`
-	ProfilePictureURL string            `json:"profile_picture_url,omitempty"`
-	LastLoginAt       time.Time         `json:"last_login_at,omitempty"`
-	IsActive          bool              `json:"is_active"`
-	IsEmailVerified   bool              `json:"is_email_verified"`
+	FirstName         string            `json:"firstName,omitempty"`
+	LastName          string            `json:"lastName,omitempty"`
+	ProfilePictureURL string            `json:"profilePictureUrl,omitempty"`
+	LastLoginAt       time.Time         `json:"lastLoginAt,omitempty"`
+	IsActive          bool              `json:"isActive"`
+	IsEmailVerified   bool              `json:"isEmailVerified"`
 	Bio               string            `json:"bio,omitempty"`
 	Location          string            `json:"location,omitempty"`
 	CPUs              int               `json:"cpus"`
@@ -38,15 +38,15 @@ type ModuleProgressStatus string
 // Tracking user progress for each module
 type UserModuleProgress struct {
 	ID              int                  `json:"id"`
-	CreatedAt       time.Time            `json:"created_at"`
-	UpdatedAt       time.Time            `json:"updated_at"`
-	UserID          int64                `json:"user_id"`
-	ModuleID        int                  `json:"module_id"`
-	StartedAt       time.Time            `json:"started_at"`
-	CompletedAt     time.Time            `json:"completed_at,omitempty"`
+	CreatedAt       time.Time            `json:"createdAt"`
+	UpdatedAt       time.Time            `json:"updatedAt"`
+	UserID          int64                `json:"userId"`
+	ModuleID        int                  `json:"moduleId"`
+	StartedAt       time.Time            `json:"startedAt"`
+	CompletedAt     time.Time            `json:"completedAt,omitempty"`
 	Progress        float64              `json:"progress"`
-	CurrentPosition int                  `json:"current_position"`
-	LastAccessed    time.Time            `json:"last_accessed"`
+	CurrentPosition int                  `json:"currentPosition"`
+	LastAccessed    time.Time            `json:"lastAccessed"`
 	Answers         []UserQuestionAnswer `json:"answers"`
 	Status          ModuleProgressStatus `json:"status"`
 }
@@ -54,16 +54,16 @@ type UserModuleProgress struct {
 // User answers for questions in each module
 type UserQuestionAnswer struct {
 	BaseModel
-	UserModuleProgressID int       `json:"user_module_session_id"`
-	QuestionID           int       `json:"question_id"`
-	AnswerID             int       `json:"answer_id"`
-	AnsweredAt           time.Time `json:"answered_at"`
-	IsCorrect            bool      `json:"is_correct"`
+	UserModuleProgressID int       `json:"userModuleSessionId"`
+	QuestionID           int       `json:"questionId"`
+	AnswerID             int       `json:"answerId"`
+	AnsweredAt           time.Time `json:"answeredAt"`
+	IsCorrect            bool      `json:"isCorrect"`
 }
 
 type UserCourse struct {
 	BaseModel
-	UserID                 int `json:"user_id"`
-	CourseID               int `json:"course_id"`
-	LatestModuleProgressID int `json:"latest_module_session_id"`
+	UserID                 int `json:"userId"`
+	CourseID               int `json:"courseId"`
+	LatestModuleProgressID int `json:"latestModuleSessionId"`
 }

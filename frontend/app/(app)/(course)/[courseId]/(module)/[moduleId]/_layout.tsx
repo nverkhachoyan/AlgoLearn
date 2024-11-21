@@ -4,6 +4,7 @@ export default function Layout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="module-session" />
+      <Stack.Screen name="toc" />
     </Stack>
   );
 }

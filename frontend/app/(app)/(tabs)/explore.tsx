@@ -26,9 +26,9 @@ export default function Explore() {
       ]}
     >
       <StickyHeader
-        cpus={user.data.cpus ?? 0}
-        strikeCount={user.data.streaks?.length ?? 0}
-        userAvatar={user.data.profile_picture_url}
+        cpus={user.cpus ?? 0}
+        strikeCount={user.streaks?.length ?? 0}
+        userAvatar={user.profile_picture_url}
         onAvatarPress={() => {
           router.push("/profile");
         }}
@@ -55,13 +55,16 @@ export default function Explore() {
                 key={course.id}
                 courseID={course.id.toString()}
                 courseTitle={course.name}
-                backgroundColor={course.background_color}
+                backgroundColor={course.backgroundColor}
                 iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
                 description={course.description}
                 authors={course.authors}
-                difficultyLevel={course.difficulty_level}
+                difficultyLevel={course.difficultyLevel}
                 duration={course.duration}
                 rating={course.rating}
+                currentUnit={undefined}
+                currentModule={undefined}
+                filter="explore"
               />
             ))
           ) : (

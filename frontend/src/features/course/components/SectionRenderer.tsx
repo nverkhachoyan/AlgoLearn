@@ -150,21 +150,21 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({
             return (
               <TouchableOpacity
                 key={`${questionContent.id}-${option.id}`}
-                onPress={() => handleOptionPress(option.id, option.is_correct)}
+                onPress={() => handleOptionPress(option.id, option.isCorrect)}
                 disabled={questionState?.hasAnswered}
               >
                 <View
                   style={getOptionStyle(
                     questionContent.id,
                     option.id,
-                    option.is_correct
+                    option.isCorrect
                   )}
                 >
                   <Checkbox.Android
                     key={`checkbox-${questionContent.id}-${option.id}`}
                     status={isSelected ? "checked" : "unchecked"}
                     onPress={() =>
-                      handleOptionPress(option.id, option.is_correct)
+                      handleOptionPress(option.id, option.isCorrect)
                     }
                     disabled={questionState?.hasAnswered}
                   />
@@ -174,7 +174,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({
                   {questionState?.hasAnswered && (
                     <Text
                       style={{
-                        color: option.is_correct
+                        color: option.isCorrect
                           ? "green"
                           : option.id === questionState.selectedOptionId
                             ? "red"
@@ -182,7 +182,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({
                         marginLeft: 8,
                       }}
                     >
-                      {option.is_correct
+                      {option.isCorrect
                         ? "✓"
                         : option.id === questionState.selectedOptionId
                           ? "✗"

@@ -60,7 +60,7 @@ type DeleteAccountObject = MutationObject<Response, void>;
 
 // Return type for useUser hook
 export type UseUserReturn = {
-  user: FetchUserObject;
+  user?: UserWithToken | undefined;
   updateUser: UpdateUserObject;
   deleteAccount: DeleteAccountObject;
   isAuthed: boolean;
@@ -90,7 +90,7 @@ export type UseUserReturn = {
   invalidateAuth: () => Promise<void>;
 };
 
-export const useUser = (): UseUserReturn => {
+export const useUser = (): any => {
   const queryClient = useQueryClient();
   const [authState, setAuthState] = useState({
     isAuthed: false,
@@ -277,7 +277,11 @@ export const useUser = (): UseUserReturn => {
   };
 
   // Fetch user data
-  const userQuery = useQuery({
+  const {
+    data: user,
+    isPending: isUserPending,
+    error: userError,
+  } = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
       const authToken = await getAuthToken();
@@ -285,10 +289,10 @@ export const useUser = (): UseUserReturn => {
         throw new Error("No auth token found");
       }
       const user = await fetchUser(authToken);
-      if (!user || !user.data) {
+      if (!user || !user) {
         throw new Error("Failed to fetch user data");
       }
-      return { ...user.data, token: authToken };
+      return { ...user, token: authToken };
     },
     enabled: authState.isAuthed && authState.isInitialized,
     retry: 1,
@@ -368,11 +372,14 @@ export const useUser = (): UseUserReturn => {
       data: checkEmailMutation.data,
       isPending: checkEmailMutation.isPending,
     },
-    user: {
-      isPending: userQuery.isPending,
-      data: userQuery.data,
-      error: userQuery.error,
-    },
+    user,
+    isUserPending,
+    userError,
+    // user: {
+    //   isPending: userQuery.isPending,
+    //   data: userQuery.data,
+    //   error: userQuery.error,
+    // },
     updateUser: {
       mutate: updateUserMutation.mutate,
       data: updateUserMutation.data,

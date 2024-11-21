@@ -1061,7 +1061,7 @@ SELECT DISTINCT ON (c.id)
     c.description,
     NULLIF(c.requirements, ''),
     NULLIF(c.what_you_learn, ''),
-    NULLIF(c.background_color, '') AS background_color,
+    NULLIF(c.background_color, '') AS backgroundColor,
     NULLIF(c.icon_url, '') AS icon_url,
     c.duration,
     c.difficulty_level,
@@ -1082,18 +1082,18 @@ SELECT DISTINCT ON (c.id)
     c.rating,
     jsonb_build_object(
             'id', u.id,
-            'created_at', u.created_at,
-            'updated_at', u.updated_at,
-            'unit_number', u.unit_number,
+            'createdAt', u.created_at,
+            'updatedAt', u.updated_at,
+            'unitNumber', u.unit_number,
             'name', u.name,
             'description', u.description
     ) AS current_unit,
     jsonb_build_object(
             'id', m.id,
-            'created_at', m.created_at,
-            'updated_at', m.updated_at,
-            'module_number', m.module_number,
-            'unit_id', m.unit_id,
+            'createdAt', m.created_at,
+            'updatedAt', m.updated_at,
+            'moduleNumber', m.module_number,
+            'unitId', m.unit_id,
             'name', m.name,
             'description', m.description,
             'progress', ump.progress,
@@ -1102,20 +1102,20 @@ SELECT DISTINCT ON (c.id)
     COALESCE((SELECT jsonb_agg(
     jsonb_build_object(
     'id', sub_u.id,
-    'created_at', sub_u.created_at,
-    'updated_at', sub_u.updated_at,
-    'unit_number', sub_u.unit_number,
-    'course_id', sub_u.course_id,
+    'createdAt', sub_u.created_at,
+    'updatedAt', sub_u.updated_at,
+    'unitNumber', sub_u.unit_number,
+    'courseId', sub_u.course_id,
     'name', sub_u.name,
     'description', sub_u.description,
     'modules', COALESCE((SELECT
                 jsonb_agg(
                     jsonb_build_object(
                         'id', sub_m.id,
-                        'created_at', sub_m.created_at,
-                        'updated_at', sub_m.updated_at,
-                        'module_number', sub_m.module_number,
-                        'unit_id', sub_m.unit_id,
+                        'createdAt', sub_m.created_at,
+                        'updatedAt', sub_m.updated_at,
+                        'moduleNumber', sub_m.module_number,
+                        'unitId', sub_m.unit_id,
                         'name', sub_m.name,
                         'description', sub_m.description,
                         'progress', sub_ump.progress,
@@ -1234,18 +1234,18 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	c.rating,
 	jsonb_build_object(
 	'id', u.id,
-	'created_at', u.created_at,
-	'updated_at', u.updated_at,
-	'unit_number', u.unit_number,
+	'createdAt', u.created_at,
+	'updatedAt', u.updated_at,
+	'unitNumber', u.unit_number,
 	'name', u.name,
 	'description', u.description
 	) AS current_unit,
 	jsonb_build_object(
 	'id', m.id,
-	'created_at', m.created_at,
-	'updated_at', m.updated_at,
-	'module_number', m.module_number,
-	'unit_id', m.unit_id,
+	'createdAt', m.created_at,
+	'updatedAt', m.updated_at,
+	'moduleNumber', m.module_number,
+	'unitId', m.unit_id,
 	'name', m.name,
 	'description', m.description,
 	'progress', ump.progress,
@@ -1254,20 +1254,20 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	COALESCE((SELECT jsonb_agg(
 	jsonb_build_object(
 	'id', sub_u.id,
-	'created_at', sub_u.created_at,
-	'updated_at', sub_u.updated_at,
-	'unit_number', sub_u.unit_number,
-	'course_id', sub_u.course_id,
+	'createdAt', sub_u.created_at,
+	'updatedAt', sub_u.updated_at,
+	'unitNumber', sub_u.unit_number,
+	'courseId', sub_u.course_id,
 	'name', sub_u.name,
 	'description', sub_u.description,
 	'modules', COALESCE((SELECT
 	jsonb_agg(
 	jsonb_build_object(
 	'id', sub_m.id,
-	'created_at', sub_m.created_at,
-	'updated_at', sub_m.updated_at,
-	'module_number', sub_m.module_number,
-	'unit_id', sub_m.unit_id,
+	'createdAt', sub_m.created_at,
+	'updatedAt', sub_m.updated_at,
+	'moduleNumber', sub_m.module_number,
+	'unitId', sub_m.unit_id,
 	'name', sub_m.name,
 	'description', sub_m.description,
 	'progress', sub_ump.progress,
@@ -1276,8 +1276,8 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	SELECT jsonb_agg(
 	jsonb_build_object(
 	'id', sub_s.id,
-	'created_at', sub_s.created_at,
-	'updated_at', sub_s.updated_at,
+	'createdAt', sub_s.created_at,
+	'updatedAt', sub_s.updated_at,
 	'type', sub_s.type,
 	'position', sub_s.position,
 	'content', CASE sub_s.type
@@ -1300,16 +1300,16 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	SELECT jsonb_agg( jsonb_build_object(
 	'id', qo.id,
 	'content', qo.content,
-	'is_correct', qo.is_correct
+	'isCorrect', qo.is_correct
 	))
 	FROM question_options qo
 	WHERE qo.question_id = q.id
 	), '[]'::jsonb
 	),
-	'user_question_answer', COALESCE(jsonb_build_object(
-	'answer_id', uqn.answer_id,
-	'answered_at', uqn.answered_at,
-	'is_correct', uqn.is_correct
+	'userQuestionAnswer', COALESCE(jsonb_build_object(
+	'answerId', uqn.answer_id,
+	'answeredAt', uqn.answered_at,
+	'isCorrect', uqn.is_correct
 	), NULL)
 	)
 	FROM question_sections qs
@@ -1318,9 +1318,9 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	WHERE qs.section_id = sub_s.id
 	)
 	END,
-	'section_progress', jsonb_build_object(
-	'started_at', usp.started_at,
-	'completed_at', usp.completed_at,
+	'sectionProgress', jsonb_build_object(
+	'startedAt', usp.started_at,
+	'completedAt', usp.completed_at,
 	'status', usp.status
 	)
 	)

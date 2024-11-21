@@ -1,5 +1,5 @@
 export interface BaseModel {
-    id: number;
-    created_at: string;  // ISO date string
-    updated_at: string;  // ISO date string
+  id: number;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
 }

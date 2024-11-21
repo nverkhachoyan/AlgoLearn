@@ -42,13 +42,13 @@ export default function Preferences() {
   const [imageFile, setImageFile] = useState<ImageFile>(null);
 
   const [formData, setFormData] = useState<UpdateUserData>({
-    username: user?.data.username,
-    email: user?.data.email,
-    first_name: user?.data.first_name,
-    last_name: user?.data.last_name,
-    profile_picture_url: user?.data.profile_picture_url,
-    bio: user?.data.bio,
-    location: user?.data.location,
+    username: user?.username,
+    email: user?.email,
+    first_name: user?.firstName,
+    last_name: user?.lastName,
+    profile_picture_url: user?.profilePictureUrl,
+    bio: user?.bio,
+    location: user?.location,
   });
 
   const pickImage = async () => {
@@ -144,9 +144,9 @@ export default function Preferences() {
               <View style={styles.image}>
                 <Image
                   source={
-                    user.data.profile_picture_url
+                    user.profilePictureUrl
                       ? {
-                          uri: user.data.profile_picture_url,
+                          uri: user.profilePictureUrl,
                         }
                       : require("@/assets/images/defaultAvatar.png")
                   }
@@ -159,10 +159,10 @@ export default function Preferences() {
             </View>
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]}>
-            {user.data.username || user.data.email}
+            {user.username || user.email}
           </Text>
           <Text style={[styles.bio, { color: colors.text }]}>
-            {user.data.bio || "No bio available"}
+            {user.bio || "No bio available"}
           </Text>
         </View>
 

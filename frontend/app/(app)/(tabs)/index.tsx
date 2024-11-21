@@ -8,22 +8,17 @@ import useTheme from "@/src/hooks/useTheme";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useProgress } from "@/src/hooks/useProgress";
 import useToast from "@/src/hooks/useToast";
-
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-  background_color: string;
-  authors: Array<{ id: number; name: string }>;
-  difficulty_level: string;
-  duration: number;
-  rating: number;
-  current_unit: any | null;
-  current_module: any | null;
-}
+import { CourseProgressSummary } from "@/src/types/progress";
 
 export default function Home() {
-  const { user, isAuthed, invalidateAuth, isInitialized } = useAuthContext();
+  const {
+    user,
+    isUserPending,
+    userError,
+    isAuthed,
+    invalidateAuth,
+    isInitialized,
+  } = useAuthContext();
   const {
     courses: learningCourses,
     fetchNextPage: fetchNextLearning,
@@ -32,7 +27,7 @@ export default function Home() {
     isLoading: isLoadingLearning,
     error: learningError,
   } = useProgress({
-    user_id: 4,
+    userId: 4,
     page: 1,
     pageSize: 5,
     type: "summary",
@@ -46,7 +41,7 @@ export default function Home() {
     isLoading: isLoadingExplore,
     error: exploreError,
   } = useProgress({
-    user_id: 4,
+    userId: 4,
     page: 1,
     pageSize: 5,
     type: "summary",
@@ -84,7 +79,7 @@ export default function Home() {
     );
   }
 
-  if (user.isPending) {
+  if (isUserPending) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#25A879" />
@@ -103,7 +98,7 @@ export default function Home() {
   }
 
   const renderCourseList = (
-    courseList: Course[],
+    courseList: CourseProgressSummary[],
     emptyMessage: string,
     filter: string
   ) => {
@@ -118,15 +113,15 @@ export default function Home() {
             key={`course-${course.id}`}
             courseID={course.id.toString()}
             courseTitle={course.name}
-            backgroundColor={course.background_color || colors.cardBackground}
+            backgroundColor={course.backgroundColor || colors.cardBackground}
             iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
             description={course.description}
             authors={course.authors}
-            difficultyLevel={course.difficulty_level}
+            difficultyLevel={course.difficultyLevel}
             duration={course.duration + ""}
             rating={course.rating}
-            currentUnit={course.current_unit}
-            currentModule={course.current_module}
+            currentUnit={course.currentUnit}
+            currentModule={course.currentModule}
             filter="learning"
           />
         );
@@ -136,15 +131,15 @@ export default function Home() {
             key={`course-${course.id}`}
             courseID={course.id.toString()}
             courseTitle={course.name}
-            backgroundColor={course.background_color || colors.cardBackground}
+            backgroundColor={course.backgroundColor || colors.cardBackground}
             iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
             description={course.description}
             authors={course.authors}
-            difficultyLevel={course.difficulty_level}
+            difficultyLevel={course.difficultyLevel}
             duration={course.duration + ""}
             rating={course.rating}
-            currentUnit={course.current_unit}
-            currentModule={course.current_module}
+            currentUnit={course.currentUnit}
+            currentModule={course.currentModule}
             filter="explore"
           />
         );
@@ -162,9 +157,9 @@ export default function Home() {
       ]}
     >
       <StickyHeader
-        cpus={user.data?.cpus ?? 0}
-        strikeCount={user.data?.streaks?.length ?? 0}
-        userAvatar={user.data?.profile_picture_url}
+        cpus={user?.cpus ?? 0}
+        strikeCount={user?.strikeCount ?? 0}
+        userAvatar={""}
         onAvatarPress={() => {
           router.push("/profile");
         }}

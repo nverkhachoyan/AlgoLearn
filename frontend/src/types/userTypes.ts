@@ -2,17 +2,17 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  password_hash: string;
-  oauth_id?: string;
+  passwordHash: string;
+  oauthId?: string;
   role: string;
-  created_at: string; // ISO date string
-  updated_at: string; // ISO date string
-  first_name?: string;
-  last_name?: string;
-  profile_picture_url?: string;
-  last_login_at?: string; // ISO date string
-  is_active: boolean;
-  is_email_verified: boolean;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  firstName?: string;
+  lastName?: string;
+  profilePictureUrl?: string;
+  lastLoginAt?: string; // ISO date string
+  isActive: boolean;
+  isEmailVerified: boolean;
   bio?: string;
   location?: string;
   cpus: number;
@@ -23,18 +23,18 @@ export interface User {
 
 export interface Streak {
   id: number;
-  user_id: number;
-  start_date: string; // ISO date string
-  end_date?: string; // ISO date string
-  current_streak: number;
-  longest_streak: number;
-  created_at: string; // ISO date string
-  updated_at: string; // ISO date string
+  userId: number;
+  startDate: string; // ISO date string
+  endDate?: string; // ISO date string
+  currentStreak: number;
+  longestStreak: number;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
 }
 
 export interface UserAchievement {
   id: number;
-  user_id: number;
-  achievement_id: number;
-  achieved_at: string; // ISO date string
+  userId: number;
+  achievementId: number;
+  achievedAt: string; // ISO date string
 }

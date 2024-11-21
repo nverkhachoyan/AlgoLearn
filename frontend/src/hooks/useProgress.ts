@@ -7,8 +7,8 @@ import { CourseProgressSummary } from "@/src/types/progress";
 import { UseProgressParams } from "@/src/types/hooks";
 
 export const useProgress = ({
-  user_id,
-  course_id,
+  userId,
+  courseId,
   page,
   pageSize,
   filter,
@@ -22,10 +22,10 @@ export const useProgress = ({
     status,
     error,
   } = useInfiniteQuery({
-    queryKey: ["progress", filter, type, user_id],
+    queryKey: ["progress", filter, type, userId],
     queryFn: async () => {
       const res = await fetchCoursesProgress({
-        user_id,
+        userId,
         page,
         pageSize,
         filter,
@@ -34,7 +34,7 @@ export const useProgress = ({
       return res;
     },
     getNextPageParam: (lastPage) => {
-      if (lastPage.page < lastPage.total_pages) {
+      if (lastPage.page < lastPage.totalPages) {
         return lastPage.page + 1;
       }
       return undefined;
@@ -47,11 +47,11 @@ export const useProgress = ({
     isPending: isCoursePending,
     error: courseError,
   } = useQuery({
-    queryKey: ["progress", course_id, filter, type],
+    queryKey: ["progress", courseId, filter, type],
     queryFn: async () => {
       const res = await fetchCourseProgress({
-        user_id,
-        course_id,
+        userId,
+        courseId,
         filter,
         type,
       });

@@ -3,7 +3,7 @@ export type Response = {
   message?: string;
   data?: JSON | PaginatedResponse;
   error?: string;
-  error_code?: string;
+  errorCode?: string;
 };
 
 export interface PaginatedResponse {
@@ -11,5 +11,5 @@ export interface PaginatedResponse {
   total: number;
   pageSize: number;
   page: number;
-  total_pages: number;
+  totalPages: number;
 }

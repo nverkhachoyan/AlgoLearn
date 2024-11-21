@@ -32,7 +32,6 @@ export default function ModuleSession() {
   const { courseId, unitId, moduleId, userId, type, include } =
     useLocalSearchParams<RouteParams | any>();
 
-  // Parse and validate route params
   const parsedParams = useMemo(
     () => ({
       courseId: parseInt(courseId ?? "", 10),
@@ -45,9 +44,6 @@ export default function ModuleSession() {
     [courseId, unitId, moduleId, type, include]
   );
 
-  console.log("PARAAAAAAAAAMS", parsedParams);
-
-  // Validate params early
   const isValidParams = useMemo(
     () =>
       !isNaN(parsedParams.courseId) &&
@@ -56,50 +52,39 @@ export default function ModuleSession() {
     [parsedParams]
   );
 
-  // Fetch module data
   const {
     module: { data: module, isPending, error },
   } = useModules({
-    courseId: parsedParams.courseId,
-    unitId: parsedParams.unitId,
-    moduleId: parsedParams.moduleId,
-    userId: parsedParams.userId,
-    type: parsedParams.type,
-    include: parsedParams.include,
+    ...parsedParams,
   });
 
-  // State management for questions
   const [questionsState, setQuestionsState] = useState<
     Map<number, QuestionState>
   >(new Map());
 
-  // Memoized sections
   const sortedSections = useMemo(() => {
     if (!module?.sections) return [];
     return [...module.sections].sort((a, b) => a.position - b.position);
   }, [module?.sections]);
 
-  // Initialize questions state
   useEffect(() => {
     if (!module?.sections) return;
 
     const questionsMap = new Map<number, QuestionState>();
     module.sections.forEach((section) => {
       if (section.type === "question") {
-        const userAnswer = section.content.user_question_answer;
-        questionsMap.set(section.content.question_id, {
-          // Changed from content.id to content.question_id
-          id: section.content.question_id, // Changed from content.id to content.question_id
+        const userAnswer = section.content.userQuestionAnswer.answerId;
+        questionsMap.set(section.content.questionId, {
+          id: section.content.questionId,
           hasAnswered: !!userAnswer,
-          selectedOptionId: userAnswer?.answer_id || null,
-          isCorrect: userAnswer?.is_correct,
+          selectedOptionId: userAnswer?.answerId || null,
+          isCorrect: userAnswer?.isCorrect,
         });
       }
     });
     setQuestionsState(questionsMap);
   }, [module?.sections]);
 
-  // Handle question answer selection
   const handleQuestionAnswer = useCallback(
     (questionId: number, selectedOptionId: number, isCorrect: boolean) => {
       setQuestionsState((prev) => {
@@ -113,7 +98,7 @@ export default function ModuleSession() {
         return next;
       });
 
-      // Here you could also make an API call to save the answer
+      // API call to save the answer
       // saveAnswer(questionId, selectedOptionId);
     },
     []
@@ -129,18 +114,15 @@ export default function ModuleSession() {
   }, [questionsState]);
 
   const handleNextModule = useCallback(() => {
-    // Check if all questions are answered
     const allAnswered = Array.from(questionsState.values()).every(
       (q) => q.hasAnswered
     );
 
     if (!allAnswered) {
-      // You might want to show an alert or message here
       console.log("Please answer all questions before proceeding");
       return;
     }
 
-    // Implement next module logic
     console.log("Next Module");
   }, [questionsState]);
 

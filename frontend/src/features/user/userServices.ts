@@ -15,7 +15,7 @@ export const fetchUser = async (token: string): Promise<Response> => {
       Authorization: `Bearer ${token}`,
     },
   });
-  return response.data;
+  return response.data.data;
 };
 
 export const updateUser = async (

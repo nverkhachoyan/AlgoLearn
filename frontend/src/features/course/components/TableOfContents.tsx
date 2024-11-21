@@ -169,7 +169,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
           {units.map((unit) => (
             <List.Accordion
               key={unit.id}
-              title={`${unit.unit_number}. ${unit.name}`}
+              title={`${unit.unitNumber}. ${unit.name}`}
               expanded={expandedId === unit.id}
               onPress={() => handleUnitPress(unit.id)}
               style={[styles.unitAccordion, { backgroundColor: "#121212" }]}
@@ -187,8 +187,8 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
                     <ModuleItem
                       key={module.id}
                       module={module}
-                      unitNumber={unit.unit_number}
-                      moduleNumber={module.module_number}
+                      unitNumber={unit.unitNumber}
+                      moduleNumber={module.moduleNumber}
                       onPress={handleModulePress}
                       backgroundColor={"#2D3338"}
                       textColor="#fff"

@@ -23,8 +23,8 @@ export default function CourseCard(props: {
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
-  currentUnit: UnitProgressSummary;
-  currentModule: ModuleProgressSummary;
+  currentUnit?: UnitProgressSummary;
+  currentModule?: ModuleProgressSummary;
   filter?: string;
 }) {
   const { colors } = useTheme();
@@ -89,7 +89,7 @@ export default function CourseCard(props: {
                   "/(app)/(course)/[courseId]/(module)/[moduleId]/module-session",
                 params: {
                   courseId: props.courseID, // Make sure this is passed as a prop
-                  moduleId: props.currentModule.id,
+                  moduleId: props.currentModule?.id as number,
                   unitId: props.currentUnit?.id,
                   userId: 4,
                   type: "full",
@@ -110,7 +110,7 @@ export default function CourseCard(props: {
             elevation={4}
           >
             <Card.Title
-              title={`Unit ${props.currentUnit.unit_number} Module ${props.currentModule?.module_number}`}
+              title={`Unit ${props.currentUnit.unitNumber} Module ${props.currentModule?.moduleNumber}`}
               titleVariant="titleSmall"
             />
             <Card.Content>
@@ -145,7 +145,7 @@ export default function CourseCard(props: {
                       "/(app)/(course)/[courseId]/(module)/[moduleId]/module-session",
                     params: {
                       courseId: props.courseID,
-                      moduleId: props.currentModule.id,
+                      moduleId: props.currentModule?.id as number,
                       unitId: props.currentUnit?.id,
                       userId: 4,
                       type: "full",

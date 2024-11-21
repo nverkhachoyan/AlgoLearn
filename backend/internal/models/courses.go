@@ -28,42 +28,42 @@ type Course struct {
 	Name            string                 `json:"name"`
 	Description     string                 `json:"description"`
 	Requirements    string                 `json:"requirements"`
-	WhatYouLearn    string                 `json:"what_you_learn"`
-	BackgroundColor string                 `json:"background_color"`
-	IconURL         string                 `json:"icon_url"`
+	WhatYouLearn    string                 `json:"whatYouLearn"`
+	BackgroundColor string                 `json:"backgroundColor"`
+	IconURL         string                 `json:"iconUrl"`
 	Duration        int16                  `json:"duration"`
-	DifficultyLevel DifficultyLevel        `json:"difficulty_level"`
+	DifficultyLevel DifficultyLevel        `json:"difficultyLevel"`
 	Authors         []Author               `json:"authors"`
 	Tags            []Tag                  `json:"tags"`
 	Rating          float64                `json:"rating"`
-	CurrentUnit     *Unit  `json:"current_unit"`
-	CurrentModule   *Module `json:"current_module"`
-	Units           []*Unit `json:"units"`
+	CurrentUnit     *Unit  				   `json:"currentUnit"`
+	CurrentModule   *Module                `json:"currentModule"`
+	Units           []*Unit                `json:"units"`
 }
 
 type Unit struct {
 	BaseModel
-	UnitNumber  int16                   `json:"unit_number"`
+	UnitNumber  int16                   `json:"unitNumber"`
 	Name        string                  `json:"name"`
 	Description string                  `json:"description"`
-	Modules     []Module `json:"modules"`
+	Modules     []Module                `json:"modules"`
 }
 
 type Module struct {
 	BaseModel
-	ModuleNumber int16   `json:"module_number"`
-	ModuleUnitID int64   `json:"module_unit_id"`
+	ModuleNumber int16   `json:"moduleNumber"`
+	ModuleUnitID int64   `json:"moduleUnitId"`
 	Name         string  `json:"name"`
 	Description  string  `json:"description"`
 	Progress     float32 `json:"progress"`
 	Status       string  `json:"status"`
-	Sections []Section `json:"sections"`
+	Sections     []Section `json:"sections"`
 }
 
 func (m *Module) UnmarshalJSON(data []byte) error {
 	type TempModule struct {
 		BaseModel
-		ModuleUnitID    int64             `json:"unit_id"`
+		ModuleUnitID    int64             `json:"unitId"`
 		Name        	string            `json:"name"`
 		Description 	string            `json:"description"`
 		Sections    	[]json.RawMessage `json:"sections"`
@@ -147,7 +147,7 @@ type Section interface {
 }
 
 type BaseSection struct {
-	ModuleID int64  `json:"module_id,omitempty"`
+	ModuleID int64  `json:"moduleId,omitempty"`
 	Type     string `json:"type"`
 	Position int16  `json:"position"`
 	Content any `json:"content"`
@@ -208,13 +208,13 @@ type Question struct {
 	BaseModel
 	Type            string           `json:"type"`
 	Question        string           `json:"question"`
-	DifficultyLevel DifficultyLevel  `json:"difficulty_level"`
+	DifficultyLevel DifficultyLevel  `json:"difficultyLevel"`
 	Options         []QuestionOption `json:"options"`
 }
 
 type QuestionOption struct {
 	ID         int64  `json:"id"`
-	QuestionID int64  `json:"question_id"`
+	QuestionID int64  `json:"questionId"`
 	Content    string `json:"content"`
-	IsCorrect  bool   `json:"is_correct"`
+	IsCorrect  bool   `json:"isCorrect"`
 }

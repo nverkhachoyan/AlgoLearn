@@ -5,14 +5,14 @@ import { Unit } from "@/src/types/units";
 export interface Course extends BaseModel {
   name: string;
   description: string;
-  background_color?: string;
-  icon_url?: string;
+  backgroundColor?: string;
+  iconUrl?: string;
   duration: number;
-  difficulty_level: DifficultyLevel;
+  difficultyLevel: DifficultyLevel;
   authors: Author[];
   tags: string[];
   rating: number;
-  learners_count?: number;
+  learnersCount?: number;
   units: Unit[];
 }
 

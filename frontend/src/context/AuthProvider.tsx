@@ -2,9 +2,7 @@ import React, { useEffect, ReactNode, createContext, useContext } from "react";
 import { useUser, UseUserReturn } from "@/src/hooks/useUser";
 import { router, usePathname } from "expo-router";
 
-export interface AuthContextType extends UseUserReturn {}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<any>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const userContext = useUser();

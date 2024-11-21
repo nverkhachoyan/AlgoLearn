@@ -54,10 +54,10 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 	err = r.db.QueryRowContext(ctx, `
 SELECT jsonb_build_object(
         'id', m.id,
-        'created_at', m.created_at,
-        'updated_at', m.updated_at,
-        'module_number', m.module_number,
-        'unit_id', m.unit_id,
+        'createdAt', m.created_at,
+        'updatedAt', m.updated_at,
+        'moduleNumber', m.module_number,
+        'unitId', m.unit_id,
         'name', m.name,
         'description', m.description,
         'progress', ump.progress,
@@ -66,8 +66,8 @@ SELECT jsonb_build_object(
                 SELECT DISTINCT jsonb_agg(
                                 jsonb_build_object(
                                 'id', s.id,
-                                'created_at', s.created_at,
-                                'updated_at', s.updated_at,
+                                'createdAt', s.created_at,
+                                'updatedAt', s.updated_at,
                                 'type', s.type,
                                 'position', s.position,
                                 'content', CASE s.type
@@ -90,16 +90,16 @@ SELECT jsonb_build_object(
                                                                 SELECT jsonb_agg( jsonb_build_object(
                                                                         'id', qo.id,
                                                                         'content', qo.content,
-                                                                        'is_correct', qo.is_correct
+                                                                        'isCorrect', qo.is_correct
                                                                 ))
                                                                 FROM question_options qo
                                                                 WHERE qo.question_id = q.id
                                                         ), '[]'::jsonb
                                                         ),
-                                                        'user_question_answer', COALESCE(jsonb_build_object(
-                                                                'answer_id', uqn.answer_id,
-                                                                'answered_at', uqn.answered_at,
-                                                                'is_correct', uqn.is_correct
+                                                        'userQuestionAnswer', COALESCE(jsonb_build_object(
+                                                                'answerId', uqn.answer_id,
+                                                                'answeredAt', uqn.answered_at,
+                                                                'isCorrect', uqn.is_correct
                                                         ), NULL)
                                                 )
                                                 FROM question_sections qs
@@ -109,8 +109,8 @@ SELECT jsonb_build_object(
                                         )
                                         END,
                                         'section_progress', jsonb_build_object(
-                                                'started_at', usp.started_at,
-                                                'completed_at', usp.completed_at,
+                                                'startedAt', usp.started_at,
+                                                'completedAt', usp.completed_at,
                                                 'status', usp.status
                                         )
                                 )

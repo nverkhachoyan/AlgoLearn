@@ -27,15 +27,13 @@ export default function CurrentModuleCard({
       elevation={4}
     >
       <Card.Title
-        title={`Unit ${course.current_unit.unit_number} Module ${course.current_module?.module_number}`}
+        title={`Unit ${course.currentUnit.unitNumber} Module ${course.currentModule?.moduleNumber}`}
         titleVariant="titleSmall"
       />
       <Card.Content>
-        <PaperText variant="titleLarge">
-          {course.current_module?.name}
-        </PaperText>
+        <PaperText variant="titleLarge">{course.currentModule?.name}</PaperText>
         <PaperText variant="bodyMedium">
-          {course.current_module?.description}
+          {course.currentModule?.description}
         </PaperText>
       </Card.Content>
       <Divider style={styles.cardDivider} />

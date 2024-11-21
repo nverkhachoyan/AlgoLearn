@@ -2,7 +2,7 @@ import { BaseModel } from "./base";
 import { DifficultyLevel } from "./enums";
 
 export interface Section extends BaseModel {
-  module_id?: number;
+  moduleId?: number;
   type: "text" | "video" | "question" | "code";
   position: number;
   content: any;
@@ -23,9 +23,9 @@ export type CodeContent = {
 export interface QuestionOption {
   id: number;
   question: string;
-  question_id: number;
+  questionId: number;
   content: string;
-  is_correct: boolean;
+  isCorrect: boolean;
 }
 
 export type QuestionContent = {

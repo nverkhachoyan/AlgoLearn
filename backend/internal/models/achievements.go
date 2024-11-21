@@ -4,13 +4,13 @@ import "time"
 
 type Streak struct {
 	ID            int       `json:"id"`
-	UserID        int       `json:"user_id"`
-	StartDate     time.Time `json:"start_date"`
-	EndDate       time.Time `json:"end_date,omitempty"`
-	CurrentStreak int       `json:"current_streak"`
-	LongestStreak int       `json:"longest_streak"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	UserID        int       `json:"userId"`
+	StartDate     time.Time `json:"startDate"`
+	EndDate       time.Time `json:"endDate,omitempty"`
+	CurrentStreak int       `json:"currentStreak"`
+	LongestStreak int       `json:"longestStreak"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type Achievement struct {
@@ -18,15 +18,15 @@ type Achievement struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Points      int       `json:"points"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type UserAchievement struct {
 	ID            int       `json:"id"`
-	UserID        int       `json:"user_id"`
-	AchievementID int       `json:"achievement_id"`
-	AchievedAt    time.Time `json:"achieved_at"`
+	UserID        int       `json:"userId"`
+	AchievementID int       `json:"achievementId"`
+	AchievedAt    time.Time `json:"achievedAt"`
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
 	Points        int       `json:"points"`

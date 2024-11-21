@@ -13,7 +13,8 @@ import useTheme from "@/src/hooks/useTheme";
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
-  const { isAuthed, user, signOut } = useAuthContext();
+  const { isAuthed, user, isUserPending, userError, signOut } =
+    useAuthContext();
   const { colors } = useTheme();
 
   const handleSignOut = () => {
@@ -22,10 +23,10 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    if (user.error) {
-      console.log("Error while fetching user", user.error.message);
+    if (userError) {
+      console.log("Error while fetching user", userError.message);
     }
-  }, [user, user.error]);
+  }, [user, userError]);
 
   if (!isAuthed || !user) {
     return <Text>Not logged in</Text>;
@@ -36,25 +37,25 @@ export default function Profile() {
       <View style={styles.profileHeader}>
         <Image
           source={
-            user.data.profile_picture_url
+            user.profilePictureUrl
               ? {
-                  uri: user.data.profile_picture_url,
+                  uri: user.profilePictureUrl,
                 }
               : require("@/assets/images/defaultAvatar.png")
           }
           style={styles.profilePicture}
         />
-        {user.data.first_name || user.data.last_name ? (
+        {user.firstName || user.lastName ? (
           <Text style={[styles.fullName, { color: colors.text }]}>
-            {user.data.first_name + " " + user.data.last_name}
+            {user.firstName + " " + user.lastName}
           </Text>
         ) : null}
 
         <Text style={[styles.username, { color: colors.text }]}>
-          {"@" + user.data.username || user.data.email}
+          {"@" + user.username || user.email}
         </Text>
         <Text style={[styles.bio, { color: colors.text }]}>
-          {user.data.bio || "No bio available"}
+          {user.bio || "No bio available"}
         </Text>
       </View>
 
@@ -66,46 +67,43 @@ export default function Profile() {
           { backgroundColor: colors.cardBackground },
         ]}
       >
-        <UserInfoRow icon="mail" label="Email" value={user.data.email} />
+        <UserInfoRow icon="mail" label="Email" value={user.email} />
         <UserInfoRow
           icon="user"
           label="Username"
-          value={user.data.username || "N/A"}
+          value={user.username || "N/A"}
         />
-        <UserInfoRow icon="cpu" label="CPUS" value={`${user.data.cpus}`} />
+        <UserInfoRow icon="cpu" label="CPUS" value={`${user.cpus}`} />
         <UserInfoRow
           icon="tag"
           label="Role"
           value={
-            `${user.data.role}`.charAt(0).toUpperCase() +
-            `${user.data.role}`.slice(1)
+            `${user.role}`.charAt(0).toUpperCase() + `${user.role}`.slice(1)
           }
         />
         <UserInfoRow
           icon="calendar"
           label="Created"
-          value={moment(user.data.created_at).format("MMMM Do YYYY")}
+          value={moment(user.createdAt).format("MMMM Do YYYY")}
         />
         <UserInfoRow
           icon="clock"
           label="Last Login"
           value={
-            user.data.last_login_at === "0001-01-01T00:00:00Z"
+            user.lastLoginAt === "0001-01-01T00:00:00Z"
               ? "Never"
-              : moment(user.data.last_login_at).format(
-                  "MMMM Do YYYY, h:mm:ss a"
-                )
+              : moment(user.lastLoginAt).format("MMMM Do YYYY, h:mm:ss a")
           }
         />
         <UserInfoRow
           icon="check-circle"
           label="Active"
-          value={user.data.is_active ? "Yes" : "No"}
+          value={user.isActive ? "Yes" : "No"}
         />
         <UserInfoRow
           icon="check-circle"
           label="Email Verified"
-          value={user.data.is_email_verified ? "Yes" : "No"}
+          value={user.isEmailVerified ? "Yes" : "No"}
         />
       </View>
 

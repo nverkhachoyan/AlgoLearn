@@ -20,8 +20,8 @@ export default function CourseDetails() {
 
   const { courseId } = params;
   const { course, isCoursePending, courseError } = useProgress({
-    user_id: 4,
-    course_id: parseInt(courseId as string),
+    userId: 4,
+    courseId: parseInt(courseId as string),
     filter: "all",
     type: "summary",
   });
@@ -37,8 +37,8 @@ export default function CourseDetails() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StickyHeader
-        cpus={user.data.cpus}
-        strikeCount={user.data.streaks?.length ?? 0}
+        cpus={0}
+        strikeCount={0}
         userAvatar={null}
         onAvatarPress={() => router.push("/profile")}
       />

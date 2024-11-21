@@ -4,22 +4,21 @@ import (
 	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
+	"encoding/json"
 	"fmt"
-
-	"github.com/lib/pq"
 
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 )
 
 type ModuleRepository interface {
-	GetModules(ctx context.Context, unitID int64, isPartial bool) ([]models.Module, error)
-	GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error)
+	// GetModules(ctx context.Context, unitID int64, isPartial bool) ([]models.Module, error)
+	// GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error)
 	CreateModule(ctx context.Context, module *models.Module) error
 	UpdateModule(ctx context.Context, module *models.Module) error
 	DeleteModule(ctx context.Context, id int64) error
+	GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error)
 }
 
 type moduleRepository struct {
@@ -30,231 +29,11 @@ func NewModuleRepository(db *sql.DB) ModuleRepository {
 	return &moduleRepository{db: db}
 }
 
-func (r *moduleRepository) GetModules(ctx context.Context, unitID int64, isPartial bool) ([]models.Module, error) {
-	if isPartial {
-		return r.getModulesPartial(ctx, unitID)
-	}
-	return r.getModulesFull(ctx, unitID)
-}
-
-func (r *moduleRepository) getModulesPartial(ctx context.Context, unitID int64) ([]models.Module, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "getModulesPartial").
-		WithField("unit_id", unitID)
-
-	rows, err := r.db.QueryContext(ctx, `
-	SELECT 	id,
-		  	created_at,
-			updated_at,
-			unit_id,
-			name,
-			description
-	FROM modules WHERE unit_id = $1`,
-		unitID)
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Errorf("faild to close rows in repo func GetAllModulesPartial. %v", err.Error())
-		}
-	}(rows)
-
-	var modules []models.Module
-	for rows.Next() {
-		var module models.Module
-		err := rows.Scan(
-			&module.ID,
-			&module.CreatedAt,
-			&module.UpdatedAt,
-			&module.ModuleUnitID,
-			&module.Name,
-			&module.Description,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		modules = append(modules, module)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	if len(modules) == 0 {
-		return nil, codes.ErrNotFound
-	}
-
-	return modules, nil
-}
-
-func (r *moduleRepository) getModulesFull(ctx context.Context, unitID int64) ([]models.Module, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "getModulesFull").
-		WithField("unit_id", unitID)
-
-	rows, err := r.db.QueryContext(ctx, `
-	SELECT
-		m.id AS module_id,
-		m.created_at AS module_created_at,
-		m.updated_at AS module_updated_at,
-		m.name AS module_name,
-		m.description AS module_description,
-		s.id AS section_id,
-		s.created_at AS section_created_at,
-		s.updated_at AS section_updated_at,
-		s.type,
-		s.position,
-		ts.content AS text_content,
-		vs.url AS video_url,
-		qs.question_id AS question_id
-	FROM
-		modules m
-	LEFT JOIN
-		sections s ON m.id = s.module_id
-	LEFT JOIN
-		text_sections ts ON s.id = ts.section_id
-	LEFT JOIN
-		video_sections vs ON s.id = vs.section_id
-	LEFT JOIN
-		question_sections qs ON s.id = qs.section_id
-	WHERE
-		m.unit_id = $1
-	ORDER BY m.id, s.position;`, unitID)
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Errorf("faild to close rows in repo func GetAllModules. %v", err.Error())
-		}
-	}(rows)
-
-	modulesMap := make(map[int64]models.Module)
-	for rows.Next() {
-		var (
-			moduleID          int64
-			moduleCreatedAt   time.Time
-			moduleUpdatedAt   time.Time
-			moduleName        sql.NullString
-			moduleDescription sql.NullString
-			sectionID         sql.NullInt64
-			sectionCreatedAt  sql.NullTime
-			sectionUpdatedAt  sql.NullTime
-			sectionType       sql.NullString
-			sectionPosition   sql.NullInt16
-			textContent       sql.NullString
-			videoUrl          sql.NullString
-			questionId        sql.NullInt64
-		)
-
-		err := rows.Scan(
-			&moduleID,
-			&moduleCreatedAt,
-			&moduleUpdatedAt,
-			&moduleName,
-			&moduleDescription,
-			&sectionID,
-			&sectionCreatedAt,
-			&sectionUpdatedAt,
-			&sectionType,
-			&sectionPosition,
-			&textContent,
-			&videoUrl,
-			&questionId,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		module, exists := modulesMap[moduleID]
-		if !exists {
-			module = models.Module{
-				BaseModel: models.BaseModel{
-					ID:        moduleID,
-					CreatedAt: moduleCreatedAt,
-					UpdatedAt: moduleUpdatedAt,
-				},
-				ModuleUnitID:      unitID,
-				Name:        moduleName.String,
-				Description: moduleDescription.String,
-				Sections:    []models.Section{},
-			}
-		}
-
-		var section models.Section
-		switch sectionType.String {
-		case "text":
-			section = models.TextSection{
-				BaseModel: models.BaseModel{
-					ID:        sectionID.Int64,
-					CreatedAt: sectionCreatedAt.Time,
-					UpdatedAt: sectionUpdatedAt.Time,
-				},
-				BaseSection: models.BaseSection{
-					ModuleID: moduleID,
-					Type:     sectionType.String,
-					Position: sectionPosition.Int16,
-				},
-				// Content: textContent.String,
-			}
-		case "video":
-			section = models.VideoSection{
-				BaseModel: models.BaseModel{
-					ID:        sectionID.Int64,
-					CreatedAt: sectionCreatedAt.Time,
-					UpdatedAt: sectionUpdatedAt.Time,
-				},
-				BaseSection: models.BaseSection{
-					ModuleID: moduleID,
-					Type:     sectionType.String,
-					Position: sectionPosition.Int16,
-				},
-				// Url: videoUrl.String,
-			}
-		case "question":
-			section = models.QuestionSection{
-				BaseModel: models.BaseModel{
-					ID:        sectionID.Int64,
-					CreatedAt: sectionCreatedAt.Time,
-					UpdatedAt: sectionUpdatedAt.Time,
-				},
-				BaseSection: models.BaseSection{
-					ModuleID: moduleID,
-					Type:     sectionType.String,
-					Position: sectionPosition.Int16,
-				},
-				QuestionID: questionId.Int64,
-			}
-		}
-
-		module.Sections = append(module.Sections, section)
-
-		modulesMap[moduleID] = module
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	var modules []models.Module
-	for _, module := range modulesMap {
-		modules = append(modules, module)
-	}
-
-	if len(modules) == 0 {
-		return nil, codes.ErrNotFound
-	}
-
-	return modules, nil
-}
-
-func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error) {
+func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error) {
 	log := logger.Get().
-		WithBaseFields(logger.Repository, "GetModuleByModuleID").
-		WithField("unit_id", unitID).
-		WithField("module_id", moduleID)
+	WithBaseFields(logger.Repository, "GetModuleWithProgress").
+	WithField("unit_id", unitID).
+	WithField("module_id", moduleID)
 
 	var moduleExists bool
 	err := r.db.
@@ -270,251 +49,91 @@ func (r *moduleRepository) GetModuleByModuleID(ctx context.Context, unitID int64
 		return nil, codes.ErrNotFound
 	}
 
-	rows, err := r.db.QueryContext(ctx, `
-	SELECT
-	m.created_at AS module_created_at,
-	m.updated_at AS module_updated_at,
-	m.name AS module_name,
-	m.description AS module_description,
-	s.id AS section_id,
-	s.created_at AS section_created_at,
-	s.updated_at AS section_updated_at,
-	s.type,
-	s.position,
-	ts.content AS text_content,
-	vs.url AS video_url,
-	qs.question_id AS question_id
-	FROM
-	modules m
-	LEFT JOIN
-	sections s ON m.id = s.module_id
-	LEFT JOIN
-	text_sections ts ON s.id = ts.section_id
-	LEFT JOIN
-	video_sections vs ON s.id = vs.section_id
-	LEFT JOIN
-	question_sections qs ON s.id = qs.section_id
-	WHERE
-	m.unit_id = $1 AND m.id = $2
-	ORDER BY m.id, s.position`, unitID, moduleID)
+	var moduleJson []byte
+	var module models.Module
+	err = r.db.QueryRowContext(ctx, `
+	SELECT 
+        jsonb_build_object(
+        'id', m.id,
+        'created_at', m.created_at,
+        'updated_at', m.updated_at,
+        'module_number', m.module_number,
+        'unit_id', m.unit_id,
+        'name', m.name,
+        'description', m.description,
+        'progress', ump.progress,
+        'status', ump.status,
+        'sections', COALESCE((
+                SELECT jsonb_agg(
+                                jsonb_build_object(
+                                'id', s.id,
+                                'created_at', s.created_at,
+                                'updated_at', s.updated_at,
+                                'type', s.type,
+                                'position', s.position,
+                                'content', CASE s.type
+                                        WHEN 'text' THEN (
+                                                SELECT jsonb_build_object('text', ts.content)
+                                                FROM text_sections ts
+                                                WHERE ts.section_id = s.id
+                                        )
+                                        WHEN 'video' THEN (
+                                                SELECT jsonb_build_object('url', vs.url)
+                                                FROM video_sections vs
+                                                WHERE vs.section_id = s.id
+                                        )
+                                        WHEN 'question' THEN (
+                                                SELECT jsonb_build_object(
+                                                        'id', qs.question_id,
+                                                        'question', q.question,
+                                                        'type', q.type,
+                                                        'options', COALESCE((
+                                                                SELECT jsonb_agg( jsonb_build_object(
+                                                                        'id', qo.id,
+                                                                        'content', qo.content,
+                                                                        'is_correct', qo.is_correct
+                                                                ))
+                                                                FROM question_options qo
+                                                                WHERE qo.question_id = q.id
+                                                        ), '[]'::jsonb
+                                                        ),
+                                                        'user_question_answer', COALESCE(jsonb_build_object(
+                                                                'answer_id', uqn.answer_id,
+                                                                'answered_at', uqn.answered_at,
+                                                                'is_correct', uqn.is_correct
+                                                        ), NULL)
+                                                )
+                                                FROM question_sections qs
+                                                LEFT JOIN questions q ON q.id = qs.question_id
+                                                LEFT JOIN user_question_answers uqn ON uqn.question_id = qs.question_id
+                                                WHERE qs.section_id = s.id
+                                        )
+                                        END,
+                                        'section_progress', jsonb_build_object(
+                                                'started_at', usp.started_at,
+                                                'completed_at', usp.completed_at,
+                                                'status', usp.status
+                                        )
+                                )
+                                
+                        )
+                FROM sections s
+                LEFT JOIN user_section_progress usp ON usp.section_id = s.id
+                WHERE s.module_id = m.id
+                        ), '[]'::jsonb)
+                )
+	FROM modules AS m
+	LEFT JOIN user_module_progress ump ON ump.module_id = m.id
+	WHERE m.unit_id = $1 AND m.id = $2`, unitID, moduleID).
+	Scan(&moduleJson)
+
 	if err != nil {
-		log.WithError(err).Error("failed to execute query")
-		return nil, fmt.Errorf("failed to execute query: %w", err)
+		log.WithError(err).Errorf("failed to query module progress")
+		return nil, fmt.Errorf("failed to query module progress")
 	}
 
-	module := models.Module{}
-	questionSections := make(map[int64]*models.QuestionSection)
-	var (
-		moduleCreatedAt   time.Time
-		moduleUpdatedAt   time.Time
-		moduleName        sql.NullString
-		moduleDescription sql.NullString
-		sectionID         sql.NullInt64
-		sectionCreatedAt  sql.NullTime
-		sectionUpdatedAt  sql.NullTime
-		sectionType       sql.NullString
-		sectionPosition   sql.NullInt16
-		textContent       sql.NullString
-		videoUrl          sql.NullString
-		questionId        sql.NullInt64
-	)
-
-	isFirstRow := true
-	for rows.Next() {
-		err := rows.Scan(
-			&moduleCreatedAt,
-			&moduleUpdatedAt,
-			&moduleName,
-			&moduleDescription,
-			&sectionID,
-			&sectionCreatedAt,
-			&sectionUpdatedAt,
-			&sectionType,
-			&sectionPosition,
-			&textContent,
-			&videoUrl,
-			&questionId,
-		)
-		if err != nil {
-			log.WithError(err).Error("failed to scan row")
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-
-		if isFirstRow {
-			module = models.Module{
-				BaseModel: models.BaseModel{
-					ID:        moduleID,
-					CreatedAt: moduleCreatedAt,
-					UpdatedAt: moduleUpdatedAt,
-				},
-				ModuleUnitID:      unitID,
-				Name:        moduleName.String,
-				Description: moduleDescription.String,
-				Sections:    []models.Section{},
-			}
-			isFirstRow = false
-		}
-
-		if sectionID.Valid {
-			var section models.Section
-			switch sectionType.String {
-			case "text":
-				section = &models.TextSection{
-					BaseModel: models.BaseModel{
-						ID:        sectionID.Int64,
-						CreatedAt: sectionCreatedAt.Time,
-						UpdatedAt: sectionUpdatedAt.Time,
-					},
-					BaseSection: models.BaseSection{
-						ModuleID: moduleID,
-						Type:     sectionType.String,
-						Position: sectionPosition.Int16,
-					},
-					// Content: textContent.String,
-				}
-			case "video":
-				section = &models.VideoSection{
-					BaseModel: models.BaseModel{
-						ID:        sectionID.Int64,
-						CreatedAt: sectionCreatedAt.Time,
-						UpdatedAt: sectionUpdatedAt.Time,
-					},
-					BaseSection: models.BaseSection{
-						ModuleID: moduleID,
-						Type:     sectionType.String,
-						Position: sectionPosition.Int16,
-					},
-					// Url: videoUrl.String,
-				}
-			case "question":
-				questionSection := &models.QuestionSection{
-					BaseModel: models.BaseModel{
-						ID:        sectionID.Int64,
-						CreatedAt: sectionCreatedAt.Time,
-						UpdatedAt: sectionUpdatedAt.Time,
-					},
-					BaseSection: models.BaseSection{
-						ModuleID: moduleID,
-						Type:     sectionType.String,
-						Position: sectionPosition.Int16,
-					},
-					QuestionID: questionId.Int64,
-				}
-				section = questionSection
-				questionSections[sectionID.Int64] = questionSection
-			}
-
-			if section != nil {
-				module.Sections = append(module.Sections, section)
-			}
-		}
-	}
-
-	if len(questionSections) > 0 {
-		questionIDs := make([]int64, 0, len(questionSections))
-		for _, questSect := range questionSections {
-			if questSect.QuestionID > 0 {
-				questionIDs = append(questionIDs, questSect.QuestionID)
-			}
-		}
-		log.WithField("question_ids", questionIDs).Info("collecting question IDs")
-
-		hasQuestionRows := false
-		questionRows, err := r.db.QueryContext(ctx, `
-		SELECT
-		q.id,
-		q.created_at,
-		q.updated_at,
-		q.type,
-		q.question,
-		q.difficulty_level,
-		qo.id AS option_id,
-		qo.content,
-		qo.is_correct
-		FROM
-		questions q
-		LEFT JOIN question_options qo ON q.id = qo.question_id
-		WHERE q.id = ANY($1)
-		ORDER BY q.id, qo.id`, pq.Array(questionIDs))
-		if err != nil {
-			log.WithError(err).Error("failed to fetch questions and options")
-			return nil, fmt.Errorf("failed to fetch questions and options: %w", err)
-		}
-		defer func(questionRows *sql.Rows) {
-			err := questionRows.Close()
-			if err != nil {
-				log.WithError(err).Error("failed to close questionRows")
-			}
-		}(questionRows)
-
-		currentQuestionID := int64(0)
-		var currentQuestion *models.Question
-		for questionRows.Next() {
-			hasQuestionRows = true
-			var (
-				questionID              int64
-				questionCreatedAt       time.Time
-				questionUpdatedAt       time.Time
-				questionType            string
-				questionQuestion        string
-				questionDifficultyLevel string
-				optionID                int64
-				optionContent           string
-				optionIsCorrect         bool
-			)
-
-			err = questionRows.Scan(
-				&questionID,
-				&questionCreatedAt,
-				&questionUpdatedAt,
-				&questionType,
-				&questionQuestion,
-				&questionDifficultyLevel,
-				&optionID,
-				&optionContent,
-				&optionIsCorrect)
-			if err != nil {
-				log.WithError(err).Error("failed to scan question")
-				return nil, fmt.Errorf("failed to scan question: %w", err)
-			}
-
-			if currentQuestionID != questionID {
-				currentQuestionID = questionID
-				currentQuestion = &models.Question{
-					BaseModel: models.BaseModel{
-						ID:        questionID,
-						CreatedAt: questionCreatedAt,
-						UpdatedAt: questionUpdatedAt,
-					},
-					Type:            questionType,
-					Question:        questionQuestion,
-					DifficultyLevel: models.DifficultyLevel(questionDifficultyLevel),
-					Options:         []models.QuestionOption{},
-				}
-			}
-
-			currentQuestion.Options = append(currentQuestion.Options, models.QuestionOption{
-				ID:         optionID,
-				QuestionID: questionID,
-				Content:    optionContent,
-				IsCorrect:  optionIsCorrect,
-			})
-
-			for _, section := range questionSections {
-				if section.QuestionID == questionID {
-					section.Question = *currentQuestion
-				}
-			}
-		}
-
-		if !hasQuestionRows {
-			log.Warn("no questions were returned by query")
-		}
-	}
-
-	if err = rows.Err(); err != nil {
-		log.WithError(err).Error("error processing rows")
-		return nil, fmt.Errorf("error processing rows: %w", err)
+	if err = json.Unmarshal(moduleJson, &module); err != nil {
+		log.WithError(err).Errorf("failed to unmarshal module")
 	}
 
 	return &module, nil
@@ -627,8 +246,8 @@ func (r *moduleRepository) insertSections(ctx context.Context, tx *sql.Tx, modul
 			INSERT INTO questions (type, question, difficulty_level)
 			VALUES ($1, $2, $3)
 			RETURNING id, created_at, updated_at`,
-				s.Question.Type,
-				s.Question.Question,
+				// s.Question.Type,
+				// s.Question.Question,
 				"beginner").Scan(
 				&baseModelQuestion.ID,
 				&baseModelQuestion.CreatedAt,
@@ -642,29 +261,29 @@ func (r *moduleRepository) insertSections(ctx context.Context, tx *sql.Tx, modul
 			newSection.BaseModel.CreatedAt = baseModelQuestion.CreatedAt
 			newSection.BaseModel.UpdatedAt = baseModelQuestion.UpdatedAt
 
-			newSection.Question.ID = baseModelQuestion.ID
-			newSection.Question.CreatedAt = baseModelQuestion.CreatedAt
-			newSection.Question.UpdatedAt = baseModelQuestion.UpdatedAt
+			// newSection.Question.ID = baseModelQuestion.ID
+			// newSection.Question.CreatedAt = baseModelQuestion.CreatedAt
+			// newSection.Question.UpdatedAt = baseModelQuestion.UpdatedAt
 
 			// Then, we insert the options
-			updatedOptions := make([]models.QuestionOption, 0, len(s.Question.Options))
-			for _, option := range s.Question.Options {
-				var optionID int64
-				err = tx.QueryRowContext(ctx, `
-					INSERT INTO question_options (question_id, content, is_correct)
-					VALUES ($1, $2, $3)
-					RETURNING id`,
-					baseModelQuestion.ID,
-					option.Content,
-					option.IsCorrect).Scan(&optionID)
-				option.ID = optionID
+			// updatedOptions := make([]models.QuestionOption, 0, len(s.Question.Options))
+			// for _, option := range s.Question.Options {
+			// 	var optionID int64
+			// 	err = tx.QueryRowContext(ctx, `
+			// 		INSERT INTO question_options (question_id, content, is_correct)
+			// 		VALUES ($1, $2, $3)
+			// 		RETURNING id`,
+			// 		baseModelQuestion.ID,
+			// 		option.Content,
+			// 		option.IsCorrect).Scan(&optionID)
+			// 	option.ID = optionID
 
-				newOption := option
-				newOption.ID = optionID
-				newOption.QuestionID = baseModelQuestion.ID
-				updatedOptions = append(updatedOptions, newOption)
-			}
-			newSection.Question.Options = updatedOptions
+			// 	newOption := option
+			// 	newOption.ID = optionID
+			// 	newOption.QuestionID = baseModelQuestion.ID
+			// 	updatedOptions = append(updatedOptions, newOption)
+			// }
+			// newSection.Question.Options = updatedOptions
 
 			// Finally, the question is associated with the question section
 			_, err = tx.ExecContext(ctx, `

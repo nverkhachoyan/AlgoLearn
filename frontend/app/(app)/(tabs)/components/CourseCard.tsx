@@ -127,7 +127,11 @@ export default function CourseCard(props: {
             >
               <Button
                 title="Jump back in"
-                onPress={() => {}}
+                onPress={() =>
+                  router.navigate(
+                    `ModuleSession/?courseId=${props.courseID}&unitId=${props.currentUnit?.id}&moduleId=${props.currentModule?.id}` as any
+                  )
+                }
                 style={{
                   marginVertical: 5,
                   backgroundColor: "white",

@@ -17,11 +17,11 @@ import (
 )
 
 type ModuleHandler interface {
-	GetModules(w http.ResponseWriter, r *http.Request)
-	GetModuleByModuleID(w http.ResponseWriter, r *http.Request)
 	CreateModule(w http.ResponseWriter, r *http.Request)
 	UpdateModule(w http.ResponseWriter, r *http.Request)
 	DeleteModule(w http.ResponseWriter, r *http.Request)
+	GetModule(w http.ResponseWriter, r *http.Request)
+	GetModuleWithProgress(w http.ResponseWriter, r *http.Request)
 	RegisterRoutes(r *router.Router)
 }
 
@@ -38,51 +38,83 @@ func NewModuleHandler(moduleRepo repository.ModuleRepository,
 	}
 }
 
-func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	ctx := r.Context()
-	params := mux.Vars(r)
+// func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
+// 	log := logger.Get()
+// 	ctx := r.Context()
+// 	params := mux.Vars(r)
+// 	query := r.URL.Query()
+
+// 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
+// 	if err != nil {
+// 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+// 			Success:   false,
+// 			Message:   "invalid unit ID",
+// 			ErrorCode: codes.InvalidRequest,
+// 		})
+// 		return
+// 	}
+
+// 	isPartial := query.Get("type") == "partial"
+// 	modules, err := h.moduleRepo.GetModules(ctx, unitID, isPartial)
+// 	if errors.Is(err, codes.ErrNotFound) {
+// 		log.Printf("error fetching modules for unit %d: %v", unitID, err)
+// 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+// 			Success:   false,
+// 			ErrorCode: codes.NoData,
+// 			Message:   "no modules were found",
+// 		})
+// 		return
+// 	} else if err != nil {
+// 		log.Printf("error fetching modules for unit %d: %v", unitID, err)
+// 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+// 			Success:   false,
+// 			ErrorCode: codes.DatabaseFail,
+// 			Message:   "failed to query modules",
+// 		})
+// 		return
+// 	}
+
+// 	RespondWithJSON(w, http.StatusOK, models.Response{
+// 		Success: true,
+// 		Message: "modules retrieved successfully",
+// 		Data:    modules,
+// 	})
+// }
+
+func (h *moduleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
 	query := r.URL.Query()
 
-	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
-	if err != nil {
+	queryParams := models.ModuleQueryParams {
+		Type: query.Get("type"),
+		Include: query.Get("include"),
+	}
+
+	if err := queryParams.Validate(); err != nil {
+		log.Warn("invalid query parameters", "error", err.Error())
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "invalid unit ID",
 			ErrorCode: codes.InvalidRequest,
+			Message:   err.Error(),
 		})
 		return
 	}
 
-	isPartial := query.Get("type") == "partial"
-	modules, err := h.moduleRepo.GetModules(ctx, unitID, isPartial)
-	if errors.Is(err, codes.ErrNotFound) {
-		log.Printf("error fetching modules for unit %d: %v", unitID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Success:   false,
-			ErrorCode: codes.NoData,
-			Message:   "no modules were found",
-		})
-		return
-	} else if err != nil {
-		log.Printf("error fetching modules for unit %d: %v", unitID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-			Success:   false,
-			ErrorCode: codes.DatabaseFail,
-			Message:   "failed to query modules",
-		})
+	if queryParams.Type == "full" && queryParams.Include == "progress" {
+		h.GetModuleWithProgress(w, r)
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, models.Response{
-		Success: true,
-		Message: "modules retrieved successfully",
-		Data:    modules,
+	log.Warn("invalid query parameters")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success: false,
+			ErrorCode: codes.InvalidRequest,
+			Message: "invalid query parameters",
 	})
 }
 
-func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
+func (h *moduleHandler) GetModuleWithProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetModuleWithProgress")
 	ctx := r.Context()
 	params := mux.Vars(r)
 
@@ -107,7 +139,7 @@ func (h *moduleHandler) GetModuleByModuleID(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	module, err := h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
+	module, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not found")
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -258,7 +290,7 @@ func (h *moduleHandler) UpdateModule(w http.ResponseWriter, r *http.Request) {
 	}
 	module.ID = moduleID
 
-	_, err = h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
+	_, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
 	if err != nil {
 		log.Printf("error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -325,7 +357,7 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.moduleRepo.GetModuleByModuleID(ctx, unitID, moduleID)
+	_, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not fout")
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -374,8 +406,8 @@ func (h *moduleHandler) RegisterRoutes(r *router.Router) {
 	public := r.Group(basePath)
 	authorized := r.Group(basePath, middleware.Auth)
 
-	public.Handle("", h.GetModules, "GET")
-	public.Handle("/{module_id}", h.GetModuleByModuleID, "GET")
+	// public.Handle("", h.GetModules, "GET")
+	public.Handle("/{module_id}", h.GetModule, "GET")
 
 	authorized.Handle("", h.CreateModule, "POST")
 	authorized.Handle("/{module_id}", h.UpdateModule, "PUT")

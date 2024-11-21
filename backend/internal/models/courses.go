@@ -190,8 +190,6 @@ func (vs VideoSection) SetID(ID int64) {
 type QuestionSection struct {
 	BaseModel
 	BaseSection
-	QuestionID int64    `json:"question_id"`
-	Question   Question `json:"question"`
 }
 
 func (qs QuestionSection) GetBaseSection() BaseSection {

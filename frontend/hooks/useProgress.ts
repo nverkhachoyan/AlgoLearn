@@ -1,12 +1,19 @@
-import { fetchCourseProgress, fetchCoursesProgress } from "@/services/progressService";
+import {
+  fetchCourseProgress,
+  fetchCoursesProgress,
+} from "@/services/progressService";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { CourseProgressSummary } from "@/types/progress";
 import { UseProgressParams } from "@/types/hooks";
 
-
-export const useProgress = ({ user_id, course_id, page, pageSize, filter, type }: UseProgressParams) => {
-  console.log('useProgress called with filter:', filter);
-
+export const useProgress = ({
+  user_id,
+  course_id,
+  page,
+  pageSize,
+  filter,
+  type,
+}: UseProgressParams) => {
   const {
     data,
     fetchNextPage,
@@ -22,9 +29,8 @@ export const useProgress = ({ user_id, course_id, page, pageSize, filter, type }
         page,
         pageSize,
         filter,
-        type
+        type,
       });
-      console.log(`Data fetched for ${filter}:`, res);
       return res;
     },
     getNextPageParam: (lastPage) => {
@@ -39,7 +45,7 @@ export const useProgress = ({ user_id, course_id, page, pageSize, filter, type }
   const {
     data: course,
     isPending: isCoursePending,
-    error: courseError
+    error: courseError,
   } = useQuery({
     queryKey: ["progress", course_id, filter, type],
     queryFn: async () => {
@@ -47,11 +53,11 @@ export const useProgress = ({ user_id, course_id, page, pageSize, filter, type }
         user_id,
         course_id,
         filter,
-        type
+        type,
       });
-      return res
+      return res;
     },
-  })
+  });
 
   // flatten all pages into a single array of items
   const courses = data?.pages.flatMap((page) => page.items) ?? [];

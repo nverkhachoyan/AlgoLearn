@@ -5,11 +5,10 @@ import { ScrollView, View, Text } from "@/src/components/Themed";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import SectionRenderer from "@/src/features/course/components/SectionRenderer";
-import { Module } from "@/src/types/modules";
+import { Section } from "@/src/features/module/types";
 import Button from "@/src/components/common/Button";
 import useTheme from "@/src/hooks/useTheme";
 import { useModules } from "@/src/hooks/useModules";
-import { Card } from "react-native-paper";
 
 interface QuestionState {
   id: number;
@@ -71,7 +70,7 @@ export default function ModuleSession() {
     if (!module?.sections) return;
 
     const questionsMap = new Map<number, QuestionState>();
-    module.sections.forEach((section) => {
+    module.sections.forEach((section: Section) => {
       if (section.type === "question") {
         const userAnswer = section.content.userQuestionAnswer.answerId;
         questionsMap.set(section.content.questionId, {

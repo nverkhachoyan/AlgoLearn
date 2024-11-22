@@ -3,12 +3,11 @@ import { View, Text } from "@/src/components/Themed";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import Button from "@/src/components/common/Button";
-import { Author } from "@/src/types/courses";
+import { Author, Unit } from "@/src/features/course/types";
 import useTheme from "@/src/hooks/useTheme";
 import { Card, Divider, Text as PaperText } from "react-native-paper";
 import { useState } from "react";
-import { Unit } from "@/src/types/units";
-import { Module } from "@/src/types/modules";
+import { Module } from "@/src/features/module/types/types";
 
 export default function CourseCard(props: {
   courseID: string;

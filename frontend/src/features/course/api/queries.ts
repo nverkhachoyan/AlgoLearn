@@ -1,27 +1,26 @@
 import api from "@/src/lib/api/client";
-import { Course } from "@/src/types/courses";
-import { PaginatedResponse, Response } from "@/src/types/apiTypes";
-import { UseProgressParams } from "@/src/types/hooks";
+import { AxiosResponse } from "axios";
+import { CourseFetchParams } from "./types";
 
 export const fetchCourses = async ({
   userId,
-  page,
+  currentPage,
   pageSize,
   filter,
   type,
   include,
-}: UseProgressParams): Promise<PaginatedResponse> => {
+}: CourseFetchParams): Promise<AxiosResponse> => {
   const response = await api.get(`/courses`, {
     params: {
       userId,
-      page,
+      currentPage,
       pageSize,
       filter,
       type,
-      include: "progress",
+      include,
     },
   });
-  return response.data.data;
+  return response;
 };
 
 export const fetchCourse = async ({
@@ -29,13 +28,15 @@ export const fetchCourse = async ({
   courseId,
   filter,
   type,
-}: UseProgressParams): Promise<Course> => {
+  include,
+}: CourseFetchParams): Promise<AxiosResponse> => {
   const response = await api.get(`/courses/${courseId}`, {
     params: {
       userId,
       filter,
       type,
+      include,
     },
   });
-  return response.data.data;
+  return response;
 };

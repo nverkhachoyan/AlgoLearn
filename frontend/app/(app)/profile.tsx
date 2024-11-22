@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet, Image } from "react-native";
 import { Text, View } from "@/src/components/Themed";
-import { useAuthContext } from "@/src/context/AuthProvider";
+import { useUser } from "@/src/hooks/useUser";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,8 +13,7 @@ import useTheme from "@/src/hooks/useTheme";
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
-  const { isAuthed, user, isUserPending, userError, signOut } =
-    useAuthContext();
+  const { isAuthed, user, userError, signOut } = useUser();
   const { colors } = useTheme();
 
   const handleSignOut = () => {

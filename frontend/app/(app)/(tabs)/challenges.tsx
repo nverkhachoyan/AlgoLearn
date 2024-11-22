@@ -1,9 +1,5 @@
 import { StyleSheet } from "react-native";
-
 import { Text, View } from "@/src/components/Themed";
-import Button from "@/src/components/common/Button";
-import { useAuthContext } from "@/src/context/AuthProvider";
-import { router } from "expo-router";
 import useTheme from "@/src/hooks/useTheme";
 
 export default function Challenges() {

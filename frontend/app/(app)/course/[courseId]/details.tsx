@@ -2,7 +2,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { View, ScrollView, Text } from "@/src/components/Themed";
 import { StyleSheet } from "react-native";
 import { useState } from "react";
-import { useAuthContext } from "@/src/context/AuthProvider";
+import { useUser } from "@/src/hooks/useUser";
 import useTheme from "@/src/hooks/useTheme";
 import { useCourses } from "@/src/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
@@ -13,7 +13,7 @@ import CourseInfo from "@/src/features/course/components/CourseInfo";
 import FooterButtons from "@/src/features/course/components/FooterButtons";
 
 export default function CourseDetails() {
-  const { user } = useAuthContext();
+  const { user } = useUser();
   const params = useLocalSearchParams();
   const { colors } = useTheme();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
@@ -22,11 +22,10 @@ export default function CourseDetails() {
   const { course, isCoursePending, courseError } = useCourses({
     userId: 4,
     courseId: parseInt(courseId as string),
-    filter: "all",
+    filter: "learning",
     type: "summary",
+    include: "progress",
   });
-
-  console.log("PARAMMMAAAAS", params);
 
   if (isCoursePending) {
     return <Text>Loading...</Text>;

@@ -486,7 +486,7 @@ func (h *courseHandler) getCoursesProgressSummary(w http.ResponseWriter, r *http
 		return
 	}
 
-	page, err := strconv.ParseInt(query.Get("page"), 10, 64)
+	page, err := strconv.ParseInt(query.Get("currentPage"), 10, 64)
 	if err != nil {
 		RespondWithJSON(w, http.StatusInternalServerError,
 			models.Response{
@@ -529,12 +529,14 @@ func (h *courseHandler) getCoursesProgressSummary(w http.ResponseWriter, r *http
 		models.Response{
 			Success: true,
 			Message: "courses progress retrieved successfully",
-			Data: models.PaginatedResponse{
+			Data: models.PaginatedPayload{
 				Items:      courses,
-				Total:      totalCount,
-				PageSize:   int(pageSize),
-				Page:       int(page),
-				TotalPages: int(totalPages),
+				Pagination: models.Pagination{
+					TotalItems:      totalCount,
+					PageSize:   int(pageSize),
+					CurrentPage:       int(page),
+					TotalPages: int(totalPages),
+				},
 			},
 		})
 }

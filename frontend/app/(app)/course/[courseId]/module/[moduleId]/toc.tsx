@@ -6,18 +6,11 @@ import {
   ScrollView,
 } from "react-native";
 import { Text, View } from "@/src/components/Themed";
-import { useAuthContext } from "@/src/context/AuthProvider";
-import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
-import { Seperator } from "@/src/components/common/Seperator";
-import moment from "moment";
-import { Feather, FontAwesome } from "@expo/vector-icons";
-import { useEffect } from "react";
 import useTheme from "@/src/hooks/useTheme";
-import TableOfContents from "../../../../../../src/features/course/components/TableOfContents";
+import { useUser } from "@/src/hooks/useUser";
 
 export default function SessionTOC() {
-  const { isAuthed, user } = useAuthContext();
+  const { isAuthed, user } = useUser();
   const { colors } = useTheme();
 
   const units = [

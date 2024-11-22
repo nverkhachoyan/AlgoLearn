@@ -9,7 +9,7 @@ import {
 import { List, Surface } from "react-native-paper";
 import { Feather } from "@expo/vector-icons";
 import { Text, View } from "@/src/components/Themed";
-import { Unit } from "@/src/types/units";
+import { Unit } from "@/src/features/course/types/units";
 
 // Enable LayoutAnimation for Android
 if (

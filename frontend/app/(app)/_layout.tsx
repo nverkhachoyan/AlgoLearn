@@ -1,13 +1,17 @@
-import { Href, Stack, useSegments, router, Redirect } from "expo-router";
+import { Stack, useSegments, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
 import { useFonts } from "expo-font";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect } from "react";
 import useTheme from "@/src/hooks/useTheme";
-export { ErrorBoundary, useSegments, Href } from "expo-router";
+export { useSegments, Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthContext } from "@/src/context/AuthProvider";
+import { useUser } from "@/src/hooks/useUser";
+import { Button, Text } from "react-native-paper";
+import { View } from "@/src/components/Themed";
+import ErrorBoundary from "react-native-error-boundary";
+import { DefaultFallback } from "@/src/components/DefaultFallback";
 
 export default function Layout() {
   const { colors } = useTheme();
@@ -24,7 +28,8 @@ export default function Layout() {
     "OpenSauceOne-LightItalic": require("@/assets/fonts/OpenSauceOne-LightItalic.ttf"),
   });
   const segments = useSegments();
-  const { isAuthed, checkAuthState } = useAuthContext();
+  const router = useRouter();
+  const { isAuthed, isInitialized } = useUser();
 
   const shouldSafeAreaBeBlack = segments.includes("(auth)" as never);
 
@@ -39,8 +44,21 @@ export default function Layout() {
   // }, [isAuthed]);
 
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (!isInitialized) return;
+
+    const inAuthGroup = segments[0] === "welcome";
+    const inProtectedGroup = segments[0] === "(app)";
+
+    if (!isAuthed && inProtectedGroup) {
+      router.replace("/(app)/(auth)/signup");
+    } else if (isAuthed && inAuthGroup) {
+      router.replace("/(app)/(tabs)");
+    }
+  }, [isAuthed, isInitialized, segments]);
+
+  // useEffect(() => {
+  //   if (error) throw error;
+  // }, [error]);
 
   useEffect(() => {
     if (loaded) {
@@ -51,6 +69,8 @@ export default function Layout() {
   if (!loaded) {
     return null;
   }
+
+  if (!isInitialized) return null;
 
   return (
     <>
@@ -95,3 +115,26 @@ export default function Layout() {
     </>
   );
 }
+
+// export default function RootLayout() {
+//   const segments = useSegments();
+//   const router = useRouter();
+//   const { isAuthed, isInitialized } = useUser();
+
+//   useEffect(() => {
+//     if (!isInitialized) return;
+
+//     const inAuthGroup = segments[0] === '(auth)';
+//     const inProtectedGroup = segments[0] === '(app)';
+
+//     if (!isAuthed && inProtectedGroup) {
+//       router.replace('/(auth)/sign-in');
+//     } else if (isAuthed && inAuthGroup) {
+//       router.replace('/(app)/(tabs)');
+//     }
+//   }, [isAuthed, isInitialized, segments]);
+
+//   if (!isInitialized) return null;
+
+//   return <Slot />;
+// }

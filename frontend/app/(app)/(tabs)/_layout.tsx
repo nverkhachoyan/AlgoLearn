@@ -6,7 +6,6 @@ import { useClientOnlyValue } from "@/src/components/useClientOnlyValue";
 import useTheme from "@/src/hooks/useTheme";
 import { TouchableOpacity, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { useAuthContext } from "@/src/context/AuthProvider";
 import { MaterialIcons } from "@expo/vector-icons";
 
 function TabBarIcon(props: {
@@ -56,8 +55,6 @@ function HapticTabButton({
 export default function TabLayout() {
   const { colors } = useTheme();
   const segments = useSegments() as string[];
-
-  const { isAuthed, checkAuthState } = useAuthContext(); // Use your AuthContext
 
   const getTabBarIcon =
     (name: React.ComponentProps<typeof Feather>["name"]) =>

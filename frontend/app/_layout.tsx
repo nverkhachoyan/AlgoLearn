@@ -1,5 +1,5 @@
 import { Slot } from "expo-router";
-import { AuthProvider } from "@/src/context/AuthProvider";
+// import { AuthProvider } from "@/src/context/AuthProvider";
 import { ThemeProvider } from "@react-navigation/native";
 import { DarkTheme, DefaultTheme, Theme } from "@/constants/Colors";
 import { useColorScheme } from "react-native";
@@ -75,9 +75,7 @@ export default function RootLayout() {
       >
         <PaperProvider theme={theme}>
           <RootSiblingParent>
-            <AuthProvider>
-              <Slot />
-            </AuthProvider>
+            <Slot />
           </RootSiblingParent>
         </PaperProvider>
       </ThemeProvider>

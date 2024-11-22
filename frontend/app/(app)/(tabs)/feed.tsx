@@ -1,7 +1,6 @@
 import { StyleSheet, TouchableOpacity } from "react-native";
 import { Text, View, ScrollView } from "@/src/components/Themed";
 import Button from "@/src/components/common/Button";
-import { useAuthContext } from "@/src/context/AuthProvider";
 import { Seperator } from "@/src/components/common/Seperator";
 import React, { useEffect } from "react";
 import moment from "moment";
@@ -9,13 +8,10 @@ import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import useTheme from "@/src/hooks/useTheme";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
+import { useUser } from "@/src/hooks/useUser";
 
 export default function Feed() {
-  const {
-    isAuthed,
-
-    user: { data: user },
-  } = useAuthContext();
+  const { isAuthed, user } = useUser();
   const { colors } = useTheme();
 
   const feedItems = [

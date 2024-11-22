@@ -2,18 +2,25 @@ import { useState } from "react";
 import { StyleSheet, ScrollView } from "react-native";
 import { Searchbar } from "react-native-paper";
 import { Text, View } from "@/src/components/Themed";
-import { useAuthContext } from "@/src/context/AuthProvider";
 import { router } from "expo-router";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import useTheme from "@/src/hooks/useTheme";
 import CourseCard from "./components/CourseCard";
 import { useCourses } from "@/src/hooks/useCourses";
+import { useUser } from "@/src/hooks/useUser";
 
 export default function Explore() {
-  const { isAuthed, user, invalidateAuth } = useAuthContext();
+  const { isAuthed, user, invalidateAuth } = useUser();
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const { courses } = useCourses({ userId: 4, type: "summary" });
+  const { courses } = useCourses({
+    userId: 4,
+    type: "summary",
+    include: "progress",
+    currentPage: 1,
+    pageSize: 5,
+    filter: "explore",
+  });
 
   return (
     <View

@@ -1,6 +1,5 @@
 import { StyleSheet, ActivityIndicator } from "react-native";
 import { View, ScrollView, Text } from "@/src/components/Themed";
-import { useAuthContext } from "@/src/context/AuthProvider";
 import CourseCard from "./components/CourseCard";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
@@ -8,42 +7,37 @@ import useTheme from "@/src/hooks/useTheme";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useCourses } from "@/src/hooks/useCourses";
 import useToast from "@/src/hooks/useToast";
-import { Course } from "@/src/types/courses";
+import { Course } from "@/src/features/course/types";
+import { useUser } from "@/src/hooks/useUser";
 
 export default function Home() {
-  const {
-    user,
-    isUserPending,
-    userError,
-    isAuthed,
-    invalidateAuth,
-    isInitialized,
-  } = useAuthContext();
+  const { user, isUserPending, isAuthed, isInitialized } = useUser();
   const {
     courses: learningCourses,
     fetchNextPage: fetchNextLearning,
     hasNextPage: hasNextLearning,
     isFetchingNextPage: isFetchingNextLearning,
-    isLoading: isLoadingLearning,
     error: learningError,
   } = useCourses({
     userId: 4,
-    page: 1,
+    currentPage: 1,
     pageSize: 5,
     type: "summary",
     filter: "learning",
+    include: "progress",
   });
+
   const {
     courses: exploreCourses,
     fetchNextPage: fetchNextExplore,
     hasNextPage: hasNextExplore,
     isFetchingNextPage: isFetchingNextExplore,
-    isLoading: isLoadingExplore,
     error: exploreError,
   } = useCourses({
     userId: 4,
-    page: 1,
-    pageSize: 5,
+    currentPage: 1,
+    pageSize: 1,
+    include: "progress",
     type: "summary",
     filter: "explore",
   });
@@ -83,12 +77,7 @@ export default function Home() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#25A879" />
-        <Button
-          title="Clear local storage"
-          onPress={() => {
-            invalidateAuth();
-          }}
-        />
+        <Button title="Clear local storage" onPress={() => {}} />
       </View>
     );
   }

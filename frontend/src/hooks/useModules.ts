@@ -29,15 +29,24 @@ export const useModules = ({
       include,
     ],
     queryFn: async () => {
-      const units = await fetchModuleFull({
-        courseId,
-        unitId,
-        moduleId,
-        userId,
-        type,
-        include,
-      });
-      return units;
+      try {
+        const axiosResponse = await fetchModuleFull({
+          courseId,
+          unitId,
+          moduleId,
+          userId,
+          type,
+          include,
+        });
+        const response = axiosResponse.data;
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+
+        return response.payload;
+      } catch (error: any) {
+        throw error;
+      }
     },
     enabled: !!courseId || !!unitId,
   });

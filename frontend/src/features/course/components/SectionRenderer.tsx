@@ -7,7 +7,7 @@ import YoutubePlayer from "./YoutubePlayer";
 import CodeBlock from "./CodeBlock";
 import useTheme from "@/src/hooks/useTheme";
 import { Card, Checkbox } from "react-native-paper";
-import { Section, QuestionContent } from "@/src/types/sections";
+import { Section, QuestionContent } from "@/src/features/module/types/sections";
 
 interface QuestionState {
   id: number;

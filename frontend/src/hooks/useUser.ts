@@ -1,282 +1,19 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  MutationFunction,
-} from "@tanstack/react-query";
-import { useState, useCallback, useEffect } from "react";
-import {
-  checkEmailExists,
-  signIn,
-  signUp,
-  getAuthToken,
-} from "@/src/features/auth/authService";
-import {
-  fetchUser,
-  deleteAccount,
-  updateUser,
-} from "@/src/features/user/api/queries";
-import { User } from "@/src/types/userTypes";
-import { Response } from "@/src/types/apiTypes";
-import { ImageFile } from "@/src/types/CommonTypes";
-import { useGoogleAuth } from "@/src/hooks/useGoogleAuth";
+import * as authService from "@/src/features/auth/authService";
+import * as userService from "@/src/features/user/api/queries";
 
-// Interface for updating user data
-interface UpdateUserData {
-  username?: string;
-  email?: string;
-  first_name?: string;
-  last_name?: string;
-  profile_picture_url?: string;
-  bio?: string;
-  location?: string;
-  preferences?: JSON;
-  avatar?: ImageFile;
-}
-
-interface UserWithToken extends User {
-  token?: string;
-}
-
-// Generic types for query and mutation objects
-type QueryObject<T> = {
-  data: T | any;
-  isPending: boolean;
-  error: any;
-};
-
-type MutationObject<T, V> = {
-  mutateAsync?: any;
-  mutate: any;
-  data: T | any;
-  isPending: boolean;
-  error: any;
-};
-
-type FetchUserObject = QueryObject<UserWithToken>;
-type UpdateUserObject = MutationObject<UserWithToken, UpdateUserData>;
-type DeleteAccountObject = MutationObject<Response, void>;
-
-// Return type for useUser hook
-export type UseUserReturn = {
-  user?: UserWithToken | undefined;
-  updateUser: UpdateUserObject;
-  deleteAccount: DeleteAccountObject;
-  isAuthed: boolean;
-  isInitialized: boolean;
-  token: string;
-  signOut: {
-    mutate: () => void;
-  };
-  signIn: {
-    mutate: any;
-  };
-  signUp: {
-    mutate: any;
-    data: Response | undefined;
-    isPending: boolean;
-    error: any;
-  };
-  checkAuthState: () => Promise<boolean>;
-  checkEmail: {
-    mutate: any;
-    data: any;
-    isPending: boolean;
-  };
-  handleSuccess: (token: string) => Promise<void>;
-  handleError: (error: Error) => void;
-  signInWithGoogle: () => Promise<void>;
-  invalidateAuth: () => Promise<void>;
-};
-
-export const useUser = (): any => {
+export function useUser() {
   const queryClient = useQueryClient();
-  const [authState, setAuthState] = useState({
-    isAuthed: false,
-    token: "",
-    isInitialized: false,
+
+  // Auth token query
+  const { data: token, isSuccess: isInitialized } = useQuery({
+    queryKey: ["authToken"],
+    queryFn: () => AsyncStorage.getItem("authToken"),
+    staleTime: Infinity, // Don't refetch token automatically
   });
 
-  // Initialize auth state on mount
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const authToken = await AsyncStorage.getItem("authToken");
-        if (authToken) {
-          setAuthState({
-            isAuthed: true,
-            token: authToken,
-            isInitialized: true,
-          });
-          queryClient.invalidateQueries({ queryKey: ["user"] });
-        } else {
-          setAuthState({
-            isAuthed: false,
-            token: "",
-            isInitialized: true,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to initialize auth state:", error);
-        setAuthState({
-          isAuthed: false,
-          token: "",
-          isInitialized: true,
-        });
-      }
-    };
-
-    initAuth();
-  }, []);
-
-  // Handle success for sign-in or sign-up
-  const handleSuccess = async (token: string) => {
-    await AsyncStorage.setItem("authToken", token);
-    setAuthState((prevState) => ({
-      ...prevState,
-      isAuthed: true,
-      token,
-      isInitialized: true,
-    }));
-    queryClient.invalidateQueries({ queryKey: ["user"] });
-  };
-
-  // Handle error in authentication or user management
-  const handleError = useCallback((error: Error) => {
-    console.error("Authentication error:", error);
-    signOutMutation.mutate();
-  }, []);
-
-  // Google sign-in logic
-  const { promptAsync } = useGoogleAuth(handleSuccess, handleError);
-
-  const signInWithGoogle = useCallback(async () => {
-    await promptAsync();
-  }, [promptAsync]);
-
-  // Sign out
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      await AsyncStorage.removeItem("authToken");
-      setAuthState({
-        isAuthed: false,
-        token: "",
-        isInitialized: true,
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      queryClient.removeQueries({ queryKey: ["user"] });
-    },
-  });
-
-  // Sign in
-  const signInMutation = useMutation({
-    mutationFn: async ({
-      email,
-      password,
-    }: {
-      email: string;
-      password: string;
-    }) => {
-      const response = await signIn(email, password);
-      if (response.data.success) {
-        await handleSuccess(response.data.data.token);
-      }
-      return response;
-    },
-    onError: (error) => {
-      console.error("Sign in error:", error);
-      setAuthState((prevState) => ({
-        ...prevState,
-        isAuthed: false,
-        token: "",
-        isInitialized: true,
-      }));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-    },
-  });
-
-  // Sign up
-  const signUpMutation = useMutation({
-    mutationFn: async ({
-      email,
-      password,
-    }: {
-      email: string;
-      password: string;
-    }) => {
-      const response = await signUp(email, password);
-      if (response.success) {
-        await handleSuccess(response.data.token);
-      }
-      return response;
-    },
-    onError: (error) => {
-      console.error("Sign up error:", error);
-      setAuthState((prevState) => ({
-        ...prevState,
-        isAuthed: false,
-        token: "",
-        isInitialized: true,
-      }));
-    },
-  });
-
-  // Check if email exists
-  const checkEmailMutation = useMutation({
-    mutationFn: async (email: string) => {
-      return await checkEmailExists(email);
-    },
-  });
-
-  // Check the auth state
-  const checkAuthState = async (): Promise<boolean> => {
-    try {
-      const authToken = await AsyncStorage.getItem("authToken");
-      if (authToken) {
-        setAuthState({
-          isAuthed: true,
-          token: authToken,
-          isInitialized: true,
-        });
-        queryClient.invalidateQueries({ queryKey: ["user"] });
-        return true;
-      } else {
-        setAuthState({
-          isAuthed: false,
-          token: "",
-          isInitialized: true,
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error("Failed to check auth state:", error);
-      setAuthState({
-        isAuthed: false,
-        token: "",
-        isInitialized: true,
-      });
-      return false;
-    }
-  };
-
-  // Invalidate authentication
-  const invalidateAuth = async () => {
-    await AsyncStorage.removeItem("authToken");
-    setAuthState({
-      isAuthed: false,
-      token: "",
-      isInitialized: true,
-    });
-    queryClient.invalidateQueries({ queryKey: ["user"] });
-    queryClient.removeQueries({ queryKey: ["user"] });
-  };
-
-  // Fetch user data
+  // User data query
   const {
     data: user,
     isPending: isUserPending,
@@ -284,118 +21,104 @@ export const useUser = (): any => {
   } = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
-      const authToken = await getAuthToken();
-      if (!authToken) {
-        throw new Error("No auth token found");
+      try {
+        if (!token) throw new Error("No auth token");
+        const axiosResponse = await userService.fetchUser(token);
+        const response = axiosResponse.data;
+
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+
+        return response.payload;
+      } catch (error: any) {
+        throw error;
       }
-      const user = await fetchUser(authToken);
-      if (!user || !user) {
-        throw new Error("Failed to fetch user data");
-      }
-      return { ...user, token: authToken };
     },
-    enabled: authState.isAuthed && authState.isInitialized,
-    retry: 1,
+    enabled: !!token,
   });
 
-  // Update user data
-  const updateUserMutation = useMutation({
-    mutationFn: async (data: UpdateUserData) => {
-      await checkAuthState();
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-      return updateUser(token, data);
-    },
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ["user"] });
-      const previousUserData = queryClient.getQueryData(["user"]);
-      queryClient.setQueryData(["user"], (old: any) => ({
-        ...old,
-        ...newData,
-      }));
-      return { previousUserData };
-    },
-    onError: (error, variables, context) => {
-      console.error("Update user error:", error);
-      if (context?.previousUserData) {
-        queryClient.setQueryData(["user"], context.previousUserData);
+  // Check email mutation
+  const checkEmail = useMutation({
+    mutationFn: async (email: string) => {
+      try {
+        const axiosResponse = await authService.checkEmailExists(email);
+        const response = axiosResponse.data;
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+        return response.payload;
+      } catch (error: any) {
+        throw error;
       }
     },
-    onSettled: () => {
+  });
+
+  // Sign in mutation
+  const signIn = useMutation({
+    mutationFn: async (credentials: { email: string; password: string }) => {
+      try {
+        const axiosResponse = await authService.signIn(
+          credentials.email,
+          credentials.password
+        );
+        const response = axiosResponse.data;
+
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+
+        if (response.payload?.token) {
+          await AsyncStorage.setItem("authToken", response.payload.token);
+          queryClient.setQueryData(["authToken"], response.payload.token);
+        }
+        return response.payload;
+      } catch (error: any) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 
-  // Delete account
-  const deleteAccountMutation = useMutation({
+  // Sign out mutation
+  const signOut = useMutation({
     mutationFn: async () => {
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error("No auth token found");
-      }
-      const response = await deleteAccount(token);
-      if (response.success) {
-        await invalidateAuth();
-        return true;
-      }
-      return false;
-    },
-    onError: (error) => {
-      console.error("Delete account error:", error);
-    },
-    onSuccess: () => {
+      await AsyncStorage.removeItem("authToken");
+      queryClient.setQueryData(["authToken"], null);
       queryClient.removeQueries({ queryKey: ["user"] });
     },
   });
 
+  // Update user mutation
+  const updateUser = useMutation({
+    mutationFn: (data: any) => {
+      if (!token) throw new Error("No auth token");
+      return userService.updateUser(token, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+
+  const invalidateAuth = async () => {
+    await AsyncStorage.removeItem("authToken");
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+    queryClient.removeQueries({ queryKey: ["user"] });
+  };
+
   return {
-    isInitialized: authState.isInitialized,
-    isAuthed: authState.isAuthed,
-    token: authState.token,
-    signOut: {
-      mutate: signOutMutation.mutate,
-    },
-    signIn: {
-      mutate: signInMutation.mutate,
-    },
-    signUp: {
-      mutate: signUpMutation.mutate,
-      data: signUpMutation.data,
-      isPending: signUpMutation.isPending,
-      error: signUpMutation.error,
-    },
-    checkAuthState,
-    checkEmail: {
-      mutate: checkEmailMutation.mutate,
-      data: checkEmailMutation.data,
-      isPending: checkEmailMutation.isPending,
-    },
+    isAuthed: !!token,
+    isInitialized,
+    token,
     user,
     isUserPending,
     userError,
-    // user: {
-    //   isPending: userQuery.isPending,
-    //   data: userQuery.data,
-    //   error: userQuery.error,
-    // },
-    updateUser: {
-      mutate: updateUserMutation.mutate,
-      data: updateUserMutation.data,
-      isPending: updateUserMutation.isPending,
-      error: updateUserMutation.error,
-    },
-    deleteAccount: {
-      mutateAsync: deleteAccountMutation.mutateAsync,
-      mutate: deleteAccountMutation.mutate,
-      data: deleteAccountMutation.data,
-      isPending: deleteAccountMutation.isPending,
-      error: deleteAccountMutation.error,
-    },
-    handleSuccess,
-    handleError,
-    signInWithGoogle,
+    checkEmail,
+    signIn,
+    signOut,
+    updateUser,
     invalidateAuth,
   };
-};
+}

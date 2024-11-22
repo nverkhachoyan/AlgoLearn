@@ -11,15 +11,15 @@ import {
 import { useRouter } from "expo-router";
 import Button from "@/src/components/common/Button";
 import { Feather } from "@expo/vector-icons";
-import { useAuthContext } from "@/src/context/AuthProvider";
+import { useUser } from "@/src/hooks/useUser";
+
 import { useColorScheme } from "@/src/components/useColorScheme";
 import useTheme from "@/src/hooks/useTheme";
 import useToast from "@/src/hooks/useToast";
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthed, checkEmail, signIn, signUp, signInWithGoogle } =
-    useAuthContext();
+  const { isAuthed, checkEmail, signIn } = useUser();
   const colorScheme = useColorScheme();
   const { colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
@@ -33,6 +33,10 @@ export default function SignUp() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
+
+  //TODO: Fix
+  const signUp = {};
+  const signInWithGoogle = () => {};
 
   const handleEmailCheck = async () => {
     if (!isValidEmail(email)) {
@@ -55,30 +59,30 @@ export default function SignUp() {
     }
   };
 
+  //TODO: Fix
   const handleSignUp = () => {
-    if (password.length < 8) {
-      Alert.alert(
-        "Weak Password",
-        "Password must be at least 8 characters long."
-      );
-      return;
-    }
-
-    if (password !== retryPassword) {
-      Alert.alert("Password Mismatch", "Passwords do not match.");
-    } else {
-      signUp.mutate(
-        { email, password },
-        {
-          onSuccess: () => {
-            router.navigate("/userdetails");
-          },
-          onError: (err: any) => {
-            showToast(`${err.response.message}`);
-          },
-        }
-      );
-    }
+    // if (password.length < 8) {
+    //   Alert.alert(
+    //     "Weak Password",
+    //     "Password must be at least 8 characters long."
+    //   );
+    //   return;
+    // }
+    // if (password !== retryPassword) {
+    //   Alert.alert("Password Mismatch", "Passwords do not match.");
+    // } else {
+    //   signUp.mutate(
+    //     { email, password },
+    //     {
+    //       onSuccess: () => {
+    //         router.navigate("/userdetails");
+    //       },
+    //       onError: (err: any) => {
+    //         showToast(`${err.response.message}`);
+    //       },
+    //     }
+    //   );
+    // }
   };
 
   const handleSignIn = () => {

@@ -4,10 +4,11 @@ import (
 	"algolearn/internal/errors"
 )
 
+//TODO: change variable names to match json names
 type Response struct {
 	Success   bool             `json:"success"`
 	Message   string           `json:"message"`
-	Data      interface{}      `json:"data,omitempty"`
+	Data      interface{}      `json:"payload,omitempty"`
 	Error     string           `json:"error,omitempty"`
 	ErrorCode errors.ErrorCode `json:"errorCode,omitempty"`
 }
@@ -17,12 +18,15 @@ type PaginationRequest struct {
 	PageSize int `query:"pageSize" binding:"min=1,max=100"`
 }
 
-type PaginatedResponse struct {
-	Items      interface{} `json:"items"`
-	Total      int64       `json:"total"`
+type Pagination struct { 
+	TotalItems      int64       `json:"totalItems"`
 	PageSize   int         `json:"pageSize"`
-	Page       int         `json:"page"`
+	CurrentPage       int         `json:"currentPage"`
 	TotalPages int         `json:"totalPages"`
+}
+type PaginatedPayload struct {
+	Items      interface{} `json:"items"`
+	Pagination `json:"pagination"`
 }
 
 type LoginRequest struct {

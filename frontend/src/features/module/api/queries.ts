@@ -1,9 +1,8 @@
 import api from "@/src/lib/api/client";
-import { Module } from "@/src/types/modules";
+import { AxiosResponse } from "axios";
 
-export const fetchModulesFull = async (): Promise<Module[]> => {
-  const response = await api.get("/courses");
-  return response.data.data;
+export const fetchModulesFull = async (): Promise<AxiosResponse> => {
+  return await api.get("/courses");
 };
 
 export const fetchModuleFull = async ({
@@ -20,8 +19,8 @@ export const fetchModuleFull = async ({
   userId: number;
   type: string;
   include: string;
-}): Promise<Module> => {
-  const response = await api.get(
+}): Promise<AxiosResponse> => {
+  return await api.get(
     `/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
     {
       params: {
@@ -31,5 +30,4 @@ export const fetchModuleFull = async ({
       },
     }
   );
-  return response.data.data;
 };

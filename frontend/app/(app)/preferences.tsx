@@ -7,7 +7,6 @@ import {
   ScrollView,
 } from "react-native";
 import { Text, View } from "@/src/components/Themed";
-import { useAuthContext } from "@/src/context/AuthProvider";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -16,9 +15,10 @@ import useTheme from "@/src/hooks/useTheme";
 import LabeledInput from "@/src/components/common/LabeledInput";
 import { StickyHeaderSimple } from "@/src/components/common/StickyHeader";
 import useToast from "@/src/hooks/useToast";
-import { ImageFile } from "@/src/types/CommonTypes";
+import { ImageFile } from "@/src/types/common";
 import * as ImagePicker from "expo-image-picker";
 import { FontAwesome } from "@expo/vector-icons";
+import { useUser } from "@/src/hooks/useUser";
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -34,8 +34,7 @@ interface UpdateUserData {
 }
 
 export default function Preferences() {
-  const { isAuthed, user, updateUser, deleteAccount, signOut } =
-    useAuthContext();
+  const { isAuthed, user, updateUser, signOut } = useUser();
   const { colors } = useTheme();
   const { showToast } = useToast();
   const [image, setImage] = useState<string | null>(null);
@@ -77,12 +76,12 @@ export default function Preferences() {
   };
 
   const handleDeleteAccount = async () => {
-    deleteAccount.mutate(undefined, {
-      onSuccess: () => {
-        showToast("Account successfully deleted");
-        router.replace("/welcome");
-      },
-    });
+    // deleteAccount.mutate(undefined, {
+    //   onSuccess: () => {
+    //     showToast("Account successfully deleted");
+    //     router.replace("/welcome");
+    //   },
+    // });
   };
 
   const handleSignOut = () => {

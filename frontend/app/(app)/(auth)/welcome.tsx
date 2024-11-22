@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Text, StyleSheet } from "react-native";
-import { router, Href } from "expo-router";
+import { router } from "expo-router";
 import Button from "@/src/components/common/Button";
 import LottieView from "lottie-react-native";
 import { View } from "@/src/components/Themed";

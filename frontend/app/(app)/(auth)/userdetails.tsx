@@ -14,12 +14,12 @@ import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import Button from "@/src/components/common/Button";
 import { Feather } from "@expo/vector-icons";
-import { useAuthContext } from "@/src/context/AuthProvider";
 import useTheme from "@/src/hooks/useTheme";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import useToast from "@/src/hooks/useToast";
 
-import { ImageFile } from "@/src/types/CommonTypes";
+import { ImageFile } from "@/src/types/common";
+import { useUser } from "@/src/hooks/useUser";
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -29,7 +29,7 @@ export default function UserDetails() {
   const [lastName, setLastName] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<ImageFile>(null);
-  const { isAuthed, updateUser } = useAuthContext();
+  const { isAuthed, updateUser } = useUser();
   const { colors } = useTheme();
   const { showToast } = useToast();
 

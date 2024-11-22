@@ -1,46 +1,35 @@
 import api from "@/src/lib/api/client";
 import axios from "axios";
-import { Response } from "@/src/types/apiTypes";
+import { AxiosResponse } from "axios";
 
 const apiWithForm = axios.create({
   baseURL: process.env.EXPO_PUBLIC_BACKEND_URL,
   headers: {
-    "Content-Type": "multipart/form-data", // This is not necessary as Axios will set it automatically when FormData is used
+    "Content-Type": "multipart/form-data",
   },
 });
 
-export const fetchUser = async (token: string): Promise<Response> => {
+export const fetchUser = async (token: string): Promise<AxiosResponse> => {
   const response = await api.get("/user", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
-  return response.data.data;
+  return response;
 };
 
 export const updateUser = async (
   token: string,
   data: any
-): Promise<Response> => {
+): Promise<AxiosResponse> => {
   console.log("updateUser function called");
 
   const formData = new FormData();
-
-  // Append JSON data
   formData.append("data", JSON.stringify(data));
-  console.log("Appended JSON data to FormData");
-
-  // Check and append avatar
-  console.log("Checking if avatar is present");
   if (data.avatar) {
     console.log("Avatar is present");
     formData.append("avatar", data.avatar);
-    console.log("Appended avatar to FormData");
-  } else {
-    console.log("No avatar present");
   }
-
-  console.log("Before fetch");
 
   try {
     const response: any = await fetch(
@@ -54,8 +43,6 @@ export const updateUser = async (
       }
     );
 
-    console.log("Response received:", response);
-
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Error response from server:", errorData);
@@ -63,16 +50,13 @@ export const updateUser = async (
     }
 
     const responseData = await response.json();
-    console.log("Parsed response data:", responseData);
-
     return responseData;
   } catch (error: any) {
-    console.error("Error while processing updateUser:", error);
     throw error;
   }
 };
 
-export const deleteAccount = async (token: string): Promise<Response> => {
+export const deleteAccount = async (token: string): Promise<AxiosResponse> => {
   const response = await api.delete("/user", {
     headers: {
       Authorization: `Bearer ${token}`,

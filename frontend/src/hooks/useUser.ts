@@ -6,14 +6,12 @@ import * as userService from "@/src/features/user/api/queries";
 export function useUser() {
   const queryClient = useQueryClient();
 
-  // Auth token query
   const { data: token, isSuccess: isInitialized } = useQuery({
     queryKey: ["authToken"],
     queryFn: () => AsyncStorage.getItem("authToken"),
     staleTime: Infinity, // Don't refetch token automatically
   });
 
-  // User data query
   const {
     data: user,
     isPending: isUserPending,
@@ -36,9 +34,9 @@ export function useUser() {
       }
     },
     enabled: !!token,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Check email mutation
   const checkEmail = useMutation({
     mutationFn: async (email: string) => {
       try {
@@ -54,7 +52,6 @@ export function useUser() {
     },
   });
 
-  // Sign in mutation
   const signIn = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
       try {
@@ -82,7 +79,6 @@ export function useUser() {
     },
   });
 
-  // Sign out mutation
   const signOut = useMutation({
     mutationFn: async () => {
       await AsyncStorage.removeItem("authToken");
@@ -91,7 +87,6 @@ export function useUser() {
     },
   });
 
-  // Update user mutation
   const updateUser = useMutation({
     mutationFn: (data: any) => {
       if (!token) throw new Error("No auth token");

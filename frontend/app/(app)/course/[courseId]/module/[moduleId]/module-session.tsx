@@ -4,7 +4,7 @@ import { ActivityIndicator, MD2Colors } from "react-native-paper";
 import { ScrollView, View, Text } from "@/src/components/Themed";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import SectionRenderer from "@/src/features/course/components/SectionRenderer";
+import SectionRenderer from "@/src/features/course/components/module-session/SectionRenderer";
 import { Section } from "@/src/features/module/types";
 import Button from "@/src/components/common/Button";
 import useTheme from "@/src/hooks/useTheme";

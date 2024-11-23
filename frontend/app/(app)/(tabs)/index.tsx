@@ -37,7 +37,7 @@ export default function Home() {
   } = useCourses({
     userId: 4,
     currentPage: 1,
-    pageSize: 1,
+    pageSize: 5,
     type: "summary",
     filter: "explore",
   });
@@ -74,7 +74,7 @@ export default function Home() {
         ]}
       >
         <CourseSection
-          title="Currently Learning"
+          title="Your Courses"
           courses={learningCourses}
           hasNextPage={hasNextLearning}
           isFetchingNextPage={isFetchingNextLearning}

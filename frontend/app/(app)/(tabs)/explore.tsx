@@ -8,18 +8,20 @@ import useTheme from "@/src/hooks/useTheme";
 import CourseCard from "../../../src/features/course/components/CourseCard";
 import { useCourses } from "@/src/hooks/useCourses";
 import { useUser } from "@/src/hooks/useUser";
+import { CourseSection } from "@/src/features/course/components/CourseSection";
 
 export default function Explore() {
-  const { isAuthed, user, invalidateAuth } = useUser();
+  const { user } = useUser();
   const { colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const { courses } = useCourses({
-    userId: 4,
-    currentPage: 1,
-    pageSize: 5,
-    type: "summary",
-    filter: "explore",
-  });
+  const { courses, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useCourses({
+      userId: 4,
+      currentPage: 1,
+      pageSize: 5,
+      type: "summary",
+      filter: "explore",
+    });
 
   return (
     <View
@@ -53,33 +55,14 @@ export default function Explore() {
             value={searchQuery}
             style={styles.searchBar}
           />
-          <View style={styles.separator} />
-          {courses && courses.length > 0 ? (
-            courses.map((course: any) => (
-              <CourseCard
-                key={course.id}
-                courseID={course.id.toString()}
-                courseTitle={course.name}
-                backgroundColor={course.backgroundColor}
-                iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
-                description={course.description}
-                authors={course.authors}
-                difficultyLevel={course.difficultyLevel}
-                duration={course.duration}
-                rating={course.rating}
-                currentUnit={undefined}
-                currentModule={undefined}
-                filter="explore"
-              />
-            ))
-          ) : (
-            <Text>No courses found</Text>
-          )}
-
-          <View style={styles.separator} />
-
-          <Text style={styles.title}>Other Topics</Text>
-          <View style={styles.separator} />
+          <CourseSection
+            title="Explore"
+            courses={courses}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => {}}
+            filter="explore"
+          />
         </View>
       </ScrollView>
     </View>

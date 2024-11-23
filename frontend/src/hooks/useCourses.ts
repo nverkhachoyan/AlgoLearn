@@ -8,81 +8,59 @@ import { Course } from "@/src/features/course/types";
 import { ApiResponse, PaginatedPayload } from "../types/api";
 import { handleApiError } from "@/src/lib/api/client";
 
+// Helper function to handle API responses
+const handleResponse = <T>(response: ApiResponse<T>) => {
+  if (!response.success) {
+    throw new Error(response.message);
+  }
+  return response.payload;
+};
+
 export const useCourses = ({
   userId,
-  courseId,
   currentPage,
   pageSize,
   filter,
   type,
 }: CourseFetchParams) => {
-  console.log(
-    "useCourses Called with PARAMS:",
-    userId,
-    courseId,
-    currentPage,
-    pageSize,
-    type,
-    filter
-  );
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-    error,
-  } = useInfiniteQuery<PaginatedPayload<Course>>({
-    queryKey: ["courses", userId, currentPage, pageSize, filter, type],
-    queryFn: async ({ pageParam }: any) => {
+  const queryResult = useInfiniteQuery<PaginatedPayload<Course>>({
+    queryKey: ["courses", { userId, filter, type, pageSize }],
+    queryFn: async ({ pageParam = 1 }) => {
       try {
-        const axiosResponse = await fetchCourses({
+        const { data } = await fetchCourses({
           userId,
-          currentPage: pageParam,
+          currentPage: pageParam as number,
           pageSize,
           filter,
           type,
         });
-        const response = axiosResponse.data as ApiResponse<
-          PaginatedPayload<Course>
-        >;
 
-        if (!response.payload) {
+        if (!data.payload) {
           throw new Error("No data received");
         }
 
-        if (!response.success) {
-          throw new Error(response.message);
-        }
-
-        return response.payload;
-      } catch (error: any) {
+        return handleResponse(data);
+      } catch (error) {
         throw new Error(handleApiError(error));
       }
     },
-    getNextPageParam: (lastPage: PaginatedPayload<Course>) => {
-      if (lastPage.pagination.currentPage < lastPage.pagination.totalPages) {
-        return lastPage.pagination.currentPage + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.currentPage < lastPage.pagination.totalPages
+        ? lastPage.pagination.currentPage + 1
+        : undefined,
     initialPageParam: 1,
-    enabled: Boolean(userId && currentPage && pageSize),
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    enabled: Boolean(userId && pageSize),
+    staleTime: 5 * 60 * 1000,
   });
 
-  const courses = data?.pages.flatMap((page) => page.items) ?? [];
-  const totalItems = data?.pages[0]?.pagination.totalItems ?? 0;
-
   return {
-    courses,
-    totalItems,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: status === "pending",
-    error,
+    courses: queryResult.data?.pages.flatMap((page) => page.items) ?? [],
+    totalItems: queryResult.data?.pages[0]?.pagination.totalItems ?? 0,
+    fetchNextPage: queryResult.fetchNextPage,
+    hasNextPage: queryResult.hasNextPage,
+    isFetchingNextPage: queryResult.isFetchingNextPage,
+    isLoading: queryResult.status === "pending",
+    error: queryResult.error,
   };
 };
 
@@ -92,36 +70,28 @@ export const useCourse = ({
   filter,
   type,
 }: CourseFetchParams) => {
-  const {
-    data: course,
-    isPending: isCoursePending,
-    error: courseError,
-  } = useQuery({
-    queryKey: ["course", userId, courseId, filter, type],
+  const queryResult = useQuery<Course>({
+    queryKey: ["course", { userId, courseId, filter, type }],
     queryFn: async () => {
       try {
-        const axiosResponse = await fetchCourse({
+        const { data } = await fetchCourse({
           userId,
           courseId,
           type,
           filter,
         });
-        const response = axiosResponse.data as ApiResponse<Course>;
-
-        if (!response.success) {
-          throw new Error(response.message);
-        }
-
-        return response.payload;
-      } catch (error: any) {
+        return handleResponse(data);
+      } catch (error) {
         throw new Error(handleApiError(error));
       }
     },
+    enabled: Boolean(userId && courseId),
+    staleTime: 10 * 60 * 1000,
   });
 
   return {
-    course,
-    isCoursePending,
-    courseError,
+    course: queryResult.data,
+    isLoading: queryResult.isPending,
+    error: queryResult.error,
   };
 };

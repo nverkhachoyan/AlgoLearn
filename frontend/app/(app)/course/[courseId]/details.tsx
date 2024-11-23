@@ -17,7 +17,7 @@ export default function CourseDetails() {
   const { colors } = useTheme();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
 
-  const { course, isCoursePending, courseError } = useCourse({
+  const { course, isLoading, error } = useCourse({
     userId: 4,
     courseId: parseInt(courseId as string),
     type: "full",
@@ -26,7 +26,7 @@ export default function CourseDetails() {
 
   console.log("follow me", course);
 
-  if (isCoursePending) {
+  if (isLoading) {
     return <Text>Loading...</Text>;
   }
 
@@ -60,7 +60,7 @@ export default function CourseDetails() {
             />
           )}
 
-          <TableOfContents units={course.units} />
+          {course.units && <TableOfContents units={course.units} />}
 
           <View style={styles.separator} />
 

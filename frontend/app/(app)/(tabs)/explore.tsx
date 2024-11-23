@@ -5,7 +5,7 @@ import { Text, View } from "@/src/components/Themed";
 import { router } from "expo-router";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import useTheme from "@/src/hooks/useTheme";
-import CourseCard from "./components/CourseCard";
+import CourseCard from "../../../src/features/course/components/CourseCard";
 import { useCourses } from "@/src/hooks/useCourses";
 import { useUser } from "@/src/hooks/useUser";
 

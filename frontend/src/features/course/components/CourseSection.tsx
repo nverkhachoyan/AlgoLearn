@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, ActivityIndicator } from "react-native";
 import { View, Text } from "@/src/components/Themed";
-import CourseCard from "@/app/(app)/(tabs)/components/CourseCard";
+import CourseCard from "@/src/features/course/components/CourseCard";
 import Button from "@/src/components/common/Button";
 import { Course } from "@/src/features/course/types";
 import useTheme from "@/src/hooks/useTheme";

@@ -8,7 +8,6 @@ export const fetchCourses = async ({
   pageSize,
   filter,
   type,
-  include,
 }: CourseFetchParams): Promise<AxiosResponse> => {
   const response = await api.get(`/courses`, {
     params: {
@@ -17,7 +16,6 @@ export const fetchCourses = async ({
       pageSize,
       filter,
       type,
-      include,
     },
   });
   return response;
@@ -26,16 +24,14 @@ export const fetchCourses = async ({
 export const fetchCourse = async ({
   userId,
   courseId,
-  filter,
   type,
-  include,
+  filter,
 }: CourseFetchParams): Promise<AxiosResponse> => {
   const response = await api.get(`/courses/${courseId}`, {
     params: {
       userId,
-      filter,
       type,
-      include,
+      filter,
     },
   });
   return response;

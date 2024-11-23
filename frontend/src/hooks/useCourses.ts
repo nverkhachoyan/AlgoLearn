@@ -5,7 +5,7 @@ import {
 } from "@/src/features/course/api";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Course } from "@/src/features/course/types";
-import { ApiResponse, PaginatedPayload } from "../types/apiTypes";
+import { ApiResponse, PaginatedPayload } from "../types/api";
 import { handleApiError } from "@/src/lib/api/client";
 
 export const useCourses = ({
@@ -15,8 +15,16 @@ export const useCourses = ({
   pageSize,
   filter,
   type,
-  include,
 }: CourseFetchParams) => {
+  console.log(
+    "useCourses Called with PARAMS:",
+    userId,
+    courseId,
+    currentPage,
+    pageSize,
+    type,
+    filter
+  );
   const {
     data,
     fetchNextPage,
@@ -25,7 +33,7 @@ export const useCourses = ({
     status,
     error,
   } = useInfiniteQuery<PaginatedPayload<Course>>({
-    queryKey: ["courses", filter, type, userId],
+    queryKey: ["courses", userId, currentPage, pageSize, filter, type],
     queryFn: async ({ pageParam }: any) => {
       try {
         const axiosResponse = await fetchCourses({
@@ -34,7 +42,6 @@ export const useCourses = ({
           pageSize,
           filter,
           type,
-          include,
         });
         const response = axiosResponse.data as ApiResponse<
           PaginatedPayload<Course>
@@ -60,23 +67,44 @@ export const useCourses = ({
       return undefined;
     },
     initialPageParam: 1,
-    throwOnError: true,
+    enabled: Boolean(userId && currentPage && pageSize),
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
+  const courses = data?.pages.flatMap((page) => page.items) ?? [];
+  const totalItems = data?.pages[0]?.pagination.totalItems ?? 0;
+
+  return {
+    courses,
+    totalItems,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: status === "pending",
+    error,
+  };
+};
+
+export const useCourse = ({
+  userId,
+  courseId,
+  filter,
+  type,
+}: CourseFetchParams) => {
   const {
     data: course,
     isPending: isCoursePending,
     error: courseError,
   } = useQuery({
-    queryKey: ["course", courseId, userId, filter, type],
+    queryKey: ["course", userId, courseId, filter, type],
     queryFn: async () => {
       try {
         const axiosResponse = await fetchCourse({
           userId,
           courseId,
-          filter,
           type,
-          include,
+          filter,
         });
         const response = axiosResponse.data as ApiResponse<Course>;
 
@@ -91,19 +119,9 @@ export const useCourses = ({
     },
   });
 
-  const courses = data?.pages.flatMap((page) => page.items) ?? [];
-  const totalItems = data?.pages[0]?.pagination.totalItems ?? 0;
-
   return {
     course,
     isCoursePending,
     courseError,
-    courses,
-    totalItems,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: status === "pending",
-    error,
   };
 };

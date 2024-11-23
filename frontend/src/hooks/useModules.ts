@@ -7,27 +7,19 @@ export const useModules = ({
   moduleId,
   userId,
   type,
-  include,
+  filter,
 }: {
   courseId: number;
   unitId: number;
   moduleId: number;
   userId: number;
   type: string;
-  include: string;
+  filter: string;
 }) => {
   const queryClient = useQueryClient();
 
   const moduleFullQuery = useQuery({
-    queryKey: [
-      "module-full",
-      courseId,
-      unitId,
-      moduleId,
-      userId,
-      type,
-      include,
-    ],
+    queryKey: ["module-full", courseId, unitId, moduleId, userId, type, filter],
     queryFn: async () => {
       try {
         const axiosResponse = await fetchModuleFull({
@@ -36,7 +28,7 @@ export const useModules = ({
           moduleId,
           userId,
           type,
-          include,
+          filter,
         });
         const response = axiosResponse.data;
         if (!response.success) {

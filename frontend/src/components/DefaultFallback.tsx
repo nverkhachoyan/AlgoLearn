@@ -3,6 +3,8 @@ import { StyleSheet } from "react-native";
 import { View, Text } from "./Themed";
 import Button from "./common/Button";
 import useTheme from "../hooks/useTheme";
+import { useEffect } from "react";
+import useToast from "@/src/hooks/useToast";
 
 export function DefaultFallback({ error, resetErrorBoundary }: FallbackProps) {
   const { colors } = useTheme();
@@ -24,6 +26,18 @@ export function DefaultFallback({ error, resetErrorBoundary }: FallbackProps) {
       />
     </View>
   );
+}
+
+export function ErrorFallback({ error }: { error: Error }) {
+  const { showToast } = useToast();
+  useEffect(() => {
+    showToast(error.message, {
+      position: 20,
+      onHide: () => console.log("hiding"),
+    });
+  }, [error]);
+
+  return null;
 }
 
 const styles = StyleSheet.create({

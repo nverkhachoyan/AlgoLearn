@@ -1,4 +1,4 @@
-import { BaseModel } from "../../../types/base";
+import { BaseModel } from "@/src/types";
 
 export interface Section extends BaseModel {
   moduleId?: number;

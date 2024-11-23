@@ -20,8 +20,9 @@ export default function CourseCard(props: {
   difficultyLevel?: string;
   duration?: string;
   rating?: number;
-  currentUnit?: Unit;
-  currentModule?: Module;
+  currentUnit?: Unit | null;
+  currentModule?: Module | null;
+  type?: string;
   filter?: string;
 }) {
   const { colors } = useTheme();
@@ -45,6 +46,8 @@ export default function CourseCard(props: {
           pathname: "/course/[courseId]/details",
           params: {
             courseId: props.courseID,
+            type: props.type,
+            filter: props.filter,
           },
         })
       }
@@ -82,19 +85,19 @@ export default function CourseCard(props: {
       <Text style={styles.description}>{props.description}</Text>
 
       <Divider style={{ marginVertical: 5 }} />
-      {props.currentUnit && (
+      {props?.currentUnit && (
         <>
           <Card
             onPress={() =>
               router.push({
                 pathname: "/course/[courseId]/module/[moduleId]/module-session",
                 params: {
-                  courseId: props.courseID, // Make sure this is passed as a prop
-                  moduleId: props.currentModule?.id as number,
+                  courseId: props.courseID,
                   unitId: props.currentUnit?.id,
+                  moduleId: props.currentModule?.id as number,
                   userId: 4,
                   type: "full",
-                  include: "progress",
+                  filter: "learning",
                 },
               })
             }
@@ -150,7 +153,7 @@ export default function CourseCard(props: {
                       unitId: props.currentUnit?.id,
                       userId: 4,
                       type: "full",
-                      include: "progress",
+                      filter: "learning",
                     },
                   })
                 }

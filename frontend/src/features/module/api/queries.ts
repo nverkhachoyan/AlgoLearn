@@ -11,14 +11,14 @@ export const fetchModuleFull = async ({
   moduleId,
   userId,
   type,
-  include,
+  filter,
 }: {
   courseId: number;
   unitId: number;
   moduleId: number;
   userId: number;
   type: string;
-  include: string;
+  filter: string;
 }): Promise<AxiosResponse> => {
   return await api.get(
     `/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
@@ -26,7 +26,7 @@ export const fetchModuleFull = async ({
       params: {
         userId,
         type,
-        include,
+        filter,
       },
     }
   );

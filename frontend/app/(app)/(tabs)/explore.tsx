@@ -15,10 +15,9 @@ export default function Explore() {
   const [searchQuery, setSearchQuery] = useState("");
   const { courses } = useCourses({
     userId: 4,
-    type: "summary",
-    include: "progress",
     currentPage: 1,
     pageSize: 5,
+    type: "summary",
     filter: "explore",
   });
 

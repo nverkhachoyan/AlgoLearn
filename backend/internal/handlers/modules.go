@@ -87,20 +87,10 @@ func (h *moduleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
 
 	queryParams := models.ModuleQueryParams {
 		Type: query.Get("type"),
-		Include: query.Get("include"),
+		Filter: query.Get("filter"),
 	}
 
-	if err := queryParams.Validate(); err != nil {
-		log.Warn("invalid query parameters", "error", err.Error())
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: codes.InvalidRequest,
-			Message:   err.Error(),
-		})
-		return
-	}
-
-	if queryParams.Type == "full" && queryParams.Include == "progress" {
+	if queryParams.Type == "full" && queryParams.Filter == "learning" {
 		h.GetModuleWithProgress(w, r)
 		return
 	}

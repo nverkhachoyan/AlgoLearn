@@ -1,1 +1,1 @@
-export { User, Streak, UserAchievement } from "./userTypes";
+export { User, Streak, UserAchievement } from "./types";

@@ -8,10 +8,6 @@ import useTheme from "@/src/hooks/useTheme";
 export { useSegments, Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "@/src/hooks/useUser";
-import { Button, Text } from "react-native-paper";
-import { View } from "@/src/components/Themed";
-import ErrorBoundary from "react-native-error-boundary";
-import { DefaultFallback } from "@/src/components/DefaultFallback";
 
 export default function Layout() {
   const { colors } = useTheme();
@@ -33,16 +29,6 @@ export default function Layout() {
 
   const shouldSafeAreaBeBlack = segments.includes("(auth)" as never);
 
-  // useEffect(() => {
-  //   const checkAuth = async () => {
-  //     await checkAuthState();
-  //   };
-  //   checkAuth();
-  //   if (!isAuthed) {
-  //     <Redirect href="/unauthorized" />;
-  //   }
-  // }, [isAuthed]);
-
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -55,10 +41,6 @@ export default function Layout() {
       router.replace("/(app)/(tabs)");
     }
   }, [isAuthed, isInitialized, segments]);
-
-  // useEffect(() => {
-  //   if (error) throw error;
-  // }, [error]);
 
   useEffect(() => {
     if (loaded) {
@@ -115,26 +97,3 @@ export default function Layout() {
     </>
   );
 }
-
-// export default function RootLayout() {
-//   const segments = useSegments();
-//   const router = useRouter();
-//   const { isAuthed, isInitialized } = useUser();
-
-//   useEffect(() => {
-//     if (!isInitialized) return;
-
-//     const inAuthGroup = segments[0] === '(auth)';
-//     const inProtectedGroup = segments[0] === '(app)';
-
-//     if (!isAuthed && inProtectedGroup) {
-//       router.replace('/(auth)/sign-in');
-//     } else if (isAuthed && inAuthGroup) {
-//       router.replace('/(app)/(tabs)');
-//     }
-//   }, [isAuthed, isInitialized, segments]);
-
-//   if (!isInitialized) return null;
-
-//   return <Slot />;
-// }

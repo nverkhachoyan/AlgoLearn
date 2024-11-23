@@ -4,7 +4,7 @@ import { StyleSheet } from "react-native";
 import { useState } from "react";
 import { useUser } from "@/src/hooks/useUser";
 import useTheme from "@/src/hooks/useTheme";
-import { useCourses } from "@/src/hooks/useCourses";
+import { useCourse } from "@/src/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import CourseHeader from "@/src/features/course/components/CourseHeader";
 import CurrentModuleCard from "@/src/features/course/components/CurrentModuleCard";
@@ -13,19 +13,18 @@ import CourseInfo from "@/src/features/course/components/CourseInfo";
 import FooterButtons from "@/src/features/course/components/FooterButtons";
 
 export default function CourseDetails() {
-  const { user } = useUser();
-  const params = useLocalSearchParams();
+  const { courseId, filter } = useLocalSearchParams();
   const { colors } = useTheme();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
 
-  const { courseId } = params;
-  const { course, isCoursePending, courseError } = useCourses({
+  const { course, isCoursePending, courseError } = useCourse({
     userId: 4,
     courseId: parseInt(courseId as string),
-    filter: "learning",
-    type: "summary",
-    include: "progress",
+    type: "full",
+    filter: filter as any,
   });
+
+  console.log("follow me", course);
 
   if (isCoursePending) {
     return <Text>Loading...</Text>;
@@ -52,12 +51,14 @@ export default function CourseDetails() {
         <View style={styles.container}>
           <CourseHeader course={course} />
 
-          <CurrentModuleCard
-            course={course}
-            isPressed={isCurrentModulePressed}
-            onPressIn={() => setIsCurrentModulePressed(true)}
-            onPressOut={() => setIsCurrentModulePressed(false)}
-          />
+          {course.currentModule && (
+            <CurrentModuleCard
+              course={course}
+              isPressed={isCurrentModulePressed}
+              onPressIn={() => setIsCurrentModulePressed(true)}
+              onPressOut={() => setIsCurrentModulePressed(false)}
+            />
+          )}
 
           <TableOfContents units={course.units} />
 

@@ -23,12 +23,12 @@ interface RouteParams {
   moduleId: string;
   userId: number;
   type: string;
-  include: string;
+  filter: string;
 }
 
 export default function ModuleSession() {
   const { colors } = useTheme();
-  const { courseId, unitId, moduleId, userId, type, include } =
+  const { courseId, unitId, moduleId, userId, type, filter } =
     useLocalSearchParams<RouteParams | any>();
 
   const parsedParams = useMemo(
@@ -38,9 +38,9 @@ export default function ModuleSession() {
       moduleId: parseInt(moduleId ?? "", 10),
       userId: parseInt(userId ?? "", 10),
       type: type ?? "full",
-      include: include ?? "",
+      filter: filter ?? "",
     }),
-    [courseId, unitId, moduleId, type, include]
+    [courseId, unitId, moduleId, type, filter]
   );
 
   const isValidParams = useMemo(

@@ -24,7 +24,6 @@ export default function Home() {
     pageSize: 5,
     type: "summary",
     filter: "learning",
-    include: "progress",
   });
 
   const {
@@ -37,7 +36,6 @@ export default function Home() {
     userId: 4,
     currentPage: 1,
     pageSize: 1,
-    include: "progress",
     type: "summary",
     filter: "explore",
   });
@@ -83,7 +81,7 @@ export default function Home() {
   }
 
   if (learningError || exploreError) {
-    showToast("Failed to fetch courses");
+    showToast("Failed to fetch courses" + learningError?.message);
   }
 
   const renderCourseList = (
@@ -111,6 +109,7 @@ export default function Home() {
             rating={course.rating}
             currentUnit={course.currentUnit}
             currentModule={course.currentModule}
+            type="summary"
             filter="learning"
           />
         );
@@ -127,8 +126,9 @@ export default function Home() {
             difficultyLevel={course.difficultyLevel}
             duration={course.duration + ""}
             rating={course.rating}
-            currentUnit={course.currentUnit}
-            currentModule={course.currentModule}
+            currentUnit={null}
+            currentModule={null}
+            type="summary"
             filter="explore"
           />
         );

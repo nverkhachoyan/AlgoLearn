@@ -6,4 +6,10 @@ export {
   CodeContent,
   QuestionContent,
   QuestionOption,
+  SectionViewState,
+  QuestionState,
+  isQuestionSection,
+  isVideoSection,
+  isTextSection,
+  isCodeSection,
 } from "./sections";

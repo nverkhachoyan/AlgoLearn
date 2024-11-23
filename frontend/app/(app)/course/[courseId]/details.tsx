@@ -2,7 +2,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { View, ScrollView, Text } from "@/src/components/Themed";
 import { StyleSheet } from "react-native";
 import { useState } from "react";
-import { useUser } from "@/src/hooks/useUser";
 import useTheme from "@/src/hooks/useTheme";
 import { useCourse } from "@/src/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
@@ -17,7 +16,7 @@ export default function CourseDetails() {
   const { colors } = useTheme();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
 
-  const { course, isLoading, error } = useCourse({
+  const { course, isLoading } = useCourse({
     userId: 4,
     courseId: parseInt(courseId as string),
     type: "full",

@@ -8,7 +8,7 @@ interface SectionCompletion {
   sectionId: number;
   isCompleted: boolean;
   requiresQuestion: boolean;
-  isViewed: boolean;
+  hasSeen: boolean;
   isAnswered: boolean | null;
 }
 

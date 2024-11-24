@@ -231,22 +231,22 @@ VALUES
 (4, 3, NULL, NULL, NULL);
 
 -- 19. Insert Data into 'user_section_progress' Table
-INSERT INTO user_section_progress (user_id, module_id, section_id, started_at, completed_at, status)
-VALUES
-(4, 1, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 'completed'),
-(4, 1, 2, NOW() - INTERVAL '1 day', NULL, 'in_progress'),
-(5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'completed'),
-(5, 2, 4, NOW(), NULL, 'in_progress'),
-(4, 3, 5, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days', 'completed');
+-- INSERT INTO user_section_progress (user_id, module_id, section_id, started_at, completed_at)
+-- VALUES
+-- (4, 1, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+-- (4, 1, 2, NOW() - INTERVAL '1 day', NULL),
+-- (5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+-- (5, 2, 4, NOW(), NULL),
+-- (4, 3, 5, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days');
 
 -- 20. Insert Data into 'user_question_answers' Table
-INSERT INTO user_question_answers (user_module_progress_id, question_id, answer_id, answered_at, is_correct)
-VALUES
-(1, 1, 1, NOW() - INTERVAL '2 days', TRUE),
-(1, 2, 6, NOW() - INTERVAL '1 day', TRUE),
-(2, 3, 9, NOW() - INTERVAL '1 day', TRUE),
-(3, 4, 11, NOW() - INTERVAL '3 days', TRUE),
-(5, 5, 16, NOW() - INTERVAL '5 days', TRUE);
+-- INSERT INTO user_question_answers (user_module_progress_id, question_id, option_id, answered_at, is_correct)
+-- VALUES
+-- (1, 1, 1, NOW() - INTERVAL '2 days', TRUE),
+-- (1, 2, 6, NOW() - INTERVAL '1 day', TRUE),
+-- (2, 3, 9, NOW() - INTERVAL '1 day', TRUE),
+-- (3, 4, 11, NOW() - INTERVAL '3 days', TRUE),
+-- (5, 5, 16, NOW() - INTERVAL '5 days', TRUE);
 
 -- 21. Insert Data into 'achievements' Table
 INSERT INTO achievements (name, description, points)
@@ -284,11 +284,5 @@ VALUES
 (3, CURRENT_DATE - INTERVAL '7 days', CURRENT_DATE - INTERVAL '2 days', 0, 5),
 (1, CURRENT_DATE - INTERVAL '1 day', NULL, 1, 1);
 
--- 25. Insert Data into 'user_section_progress' Table
-INSERT INTO user_section_progress (user_id, module_id, section_id, started_at, completed_at, status)
-VALUES
-(5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 'completed'),
-(5, 2, 4, NOW(), NULL, 'in_progress'),
-(4, 5, 5, NOW() - INTERVAL '5 days', NULL, 'in_progress'),
-(4, 1, 3, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 'completed'),
-(4, 1, 5, NOW() - INTERVAL '1 day', NULL, 'in_progress');
+
+

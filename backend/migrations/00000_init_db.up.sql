@@ -82,7 +82,7 @@ CREATE TABLE units (
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
--- Questions Table (Removed correct_answer_ids and tags)
+-- Questions Table
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -101,7 +101,7 @@ CREATE TABLE question_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
--- Modules Table (Removed redundant course_id)
+-- Modules Table
 CREATE TABLE modules (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -166,7 +166,7 @@ CREATE TABLE module_questions (
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 );
 
--- User Module Progress Table (Replaced current_position with current_section_id)
+-- User Module Progress Table 
 CREATE TABLE user_module_progress (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -184,7 +184,7 @@ CREATE TABLE user_module_progress (
     FOREIGN KEY (current_section_id) REFERENCES sections(id) ON DELETE SET NULL
 );
 
--- User Courses Table (Added current_unit_id and current_module_id)
+-- User Courses Table
 CREATE TABLE user_courses (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -209,7 +209,8 @@ CREATE TABLE user_section_progress (
     section_id INTEGER NOT NULL,
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
-    status module_progress_status NOT NULL DEFAULT 'in_progress',
+    has_seen BOOLEAN NOT NULL DEFAULT FALSE,
+    seen_at TIMESTAMPTZ,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
@@ -222,15 +223,13 @@ CREATE TABLE user_question_answers (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     user_module_progress_id INTEGER NOT NULL,
     question_id INTEGER NOT NULL,
-    answer_id INTEGER NOT NULL,
+    option_id INTEGER NOT NULL,
     answered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_correct BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (user_module_progress_id) REFERENCES user_module_progress(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (answer_id) REFERENCES question_options(id) ON DELETE CASCADE
+    FOREIGN KEY (option_id) REFERENCES question_options(id) ON DELETE CASCADE
 );
-
--- Note: Ensure that answer_id corresponds to question_id via application logic or triggers.
 
 -- Achievements Table
 CREATE TABLE achievements (
@@ -242,7 +241,7 @@ CREATE TABLE achievements (
     points INTEGER NOT NULL DEFAULT 0
 );
 
--- User Achievements Table (Removed redundant fields and added unique constraint)
+-- User Achievements Table 
 CREATE TABLE user_achievements (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -306,6 +305,29 @@ ADD CONSTRAINT uniq_user_achievement UNIQUE (user_id, achievement_id);
 
 ALTER TABLE user_courses
 ADD CONSTRAINT uniq_user_course UNIQUE (user_id, course_id);
+
+ALTER TABLE user_section_progress 
+ADD CONSTRAINT unique_user_section_progress 
+UNIQUE (user_id, section_id);
+
+ALTER TABLE user_module_progress 
+ADD CONSTRAINT unique_user_module_progress 
+UNIQUE (user_id, module_id);
+
+-- Add constraints for answers to ensure one answer per question per user_module_progress
+ALTER TABLE user_question_answers
+ADD CONSTRAINT unique_user_question_answer 
+UNIQUE (user_module_progress_id, question_id);
+
+-- Ensure one question section per question
+ALTER TABLE question_sections
+ADD CONSTRAINT unique_question_section 
+UNIQUE (question_id);
+
+-- Ensure section positions are unique within a module
+ALTER TABLE sections
+ADD CONSTRAINT unique_section_position_per_module 
+UNIQUE (module_id, position);
 
 -- Check Constraints
 ALTER TABLE user_module_progress

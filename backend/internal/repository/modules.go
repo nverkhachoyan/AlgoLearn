@@ -19,6 +19,7 @@ type ModuleRepository interface {
 	UpdateModule(ctx context.Context, module *models.Module) error
 	DeleteModule(ctx context.Context, id int64) error
 	GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error)
+	UpdateModuleProgress(ctx context.Context, userID int64, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error
 }
 
 type moduleRepository struct {
@@ -31,9 +32,9 @@ func NewModuleRepository(db *sql.DB) ModuleRepository {
 
 func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error) {
 	log := logger.Get().
-	WithBaseFields(logger.Repository, "GetModuleWithProgress").
-	WithField("unit_id", unitID).
-	WithField("module_id", moduleID)
+		WithBaseFields(logger.Repository, "GetModuleWithProgress").
+		WithField("unit_id", unitID).
+		WithField("module_id", moduleID)
 
 	var moduleExists bool
 	err := r.db.
@@ -52,7 +53,7 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 	var moduleJson []byte
 	var module models.Module
 	err = r.db.QueryRowContext(ctx, `
-SELECT jsonb_build_object(
+	SELECT jsonb_build_object(
         'id', m.id,
         'createdAt', m.created_at,
         'updatedAt', m.updated_at,
@@ -97,7 +98,7 @@ SELECT jsonb_build_object(
                                                         ), '[]'::jsonb
                                                         ),
                                                         'userQuestionAnswer', COALESCE(jsonb_build_object(
-                                                                'answerId', uqn.answer_id,
+                                                                'optionId', uqn.option_id,
                                                                 'answeredAt', uqn.answered_at,
                                                                 'isCorrect', uqn.is_correct
                                                         ), NULL)
@@ -108,27 +109,28 @@ SELECT jsonb_build_object(
                                                 WHERE qs.section_id = s.id
                                         )
                                         END,
-                                        'section_progress', jsonb_build_object(
+                                        'sectionProgress', jsonb_build_object(
                                                 'startedAt', usp.started_at,
                                                 'completedAt', usp.completed_at,
-                                                'status', usp.status
+                                                'hasSeen', usp.has_seen,
+						'seenAt', usp.seen_at
                                         )
                                 )
                                 
                         )
                 FROM sections s
-                JOIN (
+                LEFT JOIN (
                     SELECT DISTINCT ON (section_id) *
                     FROM user_section_progress
                 ) usp ON usp.section_id = s.id
                 WHERE s.module_id = m.id
                         ), '[]'::jsonb)
                 )
-FROM modules AS m
-JOIN user_module_progress ump ON ump.module_id = m.id
-WHERE m.unit_id = $1 AND m.id = $2;
+	FROM modules AS m
+	JOIN user_module_progress ump ON ump.module_id = m.id
+	WHERE m.unit_id = $1 AND m.id = $2;
 	`, unitID, moduleID).
-	Scan(&moduleJson)
+		Scan(&moduleJson)
 
 	if err != nil {
 		log.WithError(err).Errorf("failed to query module progress")
@@ -398,6 +400,42 @@ func (r *moduleRepository) DeleteModule(ctx context.Context, id int64) error {
 	rowsAffected, err := result.RowsAffected()
 	if rowsAffected == 0 {
 		log.Warn("module not found")
+		return codes.ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *moduleRepository) UpdateModuleProgress(ctx context.Context, userID int64, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error {
+	log := logger.Get().WithBaseFields(logger.Repository, "UpdateModuleProgress").
+		WithField("unit_id", unitID).
+		WithField("module_id", moduleID)
+
+	sectionsJson, err := json.Marshal(batch.Sections)
+	if err != nil {
+		log.WithError(err).Errorf("failed to marshal sections")
+		return fmt.Errorf("failed to marshal sections")
+	}
+	questionsJson, err := json.Marshal(batch.Questions)
+	if err != nil {
+		log.WithError(err).Errorf("failed to marshal questions")
+		return fmt.Errorf("failed to marshal questions")
+	}
+
+	res, err := r.db.ExecContext(ctx, `SELECT save_module_progress($1, $2, $3, $4);`, userID, moduleID, sectionsJson, questionsJson)
+	if err != nil {
+		log.WithError(err).Errorf("query execution failed")
+		return fmt.Errorf("query execution failed")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		log.WithError(err).Errorf("failed to check rows affected")
+		return fmt.Errorf("failed to check rows affected")
+	}
+
+	if rowsAffected <= 0 {
+		log.WithError(err).Errorf("%v", codes.ErrNotFound)
 		return codes.ErrNotFound
 	}
 

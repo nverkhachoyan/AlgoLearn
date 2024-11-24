@@ -16,10 +16,33 @@ export interface QuestionContent {
     isCorrect: boolean;
   }>;
   userQuestionAnswer: {
-    answerId: number | null;
+    optionId: number | null;
     answeredAt: string;
     isCorrect: boolean;
   };
+}
+
+export type SectionProgress = {
+  sectionId: number;
+  seenAt: Date | string | null;
+  hasSeen: boolean;
+  startedAt: Date | string | null;
+  completedAt: Date | string | null;
+};
+
+export type QuestionProgress = {
+  questionId: number;
+  optionId: number | null;
+  hasAnswered: boolean;
+  isCorrect?: boolean | null;
+  answeredAt: string;
+};
+
+export interface BatchModuleProgress {
+  userId: number;
+  moduleId: number;
+  sections: SectionProgress[];
+  questions: QuestionProgress[];
 }
 
 export interface Section {
@@ -29,6 +52,7 @@ export interface Section {
   type: "text" | "video" | "question" | "code";
   position: number;
   content: TextContent | VideoContent | QuestionContent;
+  sectionProgress?: SectionProgress;
 }
 
 export function isQuestionSection(
@@ -71,11 +95,4 @@ export interface SectionViewState {
   sectionId: number;
   hasViewed: boolean;
   viewedAt?: Date;
-}
-
-export interface QuestionState {
-  id: number;
-  hasAnswered: boolean;
-  selectedOptionId: number | null;
-  isCorrect?: boolean;
 }

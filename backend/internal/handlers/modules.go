@@ -22,6 +22,7 @@ type ModuleHandler interface {
 	DeleteModule(w http.ResponseWriter, r *http.Request)
 	GetModule(w http.ResponseWriter, r *http.Request)
 	GetModuleWithProgress(w http.ResponseWriter, r *http.Request)
+	UpdateModuleProgress(w http.ResponseWriter, r *http.Request)
 	RegisterRoutes(r *router.Router)
 }
 
@@ -85,8 +86,8 @@ func (h *moduleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
 	query := r.URL.Query()
 
-	queryParams := models.ModuleQueryParams {
-		Type: query.Get("type"),
+	queryParams := models.ModuleQueryParams{
+		Type:   query.Get("type"),
 		Filter: query.Get("filter"),
 	}
 
@@ -96,10 +97,10 @@ func (h *moduleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Warn("invalid query parameters")
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-			Success: false,
-			ErrorCode: codes.InvalidRequest,
-			Message: "invalid query parameters",
+	RespondWithJSON(w, http.StatusBadRequest, models.Response{
+		Success:   false,
+		ErrorCode: codes.InvalidRequest,
+		Message:   "invalid query parameters",
 	})
 }
 
@@ -357,7 +358,7 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	} else if err != nil {
-		log.WithError(err).Error("error fetching module %d: %v", moduleID, err)
+		log.WithError(err).Errorf("error fetching module %d: %v", moduleID, err)
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
 			Success:   false,
 			Message:   "module not found",
@@ -391,10 +392,100 @@ func (h *moduleHandler) DeleteModule(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *moduleHandler) UpdateModuleProgress(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModuleProgress")
+	ctx := r.Context()
+	query := r.URL.Query()
+	params := mux.Vars(r)
+
+	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
+	if err != nil {
+		log.WithError(err).Errorf("invalid userIid query parameter")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: codes.InvalidRequest,
+			Message:   "invalid userIid query parameters",
+		})
+		return
+	}
+
+	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
+	if err != nil {
+		log.WithError(err).Errorf("invalid unit_id query parameter")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: codes.InvalidRequest,
+			Message:   "invalid unit_id query parameter",
+		})
+		return
+	}
+
+	moduleID, err := strconv.ParseInt(params["module_id"], 10, 64)
+	if err != nil {
+		log.WithError(err).Errorf("invalid module_id query parameter")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: codes.InvalidRequest,
+			Message:   "invalid module_id query parameter",
+		})
+		return
+	}
+
+	var batch models.BatchModuleProgress
+	if err = json.NewDecoder(r.Body).Decode(&batch); err != nil {
+		log.WithError(err).Errorf("failed to unmarshal request")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: codes.InvalidRequest,
+			Message:   "failed to unmarshal request",
+		})
+		return
+	}
+
+	if h.moduleRepo == nil {
+		log.Error("moduleRepo is not initialized")
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: codes.InternalError,
+			Message:   "internal server error",
+		})
+		return
+	}
+
+	err = h.moduleRepo.UpdateModuleProgress(ctx, userID, unitID, moduleID, &batch)
+	if errors.Is(err, codes.ErrNotFound) {
+		log.WithError(err).Errorf("resource not found")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: codes.NoData,
+			Message:   "resource not found",
+		})
+		return
+	} else if err != nil {
+		log.WithError(err).Errorf("failed to update module progress")
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: codes.InternalError,
+			Message:   "failed to update module progress",
+		})
+		return
+	}
+
+	RespondWithJSON(w, http.StatusAccepted, models.Response{
+		Success: true,
+		Message: "successfully updated user module progress",
+	})
+}
+
 func (h *moduleHandler) RegisterRoutes(r *router.Router) {
 	basePath := "/courses/{course_id}/units/{unit_id}/modules"
 	public := r.Group(basePath)
 	authorized := r.Group(basePath, middleware.Auth)
+
+	// Progress endpoints
+	progressPath := basePath + "/{module_id}/progress"
+	progress := r.Group(progressPath)
+	progress.Handle("", h.UpdateModuleProgress, "POST")
 
 	// public.Handle("", h.GetModules, "GET")
 	public.Handle("/{module_id}", h.GetModule, "GET")

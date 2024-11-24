@@ -9,12 +9,14 @@ import Button from "@/src/components/common/Button";
 import useTheme from "@/src/hooks/useTheme";
 import { useModules } from "@/src/hooks/useModules";
 import {
-  SectionViewState,
-  QuestionState,
   isQuestionSection,
+  SectionProgress,
+  QuestionProgress,
 } from "@/src/features/module/types";
 import { ModuleHeader } from "@/src/features/course/components/module-session/ModuleHeader";
 import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
+import { useUpdateModuleProgress } from "@/src/hooks/useModules";
+import { useModuleProgressInit } from "@/src/hooks/useModuleProgressInit";
 
 interface RouteParams extends Record<string, string | undefined> {
   courseId: string;
@@ -26,15 +28,15 @@ interface RouteParams extends Record<string, string | undefined> {
 }
 
 interface ModuleProgress {
-  sections: Map<number, SectionViewState>;
-  questions: Map<number, QuestionState>;
+  sections: Map<number, SectionProgress>;
+  questions: Map<number, QuestionProgress>;
 }
 
 interface SectionCompletion {
   sectionId: number;
   isCompleted: boolean;
   requiresQuestion: boolean;
-  isViewed: boolean;
+  hasSeen: boolean;
   isAnswered: boolean | null;
 }
 
@@ -60,56 +62,42 @@ const SECTION_VIEWABILITY_CONFIG = {
 
 export default function ModuleSession() {
   const { colors } = useTheme();
-  const { courseId, unitId, moduleId, userId, type, filter } =
-    useLocalSearchParams<RouteParams | any>();
+  const params = useLocalSearchParams<RouteParams | any>();
+  const ids = useMemo(
+    () => ({
+      courseId: Number(params.courseId),
+      unitId: Number(params.unitId),
+      moduleId: Number(params.moduleId),
+      userId: Number(params.userId),
+    }),
+    [params]
+  );
   const {
     module: { data: module, isPending, error },
   } = useModules({
-    courseId: Number(courseId),
-    unitId: Number(unitId),
-    moduleId: Number(moduleId),
-    userId: Number(userId),
-    type: type ?? "full",
-    filter: filter ?? "",
-  });
-  const [moduleProgress, setModuleProgress] = useState<ModuleProgress>({
-    sections: new Map(),
-    questions: new Map(),
+    courseId: ids.courseId,
+    unitId: ids.unitId,
+    moduleId: ids.moduleId,
+    userId: ids.userId,
+    type: params.type ?? "full",
+    filter: params.filter ?? "",
   });
 
-  const sortedSections = useMemo(() => {
-    if (!module?.sections) return [];
-    return [...module.sections].sort((a, b) => a.position - b.position);
-  }, [module?.sections]);
+  const { moduleProgress, setModuleProgress } = useModuleProgressInit(module);
+  const { mutation } = useUpdateModuleProgress(
+    ids.courseId,
+    ids.unitId,
+    ids.moduleId,
+    ids.userId
+  );
 
-  useEffect(() => {
-    if (!module?.sections) return;
-
-    const questionsMap = new Map<number, QuestionState>();
-    module.sections.forEach((section: Section) => {
-      if (isQuestionSection(section)) {
-        if (!section.content.id) {
-          console.warn(`Question section ${section.id} has no questionId`);
-          return;
-        }
-
-        const userAnswer = section.content.userQuestionAnswer;
-        questionsMap.set(section.content.id, {
-          id: section.content.id,
-          hasAnswered: !!userAnswer.answerId,
-          selectedOptionId: userAnswer?.answerId || null,
-          isCorrect: userAnswer?.isCorrect,
-        });
-      }
-    });
-
-    setModuleProgress((prev) => ({
-      ...prev,
-      questions: questionsMap,
-    }));
-  }, [module?.sections]);
-
-  console.log("moduleProgress: ", moduleProgress);
+  const sortedSections = useMemo(
+    () =>
+      module?.sections
+        ?.slice()
+        .sort((a: Section, b: Section) => a.position - b.position) ?? [],
+    [module?.sections]
+  );
 
   const viewabilityConfig = useMemo(
     () => ({
@@ -119,17 +107,17 @@ export default function ModuleSession() {
   );
 
   const handleQuestionAnswer = useCallback(
-    (questionId: number, selectedOptionId: number, isCorrect: boolean) => {
+    (questionId: number, optionId: number, isCorrect: boolean) => {
       setModuleProgress((prev) => ({
         ...prev,
         questions: new Map(prev.questions).set(questionId, {
-          id: questionId,
+          questionId: questionId,
           hasAnswered: true,
-          selectedOptionId,
+          optionId,
           isCorrect,
+          answeredAt: new Date().toISOString(),
         }),
       }));
-      // API call to save the answer
     },
     []
   );
@@ -147,14 +135,14 @@ export default function ModuleSession() {
             if (prev.sections.has(section.id)) return prev;
 
             const newSections = new Map(prev.sections);
+            const now = new Date().toISOString();
             newSections.set(section.id, {
               sectionId: section.id,
-              hasViewed: true,
-              viewedAt: new Date(),
+              hasSeen: true,
+              seenAt: now,
+              startedAt: now,
+              completedAt: section.type !== "question" ? now : null,
             });
-
-            console.log("Section has been viewed: ID ", section.id);
-            // API call here
 
             return {
               ...prev,
@@ -171,47 +159,55 @@ export default function ModuleSession() {
     const { sections, questions } = moduleProgress;
     const totalSections = sortedSections.length;
 
-    // Calculate which sections are truly complete
-    const completedSections = sortedSections.map((section) => {
-      const isViewed = sections.has(section.id);
+    const completedSections = sortedSections.map((section: Section) => {
+      const progress = sections.get(section.id);
+      const hasSeen = Boolean(progress?.hasSeen);
 
-      if (section.type === "question") {
+      if (isQuestionSection(section)) {
         const questionId = section.content.id;
         const questionState = questions.get(questionId);
-        // Important: only consider complete if BOTH viewed AND answered
-        const isComplete = isViewed && Boolean(questionState?.hasAnswered);
+        const isComplete = hasSeen && Boolean(questionState?.hasAnswered);
+
+        // If question is answered, update completedAt in section progress
+        if (isComplete && !progress?.completedAt) {
+          setModuleProgress((prev) => {
+            const newSections = new Map(prev.sections);
+            newSections.set(section.id, {
+              ...progress!,
+              completedAt: new Date().toISOString(),
+            });
+            return {
+              ...prev,
+              sections: newSections,
+            };
+          });
+        }
 
         return {
           sectionId: section.id,
           isCompleted: isComplete,
           requiresQuestion: true,
-          isViewed,
+          hasSeen,
           isAnswered: Boolean(questionState?.hasAnswered),
         };
       }
 
-      // Non-question sections only need to be viewed
       return {
         sectionId: section.id,
-        isCompleted: isViewed,
+        isCompleted: Boolean(progress?.completedAt),
         requiresQuestion: false,
-        isViewed,
+        hasSeen,
         isAnswered: null,
       };
     });
 
-    // Count only truly completed sections
     const completedCount = completedSections.filter(
-      (s) => s.isCompleted
+      (s: any) => s.isCompleted
     ).length;
 
-    console.log("completedCount", completedCount);
-
-    // Calculate total progress based on completed sections
     const totalProgress =
       totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
 
-    // Get question stats
     const answeredQuestions = Array.from(questions.values()).filter(
       (q) => q.hasAnswered
     ).length;
@@ -235,12 +231,25 @@ export default function ModuleSession() {
   }, [moduleProgress, sortedSections, moduleProgress.questions]);
 
   const handleNextModule = useCallback(() => {
-    const { questions } = calculateProgress;
+    calculateProgress;
+    const { questions, sections } = moduleProgress;
 
-    if (questions.completed < questions.total) {
-      console.log("Please answer all questions before proceeding");
-      return;
-    }
+    const sectionsArray: SectionProgress[] = Array.from(
+      sections,
+      ([_, section]) => ({ ...section })
+    );
+
+    const questionsArray: QuestionProgress[] = Array.from(
+      questions,
+      ([_, question]) => ({ ...question })
+    );
+
+    mutation.mutate({
+      userId: ids.userId,
+      moduleId: ids.moduleId,
+      sections: sectionsArray,
+      questions: questionsArray,
+    });
 
     console.log("Next Module");
   }, [calculateProgress]);

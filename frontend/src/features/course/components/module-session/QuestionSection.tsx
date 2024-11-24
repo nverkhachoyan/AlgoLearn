@@ -2,20 +2,13 @@ import React, { useCallback, useEffect, useRef, memo } from "react";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import { View, Text } from "@/src/components/Themed";
 import { Card, Checkbox } from "react-native-paper";
-import { QuestionContent } from "@/src/features/module/types/sections";
+import { QuestionContent, QuestionProgress } from "@/src/features/module/types";
 
 interface QuestionSectionProps {
   content: QuestionContent;
-  questionState: QuestionState | undefined;
+  questionState: QuestionProgress | undefined;
   onAnswer: (optionId: number, isCorrect: boolean) => void;
   colors: any;
-}
-
-interface QuestionState {
-  id: number;
-  hasAnswered: boolean;
-  selectedOptionId: number | null;
-  isCorrect?: boolean;
 }
 
 export const QuestionSection = memo(
@@ -33,7 +26,7 @@ export const QuestionSection = memo(
           ];
         }
 
-        if (optionId === questionState.selectedOptionId) {
+        if (optionId === questionState.optionId) {
           return [
             styles.questionOption,
             { borderColor: "red", backgroundColor: "rgba(255, 0, 0, 0.1)" },
@@ -52,20 +45,18 @@ export const QuestionSection = memo(
             {content.question}
           </Text>
           {content.options.map((option) => {
-            const isSelected = questionState?.selectedOptionId === option.id;
+            const isSelected = questionState?.optionId === option.id;
 
             return (
               <TouchableOpacity
                 key={`${content.id}-${option.id}`}
                 onPress={() => onAnswer(option.id, option.isCorrect)}
-                disabled={questionState?.hasAnswered}
               >
                 <View style={getOptionStyle(option.id, option.isCorrect)}>
                   <Checkbox.Android
                     key={`checkbox-${content.id}-${option.id}`}
                     status={isSelected ? "checked" : "unchecked"}
                     onPress={() => onAnswer(option.id, option.isCorrect)}
-                    disabled={questionState?.hasAnswered}
                   />
                   <Text style={{ color: colors.text, flex: 1 }}>
                     {option.content}
@@ -75,7 +66,7 @@ export const QuestionSection = memo(
                       style={{
                         color: option.isCorrect
                           ? "green"
-                          : option.id === questionState.selectedOptionId
+                          : option.id === questionState.optionId
                             ? "red"
                             : colors.text,
                         marginLeft: 8,
@@ -83,7 +74,7 @@ export const QuestionSection = memo(
                     >
                       {option.isCorrect
                         ? "✓"
-                        : option.id === questionState.selectedOptionId
+                        : option.id === questionState.optionId
                           ? "✗"
                           : ""}
                     </Text>

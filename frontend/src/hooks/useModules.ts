@@ -1,5 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { fetchModuleFull } from "@/src/features/module/api/queries";
+import { BatchModuleProgress } from "../features/module/types";
+import { updateModuleProgress } from "@/src/features/module/api/queries";
 
 export const useModules = ({
   courseId,
@@ -49,5 +56,30 @@ export const useModules = ({
       data: moduleFullQuery.data,
       error: moduleFullQuery.error,
     },
+  };
+};
+
+export const useUpdateModuleProgress = (
+  courseId: number,
+  unitId: number,
+  moduleId: number,
+  userId: number
+) => {
+  const mutation = useMutation({
+    mutationFn: async (moduleProgress: BatchModuleProgress) => {
+      const res = await updateModuleProgress({
+        courseId,
+        unitId,
+        userId,
+        moduleId,
+        moduleProgress,
+      });
+
+      return res;
+    },
+  });
+
+  return {
+    mutation,
   };
 };

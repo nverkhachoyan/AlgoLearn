@@ -288,7 +288,6 @@ func (r *courseRepository) GetCourseFull(ctx context.Context, courseID int64) (*
 	return &course, nil
 }
 
-
 func (r *courseRepository) DeleteCourse(_ context.Context, id int64) error {
 	result, err := r.db.Exec("DELETE FROM courses WHERE id = $1;", id)
 	if err != nil {
@@ -770,7 +769,7 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	), '[]'::jsonb
 	),
 	'userQuestionAnswer', COALESCE(jsonb_build_object(
-	'answerId', uqn.answer_id,
+	'optionId', uqn.option_id,
 	'answeredAt', uqn.answered_at,
 	'isCorrect', uqn.is_correct
 	), NULL)
@@ -782,9 +781,10 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	)
 	END,
 	'sectionProgress', jsonb_build_object(
+	'seenAt', usp.seen_at,
 	'startedAt', usp.started_at,
 	'completedAt', usp.completed_at,
-	'status', usp.status
+	'hasSeen', usp.has_seen
 	)
 	)
 

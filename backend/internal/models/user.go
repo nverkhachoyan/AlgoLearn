@@ -56,7 +56,7 @@ type UserQuestionAnswer struct {
 	BaseModel
 	UserModuleProgressID int       `json:"userModuleSessionId"`
 	QuestionID           int       `json:"questionId"`
-	AnswerID             int       `json:"answerId"`
+	OptionID             int       `json:"optionId"`
 	AnsweredAt           time.Time `json:"answeredAt"`
 	IsCorrect            bool      `json:"isCorrect"`
 }

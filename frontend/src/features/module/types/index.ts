@@ -7,9 +7,11 @@ export {
   QuestionContent,
   QuestionOption,
   SectionViewState,
-  QuestionState,
+  SectionProgress,
   isQuestionSection,
   isVideoSection,
   isTextSection,
   isCodeSection,
+  BatchModuleProgress,
+  QuestionProgress,
 } from "./sections";

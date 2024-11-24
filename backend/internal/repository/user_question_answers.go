@@ -31,7 +31,7 @@ func scanUserAnswer(row *sql.Row) (models.UserQuestionAnswer, error) {
 		&answer.ID,
 		&answer.UserModuleProgressID,
 		&answer.QuestionID,
-		&answer.AnswerID,
+		&answer.OptionID,
 		&answer.AnsweredAt,
 		&answer.IsCorrect,
 	)
@@ -60,7 +60,7 @@ func GetUserAnswersBySessionID(sessionID int) ([]models.UserQuestionAnswer, erro
 			&answer.ID,
 			&answer.UserModuleProgressID,
 			&answer.QuestionID,
-			&answer.AnswerID,
+			&answer.OptionID,
 			&answer.AnsweredAt,
 			&answer.IsCorrect,
 		)
@@ -96,7 +96,7 @@ func CreateUserAnswer(answer *models.UserQuestionAnswer) error {
 	err := db.QueryRow(query,
 		answer.UserModuleProgressID,
 		answer.QuestionID,
-		answer.AnswerID,
+		answer.OptionID,
 		time.Now(),
 		answer.IsCorrect,
 	).Scan(&answer.ID, &answer.AnsweredAt)
@@ -117,7 +117,7 @@ func UpdateUserAnswer(answer *models.UserQuestionAnswer) error {
 	WHERE id = $5`
 	_, err := db.Exec(query,
 		answer.QuestionID,
-		answer.AnswerID,
+		answer.OptionID,
 		time.Now(),
 		answer.IsCorrect,
 		answer.ID)

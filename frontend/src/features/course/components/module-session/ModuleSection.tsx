@@ -11,13 +11,7 @@ import { QuestionSection } from "./QuestionSection";
 import { TextSection } from "./TextSection";
 import { CodeSection } from "./CodeSection";
 import { VideoSection } from "./VideoSection";
-
-interface QuestionState {
-  id: number;
-  hasAnswered: boolean;
-  selectedOptionId: number | null;
-  isCorrect?: boolean;
-}
+import { QuestionProgress } from "@/src/features/module/types/sections";
 
 interface SectionRendererProps {
   section: Section;
@@ -26,7 +20,7 @@ interface SectionRendererProps {
     selectedOptionId: number,
     isCorrect: boolean
   ) => void;
-  questionsState: Map<number, QuestionState>;
+  questionsState: Map<number, QuestionProgress>;
 }
 
 const SectionRenderer: React.FC<SectionRendererProps> = memo(

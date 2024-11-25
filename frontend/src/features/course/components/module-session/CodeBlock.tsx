@@ -2,11 +2,17 @@ import { memo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import useHighlighter from "@/src/features/course/hooks/useHighlighter";
 
-const CodeBlock = memo(({ code }: { code: string }) => {
+const CodeBlock = memo(({ code, colors }: { code: string; colors: any }) => {
   const tokens = useHighlighter(code);
 
   return (
-    <View style={[styles.section, styles.codeBlock]}>
+    <View
+      style={[
+        styles.section,
+        styles.codeBlock,
+        { backgroundColor: colors.surface },
+      ]}
+    >
       {tokens.map((token, index) => (
         //@ts-ignore
         <Text key={index} style={[styles.token, styles[token.type]]}>

@@ -1,16 +1,16 @@
 import React, { memo } from "react";
-import { StyleSheet } from "react-native";
-import { View } from "@/src/components/Themed";
+import { StyleSheet, View } from "react-native";
 import YoutubePlayer from "./YoutubePlayer";
 import { VideoContent } from "@/src/features/module/types/sections";
 
 import { Card } from "react-native-paper";
 interface VideoSectionProps {
   content: VideoContent;
+  colors: any;
 }
 
-export const VideoSection = memo(({ content }: VideoSectionProps) => (
-  <Card style={styles.section}>
+export const VideoSection = memo(({ content, colors }: VideoSectionProps) => (
+  <Card style={[styles.section, { backgroundColor: colors.surface }]}>
     <Card.Title title="Video title" />
     <Card.Content>
       <View

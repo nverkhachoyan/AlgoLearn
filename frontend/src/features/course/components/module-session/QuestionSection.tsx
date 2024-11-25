@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useRef, memo } from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
-import { View, Text } from "@/src/components/Themed";
-import { Card, Checkbox } from "react-native-paper";
+import React, { useCallback, memo } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Card, Checkbox, Text } from "react-native-paper";
 import { QuestionContent, QuestionProgress } from "@/src/features/module/types";
 
 interface QuestionSectionProps {
@@ -39,9 +38,9 @@ export const QuestionSection = memo(
     );
 
     return (
-      <Card style={styles.section}>
+      <Card style={[styles.section, { backgroundColor: colors.surface }]}>
         <Card.Content style={styles.questionContainer}>
-          <Text style={[styles.question, { color: colors.text }]}>
+          <Text style={[styles.question, { color: colors.onSurface }]}>
             {content.question}
           </Text>
           {content.options.map((option) => {
@@ -58,7 +57,7 @@ export const QuestionSection = memo(
                     status={isSelected ? "checked" : "unchecked"}
                     onPress={() => onAnswer(option.id, option.isCorrect)}
                   />
-                  <Text style={{ color: colors.text, flex: 1 }}>
+                  <Text style={{ color: colors.onSurface, flex: 1 }}>
                     {option.content}
                   </Text>
                   {questionState?.hasAnswered && (
@@ -68,7 +67,7 @@ export const QuestionSection = memo(
                           ? "green"
                           : option.id === questionState.optionId
                             ? "red"
-                            : colors.text,
+                            : colors.onSurface,
                         marginLeft: 8,
                       }}
                     >

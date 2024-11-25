@@ -1,15 +1,8 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import LottieView from "lottie-react-native";
 import { useRef, ReactNode } from "react";
 import { Feather } from "@expo/vector-icons";
-import useTheme from "@/src/hooks/useTheme";
+import { useTheme } from "react-native-paper";
 import { router, usePathname } from "expo-router";
 
 export function StickyHeader(props: {
@@ -27,7 +20,7 @@ export function StickyHeader(props: {
       style={[
         styles.container,
         {
-          backgroundColor: colors.stickyHeaderBackground,
+          backgroundColor: colors.surface,
         },
       ]}
     >
@@ -48,18 +41,18 @@ export function StickyHeader(props: {
       </TouchableOpacity>
       <View style={styles.headerItem}>
         <Feather name="cpu" size={24} color="#1CC0CB" />
-        <Text style={{ color: colors.text }}>{props.cpus}</Text>
+        <Text style={{ color: colors.onSurface }}>{props.cpus}</Text>
       </View>
       <View style={styles.headerItem}>
         <Feather name="zap" size={24} color="#1CC0CB" />
-        <Text style={{ color: colors.text }}>{props.strikeCount}</Text>
+        <Text style={{ color: colors.onBackground }}>{props.strikeCount}</Text>
       </View>
 
       <TouchableOpacity onPress={props.onAvatarPress} style={styles.headerItem}>
         {props.userAvatar ? (
           <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
         ) : (
-          <Feather name="user" size={24} color={colors.icon} />
+          <Feather name="user" size={24} color={colors.onSurface} />
         )}
       </TouchableOpacity>
     </View>
@@ -74,7 +67,9 @@ export function StickyHeaderSimple({ children }: { children: ReactNode }) {
       style={[
         styles.container,
         {
-          backgroundColor: colors.stickyHeaderBackground,
+          backgroundColor: colors.secondaryContainer,
+          borderBottomEndRadius: 0,
+          borderBottomStartRadius: 0,
         },
       ]}
     >

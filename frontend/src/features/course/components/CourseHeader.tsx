@@ -1,5 +1,5 @@
-import { View, Text } from "@/src/components/Themed";
-import { StyleSheet, Image } from "react-native";
+import { StyleSheet, Image, View } from "react-native";
+import { Text } from "react-native-paper";
 import { Feather } from "@expo/vector-icons";
 
 export default function CourseHeader({ course }: any) {

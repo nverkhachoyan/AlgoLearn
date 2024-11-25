@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, memo } from "react";
-import useTheme from "@/src/hooks/useTheme";
+import { useTheme } from "react-native-paper";
 import {
   Section,
   isQuestionSection,
@@ -64,11 +64,11 @@ const SectionRenderer: React.FC<SectionRendererProps> = memo(
       }
 
       if (isVideoSection(section)) {
-        return <VideoSection content={section.content} />;
+        return <VideoSection content={section.content} colors={colors} />;
       }
 
       if (isCodeSection(section)) {
-        return <CodeSection content={section.content} />;
+        return <CodeSection content={section.content} colors={colors} />;
       }
 
       console.warn(`Unknown section type: ${section.type}`);

@@ -4,8 +4,12 @@ import CodeBlock from "./CodeBlock";
 
 interface CodeSectionProps {
   content: CodeContent;
+  colors: any;
 }
 
-export const CodeSection = memo(({ content }: CodeSectionProps) => (
-  <CodeBlock code={content.content.replace(/```javascript\n|```/g, "")} />
+export const CodeSection = memo(({ content, colors }: CodeSectionProps) => (
+  <CodeBlock
+    colors={colors}
+    code={content.content.replace(/```javascript\n|```/g, "")}
+  />
 ));

@@ -1,84 +1,126 @@
-import { Slot } from "expo-router";
-// import { AuthProvider } from "@/src/context/AuthProvider";
-import { ThemeProvider } from "@react-navigation/native";
-import { DarkTheme, DefaultTheme, Theme } from "@/constants/Colors";
-import { useColorScheme } from "react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RootSiblingParent } from "react-native-root-siblings";
+import { useEffect } from "react";
+import { Stack, useRouter } from "expo-router";
 import {
-  PaperProvider,
-  MD3LightTheme as CustomTheme,
-} from "react-native-paper";
+  Platform,
+  AppState,
+  StyleSheet,
+  View,
+  ActivityIndicator,
+} from "react-native";
+import {
+  QueryClient,
+  QueryClientProvider,
+  focusManager,
+} from "@tanstack/react-query";
+import { RootSiblingParent } from "react-native-root-siblings";
+import { PaperProvider } from "react-native-paper";
+import { useFonts } from "expo-font";
+import { FontAwesome6 } from "@expo/vector-icons";
+import { SplashScreen } from "expo-router";
+import { ThemeProvider, useAppTheme } from "@/src/context/ThemeContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useUser } from "@/src/hooks/useUser";
+import { StatusBar } from "expo-status-bar";
 
-const colors = {
-  colors: {
-    primary: "rgb(171, 199, 255)",
-    onPrimary: "rgb(0, 47, 101)",
-    primaryContainer: "rgb(3, 69, 142)",
-    onPrimaryContainer: "rgb(215, 227, 255)",
-    secondary: "rgb(190, 198, 220)",
-    onSecondary: "rgb(40, 48, 65)",
-    secondaryContainer: "rgb(62, 71, 89)",
-    onSecondaryContainer: "rgb(218, 226, 249)",
-    tertiary: "rgb(221, 188, 224)",
-    onTertiary: "rgb(63, 40, 68)",
-    tertiaryContainer: "rgb(87, 62, 92)",
-    onTertiaryContainer: "rgb(250, 216, 253)",
-    error: "rgb(255, 180, 171)",
-    onError: "rgb(105, 0, 5)",
-    errorContainer: "rgb(147, 0, 10)",
-    onErrorContainer: "rgb(255, 180, 171)",
-    background: "rgb(26, 27, 31)",
-    onBackground: "rgb(227, 226, 230)",
-    surface: "rgb(26, 27, 31)",
-    onSurface: "rgb(227, 226, 230)",
-    surfaceVariant: "rgb(68, 71, 78)",
-    onSurfaceVariant: "rgb(196, 198, 208)",
-    outline: "rgb(142, 144, 153)",
-    outlineVariant: "rgb(68, 71, 78)",
-    shadow: "rgb(0, 0, 0)",
-    scrim: "rgb(0, 0, 0)",
-    inverseSurface: "rgb(227, 226, 230)",
-    inverseOnSurface: "rgb(47, 48, 51)",
-    inversePrimary: "rgb(44, 94, 167)",
-    elevation: {
-      level0: "transparent",
-      level1: "rgb(33, 36, 42)",
-      level2: "rgb(38, 41, 49)",
-      level3: "rgb(42, 46, 56)",
-      level4: "rgb(43, 48, 58)",
-      level5: "rgb(46, 51, 62)",
+// Initialize QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      refetchOnWindowFocus: Platform.OS === "web",
+      refetchOnReconnect: "always",
     },
-    surfaceDisabled: "rgba(227, 226, 230, 0.12)",
-    onSurfaceDisabled: "rgba(227, 226, 230, 0.38)",
-    backdrop: "rgba(45, 48, 56, 0.4)",
   },
-};
+});
 
-const queryClient = new QueryClient();
-const theme = {
-  ...CustomTheme,
-  colors: colors.colors, // Copy it from the color codes scheme and then use it here
-};
+focusManager.setEventListener((handleFocus) => {
+  const subscription = AppState.addEventListener("change", (state) => {
+    handleFocus(state === "active");
+  });
+  return () => subscription.remove();
+});
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        value={
-          colorScheme === "dark"
-            ? (DarkTheme as Theme)
-            : (DefaultTheme as Theme)
-        }
-      >
-        <PaperProvider theme={theme}>
-          <RootSiblingParent>
-            <Slot />
-          </RootSiblingParent>
-        </PaperProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
+
+function AppContent() {
+  const { theme, themeVersion } = useAppTheme();
+
+  return (
+    <PaperProvider theme={theme} key={themeVersion}>
+      <RootSiblingParent>
+        <MainContent />
+      </RootSiblingParent>
+    </PaperProvider>
+  );
+}
+
+function MainContent() {
+  const [fontsLoaded, error] = useFonts({
+    SpaceMono: require("@/assets/fonts/SpaceMono-Regular.ttf"),
+    ...FontAwesome6.font,
+    "OpenSauceOne-Italic": require("@/assets/fonts/OpenSauceOne-Italic.ttf"),
+    "OpenSauceOne-Regular": require("@/assets/fonts/OpenSauceOne-Regular.ttf"),
+    "OpenSauceOne-Bold": require("@/assets/fonts/OpenSauceOne-Bold.ttf"),
+    "OpenSauceOne-Black": require("@/assets/fonts/OpenSauceOne-Black.ttf"),
+    "OpenSauceOne-Light": require("@/assets/fonts/OpenSauceOne-Light.ttf"),
+    "OpenSauceOne-Medium": require("@/assets/fonts/OpenSauceOne-Medium.ttf"),
+    "OpenSauceOne-SemiBold": require("@/assets/fonts/OpenSauceOne-SemiBold.ttf"),
+    "OpenSauceOne-LightItalic": require("@/assets/fonts/OpenSauceOne-LightItalic.ttf"),
+  });
+
+  const { isInitialized } = useUser();
+  const { theme } = useAppTheme();
+  const isDarkMode = theme.dark;
+
+  useEffect(() => {
+    if (error) console.error("Error loading fonts:", error);
+  }, [error]);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded || !isInitialized) {
+    return (
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(public)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(protected)" />
+      </Stack>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+  },
+});

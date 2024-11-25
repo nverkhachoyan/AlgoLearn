@@ -29,10 +29,13 @@ export default function CurrentModuleCard({
       <Card.Title
         title={`Unit ${course.currentUnit.unitNumber} Module ${course.currentModule?.moduleNumber}`}
         titleVariant="titleSmall"
+        titleStyle={{ color: "#E8E8E8" }}
       />
-      <Card.Content>
-        <PaperText variant="titleLarge">{course.currentModule?.name}</PaperText>
-        <PaperText variant="bodyMedium">
+      <Card.Content style={{ gap: 10 }}>
+        <PaperText variant="titleLarge" style={{ color: "#E8E8E8" }}>
+          {course.currentModule?.name}
+        </PaperText>
+        <PaperText variant="bodyMedium" style={{ color: "#E8E8E8" }}>
           {course.currentModule?.description}
         </PaperText>
       </Card.Content>

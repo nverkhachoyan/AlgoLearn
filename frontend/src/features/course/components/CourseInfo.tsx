@@ -1,5 +1,5 @@
-import { View, Text } from "@/src/components/Themed";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 import { MaterialIcons, AntDesign } from "@expo/vector-icons";
 
 export default function CourseInfo({ course, colors }: any) {

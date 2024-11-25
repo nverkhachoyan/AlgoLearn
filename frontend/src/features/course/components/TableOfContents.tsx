@@ -6,9 +6,9 @@ import {
   Platform,
   UIManager,
 } from "react-native";
-import { List, Surface } from "react-native-paper";
+import { List, Surface, Text } from "react-native-paper";
 import { Feather } from "@expo/vector-icons";
-import { Text, View } from "@/src/components/Themed";
+import { View } from "react-native";
 import { Unit } from "@/src/features/course/types/units";
 
 // Enable LayoutAnimation for Android

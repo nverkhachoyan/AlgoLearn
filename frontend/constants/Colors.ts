@@ -1,165 +1,203 @@
-export type Theme = {
-  dark: boolean;
-  colors: {
-    primary: string;
-    background: string;
-    secondaryBackground: string;
-    viewBackground: string;
-    listBackground: string;
-    card: string;
-    border: string;
-    inputBorder: string;
-    inputBackground: string;
-    inputBackgroundFocused: string;
-    cardBorder: string;
-    notification: string;
-    text: string;
-    textContrast: string;
-    textDimmed: string;
-    backgroundContrast: string;
-    stickyHeaderBackground: string;
-    tint: string;
-    tabIconDefault: string;
-    tabIconSelected: string;
-    tabIconHomeSelected: string;
-    tabIconHomeDefault: string;
-    tabIconFeedSelected: string;
-    tabIconExploreSelected: string;
-    tabIconChallengesSelected: string;
-    tabBarBackground: string;
-    buttonText: string;
-    buttonBackground: string;
-    placeholderText: string;
-    icon: string;
-    dangerBgColor: string;
-    successBgColor: string;
-    warningBgColor: string;
-    infoBgColor: string;
-    dangerTextColor: string;
-    successTextColor: string;
-    warningTextColor: string;
-    infoTextColor: string;
-    linkColor: string;
-    hoverColor: string;
-    activeColor: string;
-    disabledColor: string;
-    errorColor: string;
-    alertColor: string;
-    cardBackground: string;
-    questionCardBg: string;
-    questionSelectedBg: string;
-    dismissText: string;
-  };
-};
+import { MD3LightTheme, MD3DarkTheme } from "react-native-paper";
+import { fontConfig } from "./Fonts";
 
-const tintColorLight = "#333";
-const tintColorDark = "#333";
-
-export const DefaultTheme: Theme = {
-  dark: false,
+// Light theme colors with your existing color palette
+export const lightTheme = {
   colors: {
-    primary: "rgb(0, 122, 255)",
-    background: "#FFFFFF",
-    secondaryBackground: "#FFFFFF",
-    viewBackground: "#FFF",
-    listBackground: "#E8E8E8",
-    card: "rgb(255, 255, 255)",
-    border: "transparent",
-    inputBorder: "#333",
-    inputBackground: "#F7F7F7",
-    inputBackgroundFocused: "#E2E2E2",
-    cardBorder: "#333",
-    notification: "rgb(255, 59, 48)",
-    text: "#000",
-    textContrast: "#FFF",
-    textDimmed: "#636F73",
-    backgroundContrast: "#000",
-    stickyHeaderBackground: "#FFF",
-    tint: tintColorLight,
-    tabIconDefault: "#1E1E1E",
-    tabIconSelected: tintColorLight,
-    tabIconHomeDefault: "#1E1E1E",
-    tabIconHomeSelected: "#FCC931",
-    tabIconFeedSelected: "#9F52C5",
-    tabIconExploreSelected: "#25A879",
-    tabIconChallengesSelected: "#1CC0CB",
-    tabBarBackground: "#FFF",
-    buttonText: "#fff",
-    buttonBackground: "#1E1E1E",
-    placeholderText: "#999",
-    icon: "#333",
-    dangerBgColor: "#B2222C",
-    successBgColor: "#28a745",
-    warningBgColor: "#ffc107",
-    infoBgColor: "#17a2b8",
-    dangerTextColor: "#fff",
-    successTextColor: "#fff",
-    warningTextColor: "#000",
-    infoTextColor: "#fff",
-    linkColor: "#1E90FF",
-    hoverColor: "#555",
-    activeColor: "#0000FF",
-    disabledColor: "#D3D3D3",
-    errorColor: "#DC3545",
-    alertColor: "#FFC107",
-    cardBackground: "#FFF",
-    questionCardBg: "#FFF",
-    questionSelectedBg: "#1E1E1E",
-    dismissText: "#636F73",
+    // Core colors
+    primary: "#1E1E1E", // Your main brand color
+    onPrimary: "#FFFFFF",
+    primaryContainer: "#F7F7F7", // Your inputBackground
+    onPrimaryContainer: "#000000",
+
+    // Secondary colors
+    secondary: "#636F73", // Your textDimmed color
+    onSecondary: "#FFFFFF",
+    secondaryContainer: "#E8E8E8", // Your listBackground
+    onSecondaryContainer: "#1E1E1E",
+
+    // Tertiary colors
+    tertiary: "rgb(0, 122, 255)", // Your primary blue
+    onTertiary: "#FFFFFF",
+    tertiaryContainer: "#E2E2E2", // Your inputBackgroundFocused
+    onTertiaryContainer: "#000000",
+
+    // Error states
+    error: "#DC3545", // Your errorColor
+    onError: "#FFFFFF",
+    errorContainer: "#B2222C", // Your dangerBgColor
+    onErrorContainer: "#FFFFFF", // Your dangerTextColor
+
+    // Background colors
+    background: "#FFFFFF", // Your background
+    onBackground: "#000000", // Your text
+    surface: "#FFFFFF", // Your cardBackground
+    onSurface: "#000000", // Your text
+    surfaceVariant: "#FFF", // Your tabBarBackground
+    onSurfaceVariant: "#636F73", // Your textDimmed
+
+    // Other colors
+    outline: "#333333", // Your inputBorder
+    outlineVariant: "#E8E8E8",
+    shadow: "rgba(0, 0, 0, 0.1)",
+    scrim: "rgba(0, 0, 0, 0.3)",
+    inverseSurface: "#1E1E1E",
+    inverseOnSurface: "#FFFFFF",
+    inversePrimary: "#FFFFFF",
+
+    // Elevation levels
+    elevation: {
+      level0: "transparent",
+      level1: "#FFFFFF",
+      level2: "#F7F7F7",
+      level3: "#F0F0F0",
+      level4: "#E8E8E8",
+      level5: "#E2E2E2",
+    },
+
+    // Disabled states
+    surfaceDisabled: "rgba(30, 30, 30, 0.12)",
+    onSurfaceDisabled: "rgba(30, 30, 30, 0.38)",
+    backdrop: "rgba(0, 0, 0, 0.4)",
+    success: "#28a745",
+    warning: "#ffc107",
+    info: "#17a2b8",
+    link: "#1E90FF",
+    hover: "#555",
+    active: "#0000FF",
+    disabled: "#D3D3D3",
+    alert: "#FFC107",
   },
 };
 
-export const DarkTheme: Theme = {
-  dark: true,
+// Dark theme colors
+export const darkTheme = {
   colors: {
-    primary: "rgb(0, 122, 255)",
-    // background: "#24272E",
-    background: "#121212",
-    secondaryBackground: "#24272E",
-    viewBackground: "#121212",
-    listBackground: "#333",
-    card: "rgb(18, 18, 18)",
-    text: "#fff",
-    border: "transparent",
-    inputBorder: "#E8E8E8",
-    inputBackground: "#333",
-    inputBackgroundFocused: "#252525",
-    cardBorder: "#E8E8E8",
-    notification: "rgb(255, 69, 58)",
-    textContrast: "#000",
-    textDimmed: "#C2C2C2",
-    backgroundContrast: "#f1f1f1",
-    stickyHeaderBackground: "#24272E",
-    tint: tintColorDark,
-    tabIconDefault: "#ccc",
-    tabIconSelected: tintColorDark,
-    tabIconHomeDefault: "#1E1E1E",
-    tabIconHomeSelected: "#FCC931",
-    tabIconFeedSelected: "#9F52C5",
-    tabIconExploreSelected: "#25A879",
-    tabIconChallengesSelected: "#1CC0CB",
-    tabBarBackground: "#24272E",
-    buttonText: "#000",
-    buttonBackground: "white",
-    placeholderText: "#666",
-    icon: "#fff",
-    dangerBgColor: "#B2222C",
-    successBgColor: "#28a745",
-    warningBgColor: "#ffc107",
-    infoBgColor: "#17a2b8",
-    dangerTextColor: "#fff",
-    successTextColor: "#fff",
-    warningTextColor: "#000",
-    infoTextColor: "#fff",
-    linkColor: "#1E90FF",
-    hoverColor: "#AAA",
-    activeColor: "#0000FF",
-    disabledColor: "#555",
-    errorColor: "#DC3545",
-    alertColor: "#FFC107",
-    cardBackground: "#24272E",
-    questionCardBg: "#18181A",
-    questionSelectedBg: "#1E1E1E",
-    dismissText: "#f3f3f3",
+    // Core colors
+    primary: "#FFFFFF", // Inverted for dark theme
+    onPrimary: "#1E1E1E",
+    primaryContainer: "#333333", // Your inputBackground dark
+    onPrimaryContainer: "#FFFFFF",
+
+    // Secondary colors
+    secondary: "#C2C2C2", // Your textDimmed dark
+    onSecondary: "#1E1E1E",
+    secondaryContainer: "#333333", // Your listBackground dark
+    onSecondaryContainer: "#FFFFFF",
+
+    // Tertiary colors
+    tertiary: "rgb(0, 122, 255)", // Your primary blue
+    onTertiary: "#FFFFFF",
+    tertiaryContainer: "#252525", // Your inputBackgroundFocused dark
+    onTertiaryContainer: "#FFFFFF",
+
+    // Error states
+    error: "#DC3545", // Your errorColor
+    onError: "#FFFFFF",
+    errorContainer: "#B2222C", // Your dangerBgColor
+    onErrorContainer: "#FFFFFF",
+
+    // Background colors
+    background: "#121212", // Your dark background
+    onBackground: "#FFFFFF", // Your dark text
+    surface: "#24272E", // Your cardBackground dark
+    onSurface: "#FFFFFF",
+    surfaceVariant: "#24272E", // Your tabBarBackground dark
+    onSurfaceVariant: "#C2C2C2", // Your textDimmed dark
+
+    // Other colors
+    outline: "#E8E8E8", // Your inputBorder dark
+    outlineVariant: "#333333",
+    shadow: "rgba(0, 0, 0, 0.3)",
+    scrim: "rgba(0, 0, 0, 0.6)",
+    inverseSurface: "#FFFFFF",
+    inverseOnSurface: "#1E1E1E",
+    inversePrimary: "#1E1E1E",
+
+    // Elevation levels
+    elevation: {
+      level0: "transparent",
+      level1: "#18181A", // Your questionCardBg
+      level2: "#1E1E1E", // Your questionSelectedBg
+      level3: "#24272E", // Your secondaryBackground
+      level4: "#2A2D35",
+      level5: "#333333",
+    },
+
+    // Disabled states
+    surfaceDisabled: "rgba(255, 255, 255, 0.12)",
+    onSurfaceDisabled: "rgba(255, 255, 255, 0.38)",
+    backdrop: "rgba(0, 0, 0, 0.6)",
+    success: "#28a745",
+    warning: "#ffc107",
+    info: "#17a2b8",
+    link: "#1E90FF",
+    hover: "#AAA",
+    active: "#0000FF",
+    disabled: "#555",
+    alert: "#FFC107",
   },
+};
+
+// Extended themes with custom properties
+export const customDarkTheme = {
+  ...MD3DarkTheme,
+  fonts: fontConfig,
+  colors: {
+    ...darkTheme.colors,
+    // Your custom tab colors
+    tabs: {
+      default: "#ccc",
+      home: "#FCC931",
+      feed: "#9F52C5",
+      explore: "#25A879",
+      challenges: "#1CC0CB",
+      leaderboard: "#1CC0CB",
+    },
+    // Additional custom colors that don't fit MD3 tokens
+    success: "#28a745",
+    warning: "#ffc107",
+    info: "#17a2b8",
+    link: "#1E90FF",
+    hover: "#AAA",
+    active: "#0000FF",
+    disabled: "#555",
+    alert: "#FFC107",
+  },
+};
+
+export const customLightTheme = {
+  ...MD3LightTheme,
+  fonts: fontConfig,
+  colors: {
+    ...lightTheme.colors,
+    // Your custom tab colors
+    tabs: {
+      default: "#1E1E1E",
+      home: "#FCC931",
+      feed: "#9F52C5",
+      explore: "#25A879",
+      challenges: "#1CC0CB",
+      leaderboard: "#1CC0CB",
+    },
+    // Additional custom colors
+    success: "#28a745",
+    warning: "#ffc107",
+    info: "#17a2b8",
+    link: "#1E90FF",
+    hover: "#555",
+    active: "#0000FF",
+    disabled: "#D3D3D3",
+    alert: "#FFC107",
+  },
+};
+
+// Type definitions
+export type AppTheme = typeof customLightTheme | typeof customDarkTheme;
+export type ThemeType = "light" | "dark";
+
+// Optional: Export themes object for convenience
+export const themes = {
+  light: customLightTheme,
+  dark: customDarkTheme,
 };

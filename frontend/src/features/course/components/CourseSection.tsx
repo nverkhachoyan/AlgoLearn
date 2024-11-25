@@ -1,10 +1,10 @@
 import React from "react";
-import { StyleSheet, ActivityIndicator } from "react-native";
-import { View, Text } from "@/src/components/Themed";
+import { StyleSheet, ActivityIndicator, View } from "react-native";
+import { Text } from "react-native-paper";
 import CourseCard from "@/src/features/course/components/CourseCard";
 import Button from "@/src/components/common/Button";
 import { Course } from "@/src/features/course/types";
-import useTheme from "@/src/hooks/useTheme";
+import { useTheme } from "react-native-paper";
 
 interface CourseSectionProps {
   title: string;
@@ -26,7 +26,7 @@ export const CourseSection: React.FC<CourseSectionProps> = ({
   const { colors } = useTheme();
 
   return (
-    <View>
+    <View style={{ backgroundColor: colors.background }}>
       <View style={styles.separator} />
       <Text style={styles.title}>{title}</Text>
       <View style={styles.separator} />
@@ -43,7 +43,7 @@ export const CourseSection: React.FC<CourseSectionProps> = ({
             key={`course-${course.id}`}
             courseID={course.id.toString()}
             courseTitle={course.name}
-            backgroundColor={course.backgroundColor || colors.cardBackground}
+            backgroundColor={course.backgroundColor || colors.surface}
             iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
             description={course.description}
             authors={course.authors}
@@ -66,15 +66,15 @@ export const CourseSection: React.FC<CourseSectionProps> = ({
               type: "ionicons",
               name: "reload-outline",
               position: "right",
-              color: colors.textContrast,
+              color: colors.onSecondaryContainer,
             }}
             onPress={onLoadMore}
             style={{
-              backgroundColor: colors.buttonBackground,
+              backgroundColor: colors.inverseSurface,
             }}
             textStyle={{
               fontSize: 14,
-              color: colors.buttonText,
+              color: colors.inverseOnSurface,
             }}
           />
         )}

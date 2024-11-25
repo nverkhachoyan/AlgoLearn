@@ -1,12 +1,11 @@
-import { StyleSheet } from "react-native";
-import { Text, View } from "@/src/components/Themed";
+import { StyleSheet, View } from "react-native";
 
 export function Seperator(props: any) {
   return (
     <View
       style={[styles.separator, { ...props.styles }]}
-      lightColor="#eee"
-      darkColor="rgba(255,255,255,0.1)"
+      // lightColor="#eee"
+      // darkColor="rgba(255,255,255,0.1)"
     />
   );
 }

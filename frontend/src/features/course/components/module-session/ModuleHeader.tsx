@@ -50,13 +50,13 @@ export const ModuleHeader = memo(
     return (
       <View
         style={[
-          styles.stickyHeader,
-          { backgroundColor: colors.secondaryBackground },
+          styles.container,
+          { backgroundColor: colors.surface, shadowColor: colors.shadowColor },
         ]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Feather name="x" size={18} color={colors.icon} />
+            <Feather name="x" size={18} color={colors.onSurface} />
           </TouchableOpacity>
           <View style={styles.progressContainer}>
             <Animated.View
@@ -89,25 +89,24 @@ export const ModuleHeader = memo(
 );
 
 const styles = StyleSheet.create({
-  progressContainer: {
-    flex: 1,
-    position: "relative",
-    height: 5,
-  },
-  stickyHeader: {
-    backgroundColor: "black",
+  container: {
     paddingLeft: 20,
     paddingVertical: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.05,
     shadowRadius: 3.84,
     borderBottomEndRadius: 8,
     borderBottomStartRadius: 8,
+    zIndex: 10,
+  },
+  progressContainer: {
+    flex: 1,
+    position: "relative",
+    height: 5,
   },
   headerContent: {
     flex: 1,

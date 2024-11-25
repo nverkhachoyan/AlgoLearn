@@ -1,5 +1,5 @@
 import { Toast, ToastContainerProps } from "@/src/components/common/Toast";
-import useTheme from "./useTheme";
+import { useTheme } from "react-native-paper";
 
 const CustomToast = () => {
   const { colors } = useTheme();
@@ -8,12 +8,12 @@ const CustomToast = () => {
     const {
       duration = 3000,
       position = -50,
-      textStyle = { color: colors.textContrast },
+      textStyle = { color: colors.onSurface },
       opacity = 1,
       containerStyle = {
         paddingVertical: 20,
         paddingHorizontal: 20,
-        backgroundColor: colors.backgroundContrast,
+        backgroundColor: colors.surface,
       },
       ...restProps
     } = props || {};

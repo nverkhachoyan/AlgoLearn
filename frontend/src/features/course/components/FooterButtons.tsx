@@ -1,31 +1,25 @@
-import { View } from "@/src/components/Themed";
-import { StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 
 export default function FooterButtons({ colors }: any) {
   return (
-    <View
-      style={[
-        styles.stickyFooter,
-        { backgroundColor: colors.secondaryBackground },
-      ]}
-    >
+    <View style={[styles.stickyFooter, { backgroundColor: colors.surface }]}>
       <Button
         icon={{
           name: "arrow-left",
           size: 22,
-          color: colors.buttonText,
+          color: colors.inverseOnSurface,
           position: "middle",
         }}
-        style={{ backgroundColor: colors.buttonBackground }}
-        textStyle={{ color: colors.buttonText }}
+        style={{ backgroundColor: colors.onSurface }}
+        textStyle={{ color: colors.inverseOnSurface }}
         onPress={() => router.back()}
       />
       <Button
         title="Start Course"
-        style={{ backgroundColor: colors.buttonBackground, width: "70%" }}
-        textStyle={{ color: colors.buttonText }}
+        style={{ backgroundColor: colors.onSurface, width: "70%" }}
+        textStyle={{ color: colors.inverseOnSurface }}
         onPress={() => console.log("Start Course")}
       />
     </View>

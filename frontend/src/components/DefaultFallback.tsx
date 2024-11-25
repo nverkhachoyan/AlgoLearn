@@ -1,6 +1,6 @@
 import { type FallbackProps } from "react-error-boundary";
-import { StyleSheet } from "react-native";
-import { View, Text } from "./Themed";
+import { StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 import Button from "./common/Button";
 import useTheme from "../hooks/useTheme";
 import { useEffect } from "react";

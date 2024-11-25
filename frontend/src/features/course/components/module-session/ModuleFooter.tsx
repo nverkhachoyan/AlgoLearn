@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { View, Text } from "@/src/components/Themed";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 
@@ -14,24 +14,19 @@ export const ModuleFooter = memo(
     onNext: () => void;
     colors: any;
   }) => (
-    <View
-      style={[
-        styles.stickyFooter,
-        { backgroundColor: colors.secondaryBackground },
-      ]}
-    >
+    <View style={[styles.stickyFooter, { backgroundColor: colors.surface }]}>
       <View style={styles.stickyFooterInner}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Feather name="arrow-left" size={18} color={colors.icon} />
+          <Feather name="arrow-left" size={18} color={colors.onSurface} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("toc" as any)}>
           <Text>
-            <Feather name="book-open" color={colors.icon} />
+            <Feather name="book-open" color={colors.onSurface} />
             {moduleName}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onNext}>
-          <Feather name="arrow-right" size={18} color={colors.icon} />
+          <Feather name="arrow-right" size={18} color={colors.onSurface} />
         </TouchableOpacity>
       </View>
     </View>

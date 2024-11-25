@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, StyleSheet, Text } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import useTheme from "@/src/hooks/useTheme";
+import { useTheme } from "react-native-paper";
 
 interface LabeledInputProps {
   label: string;
@@ -39,25 +39,25 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
         <Feather
           name={icon}
           size={20}
-          color={colors.icon}
+          color={colors.onSurface}
           style={styles.icon}
         />
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.label, { color: colors.onSurface }]}>{label}</Text>
       </View>
 
       <TextInput
         style={[
           styles.input,
           {
-            borderColor: isFocused ? colors.secondaryBackground : colors.border,
+            borderColor: isFocused ? colors.secondaryContainer : colors.shadow,
             backgroundColor: isFocused
-              ? colors.inputBackgroundFocused
-              : colors.inputBackground,
-            color: colors.text,
+              ? colors.onPrimary
+              : colors.primaryContainer,
+            color: isFocused ? colors.onSurface : colors.secondary,
           },
         ]}
         placeholder={placeholder}
-        placeholderTextColor={colors.placeholderText}
+        placeholderTextColor={colors.secondary}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}

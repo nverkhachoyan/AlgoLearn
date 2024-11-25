@@ -9,44 +9,39 @@
     "scheme": "app.algolearn",
     "userInterfaceStyle": "automatic",
     "platforms": ["ios", "android", "web"],
+    "backgroundColor": "#24272E",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#24272E"
     },
+
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nverkhachoyan.algolearn"
+      "bundleIdentifier": "com.nverkhachoyan.algolearn",
+      "backgroundColor": "#24272E",
+      "userInterfaceStyle": "automatic"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#24272E"
       },
-      "package": "com.nverkhachoyan.algolearn"
+      "backgroundColor": "#24272E",
+      "package": "com.nverkhachoyan.algolearn",
+      "userInterfaceStyle": "automatic"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png",
+      "backgroundColor": "#24272E",
       "config": {
         "redirectUri": "https://auth.expo.io/@nverkhachoyan/algolearn"
-      }
+      },
+      "userInterfaceStyle": "automatic"
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/SpaceMono-Regular.ttf",
-            "./assets/fonts/OpenSauceOne-Black.ttf",
-            "./assets/fonts/OpenSauceOne-Regular.ttf",
-            "./assets/fonts/OpenSauceOne-Italic.ttf"
-          ]
-        }
-      ]
-    ],
+    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
     },
@@ -58,6 +53,11 @@
         "projectId": "8973f7e9-27c5-43e1-aa75-aff16ec756c8"
       }
     },
-    "owner": "nverkhachoyan"
+    "owner": "nverkhachoyan",
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/8973f7e9-27c5-43e1-aa75-aff16ec756c8"
+    },
+    "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"]
   }
 }

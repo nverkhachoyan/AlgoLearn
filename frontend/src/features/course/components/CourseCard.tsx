@@ -1,11 +1,10 @@
-import { Image, StyleSheet } from "react-native";
-import { View, Text } from "@/src/components/Themed";
+import { Image, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import Button from "@/src/components/common/Button";
 import { Author, Unit } from "@/src/features/course/types";
-import useTheme from "@/src/hooks/useTheme";
-import { Card, Divider, Text as PaperText } from "react-native-paper";
+import { useTheme } from "react-native-paper";
+import { Card, Divider, Text } from "react-native-paper";
 import { useState } from "react";
 import { Module } from "@/src/features/module/types/types";
 
@@ -34,9 +33,7 @@ export default function CourseCard(props: {
       style={[
         styles.container,
         {
-          backgroundColor: isCoursePressed
-            ? colors.cardBackground
-            : colors.cardBackground,
+          backgroundColor: isCoursePressed ? colors.surface : colors.surface,
           transform: [{ scale: isCoursePressed ? 1.02 : 1 }],
           elevation: isCoursePressed ? 8 : 2,
         },
@@ -116,14 +113,15 @@ export default function CourseCard(props: {
             <Card.Title
               title={`Unit ${props.currentUnit.unitNumber} Module ${props.currentModule?.moduleNumber}`}
               titleVariant="titleSmall"
+              titleStyle={{ color: "#E8E8E8" }}
             />
-            <Card.Content>
-              <PaperText variant="titleLarge">
+            <Card.Content style={{ gap: 5 }}>
+              <Text variant="titleLarge" style={{ color: "#E8E8E8" }}>
                 {props.currentModule?.name}
-              </PaperText>
-              <PaperText variant="bodyMedium">
+              </Text>
+              <Text variant="bodyMedium" style={{ color: "#E8E8E8" }}>
                 {props.currentModule?.description}
-              </PaperText>
+              </Text>
             </Card.Content>
             <Divider
               style={{
@@ -146,7 +144,7 @@ export default function CourseCard(props: {
                 onPress={() =>
                   router.push({
                     pathname:
-                      "/(app)/course/[courseId]/module/[moduleId]/module-session",
+                      "/(protected)/course/[courseId]/module/[moduleId]/module-session",
                     params: {
                       courseId: props.courseID,
                       moduleId: props.currentModule?.id as number,
@@ -189,11 +187,11 @@ export default function CourseCard(props: {
               )
             }
             style={{
-              backgroundColor: colors.buttonBackground,
+              backgroundColor: colors.onSurface,
             }}
             textStyle={{
               fontSize: 14,
-              color: colors.buttonText,
+              color: colors.inverseOnSurface,
             }}
           />
           <Button
@@ -204,11 +202,11 @@ export default function CourseCard(props: {
               )
             }
             style={{
-              backgroundColor: colors.buttonBackground,
+              backgroundColor: colors.onSurface,
             }}
             textStyle={{
               fontSize: 14,
-              color: colors.buttonText,
+              color: colors.inverseOnSurface,
             }}
           />
         </View>

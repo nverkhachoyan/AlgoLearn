@@ -152,7 +152,7 @@ export const customDarkTheme = {
       feed: "#9F52C5",
       explore: "#25A879",
       challenges: "#1CC0CB",
-      leaderboard: "#1CC0CB",
+      leaderboard: "#5561E9",
     },
     // Additional custom colors that don't fit MD3 tokens
     success: "#28a745",
@@ -178,7 +178,7 @@ export const customLightTheme = {
       feed: "#9F52C5",
       explore: "#25A879",
       challenges: "#1CC0CB",
-      leaderboard: "#1CC0CB",
+      leaderboard: "#5561E9",
     },
     // Additional custom colors
     success: "#28a745",

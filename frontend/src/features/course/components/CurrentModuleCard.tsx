@@ -12,7 +12,18 @@ export default function CurrentModuleCard({
   return (
     <Card
       onPress={() =>
-        router.navigate(`CourseDetails/?courseID=${course.id}` as any)
+        router.push({
+          pathname:
+            "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
+          params: {
+            courseId: course.courseID,
+            unitId: course.currentUnit?.id,
+            moduleId: course.currentModule?.id as number,
+            userId: 4,
+            type: "full",
+            filter: "learning",
+          },
+        })
       }
       style={[
         styles.currentModule,
@@ -43,7 +54,20 @@ export default function CurrentModuleCard({
       <Card.Actions style={styles.cardActions}>
         <Button
           title="Jump back in"
-          onPress={() => {}}
+          onPress={() => {
+            router.push({
+              pathname:
+                "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
+              params: {
+                courseId: course.courseID,
+                unitId: course.currentUnit?.id,
+                moduleId: course.currentModule?.id as number,
+                userId: 4,
+                type: "full",
+                filter: "learning",
+              },
+            });
+          }}
           style={styles.jumpButton}
           textStyle={styles.jumpButtonText}
           iconStyle={{ color: "#24272E" }}

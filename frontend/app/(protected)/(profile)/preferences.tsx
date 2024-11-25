@@ -117,7 +117,7 @@ export default function Preferences() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <StickyHeaderSimple>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>

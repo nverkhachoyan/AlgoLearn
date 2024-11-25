@@ -39,7 +39,7 @@ export default function CourseDetails() {
         cpus={0}
         strikeCount={0}
         userAvatar={null}
-        onAvatarPress={() => router.push("/profile")}
+        onAvatarPress={() => router.push("/(protected)/(profile)")}
       />
       <ScrollView
         contentContainerStyle={[

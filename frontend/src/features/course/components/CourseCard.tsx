@@ -40,7 +40,7 @@ export default function CourseCard(props: {
       ]}
       onPress={() =>
         router.push({
-          pathname: "/course/[courseId]/details",
+          pathname: "/(protected)/(course)/[courseId]/details",
           params: {
             courseId: props.courseID,
             type: props.type,
@@ -87,7 +87,8 @@ export default function CourseCard(props: {
           <Card
             onPress={() =>
               router.push({
-                pathname: "/course/[courseId]/module/[moduleId]/module-session",
+                pathname:
+                  "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
                 params: {
                   courseId: props.courseID,
                   unitId: props.currentUnit?.id,
@@ -144,7 +145,7 @@ export default function CourseCard(props: {
                 onPress={() =>
                   router.push({
                     pathname:
-                      "/(protected)/course/[courseId]/module/[moduleId]/module-session",
+                      "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
                     params: {
                       courseId: props.courseID,
                       moduleId: props.currentModule?.id as number,
@@ -180,26 +181,16 @@ export default function CourseCard(props: {
       {props.filter === "explore" && (
         <View style={styles.buttonContainer}>
           <Button
-            title="Details"
+            title="Check it out"
             onPress={() =>
-              router.navigate(
-                `CourseDetails/?courseID=${props.courseID}` as any
-              )
-            }
-            style={{
-              backgroundColor: colors.onSurface,
-            }}
-            textStyle={{
-              fontSize: 14,
-              color: colors.inverseOnSurface,
-            }}
-          />
-          <Button
-            title={props.buttonTitle || "Enroll"}
-            onPress={() =>
-              router.navigate(
-                `ModuleSession/?courseId=${props.courseID}&unitId=1&moduleId=41` as any
-              )
+              router.push({
+                pathname: "/(protected)/(course)/[courseId]/details",
+                params: {
+                  courseId: props.courseID,
+                  type: props.type,
+                  filter: props.filter,
+                },
+              })
             }
             style={{
               backgroundColor: colors.onSurface,

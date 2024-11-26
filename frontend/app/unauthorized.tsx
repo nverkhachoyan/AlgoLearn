@@ -2,16 +2,21 @@ import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { useUser } from "@/src/hooks/useUser";
 import Button from "@/src/components/common/Button";
+import { router } from "expo-router";
 
 export default function Home() {
-  //TODO: fix
-  // const { invalidateAuth } = useUser();
-  const invalidateAuth = () => {};
+  const { invalidateAuth } = useUser();
 
   return (
     <View style={styles.container}>
       <Text>
         Not logged in
+        <Button
+          title="Sign in"
+          onPress={() => {
+            router.push("/(auth)");
+          }}
+        />
         <Button
           title="Clear local storage"
           onPress={() => {
@@ -37,7 +42,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    // fontFamily: "OpenSauceOne-Regular",
     alignSelf: "center",
   },
   separator: {

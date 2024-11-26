@@ -1,10 +1,10 @@
-import { Button } from "../ui/button";
-import { Textarea } from "..//ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 const RichTextEditor = ({ value, onChange }) => {
   return (
-    <div className="border rounded-lg p-4">
-      <div className="mb-2 flex gap-2">
+    <div className="p-4 border rounded-lg">
+      <div className="flex gap-2 mb-2">
         <Button variant="outline" size="sm">
           B
         </Button>

@@ -216,7 +216,7 @@ func (h *moduleHandler) CreateModule(w http.ResponseWriter, r *http.Request) {
 	// Setting course and unit IDs we got earlier from the route
 	module.ModuleUnitID = unitID
 
-	if err := h.moduleRepo.CreateModule(ctx, &module); err != nil {
+	if err := h.moduleRepo.CreateModule(ctx, userID, &module); err != nil {
 		log.Printf("Error creating module: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Success:   false,

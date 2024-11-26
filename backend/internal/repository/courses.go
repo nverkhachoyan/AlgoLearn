@@ -207,7 +207,7 @@ func (r *courseRepository) GetCourseFull(ctx context.Context, courseID int64) (*
                                 'position', sub_s.position,
                                 'content', CASE sub_s.type
                                         WHEN 'text' THEN (
-                                            SELECT jsonb_build_object('text', ts.content)
+                                            SELECT jsonb_build_object('text', ts.text_content)
                                             FROM text_sections ts
                                             WHERE ts.section_id = sub_s.id)
                                         WHEN 'video' THEN (
@@ -744,7 +744,7 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	'position', sub_s.position,
 	'content', CASE sub_s.type
 	WHEN 'text' THEN (
-	SELECT jsonb_build_object('text', ts.content)
+	SELECT jsonb_build_object('text', ts.text_content)
 	FROM text_sections ts
 	WHERE ts.section_id = sub_s.id
 	)

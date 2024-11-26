@@ -7,14 +7,14 @@ import {
   ChevronLast,
   ChevronLeft,
 } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 const Sidebar = ({
   activeRoute,
   setActiveRoute,
   isCollapsed,
   setIsCollapsed,
-}: any) => {
+}) => {
   const menuItems = [
     {
       icon: <Home className="w-5 h-5" />,
@@ -48,7 +48,7 @@ const Sidebar = ({
       className={`h-screen bg-slate-900 text-white fixed left-0 top-0 p-4 transition-all duration-200 
           ${isCollapsed ? "w-16" : "w-64"}`}
     >
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex items-center justify-between mb-8">
         {!isCollapsed && <h1 className="text-xl font-bold">AlgoLearn</h1>}
         <Button
           variant="ghost"

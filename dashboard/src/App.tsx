@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Button } from "./components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   LayoutGrid,
   ChevronRight,
@@ -9,7 +9,7 @@ import {
   Trash2,
   BookOpen,
 } from "lucide-react";
-import Sidebar from "./components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 
 const CourseManagement = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -91,7 +91,7 @@ const CourseManagement = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setCourses((prev) =>
+    setCourses((prev: any) =>
       prev.map((course) => ({
         ...course,
         units: course.units.map((unit) => ({
@@ -217,13 +217,13 @@ const CourseManagement = () => {
                             className="flex items-start p-3 border rounded-lg"
                           >
                             <div className="flex-1">
-                              <div className="text-sm font-medium text-gray-500 mb-1">
+                              <div className="mb-1 text-sm font-medium text-gray-500">
                                 {section.type.charAt(0).toUpperCase() +
                                   section.type.slice(1)}
                               </div>
                               <div className="text-sm">{section.content}</div>
                             </div>
-                            <div className="ml-4 flex space-x-2">
+                            <div className="flex ml-4 space-x-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -277,7 +277,7 @@ const CourseManagement = () => {
           isCollapsed ? "ml-16" : "ml-64"
         } flex-1 p-8`}
       >
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">
             {activeRoute.charAt(0).toUpperCase() + activeRoute.slice(1)}
           </h1>

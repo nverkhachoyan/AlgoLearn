@@ -1,23 +1,23 @@
 import { useState } from "react";
-import { Button } from "..//ui/button";
-import { Input } from "../ui/input";
-import { Textarea } from "..//ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
-import { DialogDescription } from "../ui/dialog";
-import { Label } from "../ui/label";
+} from "@/components/ui/dialog";
+import { DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const CourseFormDialog = ({
   isOpen,
   onClose,
   onSave,
-  initialData = {},
-}: any) => {
+  initialData,
+}) => {
   const [formData, setFormData] = useState(initialData);
 
   return (

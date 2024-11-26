@@ -13,9 +13,7 @@ import (
 )
 
 type ModuleRepository interface {
-	// GetModules(ctx context.Context, unitID int64, isPartial bool) ([]models.Module, error)
-	// GetModuleByModuleID(ctx context.Context, unitID int64, moduleID int64) (*models.Module, error)
-	CreateModule(ctx context.Context, module *models.Module) error
+	CreateModule(ctx context.Context, authorID int64, module *models.Module) error
 	UpdateModule(ctx context.Context, module *models.Module) error
 	DeleteModule(ctx context.Context, id int64) error
 	GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error)
@@ -73,7 +71,7 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
                                 'position', s.position,
                                 'content', CASE s.type
                                         WHEN 'text' THEN (
-                                                SELECT jsonb_build_object('text', ts.content)
+                                                SELECT jsonb_build_object('text', ts.text_content)
                                                 FROM text_sections ts
                                                 WHERE ts.section_id = s.id
                                         )
@@ -144,64 +142,53 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 	return &module, nil
 }
 
-func (r *moduleRepository) CreateModule(ctx context.Context, module *models.Module) (err error) {
+func (r *moduleRepository) CreateModule(ctx context.Context, authorID int64, module *models.Module) (err error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "CreateModule").
 		WithField("module_id", module.ID)
 
-	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return err
+	sectionsJson := make([]map[string]interface{}, 0)
+	for _, section := range module.Sections {
+		baseSection := section.GetBaseSection()
+		sectionJson := map[string]interface{}{
+			"type":     baseSection.Type,
+			"position": baseSection.Position,
+		}
+
+		switch s := section.(type) {
+		case models.TextSection:
+			content := s.Content.(map[string]interface{})
+			sectionJson["content"] = map[string]interface{}{
+				"text": content["text"],
+			}
+		case models.VideoSection:
+			content := s.Content.(map[string]interface{})
+			sectionJson["content"] = map[string]interface{}{
+				"url": content["url"],
+			}
+		case models.QuestionSection:
+			content := s.Content.(map[string]interface{})
+			sectionJson["content"] = content
+		}
+		sectionsJson = append(sectionsJson, sectionJson)
 	}
 
-	logger.WithFields(log, logger.Fields{
-		"moduleID": module.ID,
-	}).Printf("creating a new module")
-
-	defer func() {
-		if err != nil {
-			rbErr := tx.Rollback()
-			if rbErr != nil {
-				log.WithError(rbErr).Error("failed to roll back database transaction")
-			}
-		} else {
-			cmtErr := tx.Commit()
-			if cmtErr != nil {
-				log.WithError(cmtErr).Error("failed to commit database transaction")
-				err = cmtErr
-			}
-		}
-	}()
-
-	var newModule models.Module
-	err = tx.QueryRowContext(ctx, `
-	INSERT INTO modules (unit_id, module_number, name, description)
-	VALUES ($1, $2, $3, $4)
-	RETURNING id, created_at, updated_at, module_number, unit_id, name, description`,
-		module.ModuleUnitID, 3, module.Name, module.Description).Scan(
-		&newModule.ID,
-		&newModule.CreatedAt,
-		&newModule.UpdatedAt,
-		&newModule.ModuleNumber,
-		&newModule.ModuleUnitID,
-		&newModule.Name,
-		&newModule.Description)
+	questionsJson := make([]map[string]interface{}, 0)
+	sectionsBytes, err := json.Marshal(sectionsJson)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal sections: %w", err)
+	}
+	questionsBytes, err := json.Marshal(questionsJson)
+	if err != nil {
+		return fmt.Errorf("failed to marshal questions: %w", err)
 	}
 
-	module.ID = newModule.ID
-	module.CreatedAt = newModule.CreatedAt
-	module.UpdatedAt = newModule.UpdatedAt
-	module.ModuleUnitID = newModule.ModuleUnitID
-	module.Name = newModule.Name
-	module.Description = newModule.Description
+	_, err = r.db.ExecContext(ctx, `
+		SELECT create_module($1, $2, $3, $4, $5::jsonb, $6::jsonb)
+	`, authorID, module.ModuleUnitID, module.Name, module.Description, string(sectionsBytes), string(questionsBytes))
 
-	if len(module.Sections) > 0 {
-		updatedSections, err := r.insertSections(ctx, tx, newModule.ID, module.Sections)
-		if err != nil {
-			return err
-		}
-		module.Sections = updatedSections
+	if err != nil {
+		log.WithError(err).Error("failed to create module")
+		return fmt.Errorf("failed to create module: %w", err)
 	}
 
 	return nil
@@ -232,7 +219,7 @@ func (r *moduleRepository) insertSections(ctx context.Context, tx *sql.Tx, modul
 			newSection := s
 			newSection.BaseModel.ID = sectionID
 			_, err = tx.ExecContext(ctx,
-				`INSERT INTO text_sections (section_id, content)
+				`INSERT INTO text_sections (section_id, text_content)
 				VALUES ($1, $2)`, sectionID, s.Content)
 			updatedSection = newSection
 		case models.VideoSection:

@@ -1,9 +1,18 @@
+CREATE TYPE user_role AS ENUM( 'admin', 'instructor', 'student' );
 
-CREATE TYPE user_role AS ENUM ('admin', 'instructor', 'student');
+CREATE TYPE difficulty_level AS ENUM(
+    'beginner',
+    'intermediate',
+    'advanced',
+    'expert'
+);
 
-CREATE TYPE difficulty_level AS ENUM ('beginner', 'intermediate', 'advanced', 'expert');
-
-CREATE TYPE module_progress_status AS ENUM ('uninitiated', 'in_progress', 'completed', 'abandoned');
+CREATE TYPE module_progress_status AS ENUM(
+    'uninitiated',
+    'in_progress',
+    'completed',
+    'abandoned'
+);
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -52,8 +61,8 @@ CREATE TABLE course_authors (
     course_id INTEGER NOT NULL,
     author_id INTEGER NOT NULL,
     PRIMARY KEY (course_id, author_id),
-    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE CASCADE
+    FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES authors (id) ON DELETE CASCADE
 );
 
 -- Tags and Course Tags Tables
@@ -66,8 +75,8 @@ CREATE TABLE course_tags (
     course_id INTEGER NOT NULL,
     tag_id INTEGER NOT NULL,
     PRIMARY KEY (course_id, tag_id),
-    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
 );
 
 -- Units Table
@@ -79,7 +88,7 @@ CREATE TABLE units (
     course_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+    FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
 );
 
 -- Questions Table
@@ -97,8 +106,8 @@ CREATE TABLE question_tags (
     question_id INTEGER NOT NULL,
     tag_id INTEGER NOT NULL,
     PRIMARY KEY (question_id, tag_id),
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
 );
 
 -- Modules Table
@@ -110,7 +119,7 @@ CREATE TABLE modules (
     unit_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE
+    FOREIGN KEY (unit_id) REFERENCES units (id) ON DELETE CASCADE
 );
 
 -- Sections Base Table (Using Class Table Inheritance)
@@ -121,30 +130,29 @@ CREATE TABLE sections (
     module_id INTEGER NOT NULL,
     type VARCHAR(50) NOT NULL,
     position INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
+    FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE
 );
-
 
 -- Text Sections Table
 CREATE TABLE text_sections (
     section_id INTEGER PRIMARY KEY,
-    content TEXT NOT NULL,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+    text_content TEXT NOT NULL,
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
 -- Video Sections Table
 CREATE TABLE video_sections (
     section_id INTEGER PRIMARY KEY,
     url TEXT NOT NULL,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
 -- Question Sections Table
 CREATE TABLE question_sections (
     section_id INTEGER PRIMARY KEY,
     question_id INTEGER NOT NULL,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
 
 -- Question Options Table
@@ -153,7 +161,7 @@ CREATE TABLE question_options (
     question_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     is_correct BOOLEAN NOT NULL,
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+    FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
 
 -- Module Questions Table
@@ -162,11 +170,11 @@ CREATE TABLE module_questions (
     module_id INTEGER NOT NULL,
     question_id INTEGER NOT NULL,
     position INTEGER NOT NULL,
-    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+    FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
 
--- User Module Progress Table 
+-- User Module Progress Table
 CREATE TABLE user_module_progress (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -175,13 +183,16 @@ CREATE TABLE user_module_progress (
     module_id INTEGER NOT NULL,
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
-    progress FLOAT NOT NULL DEFAULT 0.0 CHECK (progress >= 0.0 AND progress <= 100.0),
+    progress FLOAT NOT NULL DEFAULT 0.0 CHECK (
+        progress >= 0.0
+        AND progress <= 100.0
+    ),
     current_section_id INTEGER,
     last_accessed TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     status module_progress_status NOT NULL DEFAULT 'in_progress',
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
-    FOREIGN KEY (current_section_id) REFERENCES sections(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE,
+    FOREIGN KEY (current_section_id) REFERENCES sections (id) ON DELETE SET NULL
 );
 
 -- User Courses Table
@@ -194,11 +205,11 @@ CREATE TABLE user_courses (
     current_unit_id INTEGER,
     current_module_id INTEGER,
     latest_module_progress_id INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-    FOREIGN KEY (current_unit_id) REFERENCES units(id) ON DELETE SET NULL,
-    FOREIGN KEY (current_module_id) REFERENCES modules(id) ON DELETE SET NULL,
-    FOREIGN KEY (latest_module_progress_id) REFERENCES user_module_progress(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE,
+    FOREIGN KEY (current_unit_id) REFERENCES units (id) ON DELETE SET NULL,
+    FOREIGN KEY (current_module_id) REFERENCES modules (id) ON DELETE SET NULL,
+    FOREIGN KEY (latest_module_progress_id) REFERENCES user_module_progress (id) ON DELETE SET NULL
 );
 
 -- User Section Progress Table (Tracks progress at the section level)
@@ -211,9 +222,9 @@ CREATE TABLE user_section_progress (
     completed_at TIMESTAMPTZ,
     has_seen BOOLEAN NOT NULL DEFAULT FALSE,
     seen_at TIMESTAMPTZ,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
-    FOREIGN KEY (section_id) REFERENCES sections(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE,
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
 -- User Question Answers Table (Ensures referential integrity)
@@ -226,9 +237,9 @@ CREATE TABLE user_question_answers (
     option_id INTEGER NOT NULL,
     answered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_correct BOOLEAN NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (user_module_progress_id) REFERENCES user_module_progress(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (option_id) REFERENCES question_options(id) ON DELETE CASCADE
+    FOREIGN KEY (user_module_progress_id) REFERENCES user_module_progress (id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE,
+    FOREIGN KEY (option_id) REFERENCES question_options (id) ON DELETE CASCADE
 );
 
 -- Achievements Table
@@ -241,7 +252,7 @@ CREATE TABLE achievements (
     points INTEGER NOT NULL DEFAULT 0
 );
 
--- User Achievements Table 
+-- User Achievements Table
 CREATE TABLE user_achievements (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -249,8 +260,8 @@ CREATE TABLE user_achievements (
     user_id INTEGER NOT NULL,
     achievement_id INTEGER NOT NULL,
     achieved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (achievement_id) REFERENCES achievements (id) ON DELETE CASCADE,
     UNIQUE (user_id, achievement_id)
 );
 
@@ -262,7 +273,7 @@ CREATE TABLE notifications (
     user_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     read BOOLEAN NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 -- Streaks Table
@@ -275,29 +286,44 @@ CREATE TABLE streaks (
     end_date DATE,
     current_streak INTEGER NOT NULL DEFAULT 0,
     longest_streak INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 -- Indexes
-CREATE UNIQUE INDEX idx_users_email ON users(email);
-CREATE UNIQUE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_courses_name ON courses(name);
-CREATE INDEX idx_modules_unit_id ON modules(unit_id);
-CREATE INDEX idx_user_module_progress_user_id ON user_module_progress(user_id);
-CREATE INDEX idx_user_section_progress_section_id ON user_section_progress(section_id);
-CREATE INDEX idx_sections_module_id ON sections(module_id);
+CREATE UNIQUE INDEX idx_users_email ON users (email);
+
+CREATE UNIQUE INDEX idx_users_username ON users (username);
+
+CREATE INDEX idx_courses_name ON courses (name);
+
+CREATE INDEX idx_modules_unit_id ON modules (unit_id);
+
+CREATE INDEX idx_user_module_progress_user_id ON user_module_progress (user_id);
+
+CREATE INDEX idx_user_section_progress_section_id ON user_section_progress (section_id);
+
+CREATE INDEX idx_sections_module_id ON sections (module_id);
 
 -- Additional Indexes on Foreign Keys
-CREATE INDEX idx_course_authors_course_id ON course_authors(course_id);
-CREATE INDEX idx_course_authors_author_id ON course_authors(author_id);
-CREATE INDEX idx_course_tags_course_id ON course_tags(course_id);
-CREATE INDEX idx_course_tags_tag_id ON course_tags(tag_id);
-CREATE INDEX idx_question_tags_question_id ON question_tags(question_id);
-CREATE INDEX idx_question_tags_tag_id ON question_tags(tag_id);
-CREATE INDEX idx_user_courses_user_id ON user_courses(user_id);
-CREATE INDEX idx_user_courses_course_id ON user_courses(course_id);
-CREATE INDEX idx_user_question_answers_user_module_progress_id ON user_question_answers(user_module_progress_id);
-CREATE INDEX idx_user_question_answers_question_id ON user_question_answers(question_id);
+CREATE INDEX idx_course_authors_course_id ON course_authors (course_id);
+
+CREATE INDEX idx_course_authors_author_id ON course_authors (author_id);
+
+CREATE INDEX idx_course_tags_course_id ON course_tags (course_id);
+
+CREATE INDEX idx_course_tags_tag_id ON course_tags (tag_id);
+
+CREATE INDEX idx_question_tags_question_id ON question_tags (question_id);
+
+CREATE INDEX idx_question_tags_tag_id ON question_tags (tag_id);
+
+CREATE INDEX idx_user_courses_user_id ON user_courses (user_id);
+
+CREATE INDEX idx_user_courses_course_id ON user_courses (course_id);
+
+CREATE INDEX idx_user_question_answers_user_module_progress_id ON user_question_answers (user_module_progress_id);
+
+CREATE INDEX idx_user_question_answers_question_id ON user_question_answers (question_id);
 
 -- Unique Constraints
 ALTER TABLE user_achievements
@@ -306,32 +332,33 @@ ADD CONSTRAINT uniq_user_achievement UNIQUE (user_id, achievement_id);
 ALTER TABLE user_courses
 ADD CONSTRAINT uniq_user_course UNIQUE (user_id, course_id);
 
-ALTER TABLE user_section_progress 
-ADD CONSTRAINT unique_user_section_progress 
-UNIQUE (user_id, section_id);
+ALTER TABLE user_section_progress
+ADD CONSTRAINT unique_user_section_progress UNIQUE (user_id, section_id);
 
-ALTER TABLE user_module_progress 
-ADD CONSTRAINT unique_user_module_progress 
-UNIQUE (user_id, module_id);
+ALTER TABLE user_module_progress
+ADD CONSTRAINT unique_user_module_progress UNIQUE (user_id, module_id);
 
 -- Add constraints for answers to ensure one answer per question per user_module_progress
 ALTER TABLE user_question_answers
-ADD CONSTRAINT unique_user_question_answer 
-UNIQUE (user_module_progress_id, question_id);
+ADD CONSTRAINT unique_user_question_answer UNIQUE (
+    user_module_progress_id,
+    question_id
+);
 
 -- Ensure one question section per question
 ALTER TABLE question_sections
-ADD CONSTRAINT unique_question_section 
-UNIQUE (question_id);
+ADD CONSTRAINT unique_question_section UNIQUE (question_id);
 
 -- Ensure section positions are unique within a module
 ALTER TABLE sections
-ADD CONSTRAINT unique_section_position_per_module 
-UNIQUE (module_id, position);
+ADD CONSTRAINT unique_section_position_per_module UNIQUE (module_id, position);
 
 -- Check Constraints
 ALTER TABLE user_module_progress
-ADD CHECK (progress >= 0.0 AND progress <= 100.0);
+ADD CHECK (
+    progress >= 0.0
+    AND progress <= 100.0
+);
 
 -- Create unique constraints to ensure no duplicate numbers within same parent
 ALTER TABLE units
@@ -341,8 +368,9 @@ ALTER TABLE modules
 ADD CONSTRAINT unique_module_number_per_unit UNIQUE (unit_id, module_number);
 
 -- Create indexes for efficient ordering
-CREATE INDEX idx_units_course_number ON units(course_id, unit_number);
-CREATE INDEX idx_modules_unit_number ON modules(unit_id, module_number);
+CREATE INDEX idx_units_course_number ON units (course_id, unit_number);
+
+CREATE INDEX idx_modules_unit_number ON modules (unit_id, module_number);
 
 -- Add check constraints to ensure positive numbers
 ALTER TABLE units
@@ -355,3 +383,7 @@ ADD CONSTRAINT positive_module_number CHECK (module_number > 0);
 -- CREATE INDEX idx_courses_description ON courses USING GIN (to_tsvector('english', description));
 
 -- Note: Implement triggers or application logic as needed to automatically update timestamps and enforce data integrity.
+
+-- UPDATE users SET role = 'admin' WHERE email = 'testuser@example.com';
+
+-- SELECT * from USERS where email = 'testuser@example.com';

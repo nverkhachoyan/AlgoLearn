@@ -1,4 +1,4 @@
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Code } from "lucide-react";
 import {
   Select,
@@ -6,14 +6,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "@/components/ui/select";
 
-import { Textarea } from "../ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 
 const CodeEditor = ({ value, onChange, language = "python" }) => {
   return (
     <div className="border rounded-lg">
-      <div className="bg-slate-100 p-2 flex justify-between items-center">
+      <div className="flex items-center justify-between p-2 bg-slate-100">
         <Select defaultValue={language}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Language" />

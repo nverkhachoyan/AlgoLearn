@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Trash2, Save } from "lucide-react";
 import {
   Select,
@@ -7,18 +7,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
-import CodeEditor from "./CodeEditor";
-import RichTextEditor from "./RichTextEditor";
+} from "@/components/ui/dialog";
+import CodeEditor from "@/components/module/CodeEditor";
+import RichTextEditor from "@/components/module/RichTextEditor";
 
 const SectionEditorDialog = ({ isOpen, onClose, onSave, section }) => {
   const [editingSection, setEditingSection] = useState(

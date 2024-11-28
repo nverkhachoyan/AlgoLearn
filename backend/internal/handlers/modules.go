@@ -88,7 +88,7 @@ func (h *moduleHandler) GetModuleWithProgress(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	module, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
+	modulePayload, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not found")
 		RespondWithJSON(w, http.StatusNotFound, models.Response{
@@ -110,7 +110,7 @@ func (h *moduleHandler) GetModuleWithProgress(w http.ResponseWriter, r *http.Req
 	RespondWithJSON(w, http.StatusOK, models.Response{
 		Success: true,
 		Message: "module retrieved successfully",
-		Data:    module,
+		Data:    modulePayload,
 	})
 }
 
@@ -499,9 +499,7 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter := query.Get("filter")
-
-	totalCount, modules, err := h.moduleRepo.GetModulesWithProgress(ctx, page, pageSize, userID, unitID, filter)
+	totalCount, modules, err := h.moduleRepo.GetModulesWithProgress(ctx, page, pageSize, userID, unitID)
 	if err != nil {
 		log.WithError(err).Error("error fetching modules")
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{

@@ -161,6 +161,7 @@ type UseModuleProgressReturn = {
   currentModule: ModulePayload;
   completeModuleMutation: UseMutationResult<any, Error, any, unknown>;
   nextModuleId: number | undefined;
+  hasNextModule: boolean | undefined;
   isPending: boolean;
   error: Error | null;
   isModuleFetching: boolean;
@@ -240,8 +241,10 @@ export const useModuleProgress = (
           type: "full",
           filter: "learning",
         });
+        const axiosResponse = response.data;
+        const payload = axiosResponse.payload;
 
-        return response.data.payload;
+        return payload;
       },
     });
   }
@@ -250,6 +253,7 @@ export const useModuleProgress = (
     currentModule: currentModule?.data,
     completeModuleMutation,
     nextModuleId: currentModule?.data?.nextModuleId,
+    hasNextModule: currentModule?.data?.hasNextModule,
     isPending: currentModule.isPending,
     error: currentModule.error,
     isModuleFetching: currentModule.isFetching,

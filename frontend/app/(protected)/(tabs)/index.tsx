@@ -14,18 +14,6 @@ export default function Home() {
   const { user } = useUser();
   const { colors } = useTheme();
   const { showToast } = useToast();
-  const queryClient = useQueryClient();
-  const { currentModule } = useModuleProgress({
-    courseId: 1,
-    unitId: 1,
-    moduleId: 1,
-    userId: 4,
-  });
-
-  console.log(
-    "currentModule FROM HOME",
-    JSON.stringify(currentModule, null, 2)
-  );
 
   const {
     courses: learningCourses,

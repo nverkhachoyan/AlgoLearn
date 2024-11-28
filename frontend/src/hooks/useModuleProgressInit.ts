@@ -48,18 +48,19 @@ export const useModuleProgressInit = (module: Module | undefined) => {
         const userAnswer = section.content.userQuestionAnswer;
         questionsMap.set(section.content.id, {
           questionId: section.content.id,
-          hasAnswered: Boolean(userAnswer.optionId),
+          hasAnswered: Boolean(userAnswer?.optionId),
           optionId: userAnswer?.optionId ?? null,
-          isCorrect: userAnswer?.isCorrect,
-          answeredAt: userAnswer.answeredAt,
+          isCorrect: userAnswer?.isCorrect ?? null,
+          answeredAt: userAnswer?.answeredAt ?? null,
         });
       }
     });
 
-    setModuleProgress({
+    setModuleProgress((prev) => ({
+      ...prev,
       sections: sectionsMap,
       questions: questionsMap,
-    });
+    }));
   }, [module?.sections]);
 
   return { moduleProgress, setModuleProgress };

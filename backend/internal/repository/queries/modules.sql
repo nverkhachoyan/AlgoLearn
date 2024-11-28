@@ -79,7 +79,6 @@ FROM modules AS m
 JOIN user_module_progress ump ON ump.module_id = m.id
 WHERE m.unit_id = 1 AND m.id = 1;
 
-
 -- name: GetModules
 WITH unit_modules AS (
     SELECT * FROM modules WHERE unit_id = 1
@@ -147,23 +146,6 @@ SELECT jsonb_agg(
 FROM unit_modules m
 LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = 4;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 WITH unit_modules AS (
     SELECT * FROM modules WHERE unit_id = $1
     LIMIT 1 OFFSET 3
@@ -228,3 +210,36 @@ SELECT jsonb_agg(
        )
 FROM unit_modules m
 LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $3;
+
+-- name: GetModule
+WITH
+    unit_modules AS (
+        SELECT id, module_number
+        FROM modules
+        WHERE
+            unit_id = 1
+        ORDER BY module_number ASC
+    ),
+    current_module AS (
+        SELECT id, module_number
+        FROM unit_modules
+        WHERE
+            id = 1
+    )
+SELECT id, module_number
+FROM unit_modules
+WHERE
+    module_number > (
+        SELECT module_number
+        FROM current_module
+    )
+ORDER BY module_number ASC
+LIMIT 1;
+
+SELECT * FROM modules WHERE unit_id = 1 ORDER BY module_number ASC;
+
+
+DELETE FROM modules WHERE id = 8;
+
+
+SELECT * FROM user_question_answers;

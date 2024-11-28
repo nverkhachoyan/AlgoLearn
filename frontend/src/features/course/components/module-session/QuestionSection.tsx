@@ -6,33 +6,32 @@ import { QuestionContent, QuestionProgress } from "@/src/features/module/types";
 interface QuestionSectionProps {
   content: QuestionContent;
   questionState: QuestionProgress | undefined;
-  onAnswer: (optionId: number, isCorrect: boolean) => void;
+  onAnswer: (questionId: number, optionId: number, isCorrect: boolean) => void;
   colors: any;
 }
 
 export const QuestionSection = memo(
   ({ content, questionState, onAnswer, colors }: QuestionSectionProps) => {
     const getOptionStyle = useCallback(
-      (optionId: number, isCorrect: boolean) => {
-        if (!questionState?.hasAnswered) {
-          return styles.questionOption;
+      (option: { id: number; isCorrect: boolean }) => {
+        const isSelected = option.id === questionState?.optionId;
+        const showResult = questionState?.hasAnswered;
+
+        const baseStyle = [
+          styles.questionOption,
+          isSelected && styles.selectedOption,
+        ];
+
+        if (showResult) {
+          if (option.isCorrect) {
+            return [...baseStyle, styles.correctOption];
+          }
+          if (isSelected) {
+            return [...baseStyle, styles.incorrectOption];
+          }
         }
 
-        if (isCorrect) {
-          return [
-            styles.questionOption,
-            { borderColor: "green", backgroundColor: "rgba(0, 255, 0, 0.1)" },
-          ];
-        }
-
-        if (optionId === questionState.optionId) {
-          return [
-            styles.questionOption,
-            { borderColor: "red", backgroundColor: "rgba(255, 0, 0, 0.1)" },
-          ];
-        }
-
-        return styles.questionOption;
+        return baseStyle;
       },
       [questionState]
     );
@@ -44,38 +43,50 @@ export const QuestionSection = memo(
             {content.question}
           </Text>
           {content.options.map((option) => {
-            const isSelected = questionState?.optionId === option.id;
+            const isSelected = option.id === questionState?.optionId;
+            const showResult = questionState?.hasAnswered;
 
             return (
               <TouchableOpacity
                 key={`${content.id}-${option.id}`}
-                onPress={() => onAnswer(option.id, option.isCorrect)}
+                onPress={() =>
+                  onAnswer(content.id, option.id, option.isCorrect)
+                }
+                style={styles.optionContainer}
               >
-                <View style={getOptionStyle(option.id, option.isCorrect)}>
+                <View style={getOptionStyle(option)}>
                   <Checkbox.Android
-                    key={`checkbox-${content.id}-${option.id}`}
                     status={isSelected ? "checked" : "unchecked"}
-                    onPress={() => onAnswer(option.id, option.isCorrect)}
+                    onPress={() =>
+                      onAnswer(content.id, option.id, option.isCorrect)
+                    }
                   />
-                  <Text style={{ color: colors.onSurface, flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      { color: colors.onSurface },
+                      showResult &&
+                        !option.isCorrect &&
+                        isSelected &&
+                        styles.incorrectText,
+                    ]}
+                  >
                     {option.content}
                   </Text>
-                  {questionState?.hasAnswered && (
+                  {showResult && (
                     <Text
-                      style={{
-                        color: option.isCorrect
-                          ? "green"
-                          : option.id === questionState.optionId
-                            ? "red"
-                            : colors.onSurface,
-                        marginLeft: 8,
-                      }}
+                      style={[
+                        styles.resultIcon,
+                        {
+                          color: option.isCorrect
+                            ? "green"
+                            : isSelected
+                              ? "red"
+                              : colors.onSurface,
+                        },
+                      ]}
                     >
-                      {option.isCorrect
-                        ? "✓"
-                        : option.id === questionState.optionId
-                          ? "✗"
-                          : ""}
+                      {option.isCorrect ? "✓" : isSelected ? "✗" : ""}
                     </Text>
                   )}
                 </View>
@@ -85,6 +96,9 @@ export const QuestionSection = memo(
         </Card.Content>
       </Card>
     );
+  },
+  (prevProps, nextProps) => {
+    return false;
   }
 );
 
@@ -99,6 +113,7 @@ const styles = StyleSheet.create({
   question: {
     marginBottom: 15,
     fontSize: 16,
+    fontWeight: "500",
   },
   questionOption: {
     flex: 1,
@@ -111,18 +126,31 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 5,
   },
-  questionOptionSelected: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginVertical: 5,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
+  selectedOption: {
+    borderColor: "#666",
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
   },
-  questionOptionIcon: {
+  correctOption: {
+    borderColor: "green",
+    backgroundColor: "rgba(0, 255, 0, 0.1)",
+  },
+  incorrectOption: {
+    borderColor: "red",
+    backgroundColor: "rgba(255, 0, 0, 0.1)",
+  },
+  optionText: {
+    flex: 1,
     fontSize: 14,
+  },
+  resultIcon: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  optionContainer: {
+    marginVertical: 4,
+  },
+  incorrectText: {
+    color: "rgba(255, 0, 0, 0.7)",
   },
 });

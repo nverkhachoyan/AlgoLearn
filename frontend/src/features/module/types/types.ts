@@ -1,4 +1,5 @@
 import { BaseModel } from "@/src/types";
+import { Section } from "./sections";
 
 export interface Module extends BaseModel {
   moduleNumber: number;
@@ -34,11 +35,4 @@ export interface ModuleResponse {
   } | null;
   hasNextPage: boolean;
   nextCursor?: string;
-}
-
-export interface Section {
-  id: number;
-  position: number;
-  type: string;
-  content: any; // Replace 'any' with proper content type
 }

@@ -17,13 +17,13 @@ interface SectionRendererProps {
   section: Section;
   handleQuestionAnswer: (
     questionId: number,
-    selectedOptionId: number,
-    isCorrect: boolean
+    selectedOptionId: number | null,
+    isCorrect: boolean | null
   ) => void;
   questionsState: Map<number, QuestionProgress>;
 }
 
-const SectionRenderer: React.FC<SectionRendererProps> = memo(
+const SectionsList: React.FC<SectionRendererProps> = memo(
   ({ section, handleQuestionAnswer, questionsState }) => {
     const { colors } = useTheme();
     const viewableRef = useRef(false);
@@ -50,14 +50,14 @@ const SectionRenderer: React.FC<SectionRendererProps> = memo(
       }
 
       if (isQuestionSection(section)) {
-        const questionState = questionsState.get(section.content.id);
+        const questionId = section.content.id;
+        const questionState = questionsState.get(questionId);
+
         return (
           <QuestionSection
             content={section.content}
             questionState={questionState}
-            onAnswer={(optionId, isCorrect) =>
-              handleQuestionAnswer(section.content.id, optionId, isCorrect)
-            }
+            onAnswer={handleQuestionAnswer}
             colors={colors}
           />
         );
@@ -76,7 +76,25 @@ const SectionRenderer: React.FC<SectionRendererProps> = memo(
     }, [section, questionsState, handleQuestionAnswer, colors]);
 
     return renderSection();
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.section.id !== nextProps.section.id) return false;
+
+    if (
+      isQuestionSection(prevProps.section) &&
+      isQuestionSection(nextProps.section)
+    ) {
+      const prevState = prevProps.questionsState.get(
+        prevProps.section.content.id
+      );
+      const nextState = nextProps.questionsState.get(
+        nextProps.section.content.id
+      );
+      return JSON.stringify(prevState) === JSON.stringify(nextState);
+    }
+
+    return false;
   }
 );
 
-export default SectionRenderer;
+export default SectionsList;

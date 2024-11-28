@@ -8,17 +8,17 @@ import {
 } from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
-import ModuleSection from "@/src/features/course/components/module-session/ModuleSection";
+import SectionsList from "@/src/features/course/components/module-session/SectionsList";
 import Button from "@/src/components/common/Button";
-import { useModules } from "@/src/hooks/useModules";
+import { useModuleProgress } from "@/src/hooks/useModules";
 import {
+  isQuestionSection,
   QuestionProgress,
   Section,
   SectionProgress,
 } from "@/src/features/module/types";
 import { ModuleHeader } from "@/src/features/course/components/module-session/ModuleHeader";
 import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
-import { useUpdateModuleProgress } from "@/src/hooks/useModules";
 import { useModuleProgressInit } from "@/src/hooks/useModuleProgressInit";
 import { Filter, Type } from "@/src/features/module/api/types";
 
@@ -49,7 +49,6 @@ export default function ModuleSession() {
   const { colors } = useTheme();
   const params = useLocalSearchParams<RouteParams | any>();
   const [isCompleting, setIsCompleting] = useState(false);
-
   const ids = useMemo(
     () => ({
       courseId: Number(params.courseId),
@@ -60,53 +59,81 @@ export default function ModuleSession() {
     [params]
   );
 
-  console.log("ids", ids);
-
   const {
-    modules: { data: module, hasNextPage, isPending, error },
-  } = useModules({
+    currentModule: modulePayload,
+    hasNextModule,
+    completeModuleMutation,
+    isPending,
+    error,
+  } = useModuleProgress({
     courseId: ids.courseId,
     unitId: ids.unitId,
     moduleId: ids.moduleId,
     userId: ids.userId,
-    type: params.type ?? ("full" as Type | string),
-    filter: params.filter ?? ("all" as Filter | string),
-    includeNextModule: true, // Add this option to your useModules hook
   });
 
-  const { moduleProgress, setModuleProgress } = useModuleProgressInit(module);
-  const { mutation } = useUpdateModuleProgress(
-    ids.courseId,
-    ids.unitId,
-    ids.moduleId,
-    ids.userId
+  const { moduleProgress, setModuleProgress } = useModuleProgressInit(
+    modulePayload?.module
   );
 
-  console.log("hasNextPage", hasNextPage);
-  console.log("module", module);
+  console.log("ModuleSession - Initial moduleProgress:", {
+    sections: Array.from(moduleProgress.sections.entries()),
+    questions: Array.from(moduleProgress.questions.entries()),
+  });
 
-  const sortedSections = useMemo(
+  const sortedSections: Section[] = useMemo(
     () =>
-      module?.sections
+      modulePayload?.module?.sections
         ?.slice()
-        .sort((a: Section, b: Section) => a.position - b.position) ?? [],
-    [module?.sections]
+        .sort((a: any, b: any) => a.position - b.position) ?? [],
+    [modulePayload?.module?.sections]
   );
 
   const handleQuestionAnswer = useCallback(
-    (questionId: number, optionId: number, isCorrect: boolean) => {
-      setModuleProgress((prev) => ({
-        ...prev,
-        questions: new Map(prev.questions).set(questionId, {
+    (
+      questionId: number,
+      optionId: number | null,
+      isCorrect: boolean | null
+    ) => {
+      console.log("handleQuestionAnswer called with:", {
+        questionId,
+        optionId,
+        isCorrect,
+      });
+
+      setModuleProgress((prev) => {
+        const newQuestions = new Map(prev.questions);
+        newQuestions.set(questionId, {
           questionId,
           hasAnswered: true,
           optionId,
           isCorrect,
           answeredAt: new Date().toISOString(),
-        }),
-      }));
+        });
+
+        const newState = {
+          ...prev,
+          questions: newQuestions,
+        };
+
+        console.log("New moduleProgress state:", {
+          questions: Array.from(newState.questions.entries()).map(
+            ([id, state]) => ({
+              id,
+              state: {
+                hasAnswered: state.hasAnswered,
+                optionId: state.optionId,
+                isCorrect: state.isCorrect,
+                answeredAt: state.answeredAt,
+              },
+            })
+          ),
+        });
+
+        return newState;
+      });
     },
-    []
+    [setModuleProgress]
   );
 
   const handleViewableItemsChanged = useCallback(
@@ -140,7 +167,7 @@ export default function ModuleSession() {
           : prev;
       });
     },
-    []
+    [setModuleProgress]
   );
 
   const calculateProgress = useMemo(() => {
@@ -209,22 +236,25 @@ export default function ModuleSession() {
 
     try {
       const { questions, sections } = moduleProgress;
-
-      await mutation.mutateAsync({
-        userId: ids.userId,
-        moduleId: ids.moduleId,
-        sections: Array.from(sections, ([_, section]) => ({ ...section })),
-        questions: Array.from(questions, ([_, question]) => ({ ...question })),
-      });
+      if (moduleProgress.sections.size !== 0) {
+        await completeModuleMutation.mutateAsync({
+          userId: ids.userId,
+          moduleId: ids.moduleId,
+          sections: Array.from(sections, ([_, section]) => ({ ...section })),
+          questions: Array.from(questions, ([_, question]) => ({
+            ...question,
+          })),
+        });
+      }
 
       // Navigate to next module if available
-      if (hasNextPage) {
+      if (hasNextModule) {
         router.push({
           pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
           params: {
             courseId: ids.courseId,
             unitId: ids.unitId,
-            moduleId: module?.id,
+            moduleId: modulePayload?.nextModuleId ?? "",
             userId: ids.userId,
             type: "full",
             filter: "learning",
@@ -247,28 +277,58 @@ export default function ModuleSession() {
     } finally {
       setIsCompleting(false);
     }
-  }, [moduleProgress, ids, router, mutation]);
+  }, [moduleProgress, ids, router, completeModuleMutation]);
 
   const renderItem = useCallback(
-    ({ item: section }: { item: Section }) => (
-      <ModuleSection
-        section={section}
-        handleQuestionAnswer={handleQuestionAnswer}
-        questionsState={moduleProgress.questions}
-      />
-    ),
-    [handleQuestionAnswer, moduleProgress.questions]
+    ({ item: section }: { item: Section }) => {
+      console.log(
+        "Rendering section:",
+        section.id,
+        "with questions state:",
+        Array.from(moduleProgress.questions.entries()).map(([id, state]) => ({
+          id,
+          state: {
+            hasAnswered: state.hasAnswered,
+            optionId: state.optionId,
+            isCorrect: state.isCorrect,
+          },
+        }))
+      );
+
+      // Create a key that changes when the question state changes
+      const questionKey = isQuestionSection(section)
+        ? JSON.stringify(moduleProgress.questions.get(section.content.id))
+        : undefined;
+
+      return (
+        <View key={`${section.id}-${questionKey}`}>
+          <SectionsList
+            section={section}
+            handleQuestionAnswer={handleQuestionAnswer}
+            questionsState={moduleProgress.questions}
+          />
+        </View>
+      );
+    },
+    [handleQuestionAnswer, moduleProgress]
   );
 
   if (error) {
     return (
-      <View style={styles.centerContainer}>
-        <Text>{MESSAGES.ERROR}</Text>
+      <View
+        style={[styles.centerContainer, { backgroundColor: colors.background }]}
+      >
+        <Text style={{ color: colors.onSurface }}>{MESSAGES.ERROR}</Text>
       </View>
     );
   }
 
-  if (isPending || !module) {
+  if (
+    isPending ||
+    !modulePayload ||
+    !moduleProgress ||
+    !modulePayload?.module?.sections
+  ) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator animating size="large" color={colors.primary} />
@@ -279,7 +339,7 @@ export default function ModuleSession() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ModuleHeader
-        moduleName={module.name}
+        moduleName={modulePayload?.module?.name ?? ""}
         progress={calculateProgress}
         colors={colors}
       />
@@ -292,6 +352,7 @@ export default function ModuleSession() {
         contentContainerStyle={styles.flashListContainer}
         onViewableItemsChanged={handleViewableItemsChanged}
         viewabilityConfig={SECTION_VIEWABILITY_CONFIG}
+        extraData={moduleProgress.questions}
         ListFooterComponent={() => (
           <View style={styles.endOfModule}>
             <Button
@@ -305,7 +366,7 @@ export default function ModuleSession() {
       />
 
       <ModuleFooter
-        moduleName={module.name}
+        moduleName={modulePayload?.module?.name ?? ""}
         onNext={handleModuleCompletion}
         colors={colors}
       />

@@ -16,8 +16,8 @@ type ModuleRepository interface {
 	CreateModule(ctx context.Context, authorID int64, module *models.Module) error
 	UpdateModule(ctx context.Context, module *models.Module) error
 	DeleteModule(ctx context.Context, id int64) error
-	GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error)
-	GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int64, unitID int64, filter string) (int64, []*models.Module, error)
+	GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.ModulePayload, error)
+	GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int64, unitID int64) (int64, []*models.Module, error)
 	UpdateModuleProgress(ctx context.Context, userID int64, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error
 }
 
@@ -29,7 +29,7 @@ func NewModuleRepository(db *sql.DB) ModuleRepository {
 	return &moduleRepository{db: db}
 }
 
-func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.Module, error) {
+func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int64, unitID int64, moduleID int64) (*models.ModulePayload, error) {
 	log := logger.Get().
 		WithBaseFields(logger.Repository, "GetModuleWithProgress").
 		WithField("unit_id", unitID).
@@ -48,6 +48,40 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 	if !moduleExists {
 		return nil, codes.ErrNotFound
 	}
+
+	var nextModuleID int64
+	var nextModuleNumber int64
+	var hasNextModule bool
+	err = r.db.QueryRowContext(ctx, `
+		WITH unit_modules AS (
+			SELECT id, module_number
+			FROM modules
+			WHERE unit_id = $1
+			ORDER BY module_number ASC
+		),
+			current_module AS (
+				SELECT id, module_number
+				FROM unit_modules
+				WHERE id = $2
+			)
+		SELECT
+			id, module_number
+		FROM unit_modules
+		WHERE module_number > (SELECT module_number FROM current_module)
+		ORDER BY module_number ASC LIMIT 1;
+		`,
+		unitID,
+		moduleID,
+	).Scan(&nextModuleID, &nextModuleNumber)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		hasNextModule = false
+	} else if err != nil {
+		log.WithError(err).Error("failed to query next module")
+		return nil, fmt.Errorf("failed to query next module: %w", err)
+	}
+
+	hasNextModule = nextModuleNumber > 0
 
 	var moduleJson []byte
 	var module models.Module
@@ -126,7 +160,7 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
                         ), '[]'::jsonb)
                 )
 	FROM modules AS m
-	JOIN user_module_progress ump ON ump.module_id = m.id
+	LEFT JOIN user_module_progress ump ON ump.module_id = m.id
 	WHERE m.unit_id = $1 AND m.id = $2;
 	`, unitID, moduleID).
 		Scan(&moduleJson)
@@ -140,7 +174,13 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 		log.WithError(err).Errorf("failed to unmarshal module")
 	}
 
-	return &module, nil
+	modulePayload := &models.ModulePayload{
+		Module:        module,
+		NextModuleID:  nextModuleID,
+		HasNextModule: hasNextModule,
+	}
+
+	return modulePayload, nil
 }
 
 func (r *moduleRepository) CreateModule(ctx context.Context, authorID int64, module *models.Module) (err error) {
@@ -430,7 +470,7 @@ func (r *moduleRepository) UpdateModuleProgress(ctx context.Context, userID int6
 	return nil
 }
 
-func (r *moduleRepository) GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int64, unitID int64, filter string) (int64, []*models.Module, error) {
+func (r *moduleRepository) GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int64, unitID int64) (int64, []*models.Module, error) {
 	log := logger.Get().
 		WithBaseFields(logger.Repository, "GetModulesWithProgress").
 		WithField("unit_id", unitID).

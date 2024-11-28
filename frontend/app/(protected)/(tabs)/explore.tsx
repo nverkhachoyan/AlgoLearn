@@ -8,7 +8,7 @@ import { useTheme } from "react-native-paper";
 import CourseCard from "../../../src/features/course/components/CourseCard";
 import { useCourses } from "@/src/hooks/useCourses";
 import { useUser } from "@/src/hooks/useUser";
-import { CourseSection } from "@/src/features/course/components/CourseSection";
+import { CourseSection } from "@/src/features/course/components/CourseList";
 
 export default function Explore() {
   const { user } = useUser();

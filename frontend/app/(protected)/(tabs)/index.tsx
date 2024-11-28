@@ -1,17 +1,31 @@
 import React from "react";
 import { StyleSheet, ScrollView, View } from "react-native";
-import { CourseSection } from "@/src/features/course/components/CourseSection";
+import { CourseSection } from "@/src/features/course/components/CourseList";
 import { useUser } from "@/src/hooks/useUser";
 import useToast from "@/src/hooks/useToast";
 import { useCourses } from "@/src/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { router } from "expo-router";
 import { useTheme } from "react-native-paper";
+import { useQueryClient } from "@tanstack/react-query";
+import { useModuleProgress } from "@/src/hooks/useModules";
 
 export default function Home() {
-  const { user, isUserPending, isAuthed, isInitialized } = useUser();
+  const { user } = useUser();
   const { colors } = useTheme();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const { currentModule } = useModuleProgress({
+    courseId: 1,
+    unitId: 1,
+    moduleId: 1,
+    userId: 4,
+  });
+
+  console.log(
+    "currentModule FROM HOME",
+    JSON.stringify(currentModule, null, 2)
+  );
 
   const {
     courses: learningCourses,
@@ -22,7 +36,7 @@ export default function Home() {
   } = useCourses({
     userId: 4,
     currentPage: 1,
-    pageSize: 5,
+    pageSize: 1,
     type: "summary",
     filter: "learning",
   });

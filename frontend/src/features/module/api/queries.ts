@@ -1,27 +1,40 @@
 import api from "@/src/lib/api/client";
 import { AxiosResponse } from "axios";
-import { BatchModuleProgress } from "../types";
+import { ModuleFetchParams } from "./types";
 
-export const fetchModulesFull = async (): Promise<AxiosResponse> => {
-  return await api.get("/courses");
+export const fetchModules = async ({
+  userId,
+  courseId,
+  unitId,
+  currentPage,
+  pageSize,
+  filter,
+  type,
+}: ModuleFetchParams): Promise<AxiosResponse> => {
+  const response = await api.get(
+    `/courses/${courseId}/units/${unitId}/modules`,
+    {
+      params: {
+        userId,
+        currentPage,
+        pageSize,
+        filter,
+        type,
+      },
+    }
+  );
+  return response;
 };
 
-export const fetchModuleFull = async ({
+export const fetchModule = async ({
+  userId,
   courseId,
   unitId,
   moduleId,
-  userId,
   type,
   filter,
-}: {
-  courseId: number;
-  unitId: number;
-  moduleId: number;
-  userId: number;
-  type: string;
-  filter: string;
-}): Promise<AxiosResponse> => {
-  return await api.get(
+}: ModuleFetchParams): Promise<AxiosResponse> => {
+  const response = await api.get(
     `/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
     {
       params: {
@@ -31,6 +44,7 @@ export const fetchModuleFull = async ({
       },
     }
   );
+  return response;
 };
 
 export const updateModuleProgress = async ({
@@ -44,7 +58,7 @@ export const updateModuleProgress = async ({
   unitId: number;
   moduleId: number;
   userId: number;
-  moduleProgress: BatchModuleProgress;
+  moduleProgress: any;
 }) => {
   return await api.post(
     `/courses/${courseId}/units/${unitId}/modules/${moduleId}/progress`,

@@ -24,6 +24,7 @@ type ModuleHandler interface {
 	GetModuleWithProgress(w http.ResponseWriter, r *http.Request)
 	UpdateModuleProgress(w http.ResponseWriter, r *http.Request)
 	RegisterRoutes(r *router.Router)
+	GetModules(w http.ResponseWriter, r *http.Request)
 }
 
 type moduleHandler struct {
@@ -38,49 +39,6 @@ func NewModuleHandler(moduleRepo repository.ModuleRepository,
 		userRepo:   userRepo,
 	}
 }
-
-// func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
-// 	log := logger.Get()
-// 	ctx := r.Context()
-// 	params := mux.Vars(r)
-// 	query := r.URL.Query()
-
-// 	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
-// 	if err != nil {
-// 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
-// 			Success:   false,
-// 			Message:   "invalid unit ID",
-// 			ErrorCode: codes.InvalidRequest,
-// 		})
-// 		return
-// 	}
-
-// 	isPartial := query.Get("type") == "partial"
-// 	modules, err := h.moduleRepo.GetModules(ctx, unitID, isPartial)
-// 	if errors.Is(err, codes.ErrNotFound) {
-// 		log.Printf("error fetching modules for unit %d: %v", unitID, err)
-// 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-// 			Success:   false,
-// 			ErrorCode: codes.NoData,
-// 			Message:   "no modules were found",
-// 		})
-// 		return
-// 	} else if err != nil {
-// 		log.Printf("error fetching modules for unit %d: %v", unitID, err)
-// 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
-// 			Success:   false,
-// 			ErrorCode: codes.DatabaseFail,
-// 			Message:   "failed to query modules",
-// 		})
-// 		return
-// 	}
-
-// 	RespondWithJSON(w, http.StatusOK, models.Response{
-// 		Success: true,
-// 		Message: "modules retrieved successfully",
-// 		Data:    modules,
-// 	})
-// }
 
 func (h *moduleHandler) GetModule(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
@@ -487,10 +445,86 @@ func (h *moduleHandler) RegisterRoutes(r *router.Router) {
 	progress := r.Group(progressPath)
 	progress.Handle("", h.UpdateModuleProgress, "POST")
 
-	// public.Handle("", h.GetModules, "GET")
+	public.Handle("", h.GetModules, "GET")
 	public.Handle("/{module_id}", h.GetModule, "GET")
 
 	authorized.Handle("", h.CreateModule, "POST")
 	authorized.Handle("/{module_id}", h.UpdateModule, "PUT")
 	authorized.Handle("/{module_id}", h.DeleteModule, "DELETE")
+}
+
+func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
+	log := logger.Get().WithBaseFields(logger.Handler, "GetModules")
+	ctx := r.Context()
+	params := mux.Vars(r)
+	query := r.URL.Query()
+
+	unitID, err := strconv.ParseInt(params["unit_id"], 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   "invalid unit ID",
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+
+	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   "invalid user ID",
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+
+	page, err := strconv.ParseInt(query.Get("currentPage"), 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   "invalid page number",
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(query.Get("pageSize"), 10, 64)
+	if err != nil {
+		RespondWithJSON(w, http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   "invalid page size",
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+
+	filter := query.Get("filter")
+
+	totalCount, modules, err := h.moduleRepo.GetModulesWithProgress(ctx, page, pageSize, userID, unitID, filter)
+	if err != nil {
+		log.WithError(err).Error("error fetching modules")
+		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: codes.DatabaseFail,
+			Message:   "could not retrieve modules from the database",
+		})
+		return
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+
+	RespondWithJSON(w, http.StatusOK, models.Response{
+		Success: true,
+		Message: "modules retrieved successfully",
+		Data: models.PaginatedPayload{
+			Items: modules,
+			Pagination: models.Pagination{
+				TotalItems:  totalCount,
+				PageSize:    int(pageSize),
+				CurrentPage: int(page),
+				TotalPages:  int(totalPages),
+			},
+		},
+	})
 }

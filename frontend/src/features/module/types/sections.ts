@@ -6,15 +6,17 @@ export interface VideoContent {
   url: string;
 }
 
+export type Option = {
+  content: string;
+  id: number;
+  isCorrect: boolean;
+};
+
 export interface QuestionContent {
   id: number;
   question: string;
   type: string;
-  options: Array<{
-    content: string;
-    id: number;
-    isCorrect: boolean;
-  }>;
+  options: Option[];
   userQuestionAnswer: {
     optionId: number | null;
     answeredAt: string;

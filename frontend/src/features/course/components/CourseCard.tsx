@@ -40,7 +40,7 @@ export default function CourseCard(props: {
       ]}
       onPress={() =>
         router.push({
-          pathname: "/(protected)/(course)/[courseId]/details",
+          pathname: "/(protected)/(course)/[courseId]",
           params: {
             courseId: props.courseID,
             type: props.type,
@@ -87,8 +87,7 @@ export default function CourseCard(props: {
           <Card
             onPress={() =>
               router.push({
-                pathname:
-                  "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
+                pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
                 params: {
                   courseId: props.courseID,
                   unitId: props.currentUnit?.id,
@@ -145,7 +144,7 @@ export default function CourseCard(props: {
                 onPress={() =>
                   router.push({
                     pathname:
-                      "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
+                      "/(protected)/(course)/[courseId]/module/[moduleId]",
                     params: {
                       courseId: props.courseID,
                       moduleId: props.currentModule?.id as number,
@@ -184,7 +183,7 @@ export default function CourseCard(props: {
             title="Check it out"
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(course)/[courseId]/details",
+                pathname: "/(protected)/(course)/[courseId]",
                 params: {
                   courseId: props.courseID,
                   type: props.type,

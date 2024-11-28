@@ -515,92 +515,92 @@ func (r *courseRepository) GetCourseProgressSummary(ctx context.Context, userID 
 	)
 
 	err := r.db.QueryRowContext(ctx, `
-SELECT DISTINCT ON (c.id)
-    c.id,
-    c.created_at,
-    c.updated_at,
-    c.name,
-    c.description,
-    NULLIF(c.requirements, ''),
-    NULLIF(c.what_you_learn, ''),
-    NULLIF(c.background_color, '') AS backgroundColor,
-    NULLIF(c.icon_url, '') AS icon_url,
-    c.duration,
-    c.difficulty_level,
-    COALESCE((SELECT json_agg(jsonb_build_object(
-            'id', ca.author_id,
-            'name', a.name))
-              FROM course_authors ca
-              LEFT JOIN authors a ON a.id = ca.author_id
-              WHERE ca.course_id = c.id
-             ), '[]'::json) AS authors,
-    COALESCE((SELECT json_agg(jsonb_build_object(
-            'id', t.id,
-            'name', t.name))
-              FROM course_tags ct
-              LEFT JOIN tags t ON t.id = ct.tag_id
-              WHERE ct.course_id = c.id
-             ), '[]'::json) AS tags,
-    c.rating,
-    jsonb_build_object(
-            'id', u.id,
-            'createdAt', u.created_at,
-            'updatedAt', u.updated_at,
-            'unitNumber', u.unit_number,
-            'name', u.name,
-            'description', u.description
-    ) AS current_unit,
-    jsonb_build_object(
-            'id', m.id,
-            'createdAt', m.created_at,
-            'updatedAt', m.updated_at,
-            'moduleNumber', m.module_number,
-            'unitId', m.unit_id,
-            'name', m.name,
-            'description', m.description,
-            'progress', ump.progress,
-            'status', ump.status
-    ) AS current_module,
-    COALESCE((SELECT jsonb_agg(
-    jsonb_build_object(
-    'id', sub_u.id,
-    'createdAt', sub_u.created_at,
-    'updatedAt', sub_u.updated_at,
-    'unitNumber', sub_u.unit_number,
-    'courseId', sub_u.course_id,
-    'name', sub_u.name,
-    'description', sub_u.description,
-    'modules', COALESCE((SELECT
-                jsonb_agg(
-                    jsonb_build_object(
-                        'id', sub_m.id,
-                        'createdAt', sub_m.created_at,
-                        'updatedAt', sub_m.updated_at,
-                        'moduleNumber', sub_m.module_number,
-                        'unitId', sub_m.unit_id,
-                        'name', sub_m.name,
-                        'description', sub_m.description,
-                        'progress', sub_ump.progress,
-                        'status', sub_ump.status
-                    )
-                )
-                FROM modules AS sub_m
-                LEFT JOIN user_module_progress sub_ump ON sub_ump.module_id = sub_m.id
-                WHERE sub_u.id = sub_m.unit_id
-                ),
-                '[]'::jsonb)
-    ))
-    FROM units AS sub_u
-    WHERE sub_u.course_id = c.id
-    ),
-    '[]'::jsonb) AS units
-FROM courses c
-JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
-LEFT JOIN units u ON u.id = uc.current_unit_id
-LEFT JOIN modules m ON m.id = uc.current_module_id
-JOIN user_module_progress ump ON ump.module_id = m.id
-WHERE c.id = $2
-ORDER BY c.id, uc.updated_at DESC;
+	SELECT DISTINCT ON (c.id)
+		c.id,
+		c.created_at,
+		c.updated_at,
+		c.name,
+		c.description,
+		NULLIF(c.requirements, ''),
+		NULLIF(c.what_you_learn, ''),
+		NULLIF(c.background_color, '') AS backgroundColor,
+		NULLIF(c.icon_url, '') AS icon_url,
+		c.duration,
+		c.difficulty_level,
+		COALESCE((SELECT json_agg(jsonb_build_object(
+				'id', ca.author_id,
+				'name', a.name))
+				FROM course_authors ca
+				LEFT JOIN authors a ON a.id = ca.author_id
+				WHERE ca.course_id = c.id
+				), '[]'::json) AS authors,
+		COALESCE((SELECT json_agg(jsonb_build_object(
+				'id', t.id,
+				'name', t.name))
+				FROM course_tags ct
+				LEFT JOIN tags t ON t.id = ct.tag_id
+				WHERE ct.course_id = c.id
+				), '[]'::json) AS tags,
+		c.rating,
+		jsonb_build_object(
+				'id', u.id,
+				'createdAt', u.created_at,
+				'updatedAt', u.updated_at,
+				'unitNumber', u.unit_number,
+				'name', u.name,
+				'description', u.description
+		) AS current_unit,
+		jsonb_build_object(
+				'id', m.id,
+				'createdAt', m.created_at,
+				'updatedAt', m.updated_at,
+				'moduleNumber', m.module_number,
+				'unitId', m.unit_id,
+				'name', m.name,
+				'description', m.description,
+				'progress', ump.progress,
+				'status', ump.status
+		) AS current_module,
+		COALESCE((SELECT jsonb_agg(
+		jsonb_build_object(
+		'id', sub_u.id,
+		'createdAt', sub_u.created_at,
+		'updatedAt', sub_u.updated_at,
+		'unitNumber', sub_u.unit_number,
+		'courseId', sub_u.course_id,
+		'name', sub_u.name,
+		'description', sub_u.description,
+		'modules', COALESCE((SELECT
+					jsonb_agg(
+						jsonb_build_object(
+							'id', sub_m.id,
+							'createdAt', sub_m.created_at,
+							'updatedAt', sub_m.updated_at,
+							'moduleNumber', sub_m.module_number,
+							'unitId', sub_m.unit_id,
+							'name', sub_m.name,
+							'description', sub_m.description,
+							'progress', sub_ump.progress,
+							'status', sub_ump.status
+						)
+					)
+					FROM modules AS sub_m
+					LEFT JOIN user_module_progress sub_ump ON sub_ump.module_id = sub_m.id
+					WHERE sub_u.id = sub_m.unit_id
+					),
+					'[]'::jsonb)
+		))
+		FROM units AS sub_u
+		WHERE sub_u.course_id = c.id
+		),
+		'[]'::jsonb) AS units
+	FROM courses c
+	JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
+	LEFT JOIN units u ON u.id = uc.current_unit_id
+	LEFT JOIN modules m ON m.id = uc.current_module_id
+	JOIN user_module_progress ump ON ump.module_id = m.id
+	WHERE c.id = $2
+	ORDER BY c.id, uc.updated_at DESC;
 	`, userID, courseID).Scan(
 		&course.ID,
 		&course.CreatedAt,

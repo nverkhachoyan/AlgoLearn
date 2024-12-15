@@ -6,19 +6,25 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-const migrationsPath = "file://backend/migrations"
-
 type Migrator struct {
 	migrate *migrate.Migrate
 }
 
 func NewMigrator() (*Migrator, error) {
+	workDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	fullPath := fmt.Sprintf("file://%s", filepath.Join(workDir, "migrations"))
+
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -27,7 +33,7 @@ func NewMigrator() (*Migrator, error) {
 		os.Getenv("DB_NAME"),
 	)
 
-	m, err := migrate.New(migrationsPath, dbURL)
+	m, err := migrate.New(fullPath, dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create migrator: %w", err)
 	}

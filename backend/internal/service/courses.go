@@ -1,4 +1,4 @@
-package repository
+package service
 
 import (
 	gen "algolearn/internal/database/generated"
@@ -10,7 +10,7 @@ import (
 	"fmt"
 )
 
-type CourseRepository interface {
+type CourseService interface {
 	GetCourseSummary(ctx context.Context, courseID int64) (*models.Course, error)
 	GetCourseFull(ctx context.Context, courseID int64) (*models.Course, error)
 	DeleteCourse(ctx context.Context, id int64) error
@@ -19,12 +19,12 @@ type CourseRepository interface {
 	GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.Course, error)
 }
 
-type courseRepository struct {
+type courseService struct {
 	queries *gen.Queries
 }
 
-func NewCourseRepository(db *sql.DB) CourseRepository {
-	return &courseRepository{queries: gen.New(db)}
+func NewCourseService(db *sql.DB) CourseService {
+	return &courseService{queries: gen.New(db)}
 }
 
 // Helper functions for type conversions
@@ -63,8 +63,8 @@ func nullBoolToBool(n sql.NullBool) bool {
 	return false
 }
 
-func (r *courseRepository) GetCourseSummary(ctx context.Context, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
+func (r *courseService) GetCourseSummary(ctx context.Context, courseID int64) (*models.Course, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
 
 	// Get base course info
 	courseData, err := r.queries.GetCourseByID(ctx, int32(courseID))
@@ -164,7 +164,7 @@ func (r *courseRepository) GetCourseSummary(ctx context.Context, courseID int64)
 	return course, nil
 }
 
-func (r *courseRepository) DeleteCourse(ctx context.Context, id int64) error {
+func (r *courseService) DeleteCourse(ctx context.Context, id int64) error {
 	err := r.queries.DeleteCourse(ctx, int32(id))
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -175,8 +175,8 @@ func (r *courseRepository) DeleteCourse(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *courseRepository) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "GetCoursesProgress")
+func (r *courseService) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.Course, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetCoursesProgress")
 
 	offset := (page - 1) * pageSize
 
@@ -279,8 +279,8 @@ func (r *courseRepository) GetCoursesProgressSummary(ctx context.Context, page i
 	return totalCount, courses, nil
 }
 
-func (r *courseRepository) GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
+func (r *courseService) GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
 
 	// Get base course info with current progress
 	courseData, err := r.queries.GetCourseProgressSummaryBase(ctx, gen.GetCourseProgressSummaryBaseParams{
@@ -418,8 +418,8 @@ func (r *courseRepository) GetCourseProgressSummary(ctx context.Context, userID 
 	return course, nil
 }
 
-func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
+func (r *courseService) GetCourseProgressFull(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
 
 	// Get base course info with current progress
 	courseData, err := r.queries.GetCourseProgressFullBase(ctx, gen.GetCourseProgressFullBaseParams{
@@ -631,8 +631,8 @@ func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int
 	return course, nil
 }
 
-func (r *courseRepository) GetCourseFull(ctx context.Context, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseFull")
+func (r *courseService) GetCourseFull(ctx context.Context, courseID int64) (*models.Course, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetCourseFull")
 
 	// Get base course info
 	courseData, err := r.queries.GetCourseByID(ctx, int32(courseID))

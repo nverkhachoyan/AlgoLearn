@@ -1,11 +1,11 @@
-package repository
+package service
 
 import (
 	"algolearn/internal/models"
 	"database/sql"
 )
 
-type NotificationsRepository interface {
+type NotificationsService interface {
 	GetAllNotifications() ([]models.Notification, error)
 	GetNotificationByID(id int) (*models.Notification, error)
 	CreateNotification(notification *models.Notification) error
@@ -13,15 +13,15 @@ type NotificationsRepository interface {
 	DeleteNotification(id int) error
 }
 
-type notificationsRepository struct {
+type notificationsService struct {
 	db *sql.DB
 }
 
-func NewNotificationsRepository(db *sql.DB) NotificationsRepository {
-	return &notificationsRepository{db: db}
+func NewNotificationsService(db *sql.DB) NotificationsService {
+	return &notificationsService{db: db}
 }
 
-func (r *notificationsRepository) GetAllNotifications() ([]models.Notification, error) {
+func (r *notificationsService) GetAllNotifications() ([]models.Notification, error) {
 	rows, err := r.db.Query("SELECT id, user_id, content, read, created_at FROM notifications")
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (r *notificationsRepository) GetAllNotifications() ([]models.Notification, 
 	return notifications, nil
 }
 
-func (r *notificationsRepository) GetNotificationByID(id int) (*models.Notification, error) {
+func (r *notificationsService) GetNotificationByID(id int) (*models.Notification, error) {
 	row := r.db.QueryRow("SELECT id, user_id, content, read, created_at FROM notifications WHERE id = $1", id)
 
 	var notification models.Notification
@@ -57,7 +57,7 @@ func (r *notificationsRepository) GetNotificationByID(id int) (*models.Notificat
 	return &notification, nil
 }
 
-func (r *notificationsRepository) CreateNotification(notification *models.Notification) error {
+func (r *notificationsService) CreateNotification(notification *models.Notification) error {
 	err := r.db.QueryRow(
 		"INSERT INTO notifications (user_id, content, read) VALUES ($1, $2, $3) RETURNING id, created_at",
 		notification.UserID, notification.Content, notification.Read,
@@ -65,7 +65,7 @@ func (r *notificationsRepository) CreateNotification(notification *models.Notifi
 	return err
 }
 
-func (r *notificationsRepository) UpdateNotification(notification *models.Notification) error {
+func (r *notificationsService) UpdateNotification(notification *models.Notification) error {
 	_, err := r.db.Exec(
 		"UPDATE notifications SET user_id = $1, content = $2, read = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
 		notification.UserID, notification.Content, notification.Read, notification.ID,
@@ -73,7 +73,7 @@ func (r *notificationsRepository) UpdateNotification(notification *models.Notifi
 	return err
 }
 
-func (r *notificationsRepository) DeleteNotification(id int) error {
+func (r *notificationsService) DeleteNotification(id int) error {
 	_, err := r.db.Exec("DELETE FROM notifications WHERE id = $1", id)
 	return err
 }

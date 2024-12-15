@@ -1,4 +1,4 @@
-package repository
+package service
 
 import (
 	"algolearn/internal/config"
@@ -6,7 +6,7 @@ import (
 	"database/sql"
 )
 
-type AchievementsRepository interface {
+type AchievementsService interface {
 	GetAllAchievements() ([]models.Achievement, error)
 	GetAchievementByID(id int) (*models.Achievement, error)
 	CreateAchievement(achievement *models.Achievement) error
@@ -14,15 +14,15 @@ type AchievementsRepository interface {
 	DeleteAchievement(id int) error
 }
 
-type achievementsRepository struct {
+type achievementsService struct {
 	db *sql.DB
 }
 
-func NewAchievementsRepository(db *sql.DB) AchievementsRepository {
-	return &achievementsRepository{db: db}
+func NewAchievementsService(db *sql.DB) AchievementsService {
+	return &achievementsService{db: db}
 }
 
-func (h *achievementsRepository) GetAllAchievements() ([]models.Achievement, error) {
+func (h *achievementsService) GetAllAchievements() ([]models.Achievement, error) {
 	db := config.GetDB()
 	rows, err := db.Query("SELECT id, name, description, points, created_at, updated_at FROM achievements")
 	if err != nil {
@@ -47,7 +47,7 @@ func (h *achievementsRepository) GetAllAchievements() ([]models.Achievement, err
 	return achievements, nil
 }
 
-func (h *achievementsRepository) GetAchievementByID(id int) (*models.Achievement, error) {
+func (h *achievementsService) GetAchievementByID(id int) (*models.Achievement, error) {
 	db := config.GetDB()
 	row := db.QueryRow("SELECT id, name, description, points, created_at, updated_at FROM achievements WHERE id = $1", id)
 
@@ -60,7 +60,7 @@ func (h *achievementsRepository) GetAchievementByID(id int) (*models.Achievement
 	return &achievement, nil
 }
 
-func (h *achievementsRepository) CreateAchievement(achievement *models.Achievement) error {
+func (h *achievementsService) CreateAchievement(achievement *models.Achievement) error {
 	db := config.GetDB()
 	err := db.QueryRow(
 		"INSERT INTO achievements (name, description, points) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at",
@@ -69,7 +69,7 @@ func (h *achievementsRepository) CreateAchievement(achievement *models.Achieveme
 	return err
 }
 
-func (h *achievementsRepository) UpdateAchievement(achievement *models.Achievement) error {
+func (h *achievementsService) UpdateAchievement(achievement *models.Achievement) error {
 	db := config.GetDB()
 	_, err := db.Exec(
 		"UPDATE achievements SET name = $1, description = $2, points = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
@@ -78,7 +78,7 @@ func (h *achievementsRepository) UpdateAchievement(achievement *models.Achieveme
 	return err
 }
 
-func (h *achievementsRepository) DeleteAchievement(id int) error {
+func (h *achievementsService) DeleteAchievement(id int) error {
 	db := config.GetDB()
 	_, err := db.Exec("DELETE FROM achievements WHERE id = $1", id)
 	return err

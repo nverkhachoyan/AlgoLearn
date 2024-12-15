@@ -4,11 +4,10 @@ import (
 	"algolearn/internal/config"
 	"algolearn/internal/errors"
 	"algolearn/internal/models"
-	"algolearn/internal/repository"
-	"algolearn/internal/router"
-	"algolearn/internal/services"
+	"algolearn/internal/service"
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
+	"algolearn/pkg/security"
 	"context"
 
 	"encoding/json"
@@ -16,29 +15,29 @@ import (
 	"mime/multipart"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 type UserHandler interface {
-	CheckEmailExists(w http.ResponseWriter, r *http.Request)
-	RegisterUser(w http.ResponseWriter, r *http.Request)
-	LoginUser(w http.ResponseWriter, r *http.Request)
+	CheckEmailExists(c *gin.Context)
+	RegisterUser(c *gin.Context)
+	LoginUser(c *gin.Context)
 	// UpdateUser(w http.ResponseWriter, r *http.Request)
-	GetUser(w http.ResponseWriter, r *http.Request)
-	DeleteUser(w http.ResponseWriter, r *http.Request)
-	RegisterRoutes(r *router.Router)
+	GetUser(c *gin.Context)
+	DeleteUser(c *gin.Context)
+	RegisterRoutes(r *gin.RouterGroup)
 }
 
 type userHandler struct {
-	repo repository.UserRepository
+	repo service.UserService
 }
 
-func NewUserHandler(repo repository.UserRepository) UserHandler {
+func NewUserHandler(repo service.UserService) UserHandler {
 	return &userHandler{repo: repo}
 }
 
@@ -63,15 +62,15 @@ func (h *userHandler) validateRegistrationInput(req models.RegistrationRequest) 
 	return true, ""
 }
 
-func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) CheckEmailExists(c *gin.Context) {
 	log := logger.Get().WithBaseFields(logger.Handler, "CheckEmailExists")
-	ctx := r.Context()
-	email := r.URL.Query().Get("email")
+	ctx := c.Request.Context()
+	email := c.Query("email")
 
 	exists, err := h.repo.CheckEmailExists(ctx, email)
 	if err != nil {
 		log.WithError(err).Error("failed to check if email exists")
-		RespondWithJSON(w, http.StatusAccepted,
+		c.JSON(http.StatusAccepted,
 			models.Response{
 				Success:   true,
 				ErrorCode: errors.DatabaseFail,
@@ -81,7 +80,7 @@ func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if exists {
-		RespondWithJSON(w, http.StatusAccepted,
+		c.JSON(http.StatusAccepted,
 			models.Response{
 				Success:   true,
 				ErrorCode: errors.AccountExists,
@@ -90,7 +89,7 @@ func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK,
+	c.JSON(http.StatusOK,
 		models.Response{
 			Success:   false,
 			ErrorCode: errors.NoData,
@@ -98,12 +97,12 @@ func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 		})
 }
 
-func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) RegisterUser(c *gin.Context) {
 	ctx := context.Background()
 	log := logger.Get()
 	var req models.RegistrationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest,
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		c.JSON(http.StatusBadRequest,
 			models.Response{Success: false,
 				ErrorCode: errors.InvalidJson,
 				Message:   "invalid JSON"})
@@ -111,7 +110,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isValid, message := h.validateRegistrationInput(req); !isValid {
-		RespondWithJSON(w, http.StatusBadRequest,
+		c.JSON(http.StatusBadRequest,
 			models.Response{Success: false,
 				ErrorCode: errors.InvalidFormData,
 				Message:   message,
@@ -123,17 +122,17 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	emailExists, _ := h.repo.CheckEmailExists(ctx, req.Email)
 
 	if emailExists {
-		RespondWithJSON(w, http.StatusAccepted, models.Response{
+		c.JSON(http.StatusAccepted, models.Response{
 			Success:   false,
 			ErrorCode: errors.AccountExists,
 			Message:   "an account with this email already exists"})
 		return
 	}
 
-	hashedPassword, err := services.HashPassword(req.Password)
+	hashedPassword, err := security.HashPassword(req.Password)
 	if err != nil {
 		log.Errorf("error hashing password: %v\n", err)
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InternalError,
@@ -157,7 +156,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	newUser, err := h.repo.CreateUser(user)
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
+		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
 			ErrorCode: errors.InternalError,
 			Message:   "Failed to create user",
@@ -165,10 +164,10 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := services.GenerateJWT(user.ID)
+	token, err := security.GenerateJWT(user.ID)
 	if err != nil {
 		log.Printf("Error generating token: %v", err)
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InternalError,
@@ -183,21 +182,21 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Data:    map[string]interface{}{"token": token, "user": newUser},
 	}
 
-	RespondWithJSON(w, http.StatusCreated, response)
+	c.JSON(http.StatusCreated, response)
 }
 
-func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) LoginUser(c *gin.Context) {
 	log := logger.Get()
 	var req models.LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, ErrorCode: errors.InvalidJson, Message: "Invalid JSON"})
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, ErrorCode: errors.InvalidJson, Message: "Invalid JSON"})
 		return
 	}
 
-	user, err := h.repo.GetUserByEmail(r.Context(), req.Email)
+	user, err := h.repo.GetUserByEmail(c.Request.Context(), req.Email)
 	if err != nil {
 		log.Printf("Login failed for user %s: %v", req.Email, err)
-		RespondWithJSON(w, http.StatusUnauthorized,
+		c.JSON(http.StatusUnauthorized,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InvalidCredentials,
@@ -206,18 +205,18 @@ func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !services.CheckPasswordHash(req.Password, user.PasswordHash) {
+	if !security.CheckPasswordHash(req.Password, user.PasswordHash) {
 		log.Printf("Login failed for user %s: invalid password", req.Email)
 		log.Printf("Provided password: %s", req.Password)
 		log.Printf("Stored hash: %s", user.PasswordHash)
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, ErrorCode: errors.InvalidCredentials, Message: "Invalid email or password"})
+		c.JSON(http.StatusUnauthorized, models.Response{Success: false, ErrorCode: errors.InvalidCredentials, Message: "Invalid email or password"})
 		return
 	}
 
-	token, err := services.GenerateJWT(user.ID)
+	token, err := security.GenerateJWT(user.ID)
 	if err != nil {
 		log.Printf("Error generating token for user %s: %v", req.Email, err)
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InternalError,
@@ -232,7 +231,7 @@ func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		Data:    map[string]interface{}{"token": token, "user": user},
 	}
 
-	RespondWithJSON(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
 func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int32) (string, error) {
@@ -255,11 +254,11 @@ func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int32) (
 	return avatarURL, nil
 }
 
-func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) UpdateUser(c *gin.Context) {
 	log := logger.Get()
-	tokenStr := strings.Split(r.Header.Get("Authorization"), " ")[1]
-	if tokenStr == "" {
-		RespondWithJSON(w, http.StatusUnauthorized,
+	userID, exists := c.Get(middleware.UserIDKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.Unauthorized,
@@ -268,25 +267,9 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := services.ValidateJWT(tokenStr)
-	if err != nil {
-		RespondWithJSON(w, http.StatusUnauthorized,
-			models.Response{
-				Success:   false,
-				ErrorCode: errors.Unauthorized,
-				Message:   "You are not authorized to make that request",
-			})
-		return
-	}
-
-	userID := claims.UserID
-
-	fmt.Printf("User ID: %d\n", userID)
-
-	// Parsing multipart form data
-	err = r.ParseMultipartForm(10 << 20) // 10 MB
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest,
+	// Parse multipart form
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil { // 10 MB
+		c.JSON(http.StatusBadRequest,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InvalidFormData,
@@ -296,9 +279,9 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	jsonData := r.FormValue("data")
+	jsonData := c.Request.FormValue("data")
 	if err := json.Unmarshal([]byte(jsonData), &user); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest,
+		c.JSON(http.StatusBadRequest,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InvalidJson,
@@ -307,16 +290,16 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user.ID = userID
+	user.ID = int32(userID.(int64))
 	user.UpdatedAt = time.Now()
 
-	file, _, err := r.FormFile("avatar")
+	file, _, err := c.Request.FormFile("avatar")
 	if err == nil {
 		defer file.Close()
 		s3Session := config.GetS3Sesssion()
-		avatarURL, err := uploadUserAvatarToS3(s3Session, file, userID)
+		avatarURL, err := uploadUserAvatarToS3(s3Session, file, user.ID)
 		if err != nil {
-			RespondWithJSON(w, http.StatusInternalServerError,
+			c.JSON(http.StatusInternalServerError,
 				models.Response{
 					Success:   false,
 					ErrorCode: errors.FileUploadFailed,
@@ -326,7 +309,7 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		}
 		user.ProfilePictureURL = avatarURL
 	} else if err != http.ErrMissingFile {
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.FileUploadFailed,
@@ -339,7 +322,7 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.repo.UpdateUser(&user); err != nil {
 		log.Printf("Error updating user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.DatabaseFail,
@@ -347,10 +330,10 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			})
 		return
 	}
-	newUserData, err := h.repo.GetUserByID(userID)
 
+	newUserData, err := h.repo.GetUserByID(user.ID)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.InternalError,
@@ -359,14 +342,14 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User updated successfully", Data: newUserData})
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "User updated successfully", Data: newUserData})
 }
 
-func (h *userHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) GetUser(c *gin.Context) {
 	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized,
+	userID, exists := c.Get(middleware.UserIDKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized,
 			models.Response{Success: false,
 				ErrorCode: errors.Unauthorized,
 				Message:   "Unauthorized to retrieve user account",
@@ -374,10 +357,10 @@ func (h *userHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.repo.GetUserByID(userID)
+	user, err := h.repo.GetUserByID(int32(userID.(int64)))
 	if err != nil {
 		log.Printf("Error retrieving user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.DatabaseFail,
@@ -386,14 +369,14 @@ func (h *userHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User retrieved successfully", Data: user})
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "User retrieved successfully", Data: user})
 }
 
-func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) DeleteUser(c *gin.Context) {
 	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized,
+	userID, exists := c.Get(middleware.UserIDKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized,
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.Unauthorized,
@@ -402,26 +385,26 @@ func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.repo.DeleteUser(userID); err != nil {
+	if err := h.repo.DeleteUser(int32(userID.(int64))); err != nil {
 		log.Printf("Error deleting user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to delete user account"})
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to delete user account"})
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User deleted successfully"})
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "User deleted successfully"})
 }
 
-func (h *userHandler) RegisterRoutes(r *router.Router) {
+func (h *userHandler) RegisterRoutes(r *gin.RouterGroup) {
 	// Auth routes (no prefix needed as they're top-level)
 	auth := r.Group("")
-	auth.Handle("/register", h.RegisterUser, "POST")
-	auth.Handle("/login", h.LoginUser, "POST")
-	auth.Handle("/checkemail", h.CheckEmailExists, "GET")
+	auth.POST("/register", h.RegisterUser)
+	auth.POST("/login", h.LoginUser)
+	auth.GET("/checkemail", h.CheckEmailExists)
 
 	// User routes
 	//    public := r.Group("/user")
-	authorized := r.Group("/user", middleware.Auth)
-	authorized.Handle("", h.GetUser, "GET")
-	authorized.Handle("", h.UpdateUser, "PUT")
-	authorized.Handle("", h.DeleteUser, "DELETE")
+	authorized := r.Group("/user", middleware.Auth())
+	authorized.GET("", h.GetUser)
+	authorized.PUT("", h.UpdateUser)
+	authorized.DELETE("", h.DeleteUser)
 }

@@ -4,15 +4,36 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// TimeoutMiddleware sets a timeout for each request context
-func TimeoutMiddleware(timeout time.Duration) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithTimeout(r.Context(), timeout)
-			defer cancel()
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+// Timeout middleware adds a timeout to the request context
+func Timeout(timeout time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Create a context with timeout
+		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
+		defer cancel()
+
+		// Replace the request context
+		c.Request = c.Request.WithContext(ctx)
+
+		// Create a channel to signal completion
+		done := make(chan bool, 1)
+		go func() {
+			// Process request
+			c.Next()
+			done <- true
+		}()
+
+		// Wait for either completion or timeout
+		select {
+		case <-done:
+			return
+		case <-ctx.Done():
+			if ctx.Err() == context.DeadlineExceeded {
+				c.AbortWithStatus(http.StatusGatewayTimeout)
+			}
+		}
 	}
 }

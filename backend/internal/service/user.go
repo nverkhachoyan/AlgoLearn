@@ -1,4 +1,4 @@
-package repository
+package service
 
 import (
 	"algolearn/internal/database"
@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-type UserRepository interface {
+type UserService interface {
 	CreateUser(user *models.User) (*models.User, error)
 	UpdateUser(user *models.User) error
 	GetUserByID(id int32) (*models.User, error)
@@ -18,15 +18,15 @@ type UserRepository interface {
 	DeleteUser(id int32) error
 }
 
-type userRepository struct {
+type userService struct {
 	db *database.Database
 }
 
-func NewUserRepository(db *sql.DB) UserRepository {
-	return &userRepository{db: database.New(db)}
+func NewUserService(db *sql.DB) UserService {
+	return &userService{db: database.New(db)}
 }
 
-func (r *userRepository) CreateUser(user *models.User) (*models.User, error) {
+func (r *userService) CreateUser(user *models.User) (*models.User, error) {
 	ctx := context.Background()
 
 	var userParams gen.CreateUserParams
@@ -92,7 +92,7 @@ func (r *userRepository) CreateUser(user *models.User) (*models.User, error) {
 	}, nil
 }
 
-func (r *userRepository) GetUserByID(id int32) (*models.User, error) {
+func (r *userService) GetUserByID(id int32) (*models.User, error) {
 	ctx := context.Background()
 	user, err := r.db.GetUserByID(ctx, id)
 	if err != nil {
@@ -123,7 +123,7 @@ func (r *userRepository) GetUserByID(id int32) (*models.User, error) {
 	}, nil
 }
 
-func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (r *userService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	user, err := r.db.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch user: %v", err)
@@ -154,7 +154,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	}, nil
 }
 
-func (r *userRepository) CheckEmailExists(ctx context.Context, email string) (bool, error) {
+func (r *userService) CheckEmailExists(ctx context.Context, email string) (bool, error) {
 	var exists bool
 	user, err := r.db.GetUserByEmail(ctx, email)
 	if err != nil {
@@ -168,7 +168,7 @@ func (r *userRepository) CheckEmailExists(ctx context.Context, email string) (bo
 	return exists, nil
 }
 
-func (r *userRepository) UpdateUser(user *models.User) error {
+func (r *userService) UpdateUser(user *models.User) error {
 	ctx := context.Background()
 	_, err := r.db.UpdateUser(ctx, gen.UpdateUserParams{
 		ID:                user.ID,
@@ -186,7 +186,7 @@ func (r *userRepository) UpdateUser(user *models.User) error {
 	return nil
 }
 
-func (r *userRepository) DeleteUser(id int32) error {
+func (r *userService) DeleteUser(id int32) error {
 	ctx := context.Background()
 	err := r.db.DeleteUser(ctx, id)
 	if err != nil {
@@ -195,7 +195,7 @@ func (r *userRepository) DeleteUser(id int32) error {
 	return nil
 }
 
-// func (r *userRepository) ChangeUserPassword(userID int64, newPasswordHash string) error {
+// func (r *userService) ChangeUserPassword(userID int64, newPasswordHash string) error {
 // 	query := "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2"
 // 	var userParams gen.UpdateUserParams
 // 	_, err := r.db.UpdateUser(ctx context.Context, )

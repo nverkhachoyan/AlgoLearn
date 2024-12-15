@@ -260,3 +260,8 @@ func (c *Config) HasGoogleOAuth() bool {
 func (c *Config) HasAppleOAuth() bool {
 	return c.Auth.OAuth.Apple.ClientID != "" && c.Auth.OAuth.Apple.ClientSecret != ""
 }
+
+// GetAddress returns the formatted address string for the server
+func (c *AppConfig) GetAddress() string {
+	return fmt.Sprintf(":%d", c.Port)
+}

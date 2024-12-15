@@ -2,31 +2,32 @@ package handlers
 
 import (
 	"algolearn/internal/models"
-	"algolearn/internal/router"
 
-	"algolearn/internal/repository"
+	"algolearn/internal/service"
 	"algolearn/pkg/middleware"
 
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type NotificationsHandler interface {
-	GetAllNotifications(w http.ResponseWriter, r *http.Request)
-	RegisterRoutes(r *router.Router)
+	GetAllNotifications(c *gin.Context)
+	RegisterRoutes(r *gin.RouterGroup)
 }
 
 type notificationsHandler struct {
-	repo repository.NotificationsRepository
+	repo service.NotificationsService
 }
 
-func NewNotificationsHandler(repo repository.NotificationsRepository) NotificationsHandler {
+func NewNotificationsHandler(repo service.NotificationsService) NotificationsHandler {
 	return &notificationsHandler{repo: repo}
 }
 
-func (h *notificationsHandler) GetAllNotifications(w http.ResponseWriter, _ *http.Request) {
+func (h *notificationsHandler) GetAllNotifications(c *gin.Context) {
 	notifications, err := h.repo.GetAllNotifications()
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Internal server error"})
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Internal server error"})
 		return
 	}
 
@@ -36,10 +37,10 @@ func (h *notificationsHandler) GetAllNotifications(w http.ResponseWriter, _ *htt
 		Data:    map[string]interface{}{"notifications": notifications},
 	}
 
-	RespondWithJSON(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (h *notificationsHandler) RegisterRoutes(r *router.Router) {
-	authorized := r.Group("/notifications", middleware.Auth)
-	authorized.Handle("", h.GetAllNotifications, "GET")
+func (h *notificationsHandler) RegisterRoutes(r *gin.RouterGroup) {
+	authorized := r.Group("/notifications", middleware.Auth())
+	authorized.GET("", h.GetAllNotifications)
 }

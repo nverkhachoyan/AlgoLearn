@@ -1,46 +1,27 @@
 package router
 
 import (
-	"net/http"
-
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-type Router struct {
-	*mux.Router
-}
-
-type RouteGroup struct {
-	*mux.Router
-	middlewares []mux.MiddlewareFunc
-}
-
 type RouteRegistrar interface {
-	RegisterRoutes(r *Router)
+	RegisterRoutes(r *gin.RouterGroup)
 }
 
-func NewRouter(registrars ...RouteRegistrar) *Router {
-	r := &Router{
-		Router: mux.NewRouter(),
-	}
+// RegisterRoutes registers all routes from the provided handlers
+func RegisterRoutes(r *gin.Engine, registrars ...RouteRegistrar) {
+	// API version group
+	v1 := r.Group("/api/v1")
 
+	// Health check endpoint (outside versioning)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
+	// Register all routes under /api/v1
 	for _, registrar := range registrars {
-		registrar.RegisterRoutes(r)
-	}
-
-	return r
-}
-
-func (r *Router) Group(prefix string, middlewares ...mux.MiddlewareFunc) *RouteGroup {
-	return &RouteGroup{
-		Router:      r.PathPrefix(prefix).Subrouter(),
-		middlewares: middlewares,
-	}
-}
-
-func (g *RouteGroup) Handle(path string, handler http.HandlerFunc, methods ...string) {
-	route := g.HandleFunc(path, handler).Methods(methods...)
-	for _, middleware := range g.middlewares {
-		route.Handler(middleware(route.GetHandler()))
+		registrar.RegisterRoutes(v1)
 	}
 }

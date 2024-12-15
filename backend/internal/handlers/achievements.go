@@ -2,38 +2,37 @@ package handlers
 
 import (
 	"algolearn/internal/models"
-	"algolearn/internal/repository"
-	"algolearn/internal/router"
+	"algolearn/internal/service"
 	"algolearn/pkg/middleware"
 
 	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type AchievementsHandler interface {
-	GetAllAchievements(w http.ResponseWriter, r *http.Request)
-	GetAchievementByID(w http.ResponseWriter, r *http.Request)
-	CreateAchievement(w http.ResponseWriter, r *http.Request)
-	UpdateAchievement(w http.ResponseWriter, r *http.Request)
-	DeleteAchievement(w http.ResponseWriter, r *http.Request)
-	RegisterRoutes(r *router.Router)
+	GetAllAchievements(c *gin.Context)
+	GetAchievementByID(c *gin.Context)
+	CreateAchievement(c *gin.Context)
+	UpdateAchievement(c *gin.Context)
+	DeleteAchievement(c *gin.Context)
+	RegisterRoutes(r *gin.RouterGroup)
 }
 
 type achievementsHandler struct {
-	repo repository.AchievementsRepository
+	repo service.AchievementsService
 }
 
-func NewAchievementsHandler(repo repository.AchievementsRepository) AchievementsHandler {
+func NewAchievementsHandler(repo service.AchievementsService) AchievementsHandler {
 	return &achievementsHandler{repo: repo}
 }
 
-func (h *achievementsHandler) GetAllAchievements(w http.ResponseWriter, _ *http.Request) {
+func (h *achievementsHandler) GetAllAchievements(c *gin.Context) {
 	achievements, err := h.repo.GetAllAchievements()
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "internal server error"})
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "internal server error"})
 		return
 	}
 
@@ -43,21 +42,20 @@ func (h *achievementsHandler) GetAllAchievements(w http.ResponseWriter, _ *http.
 		Data:    map[string]interface{}{"achievements": achievements},
 	}
 
-	RespondWithJSON(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (h *achievementsHandler) GetAchievementByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (h *achievementsHandler) GetAchievementByID(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid achievement ID"})
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "Invalid achievement ID"})
 		return
 	}
 
 	achievement, err := h.repo.GetAchievementByID(id)
 	if err != nil {
-		RespondWithJSON(w, http.StatusNotFound, models.Response{Success: false, Message: "Achievement not found"})
+		c.JSON(http.StatusNotFound, models.Response{Success: false, Message: "Achievement not found"})
 		return
 	}
 
@@ -67,20 +65,20 @@ func (h *achievementsHandler) GetAchievementByID(w http.ResponseWriter, r *http.
 		Data:    map[string]interface{}{"achievement": achievement},
 	}
 
-	RespondWithJSON(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (h *achievementsHandler) CreateAchievement(w http.ResponseWriter, r *http.Request) {
+func (h *achievementsHandler) CreateAchievement(c *gin.Context) {
 	var achievement models.Achievement
-	err := json.NewDecoder(r.Body).Decode(&achievement)
+	err := json.NewDecoder(c.Request.Body).Decode(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid request payload"})
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "Invalid request payload"})
 		return
 	}
 
 	err = h.repo.CreateAchievement(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to create achievement"})
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to create achievement"})
 		return
 	}
 
@@ -90,29 +88,28 @@ func (h *achievementsHandler) CreateAchievement(w http.ResponseWriter, r *http.R
 		Data:    map[string]interface{}{"achievement": achievement},
 	}
 
-	RespondWithJSON(w, http.StatusCreated, response)
+	c.JSON(http.StatusCreated, response)
 }
 
-func (h *achievementsHandler) UpdateAchievement(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (h *achievementsHandler) UpdateAchievement(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid achievement ID"})
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "Invalid achievement ID"})
 		return
 	}
 
 	var achievement models.Achievement
-	err = json.NewDecoder(r.Body).Decode(&achievement)
+	err = json.NewDecoder(c.Request.Body).Decode(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "invalid request payload"})
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "invalid request payload"})
 		return
 	}
 
 	achievement.ID = id
 	err = h.repo.UpdateAchievement(&achievement)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "failed to update achievement"})
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "failed to update achievement"})
 		return
 	}
 
@@ -122,21 +119,20 @@ func (h *achievementsHandler) UpdateAchievement(w http.ResponseWriter, r *http.R
 		Data:    map[string]interface{}{"achievement": achievement},
 	}
 
-	RespondWithJSON(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (h *achievementsHandler) DeleteAchievement(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
+func (h *achievementsHandler) DeleteAchievement(c *gin.Context) {
+	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "invalid achievement ID"})
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "invalid achievement ID"})
 		return
 	}
 
 	err = h.repo.DeleteAchievement(id)
 	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "failed to delete achievement"})
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "failed to delete achievement"})
 		return
 	}
 
@@ -145,17 +141,17 @@ func (h *achievementsHandler) DeleteAchievement(w http.ResponseWriter, r *http.R
 		Message: "achievement deleted successfully",
 	}
 
-	RespondWithJSON(w, http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (h *achievementsHandler) RegisterRoutes(r *router.Router) {
+func (h *achievementsHandler) RegisterRoutes(r *gin.RouterGroup) {
 	public := r.Group("/achievements")
-	authorized := r.Group("/achievements", middleware.Auth)
+	authorized := r.Group("/achievements", middleware.Auth())
 
-	public.Handle("", h.GetAllAchievements, "GET")
-	public.Handle("/{id}", h.GetAchievementByID, "GET")
+	public.GET("", h.GetAllAchievements)
+	public.GET("/:id", h.GetAchievementByID)
 
-	authorized.Handle("", h.CreateAchievement, "POST")
-	authorized.Handle("/{id}", h.UpdateAchievement, "PUT")
-	authorized.Handle("/{id}", h.DeleteAchievement, "DELETE")
+	authorized.POST("", h.CreateAchievement)
+	authorized.PUT("/:id", h.UpdateAchievement)
+	authorized.DELETE("/:id", h.DeleteAchievement)
 }

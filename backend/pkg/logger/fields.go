@@ -4,8 +4,7 @@ type LogPackage string
 
 const (
 	Main       LogPackage = "main"
-	Repository LogPackage = "repository"
-	Handler    LogPackage = "handler"
 	Service    LogPackage = "service"
+	Handler    LogPackage = "handler"
 	Middleware LogPackage = "middleware"
 )

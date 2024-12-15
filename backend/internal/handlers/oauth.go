@@ -9,33 +9,34 @@ import (
 
 	"algolearn/internal/config"
 	"algolearn/internal/models"
-	"algolearn/internal/repository"
-	"algolearn/internal/router"
-	"algolearn/internal/services"
+	"algolearn/internal/service"
+	"algolearn/pkg/security"
 
 	"golang.org/x/oauth2"
+
+	"github.com/gin-gonic/gin"
 )
 
 type OauthHandler interface {
-	HandleOAuthLogin(w http.ResponseWriter, r *http.Request)
-	GoogleCallback(w http.ResponseWriter, r *http.Request)
-	AppleCallback(w http.ResponseWriter, r *http.Request)
-	RegisterRoutes(r *router.Router)
+	HandleOAuthLogin(c *gin.Context)
+	GoogleCallback(c *gin.Context)
+	AppleCallback(c *gin.Context)
+	RegisterRoutes(r *gin.RouterGroup)
 }
 
 type oauthHandler struct {
-	userRepo repository.UserRepository
+	userRepo service.UserService
 }
 
-func NewOauthHandler(userRepo repository.UserRepository) OauthHandler {
+func NewOauthHandler(userRepo service.UserService) OauthHandler {
 	return &oauthHandler{userRepo: userRepo}
 }
 
-func (h *oauthHandler) HandleOAuthLogin(w http.ResponseWriter, r *http.Request) {
-	provider := r.URL.Query().Get("provider")
-	state := r.URL.Query().Get("state")
+func (h *oauthHandler) HandleOAuthLogin(c *gin.Context) {
+	provider := c.Query("provider")
+	state := c.Query("state")
 	if state == "" {
-		http.Error(w, "State parameter is missing", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "State parameter is missing"})
 		return
 	}
 	fmt.Printf("HandleOAuthLogin - State: %s\n", state) // Debugging state parameter
@@ -46,30 +47,30 @@ func (h *oauthHandler) HandleOAuthLogin(w http.ResponseWriter, r *http.Request) 
 	case "apple":
 		url = config.GetAppleOAuthConfig().AuthCodeURL(state, oauth2.AccessTypeOffline)
 	default:
-		http.Error(w, "Unknown provider", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "Unknown provider"})
 		return
 	}
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-func (h *oauthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	state := r.URL.Query().Get("state")
+func (h *oauthHandler) GoogleCallback(c *gin.Context) {
+	code := c.Query("code")
+	state := c.Query("state")
 	if state == "" {
-		http.Error(w, "State parameter is missing", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "State parameter is missing"})
 		return
 	}
 	fmt.Printf("GoogleCallback - State: %s\n", state) // Debugging state parameter
 	token, err := config.GetGoogleOAuthConfig().Exchange(context.Background(), code)
 	if err != nil {
-		http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to exchange token: " + err.Error()})
 		return
 	}
 
 	client := config.GetGoogleOAuthConfig().Client(context.Background(), token)
 	response, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
-		http.Error(w, "Failed to get user info: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to get user info: " + err.Error()})
 		return
 	}
 	defer response.Body.Close()
@@ -79,31 +80,31 @@ func (h *oauthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&googleUser); err != nil {
-		http.Error(w, "Failed to parse user info: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to parse user info: " + err.Error()})
 		return
 	}
 
-	h.handleOAuthUser(w, r, googleUser.Email, googleUser.ID, state)
+	h.handleOAuthUser(c, googleUser.Email, googleUser.ID, state)
 }
 
-func (h *oauthHandler) AppleCallback(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	state := r.URL.Query().Get("state")
+func (h *oauthHandler) AppleCallback(c *gin.Context) {
+	code := c.Query("code")
+	state := c.Query("state")
 	if state == "" {
-		http.Error(w, "State parameter is missing", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "State parameter is missing"})
 		return
 	}
 	fmt.Printf("AppleCallback - State: %s\n", state) // Debugging state parameter
 	token, err := config.GetAppleOAuthConfig().Exchange(context.Background(), code)
 	if err != nil {
-		http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to exchange token: " + err.Error()})
 		return
 	}
 
 	client := config.GetAppleOAuthConfig().Client(context.Background(), token)
 	response, err := client.Get("https://appleid.apple.com/auth/userinfo")
 	if err != nil {
-		http.Error(w, "Failed to get user info: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to get user info: " + err.Error()})
 		return
 	}
 	defer response.Body.Close()
@@ -113,16 +114,16 @@ func (h *oauthHandler) AppleCallback(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&appleUser); err != nil {
-		http.Error(w, "Failed to parse user info: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to parse user info: " + err.Error()})
 		return
 	}
 
-	h.handleOAuthUser(w, r, appleUser.Email, appleUser.ID, state)
+	h.handleOAuthUser(c, appleUser.Email, appleUser.ID, state)
 }
 
-func (h *oauthHandler) handleOAuthUser(w http.ResponseWriter, r *http.Request, email, oauthID, state string) {
+func (h *oauthHandler) handleOAuthUser(c *gin.Context, email, oauthID, state string) {
 	fmt.Printf("handleOAuthUser - State: %s\n", state) // Debugging state parameter
-	user, err := h.userRepo.GetUserByEmail(r.Context(), email)
+	user, err := h.userRepo.GetUserByEmail(c.Request.Context(), email)
 	if err != nil {
 		if err.Error() == "user not found" {
 			// User does not exist, we create a new one
@@ -138,31 +139,31 @@ func (h *oauthHandler) handleOAuthUser(w http.ResponseWriter, r *http.Request, e
 			}
 			_, err := h.userRepo.CreateUser(newUser)
 			if err != nil {
-				http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
+				c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Could not create user: " + err.Error()})
 				return
 			}
 			user = newUser
 		} else {
-			http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Database error: " + err.Error()})
 			return
 		}
 	}
 
-	token, err := services.GenerateJWT(user.ID)
+	token, err := security.GenerateJWT(user.ID)
 	if err != nil {
-		http.Error(w, "Failed to generate JWT: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to generate JWT: " + err.Error()})
 		return
 	}
 
 	// Include the state parameter in the redirect URL
-	http.Redirect(w, r, "app.algolearn://auth?token="+token+"&state="+state, http.StatusTemporaryRedirect)
+	c.Redirect(http.StatusTemporaryRedirect, "app.algolearn://auth?token="+token+"&state="+state)
 }
 
-func (h *oauthHandler) RegisterRoutes(r *router.Router) {
+func (h *oauthHandler) RegisterRoutes(r *gin.RouterGroup) {
 	oauth := r.Group("/login/oauth")
-	oauth.Handle("", h.HandleOAuthLogin, "GET")
+	oauth.GET("", h.HandleOAuthLogin)
 
 	callback := r.Group("/callback")
-	callback.Handle("/google", h.GoogleCallback, "GET")
-	callback.Handle("/apple", h.AppleCallback, "GET")
+	callback.GET("/google", h.GoogleCallback)
+	callback.GET("/apple", h.AppleCallback)
 }

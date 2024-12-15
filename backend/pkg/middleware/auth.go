@@ -1,114 +1,93 @@
 package middleware
 
 import (
-	"algolearn/internal/config"
-	"algolearn/internal/errors"
+	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
-	"algolearn/internal/repository"
-	"algolearn/internal/services"
 	"algolearn/pkg/logger"
-	"context"
-	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
-type contextKey string
+const (
+	// UserIDKey is used to store the user ID in the context
+	UserIDKey = "userID"
+	// BearerSchema is the prefix for the Authorization header
+	BearerSchema = "Bearer "
+)
 
-const userContextKey contextKey = "userID"
+// Auth middleware verifies the JWT token and sets the user ID in the context
+func Auth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log := logger.Get().WithBaseFields(logger.Middleware, "Auth")
 
-func RespondWithJSON(w http.ResponseWriter, status int, response models.Response) {
-	log := logger.Get()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	err := json.NewEncoder(w).Encode(response)
-	if err != nil {
-		log.Errorf("failed to respond with JSON: %v", err.Error())
-		return
-	}
-}
-
-func Auth(next http.Handler) http.Handler {
-	//	log := logger.Get()
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			RespondWithJSON(
-				w,
-				http.StatusUnauthorized,
-				models.Response{Success: false, ErrorCode: errors.Unauthorized,
-					Message: "Authorization header required",
-				})
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		claims, err := services.ValidateJWT(tokenString)
-		if err != nil {
-			RespondWithJSON(
-				w,
-				http.StatusUnauthorized,
-				models.Response{Success: false, ErrorCode: errors.Unauthorized,
-					Message: "Invalid token",
-				})
-			return
-		}
-
-		//		log.Printf("Authenticated user with ID: %d", claims.UserID)
-		ctx := context.WithValue(r.Context(), userContextKey, claims.UserID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func IsAdmin(next http.Handler) http.Handler {
-	log := logger.Get()
-	db := config.GetDB()
-	userRepo := repository.NewUserRepository(db)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := GetUserID(r.Context())
-		if !ok {
-			log.Printf("Failed to retrieve userID from context")
-			RespondWithJSON(
-				w,
-				http.StatusUnauthorized,
-				models.Response{
-					Success:   false,
-					ErrorCode: errors.Unauthorized,
-					Message:   "You are not authorized to access this endpoint",
-				})
-			return
-		}
-		log.Printf("Retrieved userID: %d", userID)
-		user, err := userRepo.GetUserByID(userID)
-		if err != nil {
-			log.Printf("Failed to retrieve user from DB for ID: %d", userID)
-			RespondWithJSON(
-				w,
-				http.StatusUnauthorized,
-				models.Response{
-					Success:   false,
-					ErrorCode: errors.Unauthorized,
-					Message:   "Failed to identify the user in the system",
-				})
-			return
-		}
-
-		if user.Role == "admin" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		RespondWithJSON(
-			w,
-			http.StatusUnauthorized,
-			models.Response{Success: false, ErrorCode: errors.Unauthorized,
-				Message: "You are not authorized to access this endpoint",
+			log.Debug("no authorization header")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "missing authorization header",
 			})
-	})
-}
+			return
+		}
 
-// GetUserID Function to retrieve userID from context
-func GetUserID(ctx context.Context) (int32, bool) {
-	userID, ok := ctx.Value(userContextKey).(int32)
-	return userID, ok
+		if !strings.HasPrefix(authHeader, BearerSchema) {
+			log.Debug("invalid authorization header format")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "invalid authorization header format",
+			})
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, BearerSchema)
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			// Validate the signing method
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			// Return the secret key used to sign the token
+			return []byte("your-secret-key"), nil // TODO: Move to config
+		})
+
+		if err != nil {
+			log.WithError(err).Debug("failed to parse token")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "invalid token",
+			})
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			// Get user ID from claims
+			userID, ok := claims["user_id"].(float64)
+			if !ok {
+				log.Debug("user_id claim not found or invalid")
+				c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+					Success:   false,
+					ErrorCode: codes.Unauthorized,
+					Message:   "invalid token claims",
+				})
+				return
+			}
+
+			// Set user ID in context
+			c.Set(UserIDKey, int64(userID))
+			c.Next()
+		} else {
+			log.Debug("invalid token claims")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "invalid token claims",
+			})
+			return
+		}
+	}
 }

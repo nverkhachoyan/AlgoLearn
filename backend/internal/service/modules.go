@@ -1,4 +1,4 @@
-package repository
+package service
 
 import (
 	gen "algolearn/internal/database/generated"
@@ -11,7 +11,7 @@ import (
 	"fmt"
 )
 
-type ModuleRepository interface {
+type ModuleService interface {
 	CreateModule(ctx context.Context, authorID int32, module *models.Module) error
 	UpdateModule(ctx context.Context, module *models.Module) error
 	DeleteModule(ctx context.Context, id int64) error
@@ -20,17 +20,17 @@ type ModuleRepository interface {
 	UpdateModuleProgress(ctx context.Context, userID int32, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error
 }
 
-type moduleRepository struct {
+type moduleService struct {
 	queries *gen.Queries
 }
 
-func NewModuleRepository(db *sql.DB) ModuleRepository {
-	return &moduleRepository{queries: gen.New(db)}
+func NewModuleService(db *sql.DB) ModuleService {
+	return &moduleService{queries: gen.New(db)}
 }
 
-func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int32, unitID int64, moduleID int64) (*models.ModulePayload, error) {
+func (r *moduleService) GetModuleWithProgress(ctx context.Context, userID int32, unitID int64, moduleID int64) (*models.ModulePayload, error) {
 	log := logger.Get().
-		WithBaseFields(logger.Repository, "GetModuleWithProgress").
+		WithBaseFields(logger.Service, "GetModuleWithProgress").
 		WithField("unit_id", unitID).
 		WithField("module_id", moduleID)
 
@@ -59,9 +59,9 @@ func (r *moduleRepository) GetModuleWithProgress(ctx context.Context, userID int
 	}, nil
 }
 
-func (r *moduleRepository) GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int32, unitID int64) (int64, []*models.Module, error) {
+func (r *moduleService) GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int32, unitID int64) (int64, []*models.Module, error) {
 	log := logger.Get().
-		WithBaseFields(logger.Repository, "GetModulesWithProgress").
+		WithBaseFields(logger.Service, "GetModulesWithProgress").
 		WithField("unit_id", unitID).
 		WithField("page", page).
 		WithField("pageSize", pageSize)
@@ -96,8 +96,8 @@ func (r *moduleRepository) GetModulesWithProgress(ctx context.Context, page int6
 	return totalCount, modules, nil
 }
 
-func (r *moduleRepository) CreateModule(ctx context.Context, authorID int32, module *models.Module) error {
-	log := logger.Get().WithBaseFields(logger.Repository, "CreateModule")
+func (r *moduleService) CreateModule(ctx context.Context, authorID int32, module *models.Module) error {
+	log := logger.Get().WithBaseFields(logger.Service, "CreateModule")
 
 	result, err := r.queries.CreateModule(ctx, gen.CreateModuleParams{
 		UnitID:      int32(module.ModuleUnitID),
@@ -117,8 +117,8 @@ func (r *moduleRepository) CreateModule(ctx context.Context, authorID int32, mod
 	return nil
 }
 
-func (r *moduleRepository) UpdateModule(ctx context.Context, module *models.Module) error {
-	log := logger.Get().WithBaseFields(logger.Repository, "UpdateModule").
+func (r *moduleService) UpdateModule(ctx context.Context, module *models.Module) error {
+	log := logger.Get().WithBaseFields(logger.Service, "UpdateModule").
 		WithField("module_id", module.ID)
 
 	result, err := r.queries.UpdateModule(ctx, gen.UpdateModuleParams{
@@ -138,8 +138,8 @@ func (r *moduleRepository) UpdateModule(ctx context.Context, module *models.Modu
 	return nil
 }
 
-func (r *moduleRepository) DeleteModule(ctx context.Context, id int64) error {
-	log := logger.Get().WithBaseFields(logger.Repository, "DeleteModule").
+func (r *moduleService) DeleteModule(ctx context.Context, id int64) error {
+	log := logger.Get().WithBaseFields(logger.Service, "DeleteModule").
 		WithField("module_id", id)
 
 	err := r.queries.DeleteModule(ctx, int32(id))
@@ -154,8 +154,8 @@ func (r *moduleRepository) DeleteModule(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *moduleRepository) UpdateModuleProgress(ctx context.Context, userID int32, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error {
-	log := logger.Get().WithBaseFields(logger.Repository, "UpdateModuleProgress").
+func (r *moduleService) UpdateModuleProgress(ctx context.Context, userID int32, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error {
+	log := logger.Get().WithBaseFields(logger.Service, "UpdateModuleProgress").
 		WithField("unit_id", unitID).
 		WithField("module_id", moduleID)
 

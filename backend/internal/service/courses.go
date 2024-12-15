@@ -7,6 +7,7 @@ import (
 	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 )
 
@@ -61,6 +62,24 @@ func nullBoolToBool(n sql.NullBool) bool {
 		return n.Bool
 	}
 	return false
+}
+
+// SectionContent holds all possible section content fields
+type sectionContent struct {
+	// Text section
+	TextContent string
+
+	// Video section
+	URL          string
+	Duration     sql.NullFloat64
+	ThumbnailURL sql.NullString
+
+	// Question section
+	QuestionID   int32
+	Question     string
+	QuestionType string
+	Explanation  string
+	Options      json.RawMessage
 }
 
 func (r *courseService) GetCourseSummary(ctx context.Context, courseID int64) (*models.Course, error) {
@@ -418,6 +437,175 @@ func (r *courseService) GetCourseProgressSummary(ctx context.Context, userID int
 	return course, nil
 }
 
+func (r *courseService) getSectionContent(ctx context.Context, section gen.GetModuleSectionsWithProgressRow) (models.Section, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "getSectionContent")
+
+	baseSection := models.BaseSection{
+		ModuleID: int64(section.ModuleID),
+		Type:     section.Type,
+		Position: int16(section.Position),
+		SectionProgress: models.SectionProgress{
+			SeenAt:      section.SeenAt.Time,
+			StartedAt:   section.StartedAt.Time,
+			CompletedAt: section.CompletedAt.Time,
+			HasSeen:     section.HasSeen.Bool,
+		},
+	}
+
+	var result models.Section
+	var content sectionContent
+
+	switch section.Type {
+	case "text":
+		textContent, err := r.queries.GetTextSection(ctx, section.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get text section content")
+			return nil, fmt.Errorf("failed to get text section content: %w", err)
+		}
+		content.TextContent = textContent
+		result = &models.TextSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			BaseSection: baseSection,
+			Content:     content.TextContent,
+		}
+
+	case "video":
+		url, err := r.queries.GetVideoSection(ctx, section.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get video section content")
+			return nil, fmt.Errorf("failed to get video section content: %w", err)
+		}
+		result = &models.VideoSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			BaseSection: baseSection,
+			URL:         url,
+		}
+
+	case "question":
+		questionContent, err := r.queries.GetQuestionSection(ctx, section.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get question section content")
+			return nil, fmt.Errorf("failed to get question section content: %w", err)
+		}
+
+		var options []models.QuestionOption
+		optionsBytes, ok := questionContent.QuestionOptions.([]byte)
+		if !ok {
+			return nil, fmt.Errorf("failed to convert question options to bytes")
+		}
+		if err := json.Unmarshal(optionsBytes, &options); err != nil {
+			log.WithError(err).Error("failed to unmarshal question options")
+			return nil, fmt.Errorf("failed to unmarshal question options: %w", err)
+		}
+
+		result = &models.QuestionSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			BaseSection: baseSection,
+			Question: models.Question{
+				ID:       int64(questionContent.ID),
+				Question: questionContent.Question,
+				Type:     questionContent.Type,
+				Options:  options,
+			},
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown section type: %s", section.Type)
+	}
+
+	return result, nil
+}
+
+func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, section gen.GetModuleSectionsRow) (models.Section, error) {
+
+	baseSection := models.BaseSection{
+		ModuleID: int64(section.ModuleID),
+		Type:     section.Type,
+		Position: int16(section.Position),
+	}
+
+	var result models.Section
+
+	switch section.Type {
+	case "text":
+		textContent, err := r.queries.GetTextSection(ctx, section.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get text section content: %w", err)
+		}
+		result = &models.TextSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			BaseSection: baseSection,
+			Content:     textContent,
+		}
+
+	case "video":
+		url, err := r.queries.GetVideoSection(ctx, section.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get video section content: %w", err)
+		}
+		result = &models.VideoSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			BaseSection: baseSection,
+			URL:         url,
+		}
+
+	case "question":
+		questionContent, err := r.queries.GetQuestionSection(ctx, section.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get question section content: %w", err)
+		}
+
+		var options []models.QuestionOption
+		optionsBytes, ok := questionContent.QuestionOptions.([]byte)
+		if !ok {
+			return nil, fmt.Errorf("failed to convert question options to bytes")
+		}
+		if err := json.Unmarshal(optionsBytes, &options); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal question options: %w", err)
+		}
+
+		result = &models.QuestionSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			BaseSection: baseSection,
+			Question: models.Question{
+				ID:       int64(questionContent.ID),
+				Question: questionContent.Question,
+				Type:     questionContent.Type,
+				Options:  options,
+			},
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown section type: %s", section.Type)
+	}
+
+	return result, nil
+}
+
 func (r *courseService) GetCourseProgressFull(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
 	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
 
@@ -564,66 +752,12 @@ func (r *courseService) GetCourseProgressFull(ctx context.Context, userID int64,
 
 			course.Units[i].Modules[j].Sections = make([]models.Section, len(sections))
 			for k, section := range sections {
-				sectionContent, err := r.queries.GetSectionContent(ctx, section.ID)
+				sectionWithContent, err := r.getSectionContent(ctx, section)
 				if err != nil {
 					log.WithError(err).Error("failed to get section content")
 					return nil, fmt.Errorf("failed to get section content: %w", err)
 				}
-
-				var baseSection models.BaseSection
-				switch section.Type {
-				case "text":
-					baseSection = models.BaseSection{
-						ModuleID: int64(module.ID),
-						Type:     section.Type,
-						Position: int16(section.Position),
-						Content:  sectionContent,
-						SectionProgress: models.SectionProgress{
-							SeenAt:      section.SeenAt.Time,
-							StartedAt:   section.StartedAt.Time,
-							CompletedAt: section.CompletedAt.Time,
-							HasSeen:     section.HasSeen.Bool,
-						},
-					}
-					course.Units[i].Modules[j].Sections[k] = &models.TextSection{
-						BaseModel:   models.BaseModel{ID: int64(section.ID)},
-						BaseSection: baseSection,
-					}
-				case "video":
-					baseSection = models.BaseSection{
-						ModuleID: int64(module.ID),
-						Type:     section.Type,
-						Position: int16(section.Position),
-						Content:  sectionContent,
-						SectionProgress: models.SectionProgress{
-							SeenAt:      section.SeenAt.Time,
-							StartedAt:   section.StartedAt.Time,
-							CompletedAt: section.CompletedAt.Time,
-							HasSeen:     section.HasSeen.Bool,
-						},
-					}
-					course.Units[i].Modules[j].Sections[k] = &models.VideoSection{
-						BaseModel:   models.BaseModel{ID: int64(section.ID)},
-						BaseSection: baseSection,
-					}
-				case "question":
-					baseSection = models.BaseSection{
-						ModuleID: int64(module.ID),
-						Type:     section.Type,
-						Position: int16(section.Position),
-						Content:  sectionContent,
-						SectionProgress: models.SectionProgress{
-							SeenAt:      section.SeenAt.Time,
-							StartedAt:   section.StartedAt.Time,
-							CompletedAt: section.CompletedAt.Time,
-							HasSeen:     section.HasSeen.Bool,
-						},
-					}
-					course.Units[i].Modules[j].Sections[k] = &models.QuestionSection{
-						BaseModel:   models.BaseModel{ID: int64(section.ID)},
-						BaseSection: baseSection,
-					}
-				}
+				course.Units[i].Modules[j].Sections[k] = sectionWithContent
 			}
 		}
 	}
@@ -736,48 +870,12 @@ func (r *courseService) GetCourseFull(ctx context.Context, courseID int64) (*mod
 
 			course.Units[i].Modules[j].Sections = make([]models.Section, len(sections))
 			for k, section := range sections {
-				sectionContent, err := r.queries.GetSectionContent(ctx, section.ID)
+				sectionWithContent, err := r.getSectionContentWithoutProgress(ctx, section)
 				if err != nil {
 					log.WithError(err).Error("failed to get section content")
 					return nil, fmt.Errorf("failed to get section content: %w", err)
 				}
-
-				var baseSection models.BaseSection
-				switch section.Type {
-				case "text":
-					baseSection = models.BaseSection{
-						ModuleID: int64(module.ID),
-						Type:     section.Type,
-						Position: int16(section.Position),
-						Content:  sectionContent,
-					}
-					course.Units[i].Modules[j].Sections[k] = &models.TextSection{
-						BaseModel:   models.BaseModel{ID: int64(section.ID)},
-						BaseSection: baseSection,
-					}
-				case "video":
-					baseSection = models.BaseSection{
-						ModuleID: int64(module.ID),
-						Type:     section.Type,
-						Position: int16(section.Position),
-						Content:  sectionContent,
-					}
-					course.Units[i].Modules[j].Sections[k] = &models.VideoSection{
-						BaseModel:   models.BaseModel{ID: int64(section.ID)},
-						BaseSection: baseSection,
-					}
-				case "question":
-					baseSection = models.BaseSection{
-						ModuleID: int64(module.ID),
-						Type:     section.Type,
-						Position: int16(section.Position),
-						Content:  sectionContent,
-					}
-					course.Units[i].Modules[j].Sections[k] = &models.QuestionSection{
-						BaseModel:   models.BaseModel{ID: int64(section.ID)},
-						BaseSection: baseSection,
-					}
-				}
+				course.Units[i].Modules[j].Sections[k] = sectionWithContent
 			}
 		}
 	}

@@ -72,18 +72,36 @@ WHERE
 ORDER BY position;
 
 -- name: GetTextSection :one
-SELECT text_content FROM text_sections WHERE section_id = @section_id::int;
+SELECT text_content
+FROM text_sections
+WHERE section_id = @section_id::int;
 
 -- name: GetVideoSection :one
-SELECT url FROM video_sections WHERE section_id = @section_id::int;
+SELECT 
+    url as url
+FROM video_sections
+WHERE section_id = @section_id::int;
 
 -- name: GetQuestionSection :one
-SELECT q.id, q.question, q.type
-FROM
-    question_sections qs
-    JOIN questions q ON q.id = qs.question_id
-WHERE
-    qs.section_id = @section_id::int;
+SELECT 
+    q.id,
+    q.question,
+    q.type,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'id', qo.id,
+                'content', qo.content,
+                'is_correct', qo.is_correct
+            ) ORDER BY qo.id
+        ),
+        '[]'::json
+    ) as question_options
+FROM question_sections qs
+JOIN questions q ON q.id = qs.question_id
+LEFT JOIN question_options qo ON qo.question_id = q.id
+WHERE qs.section_id = @section_id::int
+GROUP BY q.id, q.question, q.type;
 
 -- name: GetQuestionOptions :many
 SELECT id, content, is_correct
@@ -121,8 +139,8 @@ SELECT
     c.what_you_learn,
     c.background_color,
     c.icon_url,
-    c.duration,
     c.difficulty_level,
+    c.duration,
     c.rating,
     u.id as current_unit_id,
     u.created_at as unit_created_at,
@@ -210,7 +228,7 @@ WHERE
 GROUP BY
     c.id, c.created_at, c.updated_at, c.name, c.description,
     c.requirements, c.what_you_learn, c.background_color, c.icon_url,
-    c.duration, c.difficulty_level, c.rating,
+    c.difficulty_level, c.rating,
     u.id, u.created_at, u.updated_at, u.unit_number, u.name, u.description,
     m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description,
     ump.progress, ump.status, uc.updated_at
@@ -219,7 +237,17 @@ LIMIT @page_limit::int
 OFFSET @page_offset::int;
 
 -- name: GetModuleSectionsWithProgress :many
-SELECT s.id, s.created_at, s.updated_at, s.type, s.position, s.module_id, usp.seen_at, usp.started_at, usp.completed_at, usp.has_seen
+SELECT 
+    s.id, 
+    s.created_at, 
+    s.updated_at, 
+    s.type, 
+    s.position, 
+    s.module_id, 
+    usp.seen_at, 
+    usp.started_at, 
+    usp.completed_at, 
+    usp.has_seen
 FROM
     sections s
     LEFT JOIN user_section_progress usp ON usp.section_id = s.id
@@ -227,6 +255,35 @@ FROM
 WHERE
     s.module_id = @module_id::int
 ORDER BY s.position;
+
+-- name: GetTextSectionContent :one
+SELECT text_content
+FROM text_sections
+WHERE section_id = @section_id::int;
+
+-- name: GetVideoSectionContent :one
+SELECT url FROM video_sections WHERE section_id = @section_id::int;
+
+-- name: GetQuestionSectionContent :one
+SELECT 
+    q.id as question_id,
+    q.question,
+    q.type as question_type,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'id', qo.id,
+                'content', qo.content,
+                'is_correct', qo.is_correct
+            ) ORDER BY qo.id
+        ),
+        '[]'::json
+    ) as options
+FROM question_sections qs
+JOIN questions q ON q.id = qs.question_id
+LEFT JOIN question_options qo ON qo.question_id = q.id
+WHERE qs.section_id = @section_id::int
+GROUP BY q.id, q.question, q.type;
 
 -- name: GetUserQuestionAnswer :one
 SELECT uqa.option_id, uqa.answered_at, uqa.is_correct

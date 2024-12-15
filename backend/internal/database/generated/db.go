@@ -90,11 +90,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getQuestionSectionStmt, err = db.PrepareContext(ctx, getQuestionSection); err != nil {
 		return nil, fmt.Errorf("error preparing query GetQuestionSection: %w", err)
 	}
+	if q.getQuestionSectionContentStmt, err = db.PrepareContext(ctx, getQuestionSectionContent); err != nil {
+		return nil, fmt.Errorf("error preparing query GetQuestionSectionContent: %w", err)
+	}
 	if q.getSectionContentStmt, err = db.PrepareContext(ctx, getSectionContent); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSectionContent: %w", err)
 	}
 	if q.getTextSectionStmt, err = db.PrepareContext(ctx, getTextSection); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTextSection: %w", err)
+	}
+	if q.getTextSectionContentStmt, err = db.PrepareContext(ctx, getTextSectionContent); err != nil {
+		return nil, fmt.Errorf("error preparing query GetTextSectionContent: %w", err)
 	}
 	if q.getUnitModulesStmt, err = db.PrepareContext(ctx, getUnitModules); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUnitModules: %w", err)
@@ -113,6 +119,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getVideoSectionStmt, err = db.PrepareContext(ctx, getVideoSection); err != nil {
 		return nil, fmt.Errorf("error preparing query GetVideoSection: %w", err)
+	}
+	if q.getVideoSectionContentStmt, err = db.PrepareContext(ctx, getVideoSectionContent); err != nil {
+		return nil, fmt.Errorf("error preparing query GetVideoSectionContent: %w", err)
 	}
 	if q.insertUserPreferencesStmt, err = db.PrepareContext(ctx, insertUserPreferences); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertUserPreferences: %w", err)
@@ -244,6 +253,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getQuestionSectionStmt: %w", cerr)
 		}
 	}
+	if q.getQuestionSectionContentStmt != nil {
+		if cerr := q.getQuestionSectionContentStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getQuestionSectionContentStmt: %w", cerr)
+		}
+	}
 	if q.getSectionContentStmt != nil {
 		if cerr := q.getSectionContentStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getSectionContentStmt: %w", cerr)
@@ -252,6 +266,11 @@ func (q *Queries) Close() error {
 	if q.getTextSectionStmt != nil {
 		if cerr := q.getTextSectionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getTextSectionStmt: %w", cerr)
+		}
+	}
+	if q.getTextSectionContentStmt != nil {
+		if cerr := q.getTextSectionContentStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getTextSectionContentStmt: %w", cerr)
 		}
 	}
 	if q.getUnitModulesStmt != nil {
@@ -282,6 +301,11 @@ func (q *Queries) Close() error {
 	if q.getVideoSectionStmt != nil {
 		if cerr := q.getVideoSectionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getVideoSectionStmt: %w", cerr)
+		}
+	}
+	if q.getVideoSectionContentStmt != nil {
+		if cerr := q.getVideoSectionContentStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getVideoSectionContentStmt: %w", cerr)
 		}
 	}
 	if q.insertUserPreferencesStmt != nil {
@@ -370,14 +394,17 @@ type Queries struct {
 	getModulesWithProgressStmt        *sql.Stmt
 	getQuestionOptionsStmt            *sql.Stmt
 	getQuestionSectionStmt            *sql.Stmt
+	getQuestionSectionContentStmt     *sql.Stmt
 	getSectionContentStmt             *sql.Stmt
 	getTextSectionStmt                *sql.Stmt
+	getTextSectionContentStmt         *sql.Stmt
 	getUnitModulesStmt                *sql.Stmt
 	getUserByEmailStmt                *sql.Stmt
 	getUserByIDStmt                   *sql.Stmt
 	getUserCourseProgressStmt         *sql.Stmt
 	getUserQuestionAnswerStmt         *sql.Stmt
 	getVideoSectionStmt               *sql.Stmt
+	getVideoSectionContentStmt        *sql.Stmt
 	insertUserPreferencesStmt         *sql.Stmt
 	saveModuleProgressStmt            *sql.Stmt
 	updateModuleStmt                  *sql.Stmt
@@ -411,14 +438,17 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getModulesWithProgressStmt:        q.getModulesWithProgressStmt,
 		getQuestionOptionsStmt:            q.getQuestionOptionsStmt,
 		getQuestionSectionStmt:            q.getQuestionSectionStmt,
+		getQuestionSectionContentStmt:     q.getQuestionSectionContentStmt,
 		getSectionContentStmt:             q.getSectionContentStmt,
 		getTextSectionStmt:                q.getTextSectionStmt,
+		getTextSectionContentStmt:         q.getTextSectionContentStmt,
 		getUnitModulesStmt:                q.getUnitModulesStmt,
 		getUserByEmailStmt:                q.getUserByEmailStmt,
 		getUserByIDStmt:                   q.getUserByIDStmt,
 		getUserCourseProgressStmt:         q.getUserCourseProgressStmt,
 		getUserQuestionAnswerStmt:         q.getUserQuestionAnswerStmt,
 		getVideoSectionStmt:               q.getVideoSectionStmt,
+		getVideoSectionContentStmt:        q.getVideoSectionContentStmt,
 		insertUserPreferencesStmt:         q.insertUserPreferencesStmt,
 		saveModuleProgressStmt:            q.saveModuleProgressStmt,
 		updateModuleStmt:                  q.updateModuleStmt,

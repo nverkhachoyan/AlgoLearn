@@ -7,6 +7,8 @@ DOCKER_COMPOSE_FILE = docker-compose.yml
 # Default target
 all: dev
 
+db: run-db
+
 # Development setup
 dev: start-services run-backend
 
@@ -14,6 +16,10 @@ dev: start-services run-backend
 start-services:
 	@echo "Starting Docker services..."
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up -d
+
+run-db:
+	@echo "Starting Docker services..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up -d db
 
 # Run backend locally
 run-backend:

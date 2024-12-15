@@ -1,11 +1,12 @@
 package main
 
 import (
+	"algolearn/pkg/logger"
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -28,13 +29,18 @@ func loadConfig() (*Config, error) {
 		return nil, fmt.Errorf("error loading .env file: %w", err)
 	}
 
+	workDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
+	}
+
 	return &Config{
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
 		DBHost:     os.Getenv("DB_HOST"),
 		DBPort:     os.Getenv("DB_PORT"),
 		DBName:     os.Getenv("DB_NAME"),
-		MigrateDir: os.Getenv("MIGRATE_DIR"),
+		MigrateDir: filepath.Join(workDir, "migrations"),
 	}, nil
 }
 
@@ -49,12 +55,8 @@ func getDSN(config *Config) string {
 }
 
 func newMigrate(config *Config) (*migrate.Migrate, error) {
-	migrateDir := config.MigrateDir
-	if migrateDir == "" {
-		migrateDir = "file://migrations"
-	}
-
-	m, err := migrate.New(migrateDir, getDSN(config))
+	migrateURL := fmt.Sprintf("file://%s", config.MigrateDir)
+	m, err := migrate.New(migrateURL, getDSN(config))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
 	}
@@ -76,6 +78,8 @@ type command struct {
 }
 
 func main() {
+	log := logger.Get()
+
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -85,7 +89,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer m.Close()
+	defer func() {
+		sourceErr, dbErr := m.Close()
+		if sourceErr != nil {
+			log.Errorf("Error closing source: %v", sourceErr)
+		}
+		if dbErr != nil {
+			log.Errorf("Error closing database: %v", dbErr)
+		}
+	}()
 
 	commands := map[string]command{
 		"up": {
@@ -161,7 +173,7 @@ func main() {
 
 	command, exists := commands[flag.Arg(0)]
 	if !exists {
-		log.Printf("Unknown command: %s\n", flag.Arg(0))
+		log.Errorf("Unknown command: %s", flag.Arg(0))
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -170,5 +182,5 @@ func main() {
 		log.Fatalf("Error executing %s: %v", command.Name, err)
 	}
 
-	log.Printf("Successfully executed %s command", command.Name)
+	log.Infof("Successfully executed %s command", command.Name)
 }

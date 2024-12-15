@@ -142,30 +142,42 @@ func (m *Module) Validate() error {
 }
 
 type Section interface {
-	GetBaseSection() BaseSection
 	GetType() string
-	SetID(ID int64)
+	GetPosition() int16
+	GetModuleID() int64
+	GetBaseSection() BaseSection
 }
 
 type SectionProgress struct {
-	SectionID   int64     `json:"sectionId,omitempty"`
-	SeenAt      time.Time `json:"seenAt"`
-	HasSeen     bool      `json:"hasSeen"`
-	StartedAt   time.Time `json:"startedAt"`
-	CompletedAt time.Time `json:"completedAt"`
+	SeenAt      time.Time `json:"seen_at"`
+	StartedAt   time.Time `json:"started_at"`
+	CompletedAt time.Time `json:"completed_at"`
+	HasSeen     bool      `json:"has_seen"`
 }
 
 type BaseSection struct {
-	ModuleID        int64           `json:"moduleId"`
-	Type            string          `json:"type"`
-	Position        int16           `json:"position"`
-	Content         any             `json:"content"`
-	SectionProgress SectionProgress `json:"sectionProgress"`
+	ModuleID int64  `json:"module_id"`
+	Type     string `json:"type"`
+	Position int16  `json:"position"`
+	SectionProgress
+}
+
+func (bs BaseSection) GetModuleID() int64 {
+	return bs.ModuleID
+}
+
+func (bs BaseSection) GetPosition() int16 {
+	return bs.Position
+}
+
+func (bs BaseSection) GetType() string {
+	return bs.Type
 }
 
 type TextSection struct {
 	BaseModel
 	BaseSection
+	Content string `json:"content"`
 }
 
 func (ts TextSection) GetBaseSection() BaseSection {
@@ -176,13 +188,20 @@ func (ts TextSection) GetType() string {
 	return ts.Type
 }
 
-func (ts TextSection) SetID(ID int64) {
-	ts.ID = ID
+func (ts TextSection) GetPosition() int16 {
+	return ts.Position
+}
+
+func (ts TextSection) GetModuleID() int64 {
+	return ts.ModuleID
 }
 
 type VideoSection struct {
 	BaseModel
 	BaseSection
+	URL          string  `json:"url"`
+	Duration     float32 `json:"duration"`
+	ThumbnailURL string  `json:"thumbnail_url"`
 }
 
 func (vs VideoSection) GetBaseSection() BaseSection {
@@ -193,13 +212,18 @@ func (vs VideoSection) GetType() string {
 	return vs.Type
 }
 
-func (vs VideoSection) SetID(ID int64) {
-	vs.ID = ID
+func (vs VideoSection) GetPosition() int16 {
+	return vs.Position
+}
+
+func (vs VideoSection) GetModuleID() int64 {
+	return vs.ModuleID
 }
 
 type QuestionSection struct {
 	BaseModel
 	BaseSection
+	Question Question `json:"question"`
 }
 
 func (qs QuestionSection) GetBaseSection() BaseSection {
@@ -210,23 +234,26 @@ func (qs QuestionSection) GetType() string {
 	return qs.Type
 }
 
-func (qs QuestionSection) SetID(ID int64) {
-	qs.ID = ID
+func (qs QuestionSection) GetPosition() int16 {
+	return qs.Position
+}
+
+func (qs QuestionSection) GetModuleID() int64 {
+	return qs.ModuleID
 }
 
 type Question struct {
-	BaseModel
-	Type            string           `json:"type"`
-	Question        string           `json:"question"`
-	DifficultyLevel DifficultyLevel  `json:"difficultyLevel"`
-	Options         []QuestionOption `json:"options"`
+	ID          int64            `json:"id"`
+	Question    string           `json:"question"`
+	Type        string           `json:"type"`
+	Explanation string           `json:"explanation"`
+	Options     []QuestionOption `json:"options"`
 }
 
 type QuestionOption struct {
-	ID         int64  `json:"id"`
-	QuestionID int64  `json:"questionId"`
-	Content    string `json:"content"`
-	IsCorrect  bool   `json:"isCorrect"`
+	ID        int64  `json:"id"`
+	Content   string `json:"content"`
+	IsCorrect bool   `json:"is_correct"`
 }
 
 type BatchModuleProgress struct {

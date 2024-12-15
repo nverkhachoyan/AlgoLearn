@@ -1,0 +1,16 @@
+/* Sidebar */
+.sidebar {
+  background-color: #24272E;
+}
+
+.sidebar-menu-item:hover {
+  background-color: #25A879;
+}
+
+.sidebar-menu-item-active {
+  background-color: #25A879;
+}
+
+.sidebar-toggle:hover {
+  background-color: #434343;
+}

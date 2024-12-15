@@ -168,13 +168,21 @@ type UseModuleProgressReturn = {
 };
 
 export const useModuleProgress = (
-  props: UseModuleProgressProps
+  props: UseModuleProgressProps,
 ): UseModuleProgressReturn => {
   const queryClient = useQueryClient();
   const { courseId, unitId, moduleId, userId } = props;
 
   const currentModule = useQuery({
-    queryKey: ["module", courseId, unitId, moduleId, userId],
+    queryKey: [
+      "module",
+      courseId,
+      unitId,
+      moduleId,
+      userId,
+      "full",
+      "learning",
+    ],
     queryFn: async (): Promise<ModulePayload> => {
       const response = await fetchModule({
         courseId,

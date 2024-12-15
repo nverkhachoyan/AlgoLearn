@@ -1,0 +1,16 @@
+.draggable-section {
+  touch-action: none;
+}
+
+.section-content {
+  cursor: move;
+}
+
+.section-content:active {
+  cursor: grabbing;
+}
+
+/* Remove unused animations */
+.scale-102 {
+  transform: scale(1.02);
+}

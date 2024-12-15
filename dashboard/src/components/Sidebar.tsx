@@ -1,80 +1,61 @@
-import {
-  Home,
-  BookOpen,
-  Users,
-  BarChart,
-  Settings,
-  ChevronLast,
-  ChevronLeft,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BarChart, Book, HomeIcon, Sidebar as SidebarIcon, Users } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import "./Sidebar.css";
 
-const Sidebar = ({
-  activeRoute,
-  setActiveRoute,
-  isCollapsed,
-  setIsCollapsed,
-}) => {
-  const menuItems = [
-    {
-      icon: <Home className="w-5 h-5" />,
-      label: "Dashboard",
-      route: "dashboard",
-    },
-    {
-      icon: <BookOpen className="w-5 h-5" />,
-      label: "Courses",
-      route: "courses",
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      label: "Students",
-      route: "students",
-    },
-    {
-      icon: <BarChart className="w-5 h-5" />,
-      label: "Analytics",
-      route: "analytics",
-    },
-    {
-      icon: <Settings className="w-5 h-5" />,
-      label: "Settings",
-      route: "settings",
-    },
-  ];
-
+export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) {
+  const location = useLocation();
+  const pathname = location.pathname;
+  const isHome = pathname === "/";
+ 
   return (
-    <div
-      className={`h-screen bg-slate-900 text-white fixed left-0 top-0 p-4 transition-all duration-200 
-          ${isCollapsed ? "w-16" : "w-64"}`}
-    >
-      <div className="flex items-center justify-between mb-8">
-        {!isCollapsed && <h1 className="text-xl font-bold">AlgoLearn</h1>}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-white hover:bg-slate-800"
-        >
-          {isCollapsed ? <ChevronLast /> : <ChevronLeft />}
-        </Button>
-      </div>
-      <nav className="space-y-2">
-        {menuItems.map((item) => (
-          <button
-            key={item.route}
-            onClick={() => setActiveRoute(item.route)}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-              activeRoute === item.route ? "bg-slate-700" : "hover:bg-slate-800"
-            }`}
+    <div className={`sidebar fixed left-0 top-0 h-screen transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'w-56' : 'w-16'}`}>
+        <div className="flex items-center">
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center justify-center gap-2 p-2 m-2 transition-colors rounded-xl sidebar-toggle"
           >
-            {item.icon}
-            {!isCollapsed && <span>{item.label}</span>}
+            <SidebarIcon className="w-6 h-6 text-white" />
           </button>
-        ))}
-      </nav>
-    </div>
-  );
-};
-
-export default Sidebar;
+          <span className={`transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+            <p className={`mx-2 text-lg font-semibold text-white ${isOpen ? 'opacity-100' : 'opacity-0'}`}>AlgoLearn</p>
+          </span>
+        </div>
+   
+         
+        <div className="flex flex-col items-center mt-8">
+          <ul className="items-center w-full space-y-4">
+            <li className={`sidebar-menu-item ${isHome ? 'sidebar-menu-item-active' : ''} flex items-center justify-start mx-3 p-2 text-white transition-colors rounded cursor-pointer hover:bg-25A879`}>
+              <div className="flex items-center">
+                <HomeIcon className="w-6 h-6" />
+                <span className={`ml-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>Home</span>
+              </div>
+            </li>
+            <li className={`sidebar-menu-item flex items-center justify-start mx-3 p-2 text-white transition-colors rounded cursor-pointer hover:bg-25A879`}>
+              <div className="flex items-center">
+                <Book className="w-6 h-6" />
+                <span className={`ml-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>Courses</span>
+              </div>
+            </li>
+            <li className={`sidebar-menu-item flex items-center justify-start mx-3 p-2 text-white transition-colors rounded cursor-pointer hover:bg-25A879`}>
+              <div className="flex items-center">
+                <Users className="w-6 h-6" />
+                <span className={`ml-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>Students</span>
+              </div>
+            </li>
+            <li className={`sidebar-menu-item flex items-center justify-start mx-3 p-2 text-white transition-colors rounded cursor-pointer hover:bg-25A879`}>
+              <div className="flex items-center">
+                <Users className="w-6 h-6" />
+                <span className={`ml-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>Teachers</span>
+              </div>
+            </li>
+            <li className={`sidebar-menu-item flex items-center justify-start mx-3 p-2 text-white transition-colors rounded cursor-pointer hover:bg-25A879`}>
+              <div className="flex items-center">
+                <BarChart className="w-6 h-6" />
+                <span className={`ml-2 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>Statistics</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+  )
+}

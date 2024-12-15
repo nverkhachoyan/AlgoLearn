@@ -56,7 +56,7 @@ export default function ModuleSession() {
       moduleId: Number(params.moduleId),
       userId: Number(params.userId),
     }),
-    [params]
+    [params],
   );
 
   const {
@@ -73,12 +73,12 @@ export default function ModuleSession() {
   });
 
   const { moduleProgress, setModuleProgress } = useModuleProgressInit(
-    modulePayload?.module
+    modulePayload?.module,
   );
 
   console.log("ModuleSession - Initial moduleProgress:", {
-    sections: Array.from(moduleProgress.sections.entries()),
-    questions: Array.from(moduleProgress.questions.entries()),
+    sections: JSON.stringify(moduleProgress.sections),
+    questions: JSON.stringify(moduleProgress.questions),
   });
 
   const sortedSections: Section[] = useMemo(
@@ -86,14 +86,14 @@ export default function ModuleSession() {
       modulePayload?.module?.sections
         ?.slice()
         .sort((a: any, b: any) => a.position - b.position) ?? [],
-    [modulePayload?.module?.sections]
+    [modulePayload?.module?.sections],
   );
 
   const handleQuestionAnswer = useCallback(
     (
       questionId: number,
       optionId: number | null,
-      isCorrect: boolean | null
+      isCorrect: boolean | null,
     ) => {
       console.log("handleQuestionAnswer called with:", {
         questionId,
@@ -126,14 +126,14 @@ export default function ModuleSession() {
                 isCorrect: state.isCorrect,
                 answeredAt: state.answeredAt,
               },
-            })
+            }),
           ),
         });
 
         return newState;
       });
     },
-    [setModuleProgress]
+    [setModuleProgress],
   );
 
   const handleViewableItemsChanged = useCallback(
@@ -167,7 +167,7 @@ export default function ModuleSession() {
           : prev;
       });
     },
-    [setModuleProgress]
+    [setModuleProgress],
   );
 
   const calculateProgress = useMemo(() => {
@@ -203,13 +203,13 @@ export default function ModuleSession() {
     });
 
     const completedCount = completedSections.filter(
-      (s: any) => s.isCompleted
+      (s: any) => s.isCompleted,
     ).length;
     const totalProgress =
       totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
 
     const answeredQuestions = Array.from(questions.values()).filter(
-      (q) => q.hasAnswered
+      (q) => q.hasAnswered,
     ).length;
     const questionProgress =
       questions.size > 0 ? (answeredQuestions / questions.size) * 100 : 0;
@@ -237,13 +237,16 @@ export default function ModuleSession() {
     try {
       const { questions, sections } = moduleProgress;
       if (moduleProgress.sections.size !== 0) {
+        // Filter out questions where hasAnswered is false
+        const answeredQuestions = Array.from(questions, ([_, question]) => ({
+          ...question,
+        })).filter((question) => question.hasAnswered);
+
         await completeModuleMutation.mutateAsync({
           userId: ids.userId,
           moduleId: ids.moduleId,
           sections: Array.from(sections, ([_, section]) => ({ ...section })),
-          questions: Array.from(questions, ([_, question]) => ({
-            ...question,
-          })),
+          questions: answeredQuestions, // Use the filtered questions
         });
       }
 
@@ -292,7 +295,7 @@ export default function ModuleSession() {
             optionId: state.optionId,
             isCorrect: state.isCorrect,
           },
-        }))
+        })),
       );
 
       // Create a key that changes when the question state changes
@@ -310,7 +313,7 @@ export default function ModuleSession() {
         </View>
       );
     },
-    [handleQuestionAnswer, moduleProgress]
+    [handleQuestionAnswer, moduleProgress],
   );
 
   if (error) {

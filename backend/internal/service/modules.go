@@ -2,7 +2,6 @@ package service
 
 import (
 	gen "algolearn/internal/database/generated"
-	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"context"
@@ -12,12 +11,13 @@ import (
 )
 
 type ModuleService interface {
-	CreateModule(ctx context.Context, authorID int32, module *models.Module) error
-	UpdateModule(ctx context.Context, module *models.Module) error
-	DeleteModule(ctx context.Context, id int64) error
-	GetModuleWithProgress(ctx context.Context, userID int32, unitID int64, moduleID int64) (*models.ModulePayload, error)
-	GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int32, unitID int64) (int64, []*models.Module, error)
-	UpdateModuleProgress(ctx context.Context, userID int32, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error
+	GetModuleWithProgress(ctx context.Context, userID, unitID, moduleID int64) (*models.Module, bool, error)
+	GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error)
+	GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error)
+	CreateModule(ctx context.Context, unitID int64, name, description string) (*models.Module, error)
+	UpdateModule(ctx context.Context, moduleID int64, name, description string) (*models.Module, error)
+	DeleteModule(ctx context.Context, moduleID int64) error
+	SaveModuleProgress(ctx context.Context, userID, moduleID int64, sections []models.SectionProgress, questions []models.QuestionProgress) error
 }
 
 type moduleService struct {
@@ -28,157 +28,133 @@ func NewModuleService(db *sql.DB) ModuleService {
 	return &moduleService{queries: gen.New(db)}
 }
 
-func (r *moduleService) GetModuleWithProgress(ctx context.Context, userID int32, unitID int64, moduleID int64) (*models.ModulePayload, error) {
-	log := logger.Get().
-		WithBaseFields(logger.Service, "GetModuleWithProgress").
-		WithField("unit_id", unitID).
-		WithField("module_id", moduleID)
+func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitID, moduleID int64) (*models.Module, bool, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetModuleWithProgress")
 
-	result, err := r.queries.GetModuleWithProgress(ctx, gen.GetModuleWithProgressParams{
+	result, err := s.queries.GetModuleWithProgress(ctx, gen.GetModuleWithProgressParams{
+		UserID:   int32(userID),
 		UnitID:   int32(unitID),
 		ModuleID: int32(moduleID),
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, codes.ErrNotFound
-		}
 		log.WithError(err).Error("failed to get module with progress")
-		return nil, fmt.Errorf("failed to get module with progress: %w", err)
+		return nil, false, fmt.Errorf("failed to get module with progress: %w", err)
 	}
 
 	var module models.Module
-	if err = json.Unmarshal(result.Module, &module); err != nil {
+	if err := json.Unmarshal(result.Module, &module); err != nil {
 		log.WithError(err).Error("failed to unmarshal module")
-		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
+		return nil, false, fmt.Errorf("failed to unmarshal module: %w", err)
 	}
 
-	return &models.ModulePayload{
-		Module:        module,
-		NextModuleID:  int64(result.NextModuleID),
-		HasNextModule: result.HasNextModule,
+	return &module, result.HasNextModule, nil
+}
+
+func (s *moduleService) GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "GetModulesWithProgress")
+
+	result, err := s.queries.GetModulesWithProgress(ctx, gen.GetModulesWithProgressParams{
+		UserID:     int32(userID),
+		UnitID:     int32(unitID),
+		PageSize:   int32(pageSize),
+		PageOffset: int32((page - 1) * pageSize),
+	})
+	if err != nil {
+		log.WithError(err).Error("failed to get modules with progress")
+		return nil, fmt.Errorf("failed to get modules with progress: %w", err)
+	}
+
+	var modules []models.Module
+	if err := json.Unmarshal(result.([]byte), &modules); err != nil {
+		log.WithError(err).Error("failed to unmarshal modules")
+		return nil, fmt.Errorf("failed to unmarshal modules: %w", err)
+	}
+
+	return modules, nil
+}
+
+func (s *moduleService) GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error) {
+	count, err := s.queries.GetModuleTotalCount(ctx, int32(unitID))
+	if err != nil {
+		return 0, fmt.Errorf("failed to get module total count: %w", err)
+	}
+	return count, nil
+}
+
+func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, description string) (*models.Module, error) {
+	module, err := s.queries.CreateModule(ctx, gen.CreateModuleParams{
+		UnitID:      int32(unitID),
+		Name:        name,
+		Description: description,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create module: %w", err)
+	}
+
+	return &models.Module{
+		BaseModel: models.BaseModel{
+			ID:        int64(module.ID),
+			CreatedAt: module.CreatedAt,
+			UpdatedAt: module.UpdatedAt,
+		},
+		ModuleNumber: int16(module.ModuleNumber),
+		ModuleUnitID: int64(module.UnitID),
+		Name:         module.Name,
+		Description:  module.Description,
+		Sections:     make([]models.SectionInterface, 0),
 	}, nil
 }
 
-func (r *moduleService) GetModulesWithProgress(ctx context.Context, page int64, pageSize int64, userID int32, unitID int64) (int64, []*models.Module, error) {
-	log := logger.Get().
-		WithBaseFields(logger.Service, "GetModulesWithProgress").
-		WithField("unit_id", unitID).
-		WithField("page", page).
-		WithField("pageSize", pageSize)
-
-	totalCount, err := r.queries.GetModuleTotalCount(ctx, int32(unitID))
-	if err != nil {
-		log.WithError(err).Error("failed to get total count")
-		return 0, nil, fmt.Errorf("failed to get total count: %w", err)
-	}
-
-	offset := (page - 1) * pageSize
-	result, err := r.queries.GetModulesWithProgress(ctx, gen.GetModulesWithProgressParams{
-		UnitID:     int32(unitID),
-		UserID:     userID,
-		PageSize:   int32(pageSize),
-		PageOffset: int32(offset),
+func (s *moduleService) UpdateModule(ctx context.Context, moduleID int64, name, description string) (*models.Module, error) {
+	module, err := s.queries.UpdateModule(ctx, gen.UpdateModuleParams{
+		ModuleID:    int32(moduleID),
+		Name:        name,
+		Description: description,
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return totalCount, []*models.Module{}, nil
-		}
-		log.WithError(err).Error("failed to get modules with progress")
-		return 0, nil, fmt.Errorf("failed to get modules with progress: %w", err)
+		return nil, fmt.Errorf("failed to update module: %w", err)
 	}
 
-	var modules []*models.Module
-	if err = json.Unmarshal(result.([]byte), &modules); err != nil {
-		log.WithError(err).Error("failed to unmarshal modules")
-		return 0, nil, fmt.Errorf("failed to unmarshal modules: %w", err)
-	}
-
-	return totalCount, modules, nil
+	return &models.Module{
+		BaseModel: models.BaseModel{
+			ID:        int64(module.ID),
+			CreatedAt: module.CreatedAt,
+			UpdatedAt: module.UpdatedAt,
+		},
+		ModuleNumber: int16(module.ModuleNumber),
+		ModuleUnitID: int64(module.UnitID),
+		Name:         module.Name,
+		Description:  module.Description,
+		Sections:     make([]models.SectionInterface, 0),
+	}, nil
 }
 
-func (r *moduleService) CreateModule(ctx context.Context, authorID int32, module *models.Module) error {
-	log := logger.Get().WithBaseFields(logger.Service, "CreateModule")
-
-	result, err := r.queries.CreateModule(ctx, gen.CreateModuleParams{
-		UnitID:      int32(module.ModuleUnitID),
-		Name:        module.Name,
-		Description: module.Description,
-	})
+func (s *moduleService) DeleteModule(ctx context.Context, moduleID int64) error {
+	err := s.queries.DeleteModule(ctx, int32(moduleID))
 	if err != nil {
-		log.WithError(err).Error("failed to create module")
-		return fmt.Errorf("failed to create module: %w", err)
-	}
-
-	module.ID = int64(result.ID)
-	module.CreatedAt = result.CreatedAt
-	module.UpdatedAt = result.UpdatedAt
-	module.ModuleNumber = int16(result.ModuleNumber)
-
-	return nil
-}
-
-func (r *moduleService) UpdateModule(ctx context.Context, module *models.Module) error {
-	log := logger.Get().WithBaseFields(logger.Service, "UpdateModule").
-		WithField("module_id", module.ID)
-
-	result, err := r.queries.UpdateModule(ctx, gen.UpdateModuleParams{
-		ModuleID:    int32(module.ID),
-		Name:        module.Name,
-		Description: module.Description,
-	})
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return codes.ErrNotFound
-		}
-		log.WithError(err).Error("failed to update module")
-		return fmt.Errorf("failed to update module: %w", err)
-	}
-
-	module.UpdatedAt = result.UpdatedAt
-	return nil
-}
-
-func (r *moduleService) DeleteModule(ctx context.Context, id int64) error {
-	log := logger.Get().WithBaseFields(logger.Service, "DeleteModule").
-		WithField("module_id", id)
-
-	err := r.queries.DeleteModule(ctx, int32(id))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return codes.ErrNotFound
-		}
-		log.WithError(err).Error("failed to delete module")
 		return fmt.Errorf("failed to delete module: %w", err)
 	}
-
 	return nil
 }
 
-func (r *moduleService) UpdateModuleProgress(ctx context.Context, userID int32, unitID int64, moduleID int64, batch *models.BatchModuleProgress) error {
-	log := logger.Get().WithBaseFields(logger.Service, "UpdateModuleProgress").
-		WithField("unit_id", unitID).
-		WithField("module_id", moduleID)
-
-	sectionsJson, err := json.Marshal(batch.Sections)
+func (s *moduleService) SaveModuleProgress(ctx context.Context, userID, moduleID int64, sections []models.SectionProgress, questions []models.QuestionProgress) error {
+	sectionsJSON, err := json.Marshal(sections)
 	if err != nil {
-		log.WithError(err).Error("failed to marshal sections")
 		return fmt.Errorf("failed to marshal sections: %w", err)
 	}
 
-	questionsJson, err := json.Marshal(batch.Questions)
+	questionsJSON, err := json.Marshal(questions)
 	if err != nil {
-		log.WithError(err).Error("failed to marshal questions")
 		return fmt.Errorf("failed to marshal questions: %w", err)
 	}
 
-	err = r.queries.SaveModuleProgress(ctx, gen.SaveModuleProgressParams{
-		UserID:    userID,
+	err = s.queries.SaveModuleProgress(ctx, gen.SaveModuleProgressParams{
+		UserID:    int32(userID),
 		ModuleID:  int32(moduleID),
-		Sections:  sectionsJson,
-		Questions: questionsJson,
+		Sections:  sectionsJSON,
+		Questions: questionsJSON,
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to save module progress")
 		return fmt.Errorf("failed to save module progress: %w", err)
 	}
 

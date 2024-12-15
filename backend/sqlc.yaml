@@ -1,7 +1,7 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "internal/database/queries/"
+    queries: "internal/database/queries"
     schema: "migrations/00000_schema.up.sql"
     gen:
       go:
@@ -9,7 +9,7 @@ sql:
         out: "internal/database/generated"
         sql_package: "database/sql"
         emit_json_tags: true
-        emit_prepared_queries: true
         emit_interface: true
-        emit_exact_table_names: false
         emit_empty_slices: true
+        emit_exact_table_names: false
+        json_tags_case_style: "camel"

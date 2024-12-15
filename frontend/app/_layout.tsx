@@ -80,7 +80,7 @@ function MainContent() {
     "OpenSauceOne-LightItalic": require("@/assets/fonts/OpenSauceOne-LightItalic.ttf"),
   });
 
-  const { isInitialized } = useUser();
+  const { isLoading } = useUser();
   const { theme } = useAppTheme();
   const isDarkMode = theme.dark;
 
@@ -94,7 +94,7 @@ function MainContent() {
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded || !isInitialized) {
+  if (!fontsLoaded || isLoading) {
     return (
       <View
         style={[styles.container, { backgroundColor: theme.colors.background }]}

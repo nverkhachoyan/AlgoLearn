@@ -2,6 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as authService from "@/src/features/auth/authService";
 import * as userService from "@/src/features/user/api/queries";
+import { User } from "../features/user/types";
+import { ApiResponse } from "../types";
+
+type SignInResponse = {
+  token: string;
+  user: User;
+};
 
 export function useUser() {
   const queryClient = useQueryClient();
@@ -9,13 +16,14 @@ export function useUser() {
   const { data: token, isSuccess: isInitialized } = useQuery({
     queryKey: ["authToken"],
     queryFn: () => AsyncStorage.getItem("authToken"),
-    staleTime: Infinity, // Don't refetch token automatically
+    staleTime: Infinity,
   });
 
   const {
     data: user,
     isPending: isUserPending,
     error: userError,
+    isError: isUserError,
   } = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
@@ -30,11 +38,19 @@ export function useUser() {
 
         return response.payload;
       } catch (error: any) {
+        if (
+          error?.response?.status === 401 ||
+          error.message === "No auth token"
+        ) {
+          console.log("Auth error detected, clearing auth state...");
+          await invalidateAuth();
+        }
         throw error;
       }
     },
     enabled: !!token,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const checkEmail = useMutation({
@@ -59,7 +75,7 @@ export function useUser() {
           credentials.email,
           credentials.password
         );
-        const response = axiosResponse.data;
+        const response: ApiResponse<SignInResponse> = axiosResponse.data;
 
         if (!response.success) {
           throw new Error(response.message);
@@ -88,9 +104,29 @@ export function useUser() {
   });
 
   const updateUser = useMutation({
-    mutationFn: (data: any) => {
-      if (!token) throw new Error("No auth token");
-      return userService.updateUser(token, data);
+    mutationFn: async (data: any) => {
+      try {
+        if (!token) throw new Error("No auth token");
+        const axiosResponse = await userService.updateUser(token, data);
+        const response = axiosResponse.data;
+
+        if (!response.success) {
+          throw new Error(response.message);
+        }
+
+        return response.payload;
+      } catch (error: any) {
+        if (
+          error?.response?.status === 401 ||
+          error.message === "No auth token"
+        ) {
+          console.log(
+            "Auth error detected in updateUser, clearing auth state..."
+          );
+          await invalidateAuth();
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
@@ -99,13 +135,17 @@ export function useUser() {
 
   const invalidateAuth = async () => {
     await AsyncStorage.removeItem("authToken");
+    queryClient.setQueryData(["authToken"], null);
     queryClient.invalidateQueries({ queryKey: ["user"] });
     queryClient.removeQueries({ queryKey: ["user"] });
   };
 
+  const isAuthenticated = !!token && !!user && !isUserError;
+  const isLoading = !isInitialized || (!!token && isUserPending);
+
   return {
-    isAuthed: !!token,
-    isInitialized,
+    isAuthenticated,
+    isLoading,
     token,
     user,
     isUserPending,

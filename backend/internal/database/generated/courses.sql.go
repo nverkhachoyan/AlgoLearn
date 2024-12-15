@@ -16,7 +16,7 @@ DELETE FROM courses WHERE id = $1::int
 `
 
 func (q *Queries) DeleteCourse(ctx context.Context, courseID int32) error {
-	_, err := q.exec(ctx, q.deleteCourseStmt, deleteCourse, courseID)
+	_, err := q.db.ExecContext(ctx, deleteCourse, courseID)
 	return err
 }
 
@@ -29,7 +29,7 @@ WHERE
 `
 
 func (q *Queries) GetCourseAuthors(ctx context.Context, courseID int32) ([]Author, error) {
-	rows, err := q.query(ctx, q.getCourseAuthorsStmt, getCourseAuthors, courseID)
+	rows, err := q.db.QueryContext(ctx, getCourseAuthors, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ WHERE
 `
 
 func (q *Queries) GetCourseByID(ctx context.Context, courseID int32) (Course, error) {
-	row := q.queryRow(ctx, q.getCourseByIDStmt, getCourseByID, courseID)
+	row := q.db.QueryRowContext(ctx, getCourseByID, courseID)
 	var i Course
 	err := row.Scan(
 		&i.ID,
@@ -128,42 +128,42 @@ WHERE c.id = $2::int
 `
 
 type GetCourseProgressFullBaseParams struct {
-	UserID   int32 `json:"user_id"`
-	CourseID int32 `json:"course_id"`
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
 }
 
 type GetCourseProgressFullBaseRow struct {
 	ID                int32                    `json:"id"`
-	CreatedAt         time.Time                `json:"created_at"`
-	UpdatedAt         time.Time                `json:"updated_at"`
+	CreatedAt         time.Time                `json:"createdAt"`
+	UpdatedAt         time.Time                `json:"updatedAt"`
 	Name              string                   `json:"name"`
 	Description       string                   `json:"description"`
 	Requirements      sql.NullString           `json:"requirements"`
-	WhatYouLearn      sql.NullString           `json:"what_you_learn"`
-	BackgroundColor   sql.NullString           `json:"background_color"`
-	IconUrl           sql.NullString           `json:"icon_url"`
+	WhatYouLearn      sql.NullString           `json:"whatYouLearn"`
+	BackgroundColor   sql.NullString           `json:"backgroundColor"`
+	IconUrl           sql.NullString           `json:"iconUrl"`
 	Duration          sql.NullInt32            `json:"duration"`
-	DifficultyLevel   NullDifficultyLevel      `json:"difficulty_level"`
+	DifficultyLevel   NullDifficultyLevel      `json:"difficultyLevel"`
 	Rating            sql.NullFloat64          `json:"rating"`
-	CurrentUnitID     sql.NullInt32            `json:"current_unit_id"`
-	UnitCreatedAt     sql.NullTime             `json:"unit_created_at"`
-	UnitUpdatedAt     sql.NullTime             `json:"unit_updated_at"`
-	UnitNumber        sql.NullInt32            `json:"unit_number"`
-	UnitName          sql.NullString           `json:"unit_name"`
-	UnitDescription   sql.NullString           `json:"unit_description"`
-	CurrentModuleID   sql.NullInt32            `json:"current_module_id"`
-	ModuleCreatedAt   sql.NullTime             `json:"module_created_at"`
-	ModuleUpdatedAt   sql.NullTime             `json:"module_updated_at"`
-	ModuleNumber      sql.NullInt32            `json:"module_number"`
-	ModuleUnitID      sql.NullInt32            `json:"module_unit_id"`
-	ModuleName        sql.NullString           `json:"module_name"`
-	ModuleDescription sql.NullString           `json:"module_description"`
-	ModuleProgress    sql.NullFloat64          `json:"module_progress"`
-	ModuleStatus      NullModuleProgressStatus `json:"module_status"`
+	CurrentUnitID     sql.NullInt32            `json:"currentUnitId"`
+	UnitCreatedAt     sql.NullTime             `json:"unitCreatedAt"`
+	UnitUpdatedAt     sql.NullTime             `json:"unitUpdatedAt"`
+	UnitNumber        sql.NullInt32            `json:"unitNumber"`
+	UnitName          sql.NullString           `json:"unitName"`
+	UnitDescription   sql.NullString           `json:"unitDescription"`
+	CurrentModuleID   sql.NullInt32            `json:"currentModuleId"`
+	ModuleCreatedAt   sql.NullTime             `json:"moduleCreatedAt"`
+	ModuleUpdatedAt   sql.NullTime             `json:"moduleUpdatedAt"`
+	ModuleNumber      sql.NullInt32            `json:"moduleNumber"`
+	ModuleUnitID      sql.NullInt32            `json:"moduleUnitId"`
+	ModuleName        sql.NullString           `json:"moduleName"`
+	ModuleDescription sql.NullString           `json:"moduleDescription"`
+	ModuleProgress    sql.NullFloat64          `json:"moduleProgress"`
+	ModuleStatus      NullModuleProgressStatus `json:"moduleStatus"`
 }
 
 func (q *Queries) GetCourseProgressFullBase(ctx context.Context, arg GetCourseProgressFullBaseParams) (GetCourseProgressFullBaseRow, error) {
-	row := q.queryRow(ctx, q.getCourseProgressFullBaseStmt, getCourseProgressFullBase, arg.UserID, arg.CourseID)
+	row := q.db.QueryRowContext(ctx, getCourseProgressFullBase, arg.UserID, arg.CourseID)
 	var i GetCourseProgressFullBaseRow
 	err := row.Scan(
 		&i.ID,
@@ -239,42 +239,42 @@ WHERE
 `
 
 type GetCourseProgressSummaryBaseParams struct {
-	UserID   int32 `json:"user_id"`
-	CourseID int32 `json:"course_id"`
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
 }
 
 type GetCourseProgressSummaryBaseRow struct {
 	ID                int32                    `json:"id"`
-	CreatedAt         time.Time                `json:"created_at"`
-	UpdatedAt         time.Time                `json:"updated_at"`
+	CreatedAt         time.Time                `json:"createdAt"`
+	UpdatedAt         time.Time                `json:"updatedAt"`
 	Name              string                   `json:"name"`
 	Description       string                   `json:"description"`
 	Requirements      sql.NullString           `json:"requirements"`
-	WhatYouLearn      sql.NullString           `json:"what_you_learn"`
-	BackgroundColor   sql.NullString           `json:"background_color"`
-	IconUrl           sql.NullString           `json:"icon_url"`
-	DifficultyLevel   NullDifficultyLevel      `json:"difficulty_level"`
+	WhatYouLearn      sql.NullString           `json:"whatYouLearn"`
+	BackgroundColor   sql.NullString           `json:"backgroundColor"`
+	IconUrl           sql.NullString           `json:"iconUrl"`
+	DifficultyLevel   NullDifficultyLevel      `json:"difficultyLevel"`
 	Duration          sql.NullInt32            `json:"duration"`
 	Rating            sql.NullFloat64          `json:"rating"`
-	CurrentUnitID     sql.NullInt32            `json:"current_unit_id"`
-	UnitCreatedAt     sql.NullTime             `json:"unit_created_at"`
-	UnitUpdatedAt     sql.NullTime             `json:"unit_updated_at"`
-	UnitNumber        sql.NullInt32            `json:"unit_number"`
-	UnitName          sql.NullString           `json:"unit_name"`
-	UnitDescription   sql.NullString           `json:"unit_description"`
-	CurrentModuleID   sql.NullInt32            `json:"current_module_id"`
-	ModuleCreatedAt   sql.NullTime             `json:"module_created_at"`
-	ModuleUpdatedAt   sql.NullTime             `json:"module_updated_at"`
-	ModuleNumber      sql.NullInt32            `json:"module_number"`
-	ModuleUnitID      sql.NullInt32            `json:"module_unit_id"`
-	ModuleName        sql.NullString           `json:"module_name"`
-	ModuleDescription sql.NullString           `json:"module_description"`
-	ModuleProgress    sql.NullFloat64          `json:"module_progress"`
-	ModuleStatus      NullModuleProgressStatus `json:"module_status"`
+	CurrentUnitID     sql.NullInt32            `json:"currentUnitId"`
+	UnitCreatedAt     sql.NullTime             `json:"unitCreatedAt"`
+	UnitUpdatedAt     sql.NullTime             `json:"unitUpdatedAt"`
+	UnitNumber        sql.NullInt32            `json:"unitNumber"`
+	UnitName          sql.NullString           `json:"unitName"`
+	UnitDescription   sql.NullString           `json:"unitDescription"`
+	CurrentModuleID   sql.NullInt32            `json:"currentModuleId"`
+	ModuleCreatedAt   sql.NullTime             `json:"moduleCreatedAt"`
+	ModuleUpdatedAt   sql.NullTime             `json:"moduleUpdatedAt"`
+	ModuleNumber      sql.NullInt32            `json:"moduleNumber"`
+	ModuleUnitID      sql.NullInt32            `json:"moduleUnitId"`
+	ModuleName        sql.NullString           `json:"moduleName"`
+	ModuleDescription sql.NullString           `json:"moduleDescription"`
+	ModuleProgress    sql.NullFloat64          `json:"moduleProgress"`
+	ModuleStatus      NullModuleProgressStatus `json:"moduleStatus"`
 }
 
 func (q *Queries) GetCourseProgressSummaryBase(ctx context.Context, arg GetCourseProgressSummaryBaseParams) (GetCourseProgressSummaryBaseRow, error) {
-	row := q.queryRow(ctx, q.getCourseProgressSummaryBaseStmt, getCourseProgressSummaryBase, arg.UserID, arg.CourseID)
+	row := q.db.QueryRowContext(ctx, getCourseProgressSummaryBase, arg.UserID, arg.CourseID)
 	var i GetCourseProgressSummaryBaseRow
 	err := row.Scan(
 		&i.ID,
@@ -317,7 +317,7 @@ WHERE
 `
 
 func (q *Queries) GetCourseTags(ctx context.Context, courseID int32) ([]Tag, error) {
-	rows, err := q.query(ctx, q.getCourseTagsStmt, getCourseTags, courseID)
+	rows, err := q.db.QueryContext(ctx, getCourseTags, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +355,7 @@ ORDER BY unit_number
 `
 
 func (q *Queries) GetCourseUnits(ctx context.Context, courseID int32) ([]Unit, error) {
-	rows, err := q.query(ctx, q.getCourseUnitsStmt, getCourseUnits, courseID)
+	rows, err := q.db.QueryContext(ctx, getCourseUnits, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -445,45 +445,45 @@ OFFSET $3::int
 `
 
 type GetCoursesProgressSummaryParams struct {
-	UserID     int32  `json:"user_id"`
-	FilterType string `json:"filter_type"`
-	PageOffset int32  `json:"page_offset"`
-	PageLimit  int32  `json:"page_limit"`
+	UserID     int32  `json:"userId"`
+	FilterType string `json:"filterType"`
+	PageOffset int32  `json:"pageOffset"`
+	PageLimit  int32  `json:"pageLimit"`
 }
 
 type GetCoursesProgressSummaryRow struct {
 	ID                int32                    `json:"id"`
-	CreatedAt         time.Time                `json:"created_at"`
-	UpdatedAt         time.Time                `json:"updated_at"`
+	CreatedAt         time.Time                `json:"createdAt"`
+	UpdatedAt         time.Time                `json:"updatedAt"`
 	Name              string                   `json:"name"`
 	Description       string                   `json:"description"`
 	Requirements      sql.NullString           `json:"requirements"`
-	WhatYouLearn      sql.NullString           `json:"what_you_learn"`
-	BackgroundColor   sql.NullString           `json:"background_color"`
-	IconUrl           sql.NullString           `json:"icon_url"`
+	WhatYouLearn      sql.NullString           `json:"whatYouLearn"`
+	BackgroundColor   sql.NullString           `json:"backgroundColor"`
+	IconUrl           sql.NullString           `json:"iconUrl"`
 	Duration          sql.NullInt32            `json:"duration"`
-	DifficultyLevel   NullDifficultyLevel      `json:"difficulty_level"`
+	DifficultyLevel   NullDifficultyLevel      `json:"difficultyLevel"`
 	Rating            sql.NullFloat64          `json:"rating"`
-	CurrentUnitID     sql.NullInt32            `json:"current_unit_id"`
-	UnitCreatedAt     sql.NullTime             `json:"unit_created_at"`
-	UnitUpdatedAt     sql.NullTime             `json:"unit_updated_at"`
-	UnitNumber        sql.NullInt32            `json:"unit_number"`
-	UnitName          sql.NullString           `json:"unit_name"`
-	UnitDescription   sql.NullString           `json:"unit_description"`
-	CurrentModuleID   sql.NullInt32            `json:"current_module_id"`
-	ModuleCreatedAt   sql.NullTime             `json:"module_created_at"`
-	ModuleUpdatedAt   sql.NullTime             `json:"module_updated_at"`
-	ModuleNumber      sql.NullInt32            `json:"module_number"`
-	ModuleUnitID      sql.NullInt32            `json:"module_unit_id"`
-	ModuleName        sql.NullString           `json:"module_name"`
-	ModuleDescription sql.NullString           `json:"module_description"`
-	ModuleProgress    sql.NullFloat64          `json:"module_progress"`
-	ModuleStatus      NullModuleProgressStatus `json:"module_status"`
-	TotalCount        int64                    `json:"total_count"`
+	CurrentUnitID     sql.NullInt32            `json:"currentUnitId"`
+	UnitCreatedAt     sql.NullTime             `json:"unitCreatedAt"`
+	UnitUpdatedAt     sql.NullTime             `json:"unitUpdatedAt"`
+	UnitNumber        sql.NullInt32            `json:"unitNumber"`
+	UnitName          sql.NullString           `json:"unitName"`
+	UnitDescription   sql.NullString           `json:"unitDescription"`
+	CurrentModuleID   sql.NullInt32            `json:"currentModuleId"`
+	ModuleCreatedAt   sql.NullTime             `json:"moduleCreatedAt"`
+	ModuleUpdatedAt   sql.NullTime             `json:"moduleUpdatedAt"`
+	ModuleNumber      sql.NullInt32            `json:"moduleNumber"`
+	ModuleUnitID      sql.NullInt32            `json:"moduleUnitId"`
+	ModuleName        sql.NullString           `json:"moduleName"`
+	ModuleDescription sql.NullString           `json:"moduleDescription"`
+	ModuleProgress    sql.NullFloat64          `json:"moduleProgress"`
+	ModuleStatus      NullModuleProgressStatus `json:"moduleStatus"`
+	TotalCount        int64                    `json:"totalCount"`
 }
 
 func (q *Queries) GetCoursesProgressSummary(ctx context.Context, arg GetCoursesProgressSummaryParams) ([]GetCoursesProgressSummaryRow, error) {
-	rows, err := q.query(ctx, q.getCoursesProgressSummaryStmt, getCoursesProgressSummary,
+	rows, err := q.db.QueryContext(ctx, getCoursesProgressSummary,
 		arg.UserID,
 		arg.FilterType,
 		arg.PageOffset,
@@ -548,8 +548,8 @@ WHERE
 `
 
 type GetModuleProgressParams struct {
-	UserID   int32 `json:"user_id"`
-	ModuleID int32 `json:"module_id"`
+	UserID   int32 `json:"userId"`
+	ModuleID int32 `json:"moduleId"`
 }
 
 type GetModuleProgressRow struct {
@@ -558,7 +558,7 @@ type GetModuleProgressRow struct {
 }
 
 func (q *Queries) GetModuleProgress(ctx context.Context, arg GetModuleProgressParams) (GetModuleProgressRow, error) {
-	row := q.queryRow(ctx, q.getModuleProgressStmt, getModuleProgress, arg.UserID, arg.ModuleID)
+	row := q.db.QueryRowContext(ctx, getModuleProgress, arg.UserID, arg.ModuleID)
 	var i GetModuleProgressRow
 	err := row.Scan(&i.Progress, &i.Status)
 	return i, err
@@ -576,16 +576,16 @@ ORDER BY m.module_number
 `
 
 type GetModuleProgressByUnitParams struct {
-	UserID int32 `json:"user_id"`
-	UnitID int32 `json:"unit_id"`
+	UserID int32 `json:"userId"`
+	UnitID int32 `json:"unitId"`
 }
 
 type GetModuleProgressByUnitRow struct {
 	ID           int32                    `json:"id"`
-	CreatedAt    time.Time                `json:"created_at"`
-	UpdatedAt    time.Time                `json:"updated_at"`
-	ModuleNumber int32                    `json:"module_number"`
-	UnitID       int32                    `json:"unit_id"`
+	CreatedAt    time.Time                `json:"createdAt"`
+	UpdatedAt    time.Time                `json:"updatedAt"`
+	ModuleNumber int32                    `json:"moduleNumber"`
+	UnitID       int32                    `json:"unitId"`
 	Name         string                   `json:"name"`
 	Description  string                   `json:"description"`
 	Progress     sql.NullFloat64          `json:"progress"`
@@ -593,7 +593,7 @@ type GetModuleProgressByUnitRow struct {
 }
 
 func (q *Queries) GetModuleProgressByUnit(ctx context.Context, arg GetModuleProgressByUnitParams) ([]GetModuleProgressByUnitRow, error) {
-	rows, err := q.query(ctx, q.getModuleProgressByUnitStmt, getModuleProgressByUnit, arg.UserID, arg.UnitID)
+	rows, err := q.db.QueryContext(ctx, getModuleProgressByUnit, arg.UserID, arg.UnitID)
 	if err != nil {
 		return nil, err
 	}
@@ -641,33 +641,33 @@ ORDER BY m.module_number, s.position
 `
 
 type GetModuleProgressWithSectionsParams struct {
-	UserID int32 `json:"user_id"`
-	UnitID int32 `json:"unit_id"`
+	UserID int32 `json:"userId"`
+	UnitID int32 `json:"unitId"`
 }
 
 type GetModuleProgressWithSectionsRow struct {
 	ID               int32                    `json:"id"`
-	CreatedAt        time.Time                `json:"created_at"`
-	UpdatedAt        time.Time                `json:"updated_at"`
-	ModuleNumber     int32                    `json:"module_number"`
-	UnitID           int32                    `json:"unit_id"`
+	CreatedAt        time.Time                `json:"createdAt"`
+	UpdatedAt        time.Time                `json:"updatedAt"`
+	ModuleNumber     int32                    `json:"moduleNumber"`
+	UnitID           int32                    `json:"unitId"`
 	Name             string                   `json:"name"`
 	Description      string                   `json:"description"`
 	Progress         sql.NullFloat64          `json:"progress"`
 	Status           NullModuleProgressStatus `json:"status"`
-	SectionID        sql.NullInt32            `json:"section_id"`
-	SectionCreatedAt sql.NullTime             `json:"section_created_at"`
-	SectionUpdatedAt sql.NullTime             `json:"section_updated_at"`
-	SectionType      sql.NullString           `json:"section_type"`
-	SectionPosition  sql.NullInt32            `json:"section_position"`
-	SeenAt           sql.NullTime             `json:"seen_at"`
-	StartedAt        sql.NullTime             `json:"started_at"`
-	CompletedAt      sql.NullTime             `json:"completed_at"`
-	HasSeen          sql.NullBool             `json:"has_seen"`
+	SectionID        sql.NullInt32            `json:"sectionId"`
+	SectionCreatedAt sql.NullTime             `json:"sectionCreatedAt"`
+	SectionUpdatedAt sql.NullTime             `json:"sectionUpdatedAt"`
+	SectionType      sql.NullString           `json:"sectionType"`
+	SectionPosition  sql.NullInt32            `json:"sectionPosition"`
+	SeenAt           sql.NullTime             `json:"seenAt"`
+	StartedAt        sql.NullTime             `json:"startedAt"`
+	CompletedAt      sql.NullTime             `json:"completedAt"`
+	HasSeen          sql.NullBool             `json:"hasSeen"`
 }
 
 func (q *Queries) GetModuleProgressWithSections(ctx context.Context, arg GetModuleProgressWithSectionsParams) ([]GetModuleProgressWithSectionsRow, error) {
-	rows, err := q.query(ctx, q.getModuleProgressWithSectionsStmt, getModuleProgressWithSections, arg.UserID, arg.UnitID)
+	rows, err := q.db.QueryContext(ctx, getModuleProgressWithSections, arg.UserID, arg.UnitID)
 	if err != nil {
 		return nil, err
 	}
@@ -724,15 +724,15 @@ ORDER BY position
 
 type GetModuleSectionsRow struct {
 	ID        int32     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 	Type      string    `json:"type"`
 	Position  int32     `json:"position"`
-	ModuleID  int32     `json:"module_id"`
+	ModuleID  int32     `json:"moduleId"`
 }
 
 func (q *Queries) GetModuleSections(ctx context.Context, moduleID int32) ([]GetModuleSectionsRow, error) {
-	rows, err := q.query(ctx, q.getModuleSectionsStmt, getModuleSections, moduleID)
+	rows, err := q.db.QueryContext(ctx, getModuleSections, moduleID)
 	if err != nil {
 		return nil, err
 	}
@@ -783,25 +783,25 @@ ORDER BY s.position
 `
 
 type GetModuleSectionsWithProgressParams struct {
-	UserID   int32 `json:"user_id"`
-	ModuleID int32 `json:"module_id"`
+	UserID   int32 `json:"userId"`
+	ModuleID int32 `json:"moduleId"`
 }
 
 type GetModuleSectionsWithProgressRow struct {
 	ID          int32        `json:"id"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	UpdatedAt   time.Time    `json:"updatedAt"`
 	Type        string       `json:"type"`
 	Position    int32        `json:"position"`
-	ModuleID    int32        `json:"module_id"`
-	SeenAt      sql.NullTime `json:"seen_at"`
-	StartedAt   sql.NullTime `json:"started_at"`
-	CompletedAt sql.NullTime `json:"completed_at"`
-	HasSeen     sql.NullBool `json:"has_seen"`
+	ModuleID    int32        `json:"moduleId"`
+	SeenAt      sql.NullTime `json:"seenAt"`
+	StartedAt   sql.NullTime `json:"startedAt"`
+	CompletedAt sql.NullTime `json:"completedAt"`
+	HasSeen     sql.NullBool `json:"hasSeen"`
 }
 
 func (q *Queries) GetModuleSectionsWithProgress(ctx context.Context, arg GetModuleSectionsWithProgressParams) ([]GetModuleSectionsWithProgressRow, error) {
-	rows, err := q.query(ctx, q.getModuleSectionsWithProgressStmt, getModuleSectionsWithProgress, arg.UserID, arg.ModuleID)
+	rows, err := q.db.QueryContext(ctx, getModuleSectionsWithProgress, arg.UserID, arg.ModuleID)
 	if err != nil {
 		return nil, err
 	}
@@ -844,11 +844,11 @@ WHERE
 type GetQuestionOptionsRow struct {
 	ID        int32  `json:"id"`
 	Content   string `json:"content"`
-	IsCorrect bool   `json:"is_correct"`
+	IsCorrect bool   `json:"isCorrect"`
 }
 
 func (q *Queries) GetQuestionOptions(ctx context.Context, questionID int32) ([]GetQuestionOptionsRow, error) {
-	rows, err := q.query(ctx, q.getQuestionOptionsStmt, getQuestionOptions, questionID)
+	rows, err := q.db.QueryContext(ctx, getQuestionOptions, questionID)
 	if err != nil {
 		return nil, err
 	}
@@ -896,11 +896,11 @@ type GetQuestionSectionRow struct {
 	ID              int32       `json:"id"`
 	Question        string      `json:"question"`
 	Type            string      `json:"type"`
-	QuestionOptions interface{} `json:"question_options"`
+	QuestionOptions interface{} `json:"questionOptions"`
 }
 
 func (q *Queries) GetQuestionSection(ctx context.Context, sectionID int32) (GetQuestionSectionRow, error) {
-	row := q.queryRow(ctx, q.getQuestionSectionStmt, getQuestionSection, sectionID)
+	row := q.db.QueryRowContext(ctx, getQuestionSection, sectionID)
 	var i GetQuestionSectionRow
 	err := row.Scan(
 		&i.ID,
@@ -934,14 +934,14 @@ GROUP BY q.id, q.question, q.type
 `
 
 type GetQuestionSectionContentRow struct {
-	QuestionID   int32       `json:"question_id"`
+	QuestionID   int32       `json:"questionId"`
 	Question     string      `json:"question"`
-	QuestionType string      `json:"question_type"`
+	QuestionType string      `json:"questionType"`
 	Options      interface{} `json:"options"`
 }
 
 func (q *Queries) GetQuestionSectionContent(ctx context.Context, sectionID int32) (GetQuestionSectionContentRow, error) {
-	row := q.queryRow(ctx, q.getQuestionSectionContentStmt, getQuestionSectionContent, sectionID)
+	row := q.db.QueryRowContext(ctx, getQuestionSectionContent, sectionID)
 	var i GetQuestionSectionContentRow
 	err := row.Scan(
 		&i.QuestionID,
@@ -990,7 +990,7 @@ WHERE s.id = $1::int
 `
 
 func (q *Queries) GetSectionContent(ctx context.Context, sectionID int32) (interface{}, error) {
-	row := q.queryRow(ctx, q.getSectionContentStmt, getSectionContent, sectionID)
+	row := q.db.QueryRowContext(ctx, getSectionContent, sectionID)
 	var content interface{}
 	err := row.Scan(&content)
 	return content, err
@@ -1003,7 +1003,7 @@ WHERE section_id = $1::int
 `
 
 func (q *Queries) GetTextSection(ctx context.Context, sectionID int32) (string, error) {
-	row := q.queryRow(ctx, q.getTextSectionStmt, getTextSection, sectionID)
+	row := q.db.QueryRowContext(ctx, getTextSection, sectionID)
 	var text_content string
 	err := row.Scan(&text_content)
 	return text_content, err
@@ -1016,7 +1016,7 @@ WHERE section_id = $1::int
 `
 
 func (q *Queries) GetTextSectionContent(ctx context.Context, sectionID int32) (string, error) {
-	row := q.queryRow(ctx, q.getTextSectionContentStmt, getTextSectionContent, sectionID)
+	row := q.db.QueryRowContext(ctx, getTextSectionContent, sectionID)
 	var text_content string
 	err := row.Scan(&text_content)
 	return text_content, err
@@ -1038,7 +1038,7 @@ ORDER BY module_number
 `
 
 func (q *Queries) GetUnitModules(ctx context.Context, unitID int32) ([]Module, error) {
-	rows, err := q.query(ctx, q.getUnitModulesStmt, getUnitModules, unitID)
+	rows, err := q.db.QueryContext(ctx, getUnitModules, unitID)
 	if err != nil {
 		return nil, err
 	}
@@ -1079,17 +1079,17 @@ WHERE
 `
 
 type GetUserCourseProgressParams struct {
-	UserID   int32 `json:"user_id"`
-	CourseID int32 `json:"course_id"`
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
 }
 
 type GetUserCourseProgressRow struct {
-	CurrentUnitID   sql.NullInt32 `json:"current_unit_id"`
-	CurrentModuleID sql.NullInt32 `json:"current_module_id"`
+	CurrentUnitID   sql.NullInt32 `json:"currentUnitId"`
+	CurrentModuleID sql.NullInt32 `json:"currentModuleId"`
 }
 
 func (q *Queries) GetUserCourseProgress(ctx context.Context, arg GetUserCourseProgressParams) (GetUserCourseProgressRow, error) {
-	row := q.queryRow(ctx, q.getUserCourseProgressStmt, getUserCourseProgress, arg.UserID, arg.CourseID)
+	row := q.db.QueryRowContext(ctx, getUserCourseProgress, arg.UserID, arg.CourseID)
 	var i GetUserCourseProgressRow
 	err := row.Scan(&i.CurrentUnitID, &i.CurrentModuleID)
 	return i, err
@@ -1106,18 +1106,18 @@ WHERE
 `
 
 type GetUserQuestionAnswerParams struct {
-	UserID     int32 `json:"user_id"`
-	QuestionID int32 `json:"question_id"`
+	UserID     int32 `json:"userId"`
+	QuestionID int32 `json:"questionId"`
 }
 
 type GetUserQuestionAnswerRow struct {
-	OptionID   int32     `json:"option_id"`
-	AnsweredAt time.Time `json:"answered_at"`
-	IsCorrect  bool      `json:"is_correct"`
+	OptionID   int32     `json:"optionId"`
+	AnsweredAt time.Time `json:"answeredAt"`
+	IsCorrect  bool      `json:"isCorrect"`
 }
 
 func (q *Queries) GetUserQuestionAnswer(ctx context.Context, arg GetUserQuestionAnswerParams) (GetUserQuestionAnswerRow, error) {
-	row := q.queryRow(ctx, q.getUserQuestionAnswerStmt, getUserQuestionAnswer, arg.UserID, arg.QuestionID)
+	row := q.db.QueryRowContext(ctx, getUserQuestionAnswer, arg.UserID, arg.QuestionID)
 	var i GetUserQuestionAnswerRow
 	err := row.Scan(&i.OptionID, &i.AnsweredAt, &i.IsCorrect)
 	return i, err
@@ -1131,7 +1131,7 @@ WHERE section_id = $1::int
 `
 
 func (q *Queries) GetVideoSection(ctx context.Context, sectionID int32) (string, error) {
-	row := q.queryRow(ctx, q.getVideoSectionStmt, getVideoSection, sectionID)
+	row := q.db.QueryRowContext(ctx, getVideoSection, sectionID)
 	var url string
 	err := row.Scan(&url)
 	return url, err
@@ -1142,7 +1142,7 @@ SELECT url FROM video_sections WHERE section_id = $1::int
 `
 
 func (q *Queries) GetVideoSectionContent(ctx context.Context, sectionID int32) (string, error) {
-	row := q.queryRow(ctx, q.getVideoSectionContentStmt, getVideoSectionContent, sectionID)
+	row := q.db.QueryRowContext(ctx, getVideoSectionContent, sectionID)
 	var url string
 	err := row.Scan(&url)
 	return url, err

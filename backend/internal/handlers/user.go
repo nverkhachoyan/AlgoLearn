@@ -395,16 +395,16 @@ func (h *userHandler) DeleteUser(c *gin.Context) {
 }
 
 func (h *userHandler) RegisterRoutes(r *gin.RouterGroup) {
-	// Auth routes (no prefix needed as they're top-level)
-	auth := r.Group("")
-	auth.POST("/register", h.RegisterUser)
-	auth.POST("/login", h.LoginUser)
-	auth.GET("/checkemail", h.CheckEmailExists)
+	// Public routes
+	users := r.Group("/users")
+	users.POST("/register", h.RegisterUser)
+	users.POST("/login", h.LoginUser)
+	users.GET("/checkemail", h.CheckEmailExists)
+	// users.POST("/refresh", h.RefreshToken)
 
-	// User routes
-	//    public := r.Group("/user")
-	authorized := r.Group("/user", middleware.Auth())
-	authorized.GET("", h.GetUser)
-	authorized.PUT("", h.UpdateUser)
-	authorized.DELETE("", h.DeleteUser)
+	// Protected routes (require authentication)
+	authorized := users.Group("", middleware.Auth())
+	authorized.GET("/me", h.GetUser)
+	authorized.PUT("/me", h.UpdateUser)
+	// authorized.PUT("/me/preferences", h.UpdateUserPreferences)
 }

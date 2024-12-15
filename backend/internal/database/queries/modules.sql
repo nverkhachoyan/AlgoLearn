@@ -1,5 +1,69 @@
 -- name: GetModuleWithProgress :one
-WITH unit_modules AS (
+WITH section_content AS (
+    SELECT s.id as section_id, 
+        CASE s.type
+            WHEN 'text' THEN (
+                SELECT jsonb_build_object('text', text_content)
+                FROM text_sections ts
+                WHERE ts.section_id = s.id
+            )
+            WHEN 'video' THEN (
+                SELECT jsonb_build_object('url', url)
+                FROM video_sections vs
+                WHERE vs.section_id = s.id
+            )
+            WHEN 'question' THEN (
+                SELECT jsonb_build_object(
+                    'id', q.id,
+                    'question', q.question,
+                    'type', q.type,
+                    'options', COALESCE(
+                        (SELECT jsonb_agg(
+                            jsonb_build_object(
+                                'id', qo.id,
+                                'content', qo.content,
+                                'isCorrect', qo.is_correct
+                            ) ORDER BY qo.id
+                        )
+                        FROM question_options qo
+                        WHERE qo.question_id = q.id
+                        ), '[]'::jsonb),
+                    'userQuestionAnswer', (
+                        SELECT jsonb_build_object(
+                            'optionId', uqa.option_id,
+                            'answeredAt', uqa.answered_at,
+                            'isCorrect', uqa.is_correct
+                        )
+                        FROM user_question_answers uqa
+                        JOIN user_module_progress ump2 ON ump2.id = uqa.user_module_progress_id
+                        WHERE ump2.user_id = @user_id::int
+                        AND uqa.question_id = q.id
+                    )
+                )
+                FROM question_sections qs
+                JOIN questions q ON q.id = qs.question_id
+                WHERE qs.section_id = s.id
+            )
+        END as content
+    FROM sections s
+    WHERE s.module_id = @module_id::int
+),
+section_progress AS (
+    SELECT 
+        s.id as section_id,
+        jsonb_build_object(
+            'sectionId', s.id,
+            'seenAt', usp.seen_at,
+            'hasSeen', usp.has_seen,
+            'startedAt', usp.started_at,
+            'completedAt', usp.completed_at
+        ) as progress
+    FROM sections s
+    LEFT JOIN user_section_progress usp ON usp.section_id = s.id 
+    AND usp.user_id = @user_id::int
+    WHERE s.module_id = @module_id::int
+),
+unit_modules AS (
     SELECT id, module_number
     FROM modules
     WHERE unit_id = @unit_id::int
@@ -22,60 +86,21 @@ SELECT
         'progress', ump.progress,
         'status', ump.status,
         'sections', COALESCE((
-            SELECT DISTINCT jsonb_agg(
+            SELECT jsonb_agg(
                 jsonb_build_object(
                     'id', s.id,
                     'createdAt', s.created_at,
                     'updatedAt', s.updated_at,
                     'type', s.type,
                     'position', s.position,
-                    'content', CASE s.type
-                        WHEN 'text' THEN (
-                            SELECT jsonb_build_object('text', ts.text_content)
-                            FROM text_sections ts
-                            WHERE ts.section_id = s.id
-                        )
-                        WHEN 'video' THEN (
-                            SELECT jsonb_build_object('url', vs.url)
-                            FROM video_sections vs
-                            WHERE vs.section_id = s.id
-                        )
-                        WHEN 'question' THEN (
-                            SELECT jsonb_build_object(
-                                'id', qs.question_id,
-                                'question', q.question,
-                                'type', q.type,
-                                'options', COALESCE((
-                                    SELECT jsonb_agg(jsonb_build_object(
-                                        'id', qo.id,
-                                        'content', qo.content,
-                                        'isCorrect', qo.is_correct
-                                    ))
-                                    FROM question_options qo
-                                    WHERE qo.question_id = q.id
-                                ), '[]'::jsonb),
-                                'userQuestionAnswer', COALESCE(jsonb_build_object(
-                                    'optionId', uqn.option_id,
-                                    'answeredAt', uqn.answered_at,
-                                    'isCorrect', uqn.is_correct
-                                ), NULL)
-                            )
-                            FROM question_sections qs
-                            JOIN questions q ON q.id = qs.question_id
-                            LEFT JOIN user_question_answers uqn ON uqn.question_id = qs.question_id
-                            WHERE qs.section_id = s.id
-                        )
-                    END,
-                    'sectionProgress', jsonb_build_object(
-                        'startedAt', usp.started_at,
-                        'completedAt', usp.completed_at,
-                        'hasSeen', usp.has_seen,
-                        'seenAt', usp.seen_at
-                    )
+                    'content', sc.content,
+                    'sectionProgress', sp.progress
                 )
+                ORDER BY s.position
             )
             FROM sections s
-            LEFT JOIN user_section_progress usp ON usp.section_id = s.id
+            LEFT JOIN section_content sc ON sc.section_id = s.id
+            LEFT JOIN section_progress sp ON sp.section_id = s.id
             WHERE s.module_id = m.id
         ), '[]'::jsonb)
     ) as module,
@@ -92,11 +117,76 @@ SELECT
         LIMIT 1
     ) as has_next_module
 FROM modules m
-LEFT JOIN user_module_progress ump ON ump.module_id = m.id
+LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = @user_id::int
 WHERE m.unit_id = @unit_id::int AND m.id = @module_id::int;
 
 -- name: GetModulesWithProgress :one
-WITH unit_modules AS (
+WITH section_content AS (
+    SELECT s.id as section_id, s.module_id,
+        CASE s.type
+            WHEN 'text' THEN (
+                SELECT jsonb_build_object('text', text_content)
+                FROM text_sections ts
+                WHERE ts.section_id = s.id
+            )
+            WHEN 'video' THEN (
+                SELECT jsonb_build_object('url', url)
+                FROM video_sections vs
+                WHERE vs.section_id = s.id
+            )
+            WHEN 'question' THEN (
+                SELECT jsonb_build_object(
+                    'id', q.id,
+                    'question', q.question,
+                    'type', q.type,
+                    'options', COALESCE(
+                        (SELECT jsonb_agg(
+                            jsonb_build_object(
+                                'id', qo.id,
+                                'content', qo.content,
+                                'isCorrect', qo.is_correct
+                            ) ORDER BY qo.id
+                        )
+                        FROM question_options qo
+                        WHERE qo.question_id = q.id
+                        ), '[]'::jsonb),
+                    'userQuestionAnswer', (
+                        SELECT jsonb_build_object(
+                            'optionId', uqa.option_id,
+                            'answeredAt', uqa.answered_at,
+                            'isCorrect', uqa.is_correct
+                        )
+                        FROM user_question_answers uqa
+                        JOIN user_module_progress ump2 ON ump2.id = uqa.user_module_progress_id
+                        WHERE ump2.user_id = @user_id::int
+                        AND uqa.question_id = q.id
+                    )
+                )
+                FROM question_sections qs
+                JOIN questions q ON q.id = qs.question_id
+                WHERE qs.section_id = s.id
+            )
+        END as content
+    FROM sections s
+    WHERE s.module_id IN (SELECT id FROM modules WHERE unit_id = @unit_id::int)
+),
+section_progress AS (
+    SELECT 
+        s.id as section_id,
+        s.module_id,
+        jsonb_build_object(
+            'sectionId', s.id,
+            'seenAt', usp.seen_at,
+            'hasSeen', usp.has_seen,
+            'startedAt', usp.started_at,
+            'completedAt', usp.completed_at
+        ) as progress
+    FROM sections s
+    LEFT JOIN user_section_progress usp ON usp.section_id = s.id 
+    AND usp.user_id = @user_id::int
+    WHERE s.module_id IN (SELECT id FROM modules WHERE unit_id = @unit_id::int)
+),
+unit_modules AS (
     SELECT *
     FROM modules
     WHERE unit_id = @unit_id::int
@@ -117,52 +207,21 @@ SELECT COALESCE(
             'progress', ump.progress,
             'status', ump.status,
             'sections', COALESCE((
-                SELECT DISTINCT jsonb_agg(
+                SELECT jsonb_agg(
                     jsonb_build_object(
                         'id', s.id,
+                        'createdAt', s.created_at,
+                        'updatedAt', s.updated_at,
                         'type', s.type,
                         'position', s.position,
-                        'content', CASE s.type
-                            WHEN 'text' THEN (
-                                SELECT jsonb_build_object('text', ts.text_content)
-                                FROM text_sections ts
-                                WHERE ts.section_id = s.id
-                            )
-                            WHEN 'video' THEN (
-                                SELECT jsonb_build_object('url', vs.url)
-                                FROM video_sections vs
-                                WHERE vs.section_id = s.id
-                            )
-                            WHEN 'question' THEN (
-                                SELECT jsonb_build_object(
-                                    'id', qs.question_id,
-                                    'question', q.question,
-                                    'type', q.type,
-                                    'options', COALESCE((
-                                        SELECT jsonb_agg(jsonb_build_object(
-                                            'id', qo.id,
-                                            'content', qo.content,
-                                            'isCorrect', qo.is_correct
-                                        ))
-                                        FROM question_options qo
-                                        WHERE qo.question_id = q.id
-                                    ), '[]'::jsonb)
-                                )
-                                FROM question_sections qs
-                                JOIN questions q ON q.id = qs.question_id
-                                WHERE qs.section_id = s.id
-                            )
-                        END,
-                        'sectionProgress', jsonb_build_object(
-                            'startedAt', usp.started_at,
-                            'completedAt', usp.completed_at,
-                            'hasSeen', usp.has_seen,
-                            'seenAt', usp.seen_at
-                        )
+                        'content', sc.content,
+                        'sectionProgress', sp.progress
                     )
+                    ORDER BY s.position
                 )
                 FROM sections s
-                LEFT JOIN user_section_progress usp ON usp.section_id = s.id AND usp.user_id = @user_id::int
+                LEFT JOIN section_content sc ON sc.section_id = s.id
+                LEFT JOIN section_progress sp ON sp.section_id = s.id
                 WHERE s.module_id = m.id
             ), '[]'::jsonb)
         )

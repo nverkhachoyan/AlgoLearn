@@ -263,16 +263,16 @@ func (h *courseHandler) getCoursesProgressSummary(c *gin.Context) {
 }
 
 func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
+	// Public routes
 	courses := r.Group("/courses")
-	{
-		// Public routes
-		courses.GET("", h.GetCourses)
-		courses.GET("/:courseId", h.GetCourse)
+	courses.GET("", h.GetCourses)
+	courses.GET("/:courseId", h.GetCourse)
 
-		// Protected routes
-		authorized := courses.Group("", middleware.Auth())
-		{
-			authorized.DELETE("/:courseId", h.DeleteCourse)
-		}
-	}
+	// Protected routes (require authentication)
+	authorized := courses.Group("", middleware.Auth())
+	// authorized.POST("", h.CreateCourse)
+	// authorized.PUT("/:courseId", h.UpdateCourse)
+	authorized.DELETE("/:courseId", h.DeleteCourse)
+	// authorized.POST("/:courseId/progress", h.UpdateCourseProgress)
+	// authorized.GET("/:courseId/progress", h.GetCourseProgress)
 }

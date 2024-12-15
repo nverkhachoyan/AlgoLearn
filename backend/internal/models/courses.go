@@ -52,13 +52,13 @@ type Unit struct {
 
 type Module struct {
 	BaseModel
-	ModuleNumber int16     `json:"moduleNumber"`
-	ModuleUnitID int64     `json:"moduleUnitId"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Progress     float32   `json:"progress"`
-	Status       string    `json:"status"`
-	Sections     []Section `json:"sections"`
+	ModuleNumber int16              `json:"moduleNumber"`
+	ModuleUnitID int64              `json:"moduleUnitId"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
+	Progress     float32            `json:"progress"`
+	Status       string             `json:"status"`
+	Sections     []SectionInterface `json:"sections"`
 }
 
 func (m *Module) UnmarshalJSON(data []byte) error {
@@ -80,7 +80,7 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 	m.Name = temp.Name
 	m.Description = temp.Description
 
-	m.Sections = make([]Section, 0, len(temp.Sections))
+	m.Sections = make([]SectionInterface, 0, len(temp.Sections))
 	for _, rawSection := range temp.Sections {
 		var baseSection struct {
 			Type string `json:"type"`
@@ -89,26 +89,26 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("failed to unmarshal section type: %w", err)
 		}
 
-		var section Section
+		var section SectionInterface
 		switch baseSection.Type {
 		case "text":
 			var s TextSection
 			if err := json.Unmarshal(rawSection, &s); err != nil {
 				return fmt.Errorf("failed to unmarshal text section: %w", err)
 			}
-			section = s
+			section = &s
 		case "video":
 			var s VideoSection
 			if err := json.Unmarshal(rawSection, &s); err != nil {
 				return fmt.Errorf("failed to unmarshal video section: %w", err)
 			}
-			section = s
+			section = &s
 		case "question":
 			var s QuestionSection
 			if err := json.Unmarshal(rawSection, &s); err != nil {
 				return fmt.Errorf("failed to unmarshal question section: %w", err)
 			}
-			section = s
+			section = &s
 		default:
 			return fmt.Errorf("unknown section type: %s", baseSection.Type)
 		}
@@ -122,143 +122,146 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 func (m *Module) Validate() error {
 	positions := make(map[int16]bool)
 	for _, section := range m.Sections {
-		bs, ok := section.(interface{ GetBaseSection() BaseSection })
-		if !ok {
-			return errors.New("invalid section")
-		}
-
-		baseSection := bs.GetBaseSection()
-		if baseSection.Position < 0 {
+		position := section.GetPosition()
+		if position < 0 {
 			return errors.New("section position must be positive")
 		}
 
-		if positions[baseSection.Position] {
+		if positions[position] {
 			return errors.New("duplicate position")
 		}
-		positions[baseSection.Position] = true
+		positions[position] = true
 	}
 
 	return nil
 }
 
-type Section interface {
+type SectionInterface interface {
 	GetType() string
 	GetPosition() int16
 	GetModuleID() int64
-	GetBaseSection() BaseSection
 }
 
 type SectionProgress struct {
-	SeenAt      time.Time `json:"seen_at"`
-	StartedAt   time.Time `json:"started_at"`
-	CompletedAt time.Time `json:"completed_at"`
-	HasSeen     bool      `json:"has_seen"`
+	SectionID   int64     `json:"sectionId"`
+	SeenAt      time.Time `json:"seenAt,omitempty"`
+	HasSeen     bool      `json:"hasSeen"`
+	StartedAt   time.Time `json:"startedAt,omitempty"`
+	CompletedAt time.Time `json:"completedAt,omitempty"`
 }
 
-type BaseSection struct {
-	ModuleID int64  `json:"module_id"`
-	Type     string `json:"type"`
-	Position int16  `json:"position"`
-	SectionProgress
+type QuestionProgress struct {
+	QuestionID  int64     `json:"questionId"`
+	OptionID    *int64    `json:"optionId"`
+	HasAnswered bool      `json:"hasAnswered"`
+	IsCorrect   *bool     `json:"isCorrect,omitempty"`
+	AnsweredAt  time.Time `json:"answeredAt"`
 }
 
-func (bs BaseSection) GetModuleID() int64 {
-	return bs.ModuleID
+type BatchModuleProgress struct {
+	UserID    int64              `json:"userId"`
+	ModuleID  int64              `json:"moduleId"`
+	Sections  []SectionProgress  `json:"sections"`
+	Questions []QuestionProgress `json:"questions"`
 }
 
-func (bs BaseSection) GetPosition() int16 {
-	return bs.Position
+type TextContent struct {
+	Text string `json:"text"`
 }
 
-func (bs BaseSection) GetType() string {
-	return bs.Type
+type VideoContent struct {
+	URL string `json:"url"`
+}
+
+type QuestionContent struct {
+	ID                 int64       `json:"id"`
+	Question           string      `json:"question"`
+	Type               string      `json:"type"`
+	Options            []Option    `json:"options"`
+	UserQuestionAnswer *UserAnswer `json:"userQuestionAnswer,omitempty"`
+}
+
+type Option struct {
+	ID        int64  `json:"id"`
+	Content   string `json:"content"`
+	IsCorrect bool   `json:"isCorrect"`
+}
+
+type UserAnswer struct {
+	OptionID   *int64    `json:"optionId"`
+	AnsweredAt time.Time `json:"answeredAt"`
+	IsCorrect  bool      `json:"isCorrect"`
+}
+
+type Section struct {
+	ID              int64            `json:"id"`
+	CreatedAt       time.Time        `json:"createdAt"`
+	UpdatedAt       time.Time        `json:"updatedAt"`
+	Type            string           `json:"type"`
+	Position        int16            `json:"position"`
+	Content         json.RawMessage  `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress,omitempty"`
+}
+
+func (s *Section) UnmarshalJSON(data []byte) error {
+	type TempSection struct {
+		ID              int64            `json:"id"`
+		CreatedAt       time.Time        `json:"createdAt"`
+		UpdatedAt       time.Time        `json:"updatedAt"`
+		Type            string           `json:"type"`
+		Position        int16            `json:"position"`
+		Content         json.RawMessage  `json:"content"`
+		SectionProgress *SectionProgress `json:"sectionProgress"`
+	}
+
+	var temp TempSection
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return fmt.Errorf("failed to unmarshal section: %w", err)
+	}
+
+	s.ID = temp.ID
+	s.CreatedAt = temp.CreatedAt
+	s.UpdatedAt = temp.UpdatedAt
+	s.Type = temp.Type
+	s.Position = temp.Position
+	s.Content = temp.Content
+	s.SectionProgress = temp.SectionProgress
+
+	return nil
 }
 
 type TextSection struct {
 	BaseModel
-	BaseSection
-	Content string `json:"content"`
-}
-
-func (ts TextSection) GetBaseSection() BaseSection {
-	return ts.BaseSection
-}
-
-func (ts TextSection) GetType() string {
-	return ts.Type
-}
-
-func (ts TextSection) GetPosition() int16 {
-	return ts.Position
-}
-
-func (ts TextSection) GetModuleID() int64 {
-	return ts.ModuleID
+	Type            string           `json:"type"`
+	Position        int16            `json:"position"`
+	Content         TextContent      `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress,omitempty"`
 }
 
 type VideoSection struct {
 	BaseModel
-	BaseSection
-	URL          string  `json:"url"`
-	Duration     float32 `json:"duration"`
-	ThumbnailURL string  `json:"thumbnail_url"`
-}
-
-func (vs VideoSection) GetBaseSection() BaseSection {
-	return vs.BaseSection
-}
-
-func (vs VideoSection) GetType() string {
-	return vs.Type
-}
-
-func (vs VideoSection) GetPosition() int16 {
-	return vs.Position
-}
-
-func (vs VideoSection) GetModuleID() int64 {
-	return vs.ModuleID
+	Type            string           `json:"type"`
+	Position        int16            `json:"position"`
+	Content         VideoContent     `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
 type QuestionSection struct {
 	BaseModel
-	BaseSection
-	Question Question `json:"question"`
+	Type            string           `json:"type"`
+	Position        int16            `json:"position"`
+	Content         QuestionContent  `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
-func (qs QuestionSection) GetBaseSection() BaseSection {
-	return qs.BaseSection
-}
+func (ts *TextSection) GetModuleID() int64     { return 0 }
+func (vs *VideoSection) GetModuleID() int64    { return 0 }
+func (qs *QuestionSection) GetModuleID() int64 { return 0 }
 
-func (qs QuestionSection) GetType() string {
-	return qs.Type
-}
+func (ts *TextSection) GetType() string     { return ts.Type }
+func (vs *VideoSection) GetType() string    { return vs.Type }
+func (qs *QuestionSection) GetType() string { return qs.Type }
 
-func (qs QuestionSection) GetPosition() int16 {
-	return qs.Position
-}
-
-func (qs QuestionSection) GetModuleID() int64 {
-	return qs.ModuleID
-}
-
-type Question struct {
-	ID          int64            `json:"id"`
-	Question    string           `json:"question"`
-	Type        string           `json:"type"`
-	Explanation string           `json:"explanation"`
-	Options     []QuestionOption `json:"options"`
-}
-
-type QuestionOption struct {
-	ID        int64  `json:"id"`
-	Content   string `json:"content"`
-	IsCorrect bool   `json:"is_correct"`
-}
-
-type BatchModuleProgress struct {
-	UserID    int64                `json:"userId"`
-	ModuleID  int64                `json:"moduleId"`
-	Sections  []SectionProgress    `json:"sections"`
-	Questions []UserQuestionAnswer `json:"questions"`
-}
+func (ts *TextSection) GetPosition() int16     { return ts.Position }
+func (vs *VideoSection) GetPosition() int16    { return vs.Position }
+func (qs *QuestionSection) GetPosition() int16 { return qs.Position }

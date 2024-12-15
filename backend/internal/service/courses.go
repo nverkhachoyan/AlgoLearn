@@ -57,13 +57,6 @@ func nullFloat64ToFloat32(n sql.NullFloat64) float32 {
 	return 0
 }
 
-func nullBoolToBool(n sql.NullBool) bool {
-	if n.Valid {
-		return n.Bool
-	}
-	return false
-}
-
 // SectionContent holds all possible section content fields
 type sectionContent struct {
 	// Text section
@@ -431,28 +424,36 @@ func (r *courseService) GetCourseProgressSummary(ctx context.Context, userID int
 				Progress:     float32(module.Progress.Float64),
 				Status:       string(module.Status.ModuleProgressStatus),
 			}
+
+			// Get sections with progress for each module
+			sections, err := r.queries.GetModuleSectionsWithProgress(ctx, gen.GetModuleSectionsWithProgressParams{
+				UserID:   int32(userID),
+				ModuleID: module.ID,
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to get module sections")
+				return nil, fmt.Errorf("failed to get module sections: %w", err)
+			}
+
+			course.Units[i].Modules[j].Sections = make([]models.SectionInterface, len(sections))
+			for k, section := range sections {
+				sectionWithContent, err := r.getSectionContent(ctx, section)
+				if err != nil {
+					log.WithError(err).Error("failed to get section content")
+					return nil, fmt.Errorf("failed to get section content: %w", err)
+				}
+				course.Units[i].Modules[j].Sections[k] = sectionWithContent
+			}
 		}
 	}
 
 	return course, nil
 }
 
-func (r *courseService) getSectionContent(ctx context.Context, section gen.GetModuleSectionsWithProgressRow) (models.Section, error) {
+func (r *courseService) getSectionContent(ctx context.Context, section gen.GetModuleSectionsWithProgressRow) (models.SectionInterface, error) {
 	log := logger.Get().WithBaseFields(logger.Service, "getSectionContent")
 
-	baseSection := models.BaseSection{
-		ModuleID: int64(section.ModuleID),
-		Type:     section.Type,
-		Position: int16(section.Position),
-		SectionProgress: models.SectionProgress{
-			SeenAt:      section.SeenAt.Time,
-			StartedAt:   section.StartedAt.Time,
-			CompletedAt: section.CompletedAt.Time,
-			HasSeen:     section.HasSeen.Bool,
-		},
-	}
-
-	var result models.Section
+	var result models.SectionInterface
 	var content sectionContent
 
 	switch section.Type {
@@ -469,8 +470,18 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			BaseSection: baseSection,
-			Content:     content.TextContent,
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.TextContent{
+				Text: textContent,
+			},
+			SectionProgress: &models.SectionProgress{
+				SectionID:   int64(section.ID),
+				SeenAt:      section.SeenAt.Time,
+				HasSeen:     section.HasSeen.Bool,
+				StartedAt:   section.StartedAt.Time,
+				CompletedAt: section.CompletedAt.Time,
+			},
 		}
 
 	case "video":
@@ -485,8 +496,18 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			BaseSection: baseSection,
-			URL:         url,
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.VideoContent{
+				URL: url,
+			},
+			SectionProgress: &models.SectionProgress{
+				SectionID:   int64(section.ID),
+				SeenAt:      section.SeenAt.Time,
+				HasSeen:     section.HasSeen.Bool,
+				StartedAt:   section.StartedAt.Time,
+				CompletedAt: section.CompletedAt.Time,
+			},
 		}
 
 	case "question":
@@ -496,7 +517,7 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			return nil, fmt.Errorf("failed to get question section content: %w", err)
 		}
 
-		var options []models.QuestionOption
+		var options []models.Option
 		optionsBytes, ok := questionContent.QuestionOptions.([]byte)
 		if !ok {
 			return nil, fmt.Errorf("failed to convert question options to bytes")
@@ -512,12 +533,20 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			BaseSection: baseSection,
-			Question: models.Question{
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.QuestionContent{
 				ID:       int64(questionContent.ID),
 				Question: questionContent.Question,
 				Type:     questionContent.Type,
 				Options:  options,
+			},
+			SectionProgress: &models.SectionProgress{
+				SectionID:   int64(section.ID),
+				SeenAt:      section.SeenAt.Time,
+				HasSeen:     section.HasSeen.Bool,
+				StartedAt:   section.StartedAt.Time,
+				CompletedAt: section.CompletedAt.Time,
 			},
 		}
 
@@ -528,15 +557,8 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 	return result, nil
 }
 
-func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, section gen.GetModuleSectionsRow) (models.Section, error) {
-
-	baseSection := models.BaseSection{
-		ModuleID: int64(section.ModuleID),
-		Type:     section.Type,
-		Position: int16(section.Position),
-	}
-
-	var result models.Section
+func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, section gen.GetModuleSectionsRow) (models.SectionInterface, error) {
+	var result models.SectionInterface
 
 	switch section.Type {
 	case "text":
@@ -550,8 +572,11 @@ func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, se
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			BaseSection: baseSection,
-			Content:     textContent,
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.TextContent{
+				Text: textContent,
+			},
 		}
 
 	case "video":
@@ -565,8 +590,11 @@ func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, se
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			BaseSection: baseSection,
-			URL:         url,
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.VideoContent{
+				URL: url,
+			},
 		}
 
 	case "question":
@@ -575,7 +603,7 @@ func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, se
 			return nil, fmt.Errorf("failed to get question section content: %w", err)
 		}
 
-		var options []models.QuestionOption
+		var options []models.Option
 		optionsBytes, ok := questionContent.QuestionOptions.([]byte)
 		if !ok {
 			return nil, fmt.Errorf("failed to convert question options to bytes")
@@ -590,8 +618,9 @@ func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, se
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			BaseSection: baseSection,
-			Question: models.Question{
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.QuestionContent{
 				ID:       int64(questionContent.ID),
 				Question: questionContent.Question,
 				Type:     questionContent.Type,
@@ -750,7 +779,7 @@ func (r *courseService) GetCourseProgressFull(ctx context.Context, userID int64,
 				return nil, fmt.Errorf("failed to get module sections: %w", err)
 			}
 
-			course.Units[i].Modules[j].Sections = make([]models.Section, len(sections))
+			course.Units[i].Modules[j].Sections = make([]models.SectionInterface, len(sections))
 			for k, section := range sections {
 				sectionWithContent, err := r.getSectionContent(ctx, section)
 				if err != nil {
@@ -868,7 +897,7 @@ func (r *courseService) GetCourseFull(ctx context.Context, courseID int64) (*mod
 				return nil, fmt.Errorf("failed to get module sections: %w", err)
 			}
 
-			course.Units[i].Modules[j].Sections = make([]models.Section, len(sections))
+			course.Units[i].Modules[j].Sections = make([]models.SectionInterface, len(sections))
 			for k, section := range sections {
 				sectionWithContent, err := r.getSectionContentWithoutProgress(ctx, section)
 				if err != nil {

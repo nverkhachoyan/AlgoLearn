@@ -10,7 +10,7 @@ const apiWithForm = axios.create({
 });
 
 export const fetchUser = async (token: string): Promise<AxiosResponse> => {
-  const response = await api.get("/user", {
+  const response = await api.get("/users/me", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -33,7 +33,7 @@ export const updateUser = async (
 
   try {
     const response: any = await fetch(
-      process.env.EXPO_PUBLIC_BACKEND_URL + "/user",
+      process.env.EXPO_PUBLIC_BACKEND_URL + "/users/me",
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -57,7 +57,7 @@ export const updateUser = async (
 };
 
 export const deleteAccount = async (token: string): Promise<AxiosResponse> => {
-  const response = await api.delete("/user", {
+  const response = await api.delete("/users/me", {
     headers: {
       Authorization: `Bearer ${token}`,
     },

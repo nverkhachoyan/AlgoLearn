@@ -43,17 +43,17 @@ type CreateUserParams struct {
 	Username          string         `json:"username"`
 	Email             string         `json:"email"`
 	Role              UserRole       `json:"role"`
-	PasswordHash      string         `json:"password_hash"`
-	OauthID           sql.NullString `json:"oauth_id"`
-	FirstName         sql.NullString `json:"first_name"`
-	LastName          sql.NullString `json:"last_name"`
-	ProfilePictureUrl sql.NullString `json:"profile_picture_url"`
+	PasswordHash      string         `json:"passwordHash"`
+	OauthID           sql.NullString `json:"oauthId"`
+	FirstName         sql.NullString `json:"firstName"`
+	LastName          sql.NullString `json:"lastName"`
+	ProfilePictureUrl sql.NullString `json:"profilePictureUrl"`
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.queryRow(ctx, q.createUserStmt, createUser,
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Username,
 		arg.Email,
 		arg.Role,
@@ -93,7 +93,7 @@ DELETE FROM users WHERE id = $1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.exec(ctx, q.deleteUserStmt, deleteUser, id)
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
 	return err
 }
 
@@ -108,30 +108,30 @@ LIMIT 1
 
 type GetUserByEmailRow struct {
 	ID                int32          `json:"id"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
 	Username          string         `json:"username"`
 	Email             string         `json:"email"`
-	OauthID           sql.NullString `json:"oauth_id"`
+	OauthID           sql.NullString `json:"oauthId"`
 	Role              UserRole       `json:"role"`
-	PasswordHash      string         `json:"password_hash"`
-	FirstName         sql.NullString `json:"first_name"`
-	LastName          sql.NullString `json:"last_name"`
-	ProfilePictureUrl sql.NullString `json:"profile_picture_url"`
-	LastLoginAt       sql.NullTime   `json:"last_login_at"`
-	IsActive          bool           `json:"is_active"`
-	IsEmailVerified   bool           `json:"is_email_verified"`
+	PasswordHash      string         `json:"passwordHash"`
+	FirstName         sql.NullString `json:"firstName"`
+	LastName          sql.NullString `json:"lastName"`
+	ProfilePictureUrl sql.NullString `json:"profilePictureUrl"`
+	LastLoginAt       sql.NullTime   `json:"lastLoginAt"`
+	IsActive          bool           `json:"isActive"`
+	IsEmailVerified   bool           `json:"isEmailVerified"`
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 	Cpus              int32          `json:"cpus"`
-	UserID            sql.NullInt32  `json:"user_id"`
+	UserID            sql.NullInt32  `json:"userId"`
 	Theme             sql.NullString `json:"theme"`
 	Language          sql.NullString `json:"language"`
 	Timezone          sql.NullString `json:"timezone"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
-	row := q.queryRow(ctx, q.getUserByEmailStmt, getUserByEmail, email)
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i GetUserByEmailRow
 	err := row.Scan(
 		&i.ID,
@@ -170,30 +170,30 @@ LIMIT 1
 
 type GetUserByIDRow struct {
 	ID                int32          `json:"id"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
 	Username          string         `json:"username"`
 	Email             string         `json:"email"`
-	OauthID           sql.NullString `json:"oauth_id"`
+	OauthID           sql.NullString `json:"oauthId"`
 	Role              UserRole       `json:"role"`
-	PasswordHash      string         `json:"password_hash"`
-	FirstName         sql.NullString `json:"first_name"`
-	LastName          sql.NullString `json:"last_name"`
-	ProfilePictureUrl sql.NullString `json:"profile_picture_url"`
-	LastLoginAt       sql.NullTime   `json:"last_login_at"`
-	IsActive          bool           `json:"is_active"`
-	IsEmailVerified   bool           `json:"is_email_verified"`
+	PasswordHash      string         `json:"passwordHash"`
+	FirstName         sql.NullString `json:"firstName"`
+	LastName          sql.NullString `json:"lastName"`
+	ProfilePictureUrl sql.NullString `json:"profilePictureUrl"`
+	LastLoginAt       sql.NullTime   `json:"lastLoginAt"`
+	IsActive          bool           `json:"isActive"`
+	IsEmailVerified   bool           `json:"isEmailVerified"`
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 	Cpus              int32          `json:"cpus"`
-	UserID            sql.NullInt32  `json:"user_id"`
+	UserID            sql.NullInt32  `json:"userId"`
 	Theme             sql.NullString `json:"theme"`
 	Language          sql.NullString `json:"language"`
 	Timezone          sql.NullString `json:"timezone"`
 }
 
 func (q *Queries) GetUserByID(ctx context.Context, id int32) (GetUserByIDRow, error) {
-	row := q.queryRow(ctx, q.getUserByIDStmt, getUserByID, id)
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
@@ -233,14 +233,14 @@ VALUES ($1, $2, $3, $4) RETURNING user_id, theme, language, timezone
 `
 
 type InsertUserPreferencesParams struct {
-	UserID   int32  `json:"user_id"`
+	UserID   int32  `json:"userId"`
 	Theme    string `json:"theme"`
 	Language string `json:"language"`
 	Timezone string `json:"timezone"`
 }
 
 func (q *Queries) InsertUserPreferences(ctx context.Context, arg InsertUserPreferencesParams) (UserPreference, error) {
-	row := q.queryRow(ctx, q.insertUserPreferencesStmt, insertUserPreferences,
+	row := q.db.QueryRowContext(ctx, insertUserPreferences,
 		arg.UserID,
 		arg.Theme,
 		arg.Language,
@@ -274,16 +274,16 @@ RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_
 type UpdateUserParams struct {
 	Username          string `json:"username"`
 	Email             string `json:"email"`
-	FirstName         string `json:"first_name"`
-	LastName          string `json:"last_name"`
-	ProfilePictureUrl string `json:"profile_picture_url"`
+	FirstName         string `json:"firstName"`
+	LastName          string `json:"lastName"`
+	ProfilePictureUrl string `json:"profilePictureUrl"`
 	Bio               string `json:"bio"`
 	Location          string `json:"location"`
 	ID                int32  `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.queryRow(ctx, q.updateUserStmt, updateUser,
+	row := q.db.QueryRowContext(ctx, updateUser,
 		arg.Username,
 		arg.Email,
 		arg.FirstName,
@@ -330,11 +330,11 @@ type UpdateUserPreferencesParams struct {
 	Theme    string `json:"theme"`
 	Lang     string `json:"lang"`
 	Timezone string `json:"timezone"`
-	UserID   int32  `json:"user_id"`
+	UserID   int32  `json:"userId"`
 }
 
 func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error) {
-	row := q.queryRow(ctx, q.updateUserPreferencesStmt, updateUserPreferences,
+	row := q.db.QueryRowContext(ctx, updateUserPreferences,
 		arg.Theme,
 		arg.Lang,
 		arg.Timezone,

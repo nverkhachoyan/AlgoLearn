@@ -33,7 +33,7 @@ func (e *DifficultyLevel) Scan(src interface{}) error {
 }
 
 type NullDifficultyLevel struct {
-	DifficultyLevel DifficultyLevel `json:"difficulty_level"`
+	DifficultyLevel DifficultyLevel `json:"difficultyLevel"`
 	Valid           bool            `json:"valid"` // Valid is true if DifficultyLevel is not NULL
 }
 
@@ -77,7 +77,7 @@ func (e *ModuleProgressStatus) Scan(src interface{}) error {
 }
 
 type NullModuleProgressStatus struct {
-	ModuleProgressStatus ModuleProgressStatus `json:"module_progress_status"`
+	ModuleProgressStatus ModuleProgressStatus `json:"moduleProgressStatus"`
 	Valid                bool                 `json:"valid"` // Valid is true if ModuleProgressStatus is not NULL
 }
 
@@ -120,7 +120,7 @@ func (e *UserRole) Scan(src interface{}) error {
 }
 
 type NullUserRole struct {
-	UserRole UserRole `json:"user_role"`
+	UserRole UserRole `json:"userRole"`
 	Valid    bool     `json:"valid"` // Valid is true if UserRole is not NULL
 }
 
@@ -144,8 +144,8 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 
 type Achievement struct {
 	ID          int32     `json:"id"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Points      int32     `json:"points"`
@@ -158,99 +158,99 @@ type Author struct {
 
 type Course struct {
 	ID              int32               `json:"id"`
-	CreatedAt       time.Time           `json:"created_at"`
-	UpdatedAt       time.Time           `json:"updated_at"`
+	CreatedAt       time.Time           `json:"createdAt"`
+	UpdatedAt       time.Time           `json:"updatedAt"`
 	Name            string              `json:"name"`
 	Description     string              `json:"description"`
 	Requirements    sql.NullString      `json:"requirements"`
-	WhatYouLearn    sql.NullString      `json:"what_you_learn"`
-	BackgroundColor sql.NullString      `json:"background_color"`
-	IconUrl         sql.NullString      `json:"icon_url"`
+	WhatYouLearn    sql.NullString      `json:"whatYouLearn"`
+	BackgroundColor sql.NullString      `json:"backgroundColor"`
+	IconUrl         sql.NullString      `json:"iconUrl"`
 	Duration        sql.NullInt32       `json:"duration"`
-	DifficultyLevel NullDifficultyLevel `json:"difficulty_level"`
+	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
 	Rating          sql.NullFloat64     `json:"rating"`
 }
 
 type CourseAuthor struct {
-	CourseID int32 `json:"course_id"`
-	AuthorID int32 `json:"author_id"`
+	CourseID int32 `json:"courseId"`
+	AuthorID int32 `json:"authorId"`
 }
 
 type CourseTag struct {
-	CourseID int32 `json:"course_id"`
-	TagID    int32 `json:"tag_id"`
+	CourseID int32 `json:"courseId"`
+	TagID    int32 `json:"tagId"`
 }
 
 type Module struct {
 	ID           int32     `json:"id"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	ModuleNumber int32     `json:"module_number"`
-	UnitID       int32     `json:"unit_id"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	ModuleNumber int32     `json:"moduleNumber"`
+	UnitID       int32     `json:"unitId"`
 	Name         string    `json:"name"`
 	Description  string    `json:"description"`
 }
 
 type ModuleQuestion struct {
 	ID         int32 `json:"id"`
-	ModuleID   int32 `json:"module_id"`
-	QuestionID int32 `json:"question_id"`
+	ModuleID   int32 `json:"moduleId"`
+	QuestionID int32 `json:"questionId"`
 	Position   int32 `json:"position"`
 }
 
 type Notification struct {
 	ID        int32     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	UserID    int32     `json:"user_id"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	UserID    int32     `json:"userId"`
 	Content   string    `json:"content"`
 	Read      bool      `json:"read"`
 }
 
 type Question struct {
 	ID              int32               `json:"id"`
-	CreatedAt       time.Time           `json:"created_at"`
-	UpdatedAt       time.Time           `json:"updated_at"`
+	CreatedAt       time.Time           `json:"createdAt"`
+	UpdatedAt       time.Time           `json:"updatedAt"`
 	Type            string              `json:"type"`
 	Question        string              `json:"question"`
-	DifficultyLevel NullDifficultyLevel `json:"difficulty_level"`
+	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
 }
 
 type QuestionOption struct {
 	ID         int32  `json:"id"`
-	QuestionID int32  `json:"question_id"`
+	QuestionID int32  `json:"questionId"`
 	Content    string `json:"content"`
-	IsCorrect  bool   `json:"is_correct"`
+	IsCorrect  bool   `json:"isCorrect"`
 }
 
 type QuestionSection struct {
-	SectionID  int32 `json:"section_id"`
-	QuestionID int32 `json:"question_id"`
+	SectionID  int32 `json:"sectionId"`
+	QuestionID int32 `json:"questionId"`
 }
 
 type QuestionTag struct {
-	QuestionID int32 `json:"question_id"`
-	TagID      int32 `json:"tag_id"`
+	QuestionID int32 `json:"questionId"`
+	TagID      int32 `json:"tagId"`
 }
 
 type Section struct {
 	ID        int32     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	ModuleID  int32     `json:"module_id"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	ModuleID  int32     `json:"moduleId"`
 	Type      string    `json:"type"`
 	Position  int32     `json:"position"`
 }
 
 type Streak struct {
 	ID            int32        `json:"id"`
-	CreatedAt     time.Time    `json:"created_at"`
-	UpdatedAt     time.Time    `json:"updated_at"`
-	UserID        int32        `json:"user_id"`
-	StartDate     time.Time    `json:"start_date"`
-	EndDate       sql.NullTime `json:"end_date"`
-	CurrentStreak int32        `json:"current_streak"`
-	LongestStreak int32        `json:"longest_streak"`
+	CreatedAt     time.Time    `json:"createdAt"`
+	UpdatedAt     time.Time    `json:"updatedAt"`
+	UserID        int32        `json:"userId"`
+	StartDate     time.Time    `json:"startDate"`
+	EndDate       sql.NullTime `json:"endDate"`
+	CurrentStreak int32        `json:"currentStreak"`
+	LongestStreak int32        `json:"longestStreak"`
 }
 
 type Tag struct {
@@ -259,35 +259,35 @@ type Tag struct {
 }
 
 type TextSection struct {
-	SectionID   int32  `json:"section_id"`
-	TextContent string `json:"text_content"`
+	SectionID   int32  `json:"sectionId"`
+	TextContent string `json:"textContent"`
 }
 
 type Unit struct {
 	ID          int32     `json:"id"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	UnitNumber  int32     `json:"unit_number"`
-	CourseID    int32     `json:"course_id"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	UnitNumber  int32     `json:"unitNumber"`
+	CourseID    int32     `json:"courseId"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }
 
 type User struct {
 	ID                int32          `json:"id"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
 	Username          string         `json:"username"`
 	Email             string         `json:"email"`
-	OauthID           sql.NullString `json:"oauth_id"`
+	OauthID           sql.NullString `json:"oauthId"`
 	Role              UserRole       `json:"role"`
-	PasswordHash      string         `json:"password_hash"`
-	FirstName         sql.NullString `json:"first_name"`
-	LastName          sql.NullString `json:"last_name"`
-	ProfilePictureUrl sql.NullString `json:"profile_picture_url"`
-	LastLoginAt       sql.NullTime   `json:"last_login_at"`
-	IsActive          bool           `json:"is_active"`
-	IsEmailVerified   bool           `json:"is_email_verified"`
+	PasswordHash      string         `json:"passwordHash"`
+	FirstName         sql.NullString `json:"firstName"`
+	LastName          sql.NullString `json:"lastName"`
+	ProfilePictureUrl sql.NullString `json:"profilePictureUrl"`
+	LastLoginAt       sql.NullTime   `json:"lastLoginAt"`
+	IsActive          bool           `json:"isActive"`
+	IsEmailVerified   bool           `json:"isEmailVerified"`
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 	Cpus              int32          `json:"cpus"`
@@ -295,40 +295,40 @@ type User struct {
 
 type UserAchievement struct {
 	ID            int32     `json:"id"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	UserID        int32     `json:"user_id"`
-	AchievementID int32     `json:"achievement_id"`
-	AchievedAt    time.Time `json:"achieved_at"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	UserID        int32     `json:"userId"`
+	AchievementID int32     `json:"achievementId"`
+	AchievedAt    time.Time `json:"achievedAt"`
 }
 
 type UserCourse struct {
 	ID                     int32         `json:"id"`
-	CreatedAt              time.Time     `json:"created_at"`
-	UpdatedAt              time.Time     `json:"updated_at"`
-	UserID                 int32         `json:"user_id"`
-	CourseID               int32         `json:"course_id"`
-	CurrentUnitID          sql.NullInt32 `json:"current_unit_id"`
-	CurrentModuleID        sql.NullInt32 `json:"current_module_id"`
-	LatestModuleProgressID sql.NullInt32 `json:"latest_module_progress_id"`
+	CreatedAt              time.Time     `json:"createdAt"`
+	UpdatedAt              time.Time     `json:"updatedAt"`
+	UserID                 int32         `json:"userId"`
+	CourseID               int32         `json:"courseId"`
+	CurrentUnitID          sql.NullInt32 `json:"currentUnitId"`
+	CurrentModuleID        sql.NullInt32 `json:"currentModuleId"`
+	LatestModuleProgressID sql.NullInt32 `json:"latestModuleProgressId"`
 }
 
 type UserModuleProgress struct {
 	ID               int32                `json:"id"`
-	CreatedAt        time.Time            `json:"created_at"`
-	UpdatedAt        time.Time            `json:"updated_at"`
-	UserID           int32                `json:"user_id"`
-	ModuleID         int32                `json:"module_id"`
-	StartedAt        time.Time            `json:"started_at"`
-	CompletedAt      sql.NullTime         `json:"completed_at"`
+	CreatedAt        time.Time            `json:"createdAt"`
+	UpdatedAt        time.Time            `json:"updatedAt"`
+	UserID           int32                `json:"userId"`
+	ModuleID         int32                `json:"moduleId"`
+	StartedAt        time.Time            `json:"startedAt"`
+	CompletedAt      sql.NullTime         `json:"completedAt"`
 	Progress         float64              `json:"progress"`
-	CurrentSectionID sql.NullInt32        `json:"current_section_id"`
-	LastAccessed     time.Time            `json:"last_accessed"`
+	CurrentSectionID sql.NullInt32        `json:"currentSectionId"`
+	LastAccessed     time.Time            `json:"lastAccessed"`
 	Status           ModuleProgressStatus `json:"status"`
 }
 
 type UserPreference struct {
-	UserID   int32  `json:"user_id"`
+	UserID   int32  `json:"userId"`
 	Theme    string `json:"theme"`
 	Language string `json:"language"`
 	Timezone string `json:"timezone"`
@@ -336,27 +336,27 @@ type UserPreference struct {
 
 type UserQuestionAnswer struct {
 	ID                   int32     `json:"id"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
-	UserModuleProgressID int32     `json:"user_module_progress_id"`
-	QuestionID           int32     `json:"question_id"`
-	OptionID             int32     `json:"option_id"`
-	AnsweredAt           time.Time `json:"answered_at"`
-	IsCorrect            bool      `json:"is_correct"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedAt            time.Time `json:"updatedAt"`
+	UserModuleProgressID int32     `json:"userModuleProgressId"`
+	QuestionID           int32     `json:"questionId"`
+	OptionID             int32     `json:"optionId"`
+	AnsweredAt           time.Time `json:"answeredAt"`
+	IsCorrect            bool      `json:"isCorrect"`
 }
 
 type UserSectionProgress struct {
 	ID          int32        `json:"id"`
-	UserID      int32        `json:"user_id"`
-	ModuleID    int32        `json:"module_id"`
-	SectionID   int32        `json:"section_id"`
-	StartedAt   time.Time    `json:"started_at"`
-	CompletedAt sql.NullTime `json:"completed_at"`
-	HasSeen     bool         `json:"has_seen"`
-	SeenAt      sql.NullTime `json:"seen_at"`
+	UserID      int32        `json:"userId"`
+	ModuleID    int32        `json:"moduleId"`
+	SectionID   int32        `json:"sectionId"`
+	StartedAt   time.Time    `json:"startedAt"`
+	CompletedAt sql.NullTime `json:"completedAt"`
+	HasSeen     bool         `json:"hasSeen"`
+	SeenAt      sql.NullTime `json:"seenAt"`
 }
 
 type VideoSection struct {
-	SectionID int32  `json:"section_id"`
+	SectionID int32  `json:"sectionId"`
 	Url       string `json:"url"`
 }

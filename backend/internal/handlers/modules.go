@@ -66,7 +66,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	ctx := c.Request.Context()
 	params := c.Params
 
-	unitID, err := strconv.ParseInt(params.ByName("unit_id"), 10, 64)
+	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
@@ -76,7 +76,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 		return
 	}
 
-	moduleID, err := strconv.ParseInt(params.ByName("module_id"), 10, 64)
+	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
 	log.WithField("module_id", moduleID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
@@ -87,7 +87,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 		return
 	}
 
-	modulePayload, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
+	module, _, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not found")
 		c.JSON(http.StatusNotFound, models.Response{
@@ -109,7 +109,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "module retrieved successfully",
-		Data:    modulePayload,
+		Data:    module,
 	})
 }
 
@@ -128,7 +128,7 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	}
 
 	params := c.Params
-	unitID, unitIDerr := strconv.ParseInt(params.ByName("unit_id"), 10, 64)
+	unitID, unitIDerr := strconv.ParseInt(params.ByName("unitId"), 10, 64)
 	if unitIDerr != nil {
 		log.Debug("incorrect unit ID format in the route")
 		c.JSON(http.StatusBadRequest, models.Response{
@@ -170,10 +170,10 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 		return
 	}
 
-	// Setting course and unit IDs we got earlier from the route
 	module.ModuleUnitID = unitID
 
-	if err := h.moduleRepo.CreateModule(ctx, int32(userID.(int64)), &module); err != nil {
+	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, module.Name, module.Description)
+	if err != nil {
 		log.Printf("Error creating module: %v", err)
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
@@ -186,7 +186,7 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	c.JSON(http.StatusCreated, models.Response{
 		Success: true,
 		Message: "Module created successfully",
-		Data:    module,
+		Data:    createdModule,
 	})
 }
 
@@ -215,8 +215,7 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	}
 
 	params := c.Params
-	unitID, err := strconv.ParseInt(params.ByName("unit_id"), 10, 64)
-	moduleID, err := strconv.ParseInt(params.ByName("module_id"), 10, 64)
+	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
 	if err != nil {
 		log.Debug("invalid module ID format in the route")
 		c.JSON(http.StatusBadRequest, models.Response{
@@ -236,20 +235,9 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 		})
 		return
 	}
-	module.ID = moduleID
 
-	_, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
+	updatedModule, err := h.moduleRepo.UpdateModule(ctx, moduleID, module.Name, module.Description)
 	if err != nil {
-		log.Printf("error fetching module %d: %v", moduleID, err)
-		c.JSON(http.StatusNotFound, models.Response{
-			Success:   false,
-			Message:   "Module not found",
-			ErrorCode: codes.NoData,
-		})
-		return
-	}
-
-	if err := h.moduleRepo.UpdateModule(ctx, &module); err != nil {
 		log.Printf("error updating module %d: %v", moduleID, err)
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
@@ -262,7 +250,7 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "module updated successfully",
-		Data:    module,
+		Data:    updatedModule,
 	})
 }
 
@@ -281,8 +269,8 @@ func (h *moduleHandler) DeleteModule(c *gin.Context) {
 	}
 
 	params := c.Params
-	unitID, err := strconv.ParseInt(params.ByName("unit_id"), 10, 64)
-	moduleID, err := strconv.ParseInt(params.ByName("module_id"), 10, 64)
+	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
+	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
 	log.WithField("module_id", moduleID)
 	if err != nil {
 		log.WithError(err).Debug("invalid module ID format in the route")
@@ -305,7 +293,7 @@ func (h *moduleHandler) DeleteModule(c *gin.Context) {
 		return
 	}
 
-	_, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
+	_, _, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not fout")
 		c.JSON(http.StatusNotFound, models.Response{
@@ -366,7 +354,7 @@ func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
 		return
 	}
 
-	unitID, err := strconv.ParseInt(params.ByName("unit_id"), 10, 64)
+	_, err = strconv.ParseInt(params.ByName("unitId"), 10, 64)
 	if err != nil {
 		log.WithError(err).Errorf("invalid unit_id query parameter")
 		c.JSON(http.StatusBadRequest, models.Response{
@@ -377,7 +365,7 @@ func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
 		return
 	}
 
-	moduleID, err := strconv.ParseInt(params.ByName("module_id"), 10, 64)
+	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
 	if err != nil {
 		log.WithError(err).Errorf("invalid module_id query parameter")
 		c.JSON(http.StatusBadRequest, models.Response{
@@ -409,7 +397,7 @@ func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
 		return
 	}
 
-	err = h.moduleRepo.UpdateModuleProgress(ctx, int32(userID), unitID, moduleID, &batch)
+	err = h.moduleRepo.SaveModuleProgress(ctx, userID, moduleID, batch.Sections, batch.Questions)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Errorf("resource not found")
 		c.JSON(http.StatusBadRequest, models.Response{
@@ -440,7 +428,7 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 	params := c.Params
 	query := c.Request.URL.Query()
 
-	unitID, err := strconv.ParseInt(params.ByName("unit_id"), 10, 64)
+	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
@@ -480,13 +468,24 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 		return
 	}
 
-	totalCount, modules, err := h.moduleRepo.GetModulesWithProgress(ctx, page, pageSize, int32(userID), unitID)
+	modules, err := h.moduleRepo.GetModulesWithProgress(ctx, userID, unitID, int(page), int(pageSize))
 	if err != nil {
 		log.WithError(err).Error("error fetching modules")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
 			ErrorCode: codes.DatabaseFail,
 			Message:   "could not retrieve modules from the database",
+		})
+		return
+	}
+
+	totalCount, err := h.moduleRepo.GetModuleTotalCount(ctx, unitID)
+	if err != nil {
+		log.WithError(err).Error("error fetching total count")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: codes.DatabaseFail,
+			Message:   "could not retrieve total count",
 		})
 		return
 	}
@@ -509,19 +508,17 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 }
 
 func (h *moduleHandler) RegisterRoutes(r *gin.RouterGroup) {
-	basePath := "/courses/{course_id}/units/{unit_id}/modules"
-	public := r.Group(basePath)
-	authorized := r.Group(basePath, middleware.Auth())
+	basePath := "/courses/:courseId/units/:unitId/modules"
 
-	// Progress endpoints
-	progressPath := basePath + "/{module_id}/progress"
-	progress := r.Group(progressPath)
-	progress.POST("", h.UpdateModuleProgress)
+	// Public routes
+	modules := r.Group(basePath)
+	modules.GET("", h.GetModules)
+	modules.GET("/:moduleId", h.GetModule)
 
-	public.GET("", h.GetModules)
-	public.GET("/:module_id", h.GetModule)
-
+	// Protected routes (require authentication)
+	authorized := modules.Group("", middleware.Auth())
 	authorized.POST("", h.CreateModule)
-	authorized.PUT("/:module_id", h.UpdateModule)
-	authorized.DELETE("/:module_id", h.DeleteModule)
+	authorized.PUT("/:moduleId", h.UpdateModule)
+	authorized.DELETE("/:moduleId", h.DeleteModule)
+	authorized.POST("/:moduleId/progress", h.UpdateModuleProgress)
 }

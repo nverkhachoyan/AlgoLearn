@@ -5,6 +5,7 @@ import (
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -51,7 +52,7 @@ func Auth() gin.HandlerFunc {
 				return nil, jwt.ErrSignatureInvalid
 			}
 			// Return the secret key used to sign the token
-			return []byte("your-secret-key"), nil // TODO: Move to config
+			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
 		})
 
 		if err != nil {

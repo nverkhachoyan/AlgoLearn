@@ -108,7 +108,7 @@ func IsAdmin(next http.Handler) http.Handler {
 }
 
 // GetUserID Function to retrieve userID from context
-func GetUserID(ctx context.Context) (int64, bool) {
-	userID, ok := ctx.Value(userContextKey).(int64)
+func GetUserID(ctx context.Context) (int32, bool) {
+	userID, ok := ctx.Value(userContextKey).(int32)
 	return userID, ok
 }

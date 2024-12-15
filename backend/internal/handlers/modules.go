@@ -23,8 +23,8 @@ type ModuleHandler interface {
 	GetModule(w http.ResponseWriter, r *http.Request)
 	GetModuleWithProgress(w http.ResponseWriter, r *http.Request)
 	UpdateModuleProgress(w http.ResponseWriter, r *http.Request)
-	RegisterRoutes(r *router.Router)
 	GetModules(w http.ResponseWriter, r *http.Request)
+	RegisterRoutes(r *router.Router)
 }
 
 type moduleHandler struct {
@@ -356,7 +356,7 @@ func (h *moduleHandler) UpdateModuleProgress(w http.ResponseWriter, r *http.Requ
 	query := r.URL.Query()
 	params := mux.Vars(r)
 
-	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
+    userID, err := strconv.ParseInt(query.Get("userId"), 10, 32)
 	if err != nil {
 		log.WithError(err).Errorf("invalid userIid query parameter")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
@@ -410,7 +410,7 @@ func (h *moduleHandler) UpdateModuleProgress(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = h.moduleRepo.UpdateModuleProgress(ctx, userID, unitID, moduleID, &batch)
+	err = h.moduleRepo.UpdateModuleProgress(ctx, int32(userID), unitID, moduleID, &batch)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Errorf("resource not found")
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
@@ -435,24 +435,6 @@ func (h *moduleHandler) UpdateModuleProgress(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-func (h *moduleHandler) RegisterRoutes(r *router.Router) {
-	basePath := "/courses/{course_id}/units/{unit_id}/modules"
-	public := r.Group(basePath)
-	authorized := r.Group(basePath, middleware.Auth)
-
-	// Progress endpoints
-	progressPath := basePath + "/{module_id}/progress"
-	progress := r.Group(progressPath)
-	progress.Handle("", h.UpdateModuleProgress, "POST")
-
-	public.Handle("", h.GetModules, "GET")
-	public.Handle("/{module_id}", h.GetModule, "GET")
-
-	authorized.Handle("", h.CreateModule, "POST")
-	authorized.Handle("/{module_id}", h.UpdateModule, "PUT")
-	authorized.Handle("/{module_id}", h.DeleteModule, "DELETE")
-}
-
 func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 	log := logger.Get().WithBaseFields(logger.Handler, "GetModules")
 	ctx := r.Context()
@@ -469,7 +451,7 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := strconv.ParseInt(query.Get("userId"), 10, 64)
+	userID, err := strconv.ParseInt(query.Get("userId"), 10, 32)
 	if err != nil {
 		RespondWithJSON(w, http.StatusBadRequest, models.Response{
 			Success:   false,
@@ -499,7 +481,7 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalCount, modules, err := h.moduleRepo.GetModulesWithProgress(ctx, page, pageSize, userID, unitID)
+	totalCount, modules, err := h.moduleRepo.GetModulesWithProgress(ctx, page, pageSize, int32(userID), unitID)
 	if err != nil {
 		log.WithError(err).Error("error fetching modules")
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
@@ -525,4 +507,22 @@ func (h *moduleHandler) GetModules(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	})
+}
+
+func (h *moduleHandler) RegisterRoutes(r *router.Router) {
+	basePath := "/courses/{course_id}/units/{unit_id}/modules"
+	public := r.Group(basePath)
+	authorized := r.Group(basePath, middleware.Auth)
+
+	// Progress endpoints
+	progressPath := basePath + "/{module_id}/progress"
+	progress := r.Group(progressPath)
+	progress.Handle("", h.UpdateModuleProgress, "POST")
+
+	public.Handle("", h.GetModules, "GET")
+	public.Handle("/{module_id}", h.GetModule, "GET")
+
+	authorized.Handle("", h.CreateModule, "POST")
+	authorized.Handle("/{module_id}", h.UpdateModule, "PUT")
+	authorized.Handle("/{module_id}", h.DeleteModule, "DELETE")
 }

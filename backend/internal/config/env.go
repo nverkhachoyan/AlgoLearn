@@ -82,7 +82,7 @@ func LoadConfig() (*Config, error) {
 
 	// App Config
 	cfg.App = AppConfig{
-		Environment: getEnvOrDefault("ENVIRONMENT", "development"),
+		Environment: "development",
 		LogLevel:    getEnvOrDefault("LOG_LEVEL", "INFO"),
 		Port:        getEnvAsIntOrDefault("PORT", 8080),
 	}

@@ -9,51 +9,30 @@ import (
 	"algolearn/internal/services"
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
+	"context"
 
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 )
 
 type UserHandler interface {
 	CheckEmailExists(w http.ResponseWriter, r *http.Request)
 	RegisterUser(w http.ResponseWriter, r *http.Request)
 	LoginUser(w http.ResponseWriter, r *http.Request)
-	UpdateUser(w http.ResponseWriter, r *http.Request)
+	// UpdateUser(w http.ResponseWriter, r *http.Request)
 	GetUser(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
-	GetAllUserAchievements(w http.ResponseWriter, r *http.Request)
-	GetUserAchievementByID(w http.ResponseWriter, r *http.Request)
-	CreateUserAchievement(w http.ResponseWriter, r *http.Request)
-	DeleteUserAchievement(w http.ResponseWriter, r *http.Request)
-	GetAllStreaks(w http.ResponseWriter, r *http.Request)
-	CreateUserModuleProgress(w http.ResponseWriter, r *http.Request)
-	UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request)
-	DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request)
 	RegisterRoutes(r *router.Router)
 }
-
-// GetAllUsers(w http.ResponseWriter, r *http.Request)
-// ChangeUserPassword(w http.ResponseWriter, r *http.Request) TODO: implement
-// GetUserAchievementsByUserID(w http.ResponseWriter, r *http.Request)
-// UpdateUserAchievement(w http.ResponseWriter, r *http.Request)
-// GetStreaksByUserID(w http.ResponseWriter, r *http.Request)
-// GetStreakByID(w http.ResponseWriter, r *http.Request)
-// CreateStreak(w http.ResponseWriter, r *http.Request)
-// UpdateStreak(w http.ResponseWriter, r *http.Request)
-// DeleteStreak(w http.ResponseWriter, r *http.Request)
-// GetUserModuleProgressByUserID(w http.ResponseWriter, r *http.Request)
-// GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request)
 
 type userHandler struct {
 	repo repository.UserRepository
@@ -120,6 +99,7 @@ func (h *userHandler) CheckEmailExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	log := logger.Get()
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -140,10 +120,13 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user with email already exists
-	userByEmail, _ := h.repo.GetUserByEmail(req.Email)
+	emailExists, _ := h.repo.CheckEmailExists(ctx, req.Email)
 
-	if userByEmail != nil {
-		RespondWithJSON(w, http.StatusAccepted, models.Response{Success: false, ErrorCode: errors.AccountExists, Message: "an account with this email already exists"})
+	if emailExists {
+		RespondWithJSON(w, http.StatusAccepted, models.Response{
+			Success:   false,
+			ErrorCode: errors.AccountExists,
+			Message:   "an account with this email already exists"})
 		return
 	}
 
@@ -160,10 +143,8 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &models.User{
-		BaseModel: models.BaseModel{
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 		Username:        req.Username,
 		Email:           req.Email,
 		PasswordHash:    hashedPassword,
@@ -171,10 +152,10 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		IsActive:        true,
 		IsEmailVerified: false,
 		CPUs:            0,
-		Preferences:     `{}`,
 	}
 
-	if err := h.repo.CreateUser(user); err != nil {
+	newUser, err := h.repo.CreateUser(user)
+	if err != nil {
 		log.Printf("Error creating user: %v", err)
 		RespondWithJSON(w, http.StatusInternalServerError, models.Response{
 			Success:   false,
@@ -199,7 +180,7 @@ func (h *userHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	response := models.Response{
 		Success: true,
 		Message: "User created successfully",
-		Data:    map[string]interface{}{"token": token},
+		Data:    map[string]interface{}{"token": token, "user": newUser},
 	}
 
 	RespondWithJSON(w, http.StatusCreated, response)
@@ -213,7 +194,7 @@ func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.repo.GetUserByEmail(req.Email)
+	user, err := h.repo.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
 		log.Printf("Login failed for user %s: %v", req.Email, err)
 		RespondWithJSON(w, http.StatusUnauthorized,
@@ -248,13 +229,13 @@ func (h *userHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	response := models.Response{
 		Success: true,
 		Message: "Logged in successfully",
-		Data:    map[string]interface{}{"token": token},
+		Data:    map[string]interface{}{"token": token, "user": user},
 	}
 
 	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int64) (string, error) {
+func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int32) (string, error) {
 	objectKey := "users/" + string(userID) + "/public/avatars/" + uuid.New().String()
 
 	putObjectInput := &s3.PutObjectInput{
@@ -299,6 +280,8 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := claims.UserID
+
+	fmt.Printf("User ID: %d\n", userID)
 
 	// Parsing multipart form data
 	err = r.ParseMultipartForm(10 << 20) // 10 MB
@@ -360,11 +343,10 @@ func (h *userHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			models.Response{
 				Success:   false,
 				ErrorCode: errors.DatabaseFail,
-				Message:   "Failed to update the user table in the database, likely issue with repository function, or database is down",
+				Message:   fmt.Sprintf("failed to update user: %s", err.Error()),
 			})
 		return
 	}
-
 	newUserData, err := h.repo.GetUserByID(userID)
 
 	if err != nil {
@@ -429,248 +411,6 @@ func (h *userHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User deleted successfully"})
 }
 
-// *** USER ACHIEVEMENTS HANDLERS ***
-
-func (h *userHandler) GetAllUserAchievements(w http.ResponseWriter, _ *http.Request) {
-	userAchievements, err := h.repo.GetAllUserAchievements()
-	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Internal server error"})
-		return
-	}
-
-	response := models.Response{
-		Success: true,
-		Message: "User achievements retrieved successfully",
-		Data:    map[string]interface{}{"user_achievements": userAchievements},
-	}
-
-	RespondWithJSON(w, http.StatusOK, response)
-}
-
-func (h *userHandler) GetUserAchievementByID(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid user achievement ID"})
-		return
-	}
-
-	userAchievement, err := h.repo.GetUserAchievementByID(id)
-	if err != nil {
-		RespondWithJSON(w, http.StatusNotFound, models.Response{Success: false, Message: "User achievement not found"})
-		return
-	}
-
-	response := models.Response{
-		Success: true,
-		Message: "User achievement retrieved successfully",
-		Data:    map[string]interface{}{"user_achievement": userAchievement},
-	}
-
-	RespondWithJSON(w, http.StatusOK, response)
-}
-
-func (h *userHandler) CreateUserAchievement(w http.ResponseWriter, r *http.Request) {
-	var userAchievement models.UserAchievement
-	err := json.NewDecoder(r.Body).Decode(&userAchievement)
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid request payload"})
-		return
-	}
-
-	err = h.repo.CreateUserAchievement(&userAchievement)
-	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to create user achievement"})
-		return
-	}
-
-	response := models.Response{
-		Success: true,
-		Message: "User achievement created successfully",
-		Data:    map[string]interface{}{"user_achievement": userAchievement},
-	}
-
-	RespondWithJSON(w, http.StatusCreated, response)
-}
-
-func (h *userHandler) DeleteUserAchievement(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idStr := vars["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid user achievement ID"})
-		return
-	}
-
-	err = h.repo.DeleteUserAchievement(id)
-	if err != nil {
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to delete user achievement"})
-		return
-	}
-
-	response := models.Response{
-		Success: true,
-		Message: "User achievement deleted successfully",
-	}
-
-	RespondWithJSON(w, http.StatusOK, response)
-}
-
-// *** USER MODULE PROGRESS ***
-
-func (h *userHandler) GetAllUserModuleProgress(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
-		return
-	}
-
-	sessions, err := h.repo.GetUserModuleProgressByUserID(userID)
-	if err != nil {
-		log.Printf("Error fetching user_module_sessions for user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Could not retrieve user_module_sessions"})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User module sessions retrieved successfully", Data: sessions})
-}
-
-func (h *userHandler) GetUserModuleProgressByID(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
-		return
-	}
-
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid session ID"})
-		return
-	}
-
-	session, err := h.repo.GetUserModuleProgressByID(id, userID)
-	if err != nil {
-		log.Printf("Error fetching user_module_session %d for user %d: %v", id, userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Could not retrieve user_module_session"})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User module session retrieved successfully", Data: session})
-}
-
-func (h *userHandler) CreateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
-		return
-	}
-
-	var progress models.UserModuleProgress
-	if err := json.NewDecoder(r.Body).Decode(&progress); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid input"})
-		return
-	}
-	progress.UserID = userID
-
-	if err := h.repo.CreateUserModuleProgress(&progress); err != nil {
-		log.Printf("Error creating user_module_session for user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Could not create user_module_session"})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusCreated, models.Response{Success: true, Message: "User module session created successfully", Data: progress})
-}
-
-func (h *userHandler) UpdateUserModuleProgress(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
-		return
-	}
-
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid session ID"})
-		return
-	}
-
-	var progress models.UserModuleProgress
-	if err := json.NewDecoder(r.Body).Decode(&progress); err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid input"})
-		return
-	}
-
-	// Ensure the session being updated is the one authenticated
-	if progress.ID != id || progress.UserID != userID {
-		RespondWithJSON(w, http.StatusForbidden, models.Response{Success: false, Message: "Cannot update another user's session"})
-		return
-	}
-
-	progress.ID = id
-	progress.UserID = userID
-
-	if err := h.repo.UpdateUserModuleProgress(&progress); err != nil {
-		log.Printf("Error updating user_module_session %d for user %d: %v", id, userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Could not update user_module_session"})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User module session updated successfully"})
-}
-
-func (h *userHandler) DeleteUserModuleProgress(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
-		return
-	}
-
-	params := mux.Vars(r)
-	id, err := strconv.Atoi(params["id"])
-	if err != nil {
-		RespondWithJSON(w, http.StatusBadRequest, models.Response{Success: false, Message: "Invalid session ID"})
-		return
-	}
-
-	if err := h.repo.DeleteUserModuleProgress(id, userID); err != nil {
-		log.Printf("Error deleting user_module_session %d for user %d: %v", id, userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Could not delete user_module_session"})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "User module session deleted successfully"})
-}
-
-// **********************
-// **** USER STREAKS ****
-// **********************
-
-func (h *userHandler) GetAllStreaks(w http.ResponseWriter, r *http.Request) {
-	log := logger.Get()
-	userID, ok := middleware.GetUserID(r.Context())
-	if !ok {
-		RespondWithJSON(w, http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
-		return
-	}
-
-	streaks, err := h.repo.GetStreaksByUserID(userID)
-	if err != nil {
-		log.Printf("Error fetching streaks for user %d: %v", userID, err)
-		RespondWithJSON(w, http.StatusInternalServerError, models.Response{Success: false, Message: "Could not retrieve streaks"})
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, models.Response{Success: true, Message: "Streaks retrieved successfully", Data: streaks})
-}
-
 func (h *userHandler) RegisterRoutes(r *router.Router) {
 	// Auth routes (no prefix needed as they're top-level)
 	auth := r.Group("")
@@ -684,16 +424,4 @@ func (h *userHandler) RegisterRoutes(r *router.Router) {
 	authorized.Handle("", h.GetUser, "GET")
 	authorized.Handle("", h.UpdateUser, "PUT")
 	authorized.Handle("", h.DeleteUser, "DELETE")
-
-	// User achievements routes
-	//    achievementsPublic := r.Group("/user_achievements")
-	achievementsAuth := r.Group("/user_achievements", middleware.Auth)
-	achievementsAuth.Handle("", h.GetAllUserAchievements, "GET")
-	achievementsAuth.Handle("/{id}", h.GetUserAchievementByID, "GET")
-	achievementsAuth.Handle("", h.CreateUserAchievement, "POST")
-	achievementsAuth.Handle("/{id}", h.DeleteUserAchievement, "DELETE")
-
-	// Streaks routes
-	streaksAuth := r.Group("/streaks", middleware.Auth)
-	streaksAuth.Handle("", h.GetAllStreaks, "GET")
 }

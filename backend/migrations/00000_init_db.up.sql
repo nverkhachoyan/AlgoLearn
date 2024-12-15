@@ -1,13 +1,8 @@
-CREATE TYPE user_role AS ENUM( 'admin', 'instructor', 'student' );
+CREATE TYPE user_role AS ENUM ('admin', 'instructor', 'student');
 
-CREATE TYPE difficulty_level AS ENUM(
-    'beginner',
-    'intermediate',
-    'advanced',
-    'expert'
-);
+CREATE TYPE difficulty_level AS ENUM ('beginner', 'intermediate', 'advanced', 'expert');
 
-CREATE TYPE module_progress_status AS ENUM(
+CREATE TYPE module_progress_status AS ENUM (
     'uninitiated',
     'in_progress',
     'completed',
@@ -16,8 +11,8 @@ CREATE TYPE module_progress_status AS ENUM(
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     oauth_id VARCHAR(255),
@@ -31,15 +26,23 @@ CREATE TABLE users (
     is_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     bio TEXT,
     location VARCHAR(255),
-    cpus INTEGER NOT NULL DEFAULT 1,
-    preferences JSONB
+    cpus INTEGER NOT NULL DEFAULT 1
+);
+
+-- User Preferences
+CREATE TABLE user_preferences (
+    user_id INTEGER PRIMARY KEY,
+    theme VARCHAR(10) NOT NULL DEFAULT 'dark',
+    language VARCHAR(10) NOT NULL DEFAULT 'en',
+    timezone VARCHAR(50) NOT NULL DEFAULT 'UTC',
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 -- Courses Table
 CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     requirements TEXT,
@@ -52,10 +55,7 @@ CREATE TABLE courses (
 );
 
 -- Authors and Course Authors Tables
-CREATE TABLE authors (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
-);
+CREATE TABLE authors (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL);
 
 CREATE TABLE course_authors (
     course_id INTEGER NOT NULL,
@@ -82,8 +82,8 @@ CREATE TABLE course_tags (
 -- Units Table
 CREATE TABLE units (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     unit_number INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -94,8 +94,8 @@ CREATE TABLE units (
 -- Questions Table
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     type VARCHAR(50) NOT NULL,
     question TEXT NOT NULL,
     difficulty_level difficulty_level
@@ -113,8 +113,8 @@ CREATE TABLE question_tags (
 -- Modules Table
 CREATE TABLE modules (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     module_number INTEGER NOT NULL,
     unit_id INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -125,8 +125,8 @@ CREATE TABLE modules (
 -- Sections Base Table (Using Class Table Inheritance)
 CREATE TABLE sections (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     module_id INTEGER NOT NULL,
     type VARCHAR(50) NOT NULL,
     position INTEGER NOT NULL DEFAULT 0,
@@ -177,18 +177,18 @@ CREATE TABLE module_questions (
 -- User Module Progress Table
 CREATE TABLE user_module_progress (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     user_id INTEGER NOT NULL,
     module_id INTEGER NOT NULL,
-    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     completed_at TIMESTAMPTZ,
     progress FLOAT NOT NULL DEFAULT 0.0 CHECK (
         progress >= 0.0
         AND progress <= 100.0
     ),
     current_section_id INTEGER,
-    last_accessed TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_accessed TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     status module_progress_status NOT NULL DEFAULT 'in_progress',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE,
@@ -198,8 +198,8 @@ CREATE TABLE user_module_progress (
 -- User Courses Table
 CREATE TABLE user_courses (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     user_id INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
     current_unit_id INTEGER,
@@ -218,7 +218,7 @@ CREATE TABLE user_section_progress (
     user_id INTEGER NOT NULL,
     module_id INTEGER NOT NULL,
     section_id INTEGER NOT NULL,
-    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     completed_at TIMESTAMPTZ,
     has_seen BOOLEAN NOT NULL DEFAULT FALSE,
     seen_at TIMESTAMPTZ,
@@ -230,12 +230,12 @@ CREATE TABLE user_section_progress (
 -- User Question Answers Table (Ensures referential integrity)
 CREATE TABLE user_question_answers (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     user_module_progress_id INTEGER NOT NULL,
     question_id INTEGER NOT NULL,
     option_id INTEGER NOT NULL,
-    answered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    answered_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     is_correct BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (user_module_progress_id) REFERENCES user_module_progress (id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE,
@@ -245,8 +245,8 @@ CREATE TABLE user_question_answers (
 -- Achievements Table
 CREATE TABLE achievements (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     points INTEGER NOT NULL DEFAULT 0
@@ -255,11 +255,11 @@ CREATE TABLE achievements (
 -- User Achievements Table
 CREATE TABLE user_achievements (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     user_id INTEGER NOT NULL,
     achievement_id INTEGER NOT NULL,
-    achieved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    achieved_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (achievement_id) REFERENCES achievements (id) ON DELETE CASCADE,
     UNIQUE (user_id, achievement_id)
@@ -268,8 +268,8 @@ CREATE TABLE user_achievements (
 -- Notifications Table
 CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     user_id INTEGER NOT NULL,
     content TEXT NOT NULL,
     read BOOLEAN NOT NULL DEFAULT FALSE,
@@ -279,8 +279,8 @@ CREATE TABLE notifications (
 -- Streaks Table
 CREATE TABLE streaks (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     user_id INTEGER NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE,
@@ -326,46 +326,33 @@ CREATE INDEX idx_user_question_answers_user_module_progress_id ON user_question_
 CREATE INDEX idx_user_question_answers_question_id ON user_question_answers (question_id);
 
 -- Unique Constraints
-ALTER TABLE user_achievements
-ADD CONSTRAINT uniq_user_achievement UNIQUE (user_id, achievement_id);
+ALTER TABLE user_achievements ADD CONSTRAINT uniq_user_achievement UNIQUE (user_id, achievement_id);
 
-ALTER TABLE user_courses
-ADD CONSTRAINT uniq_user_course UNIQUE (user_id, course_id);
+ALTER TABLE user_courses ADD CONSTRAINT uniq_user_course UNIQUE (user_id, course_id);
 
-ALTER TABLE user_section_progress
-ADD CONSTRAINT unique_user_section_progress UNIQUE (user_id, section_id);
+ALTER TABLE user_section_progress ADD CONSTRAINT unique_user_section_progress UNIQUE (user_id, section_id);
 
-ALTER TABLE user_module_progress
-ADD CONSTRAINT unique_user_module_progress UNIQUE (user_id, module_id);
+ALTER TABLE user_module_progress ADD CONSTRAINT unique_user_module_progress UNIQUE (user_id, module_id);
 
 -- Add constraints for answers to ensure one answer per question per user_module_progress
-ALTER TABLE user_question_answers
-ADD CONSTRAINT unique_user_question_answer UNIQUE (
-    user_module_progress_id,
-    question_id
-);
+ALTER TABLE user_question_answers ADD CONSTRAINT unique_user_question_answer UNIQUE (user_module_progress_id, question_id);
 
 -- Ensure one question section per question
-ALTER TABLE question_sections
-ADD CONSTRAINT unique_question_section UNIQUE (question_id);
+ALTER TABLE question_sections ADD CONSTRAINT unique_question_section UNIQUE (question_id);
 
 -- Ensure section positions are unique within a module
-ALTER TABLE sections
-ADD CONSTRAINT unique_section_position_per_module UNIQUE (module_id, position);
+ALTER TABLE sections ADD CONSTRAINT unique_section_position_per_module UNIQUE (module_id, position);
 
 -- Check Constraints
-ALTER TABLE user_module_progress
-ADD CHECK (
+ALTER TABLE user_module_progress ADD CHECK (
     progress >= 0.0
     AND progress <= 100.0
 );
 
 -- Create unique constraints to ensure no duplicate numbers within same parent
-ALTER TABLE units
-ADD CONSTRAINT unique_unit_number_per_course UNIQUE (course_id, unit_number);
+ALTER TABLE units ADD CONSTRAINT unique_unit_number_per_course UNIQUE (course_id, unit_number);
 
-ALTER TABLE modules
-ADD CONSTRAINT unique_module_number_per_unit UNIQUE (unit_id, module_number);
+ALTER TABLE modules ADD CONSTRAINT unique_module_number_per_unit UNIQUE (unit_id, module_number);
 
 -- Create indexes for efficient ordering
 CREATE INDEX idx_units_course_number ON units (course_id, unit_number);
@@ -373,17 +360,12 @@ CREATE INDEX idx_units_course_number ON units (course_id, unit_number);
 CREATE INDEX idx_modules_unit_number ON modules (unit_id, module_number);
 
 -- Add check constraints to ensure positive numbers
-ALTER TABLE units
-ADD CONSTRAINT positive_unit_number CHECK (unit_number > 0);
+ALTER TABLE units ADD CONSTRAINT positive_unit_number CHECK (unit_number > 0);
 
-ALTER TABLE modules
-ADD CONSTRAINT positive_module_number CHECK (module_number > 0);
+ALTER TABLE modules ADD CONSTRAINT positive_module_number CHECK (module_number > 0);
 
 -- Optional: Full-Text Search Indexes (If needed)
 -- CREATE INDEX idx_courses_description ON courses USING GIN (to_tsvector('english', description));
-
 -- Note: Implement triggers or application logic as needed to automatically update timestamps and enforce data integrity.
-
 -- UPDATE users SET role = 'admin' WHERE email = 'testuser@example.com';
-
 -- SELECT * from USERS where email = 'testuser@example.com';

@@ -1,12 +1,12 @@
 package repository
 
 import (
+	gen "algolearn/internal/database/generated"
 	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 )
 
@@ -20,484 +20,260 @@ type CourseRepository interface {
 }
 
 type courseRepository struct {
-	db *sql.DB
+	queries *gen.Queries
 }
 
 func NewCourseRepository(db *sql.DB) CourseRepository {
-	return &courseRepository{db: db}
+	return &courseRepository{queries: gen.New(db)}
+}
+
+// Helper functions for type conversions
+func nullInt32ToInt64(n sql.NullInt32) int64 {
+	if n.Valid {
+		return int64(n.Int32)
+	}
+	return 0
+}
+
+func nullInt32ToInt16(n sql.NullInt32) int16 {
+	if n.Valid {
+		return int16(n.Int32)
+	}
+	return 0
+}
+
+func nullStringToString(n sql.NullString) string {
+	if n.Valid {
+		return n.String
+	}
+	return ""
+}
+
+func nullFloat64ToFloat32(n sql.NullFloat64) float32 {
+	if n.Valid {
+		return float32(n.Float64)
+	}
+	return 0
+}
+
+func nullBoolToBool(n sql.NullBool) bool {
+	if n.Valid {
+		return n.Bool
+	}
+	return false
 }
 
 func (r *courseRepository) GetCourseSummary(ctx context.Context, courseID int64) (*models.Course, error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
 
-	var course models.Course
-	var authors, tags, units []byte
-
-	var (
-		backgroundColor sql.NullString
-		iconURL         sql.NullString
-	)
-
-	err := r.db.QueryRowContext(ctx, `
-SELECT DISTINCT ON (c.id)
-    c.id,
-    c.created_at,
-    c.updated_at,
-    c.name,
-    c.description,
-    NULLIF(c.requirements, '') AS requirements,
-    NULLIF(c.what_you_learn, '') AS what_you_learn,
-    NULLIF(c.background_color, '') AS backgroundColor,
-    NULLIF(c.icon_url, '') AS icon_url,
-    c.duration,
-    c.difficulty_level,
-    COALESCE((SELECT json_agg(jsonb_build_object(
-            'id', ca.author_id,
-            'name', a.name))
-              FROM course_authors ca
-              LEFT JOIN authors a ON a.id = ca.author_id
-              WHERE ca.course_id = c.id
-             ), '[]'::json) AS authors,
-    COALESCE((SELECT json_agg(jsonb_build_object(
-            'id', t.id,
-            'name', t.name))
-              FROM course_tags ct
-              LEFT JOIN tags t ON t.id = ct.tag_id
-              WHERE ct.course_id = c.id
-             ), '[]'::json) AS tags,
-    c.rating,
-    COALESCE((SELECT jsonb_agg(
-    jsonb_build_object(
-    'id', sub_u.id,
-    'createdAt', sub_u.created_at,
-    'updatedAt', sub_u.updated_at,
-    'unitNumber', sub_u.unit_number,
-    'courseId', sub_u.course_id,
-    'name', sub_u.name,
-    'description', sub_u.description,
-    'modules', COALESCE((SELECT
-                jsonb_agg(
-                    jsonb_build_object(
-                        'id', sub_m.id,
-                        'createdAt', sub_m.created_at,
-                        'updatedAt', sub_m.updated_at,
-                        'moduleNumber', sub_m.module_number,
-                        'unitId', sub_m.unit_id,
-                        'name', sub_m.name,
-                        'description', sub_m.description
-                    )
-                )
-                FROM modules AS sub_m
-                WHERE sub_u.id = sub_m.unit_id
-                ),
-                '[]'::jsonb)
-    ))
-    FROM units AS sub_u
-    WHERE sub_u.course_id = c.id
-    ),
-    '[]'::jsonb) AS units
-	FROM courses c
-	LEFT JOIN units u ON u.course_id = c.id
-	LEFT JOIN modules m ON m.unit_id = u.id
-	WHERE c.id = $1
-	ORDER BY c.id;
-	`, courseID).Scan(
-		&course.ID,
-		&course.CreatedAt,
-		&course.UpdatedAt,
-		&course.Name,
-		&course.Description,
-		&course.Requirements,
-		&course.WhatYouLearn,
-		&backgroundColor,
-		&iconURL,
-		&course.Duration,
-		&course.DifficultyLevel,
-		&authors,
-		&tags,
-		&course.Rating,
-		&units,
-	)
-
+	// Get base course info
+	courseData, err := r.queries.GetCourseByID(ctx, int32(courseID))
 	if err != nil {
-		log.WithError(err).Errorf("error with queried rows")
-		return nil, fmt.Errorf("error with queried rows: %w", err)
+		log.WithError(err).Error("failed to get course")
+		return nil, fmt.Errorf("failed to get course: %w", err)
 	}
 
-	if err = json.Unmarshal(authors, &course.Authors); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal authors")
-		return nil, fmt.Errorf("failed to unmarshal authors")
+	course := &models.Course{
+		BaseModel: models.BaseModel{
+			ID:        int64(courseData.ID),
+			CreatedAt: courseData.CreatedAt,
+			UpdatedAt: courseData.UpdatedAt,
+		},
+		Name:            courseData.Name,
+		Description:     courseData.Description,
+		Requirements:    nullStringToString(courseData.Requirements),
+		WhatYouLearn:    nullStringToString(courseData.WhatYouLearn),
+		BackgroundColor: nullStringToString(courseData.BackgroundColor),
+		IconURL:         nullStringToString(courseData.IconUrl),
+		Duration:        int16(courseData.Duration.Int32),
+		DifficultyLevel: models.DifficultyLevel(courseData.DifficultyLevel.DifficultyLevel),
+		Rating:          courseData.Rating.Float64,
 	}
 
-	if err = json.Unmarshal(tags, &course.Tags); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal tags")
-		return nil, fmt.Errorf("failed to unmarshal tags")
+	// Get authors
+	authors, err := r.queries.GetCourseAuthors(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course authors")
+		return nil, fmt.Errorf("failed to get course authors: %w", err)
+	}
+	course.Authors = make([]models.Author, len(authors))
+	for i, author := range authors {
+		course.Authors[i] = models.Author{
+			ID:   int64(author.ID),
+			Name: author.Name,
+		}
 	}
 
-	if err = json.Unmarshal(units, &course.Units); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	// Get tags
+	tags, err := r.queries.GetCourseTags(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course tags")
+		return nil, fmt.Errorf("failed to get course tags: %w", err)
+	}
+	course.Tags = make([]models.Tag, len(tags))
+	for i, tag := range tags {
+		course.Tags[i] = models.Tag{
+			ID:   int64(tag.ID),
+			Name: tag.Name,
+		}
 	}
 
-	return &course, nil
+	// Get units with modules
+	units, err := r.queries.GetCourseUnits(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course units")
+		return nil, fmt.Errorf("failed to get course units: %w", err)
+	}
+
+	course.Units = make([]*models.Unit, len(units))
+	for i, unit := range units {
+		course.Units[i] = &models.Unit{
+			BaseModel: models.BaseModel{
+				ID:        int64(unit.ID),
+				CreatedAt: unit.CreatedAt,
+				UpdatedAt: unit.UpdatedAt,
+			},
+			UnitNumber:  int16(unit.UnitNumber),
+			Name:        unit.Name,
+			Description: unit.Description,
+		}
+
+		// Get modules for each unit
+		modules, err := r.queries.GetUnitModules(ctx, unit.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get unit modules")
+			return nil, fmt.Errorf("failed to get unit modules: %w", err)
+		}
+
+		course.Units[i].Modules = make([]models.Module, len(modules))
+		for j, module := range modules {
+			course.Units[i].Modules[j] = models.Module{
+				BaseModel: models.BaseModel{
+					ID:        int64(module.ID),
+					CreatedAt: module.CreatedAt,
+					UpdatedAt: module.UpdatedAt,
+				},
+				ModuleNumber: int16(module.ModuleNumber),
+				ModuleUnitID: int64(module.UnitID),
+				Name:         module.Name,
+				Description:  module.Description,
+			}
+		}
+	}
+
+	return course, nil
 }
 
-func (r *courseRepository) GetCourseFull(ctx context.Context, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
-
-	var course models.Course
-	var authors, tags, units []byte
-
-	var (
-		backgroundColor sql.NullString
-		iconURL         sql.NullString
-	)
-
-	err := r.db.QueryRowContext(ctx, `
-	SELECT DISTINCT ON (c.id)
-	c.id,
-	c.created_at,
-	c.updated_at,
-	c.name,
-	c.description,
-	NULLIF(c.requirements, '') AS requirements,
-	NULLIF(c.what_you_learn, '') AS what_you_learn,
-	NULLIF(c.background_color, '') AS background_color,
-	NULLIF(c.icon_url, '') AS icon_url,
-	c.duration,
-	c.difficulty_level,
-	COALESCE((SELECT json_agg(jsonb_build_object(
-                'id', ca.author_id,
-                'name', a.name))
-	        FROM course_authors ca
-	        LEFT JOIN authors a ON a.id = ca.author_id
-	        WHERE ca.course_id = c.id
-	), '[]'::json) AS authors,
-	COALESCE((SELECT json_agg(jsonb_build_object(
-                'id', t.id,
-                'name', t.name))
-	        FROM course_tags ct
-	        LEFT JOIN tags t ON t.id = ct.tag_id
-	        WHERE ct.course_id = c.id
-	), '[]'::json) AS tags,
-	c.rating,
-	COALESCE((SELECT jsonb_agg(jsonb_build_object(
-                'id', sub_u.id,
-                'createdAt', sub_u.created_at,
-                'updatedAt', sub_u.updated_at,
-                'unitNumber', sub_u.unit_number,
-                'courseId', sub_u.course_id,
-                'name', sub_u.name,
-	            'description', sub_u.description,
-	            'modules', COALESCE((
-	            SELECT jsonb_agg(jsonb_build_object(
-                        'id', sub_m.id,
-                        'createdAt', sub_m.created_at,
-                        'updatedAt', sub_m.updated_at,
-                        'moduleNumber', sub_m.module_number,
-                        'unitId', sub_m.unit_id,
-                        'name', sub_m.name,
-                        'description', sub_m.description,
-                        'sections', COALESCE((
-                        SELECT jsonb_agg(jsonb_build_object(
-                                'id', sub_s.id,
-                                'createdAt', sub_s.created_at,
-                                'updatedAt', sub_s.updated_at,
-                                'type', sub_s.type,
-                                'position', sub_s.position,
-                                'content', CASE sub_s.type
-                                        WHEN 'text' THEN (
-                                            SELECT jsonb_build_object('text', ts.text_content)
-                                            FROM text_sections ts
-                                            WHERE ts.section_id = sub_s.id)
-                                        WHEN 'video' THEN (
-                                            SELECT jsonb_build_object('url', vs.url)
-                                            FROM video_sections vs
-                                            WHERE vs.section_id = sub_s.id)
-                                        WHEN 'question' THEN (
-                                            SELECT jsonb_build_object(
-                                            'id', qs.question_id,
-                                            'question', q.question,
-                                            'type', q.type,
-                                            'options', COALESCE((SELECT jsonb_agg( jsonb_build_object(
-                                                    'id', qo.id,
-                                                    'content', qo.content,
-                                                    'isCorrect', qo.is_correct
-                                                    ))
-                                                            FROM question_options qo
-                                                            WHERE qo.question_id = q.id
-                                            ), '[]'::jsonb))
-                                                FROM question_sections qs
-                                                LEFT JOIN questions q ON q.id = qs.question_id
-                                                WHERE qs.section_id = sub_s.id)
-                                        END
-                                    )) -- sections SELECT END
-                                        FROM sections sub_s
-                                        WHERE sub_s.module_id = sub_m.id), '[]'::jsonb)
-                            )
-                        )
-					FROM modules AS sub_m
-					WHERE sub_u.id = sub_m.unit_id),
-					'[]'::jsonb) -- modules SELECT END
-		)) -- units SELECT END
-		FROM units AS sub_u
-		WHERE sub_u.course_id = c.id),
-		'[]'::jsonb) AS units
-	FROM courses c
-	LEFT JOIN units u ON u.course_id = c.id
-	LEFT JOIN modules m ON m.unit_id = u.id
-	WHERE c.id = $1;
-	`, courseID).Scan(
-		&course.ID,
-		&course.CreatedAt,
-		&course.UpdatedAt,
-		&course.Name,
-		&course.Description,
-		&course.Requirements,
-		&course.WhatYouLearn,
-		&backgroundColor,
-		&iconURL,
-		&course.Duration,
-		&course.DifficultyLevel,
-		&authors,
-		&tags,
-		&course.Rating,
-		&units,
-	)
-
+func (r *courseRepository) DeleteCourse(ctx context.Context, id int64) error {
+	err := r.queries.DeleteCourse(ctx, int32(id))
 	if err != nil {
-		log.WithError(err).Errorf("error with queried rows")
-		return nil, fmt.Errorf("error with queried rows: %w", err)
+		if err == sql.ErrNoRows {
+			return codes.ErrNotFound
+		}
+		return fmt.Errorf("failed to delete course: %w", err)
 	}
-
-	if err = json.Unmarshal(authors, &course.Authors); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal authors")
-		return nil, fmt.Errorf("failed to unmarshal authors")
-	}
-
-	if err = json.Unmarshal(tags, &course.Tags); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal tags")
-		return nil, fmt.Errorf("failed to unmarshal tags")
-	}
-
-	if err = json.Unmarshal(units, &course.Units); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
-	}
-
-	return &course, nil
-}
-
-func (r *courseRepository) DeleteCourse(_ context.Context, id int64) error {
-	result, err := r.db.Exec("DELETE FROM courses WHERE id = $1;", id)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return codes.ErrNotFound
-	}
-
 	return nil
 }
-
-// *********
-// WITH PROGRESS
-// *********
 
 func (r *courseRepository) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.Course, error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCoursesProgress")
 
 	offset := (page - 1) * pageSize
-	var totalCount int64
 
-	filterClause := ""
-	switch queryFilter {
-	case "learning":
-		filterClause = "WHERE (uc.current_unit_id IS NOT NULL OR uc.current_module_id IS NOT NULL) AND uc.user_id = $1"
-	case "explore":
-		filterClause = "WHERE (uc.current_unit_id IS NULL AND uc.current_module_id IS NULL OR uc.user_id != $1 OR uc.user_id IS NULL)"
-	default:
-		// No filter, return all courses
-		filterClause = "WHERE true"
-	}
-
-	query := fmt.Sprintf(`
-	SELECT DISTINCT ON (c.id)
-	   COUNT(*) OVER() AS total_count,
-       c.id,
-       c.created_at,
-       c.updated_at,
-       c.name,
-       c.description,
-	   NULLIF(c.requirements, ''),
-       NULLIF(c.what_you_learn, ''),
-       COALESCE(c.background_color, ''),
-       COALESCE(c.icon_url, ''),
-       c.duration,
-       c.difficulty_level,
-       COALESCE((SELECT json_agg(jsonb_build_object(
-                          'id', ca.author_id,
-                          'name', a.name
-                                   ))
-                FROM course_authors ca
-                 LEFT JOIN authors a ON a.id = ca.author_id
-                 WHERE ca.course_id = c.id
-       ), '[]'::json) AS authors,
-       COALESCE((SELECT json_agg(jsonb_build_object(
-                                'id', t.id,
-                                'name', t.name
-                                ))
-         FROM course_tags ct
-                 LEFT JOIN tags t ON t.id = ct.tag_id
-                 WHERE ct.course_id = c.id
-       ), '[]'::json) AS tags,
-       	c.rating,
-	   	NULLIF(u.id, 0) AS unit_id,
-		u.created_at AS unit_created_at,
-		u.updated_at AS unit_updated_at,
-		u.unit_number AS unit_number,
-		NULLIF(u.name, '') AS unit_name,
-		NULLIF(u.description, '') AS unit_description,
-		NULLIF(m.id, 0) AS module_id,
-		m.created_at AS module_created_at,
-		m.updated_at AS module_updated_at,
-		m.module_number AS module_number,
-		NULLIF(m.unit_id, 0) AS module_unit_id,
-		NULLIF(m.name, '') AS module_name,
-		NULLIF(m.description, '') AS module_description
-	FROM courses c
-	LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
-	LEFT JOIN units u ON u.id = uc.current_unit_id
-	LEFT JOIN modules m ON m.id = uc.current_module_id
-	%s
-	ORDER BY c.id, uc.updated_at DESC
-	LIMIT $2 OFFSET $3`, filterClause)
-
-	rows, err := r.db.QueryContext(ctx, query, userID, pageSize, offset)
+	results, err := r.queries.GetCoursesProgressSummary(ctx, gen.GetCoursesProgressSummaryParams{
+		UserID:     int32(userID),
+		PageLimit:  int32(pageSize),
+		PageOffset: int32(offset),
+		FilterType: queryFilter,
+	})
 	if err != nil {
-		log.WithError(err).Errorf("failed to get courses progress")
+		log.WithError(err).Error("failed to get courses progress")
 		return 0, nil, err
 	}
-	defer rows.Close()
 
 	var courses []models.Course
-	for rows.Next() {
-		var course models.Course
-		var authors, tags []byte
+	var totalCount int64
 
-		var (
-			backgroundColor sql.NullString
-			iconURL         sql.NullString
-			unitID          sql.NullInt64
-			unitCreatedAt   sql.NullTime
-			unitUpdatedAt   sql.NullTime
-			unitNumber      sql.NullInt16
-			unitName        sql.NullString
-			unitDesc        sql.NullString
-			moduleID        sql.NullInt64
-			moduleCreatedAt sql.NullTime
-			moduleUpdatedAt sql.NullTime
-			moduleNumber    sql.NullInt16
-			moduleUnitID    sql.NullInt64
-			moduleName      sql.NullString
-			moduleDesc      sql.NullString
-		)
+	for _, result := range results {
+		totalCount = result.TotalCount
 
-		err = rows.Scan(
-			&totalCount,
-			&course.ID,
-			&course.CreatedAt,
-			&course.UpdatedAt,
-			&course.Name,
-			&course.Description,
-			&course.Requirements,
-			&course.WhatYouLearn,
-			&backgroundColor,
-			&iconURL,
-			&course.Duration,
-			&course.DifficultyLevel,
-			&authors,
-			&tags,
-			&course.Rating,
-			&unitID,
-			&unitCreatedAt,
-			&unitUpdatedAt,
-			&unitNumber,
-			&unitName,
-			&unitDesc,
-			&moduleID,
-			&moduleCreatedAt,
-			&moduleUpdatedAt,
-			&moduleNumber,
-			&moduleUnitID,
-			&moduleName,
-			&moduleDesc,
-		)
-		if err != nil {
-			log.WithError(err).Errorf("failed to scan courses progress")
-			return 0, nil, fmt.Errorf("failed to scan courses progress: %w", err)
+		course := models.Course{
+			BaseModel: models.BaseModel{
+				ID:        int64(result.ID),
+				CreatedAt: result.CreatedAt,
+				UpdatedAt: result.UpdatedAt,
+			},
+			Name:            result.Name,
+			Description:     result.Description,
+			Requirements:    nullStringToString(result.Requirements),
+			WhatYouLearn:    nullStringToString(result.WhatYouLearn),
+			BackgroundColor: nullStringToString(result.BackgroundColor),
+			IconURL:         nullStringToString(result.IconUrl),
+			Duration:        nullInt32ToInt16(result.Duration),
+			DifficultyLevel: models.DifficultyLevel(result.DifficultyLevel.DifficultyLevel),
+			Rating:          result.Rating.Float64,
 		}
 
-		course.BackgroundColor = backgroundColor.String
-		course.IconURL = iconURL.String
+		// Get authors for each course
+		authors, err := r.queries.GetCourseAuthors(ctx, result.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get course authors")
+			return 0, nil, fmt.Errorf("failed to get course authors: %w", err)
+		}
+		course.Authors = make([]models.Author, len(authors))
+		for i, author := range authors {
+			course.Authors[i] = models.Author{
+				ID:   int64(author.ID),
+				Name: author.Name,
+			}
+		}
 
-		if !unitID.Valid {
-			course.CurrentUnit = nil
-		} else {
+		// Get tags for each course
+		tags, err := r.queries.GetCourseTags(ctx, result.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get course tags")
+			return 0, nil, fmt.Errorf("failed to get course tags: %w", err)
+		}
+		course.Tags = make([]models.Tag, len(tags))
+		for i, tag := range tags {
+			course.Tags[i] = models.Tag{
+				ID:   int64(tag.ID),
+				Name: tag.Name,
+			}
+		}
+
+		// Handle current unit if exists
+		if result.CurrentUnitID.Valid {
 			course.CurrentUnit = &models.Unit{
 				BaseModel: models.BaseModel{
-					ID:        unitID.Int64,
-					CreatedAt: unitCreatedAt.Time,
-					UpdatedAt: unitUpdatedAt.Time,
+					ID:        nullInt32ToInt64(result.CurrentUnitID),
+					CreatedAt: result.UnitCreatedAt.Time,
+					UpdatedAt: result.UnitUpdatedAt.Time,
 				},
-				UnitNumber:  unitNumber.Int16,
-				Name:        unitName.String,
-				Description: unitDesc.String,
+				UnitNumber:  nullInt32ToInt16(result.UnitNumber),
+				Name:        nullStringToString(result.UnitName),
+				Description: nullStringToString(result.UnitDescription),
 			}
 		}
 
-		if !moduleID.Valid {
-			course.CurrentModule = nil
-		} else {
+		// Handle current module if exists
+		if result.CurrentModuleID.Valid {
 			course.CurrentModule = &models.Module{
 				BaseModel: models.BaseModel{
-					ID:        moduleID.Int64,
-					CreatedAt: moduleCreatedAt.Time,
-					UpdatedAt: moduleUpdatedAt.Time,
+					ID:        nullInt32ToInt64(result.CurrentModuleID),
+					CreatedAt: result.ModuleCreatedAt.Time,
+					UpdatedAt: result.ModuleUpdatedAt.Time,
 				},
-				ModuleNumber: moduleNumber.Int16,
-				ModuleUnitID: moduleUnitID.Int64,
-				Name:         moduleName.String,
-				Description:  moduleDesc.String,
-			}
-		}
-
-		if len(authors) > 0 {
-			if err = json.Unmarshal(authors, &course.Authors); err != nil {
-				log.WithError(err).Errorf("failed to unmarshal authors")
-				return 0, nil, fmt.Errorf("failed to unmarshal authors: %w", err)
-			}
-		}
-
-		if len(tags) > 0 {
-			if err = json.Unmarshal(tags, &course.Tags); err != nil {
-				log.WithError(err).Errorf("failed to unmarshal tags")
-				return 0, nil, fmt.Errorf("failed to unmarshal tags: %w", err)
+				ModuleNumber: nullInt32ToInt16(result.ModuleNumber),
+				ModuleUnitID: nullInt32ToInt64(result.ModuleUnitID),
+				Name:         nullStringToString(result.ModuleName),
+				Description:  nullStringToString(result.ModuleDescription),
+				Progress:     nullFloat64ToFloat32(result.ModuleProgress),
+				Status:       string(result.ModuleStatus.ModuleProgressStatus),
 			}
 		}
 
 		courses = append(courses, course)
-	}
-
-	if err = rows.Err(); err != nil {
-		log.WithError(err).Errorf("error with queried rows")
-		return 0, nil, fmt.Errorf("error with queried rows: %w", err)
 	}
 
 	return totalCount, courses, nil
@@ -506,361 +282,505 @@ func (r *courseRepository) GetCoursesProgressSummary(ctx context.Context, page i
 func (r *courseRepository) GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
 
-	var course models.Course
-	var authors, tags, currentUnit, currentModule, units []byte
-
-	var (
-		backgroundColor sql.NullString
-		iconURL         sql.NullString
-	)
-
-	err := r.db.QueryRowContext(ctx, `
-	SELECT DISTINCT ON (c.id)
-		c.id,
-		c.created_at,
-		c.updated_at,
-		c.name,
-		c.description,
-		NULLIF(c.requirements, ''),
-		NULLIF(c.what_you_learn, ''),
-		NULLIF(c.background_color, '') AS backgroundColor,
-		NULLIF(c.icon_url, '') AS icon_url,
-		c.duration,
-		c.difficulty_level,
-		COALESCE((SELECT json_agg(jsonb_build_object(
-				'id', ca.author_id,
-				'name', a.name))
-				FROM course_authors ca
-				LEFT JOIN authors a ON a.id = ca.author_id
-				WHERE ca.course_id = c.id
-				), '[]'::json) AS authors,
-		COALESCE((SELECT json_agg(jsonb_build_object(
-				'id', t.id,
-				'name', t.name))
-				FROM course_tags ct
-				LEFT JOIN tags t ON t.id = ct.tag_id
-				WHERE ct.course_id = c.id
-				), '[]'::json) AS tags,
-		c.rating,
-		jsonb_build_object(
-				'id', u.id,
-				'createdAt', u.created_at,
-				'updatedAt', u.updated_at,
-				'unitNumber', u.unit_number,
-				'name', u.name,
-				'description', u.description
-		) AS current_unit,
-		jsonb_build_object(
-				'id', m.id,
-				'createdAt', m.created_at,
-				'updatedAt', m.updated_at,
-				'moduleNumber', m.module_number,
-				'unitId', m.unit_id,
-				'name', m.name,
-				'description', m.description,
-				'progress', ump.progress,
-				'status', ump.status
-		) AS current_module,
-		COALESCE((SELECT jsonb_agg(
-		jsonb_build_object(
-		'id', sub_u.id,
-		'createdAt', sub_u.created_at,
-		'updatedAt', sub_u.updated_at,
-		'unitNumber', sub_u.unit_number,
-		'courseId', sub_u.course_id,
-		'name', sub_u.name,
-		'description', sub_u.description,
-		'modules', COALESCE((SELECT
-					jsonb_agg(
-						jsonb_build_object(
-							'id', sub_m.id,
-							'createdAt', sub_m.created_at,
-							'updatedAt', sub_m.updated_at,
-							'moduleNumber', sub_m.module_number,
-							'unitId', sub_m.unit_id,
-							'name', sub_m.name,
-							'description', sub_m.description,
-							'progress', sub_ump.progress,
-							'status', sub_ump.status
-						)
-					)
-					FROM modules AS sub_m
-					LEFT JOIN user_module_progress sub_ump ON sub_ump.module_id = sub_m.id
-					WHERE sub_u.id = sub_m.unit_id
-					),
-					'[]'::jsonb)
-		))
-		FROM units AS sub_u
-		WHERE sub_u.course_id = c.id
-		),
-		'[]'::jsonb) AS units
-	FROM courses c
-	JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
-	LEFT JOIN units u ON u.id = uc.current_unit_id
-	LEFT JOIN modules m ON m.id = uc.current_module_id
-	JOIN user_module_progress ump ON ump.module_id = m.id
-	WHERE c.id = $2
-	ORDER BY c.id, uc.updated_at DESC;
-	`, userID, courseID).Scan(
-		&course.ID,
-		&course.CreatedAt,
-		&course.UpdatedAt,
-		&course.Name,
-		&course.Description,
-		&course.Requirements,
-		&course.WhatYouLearn,
-		&backgroundColor,
-		&iconURL,
-		&course.Duration,
-		&course.DifficultyLevel,
-		&authors,
-		&tags,
-		&course.Rating,
-		&currentUnit,
-		&currentModule,
-		&units,
-	)
-
+	// Get base course info with current progress
+	courseData, err := r.queries.GetCourseProgressSummaryBase(ctx, gen.GetCourseProgressSummaryBaseParams{
+		UserID:   int32(userID),
+		CourseID: int32(courseID),
+	})
 	if err != nil {
-		log.WithError(err).Errorf("error with queried rows")
-		return nil, fmt.Errorf("error with queried rows: %w", err)
+		log.WithError(err).Error("failed to get course progress summary")
+		return nil, fmt.Errorf("failed to get course progress summary: %w", err)
 	}
 
-	if err = json.Unmarshal(authors, &course.Authors); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal authors")
-		return nil, fmt.Errorf("failed to unmarshal authors")
+	course := &models.Course{
+		BaseModel: models.BaseModel{
+			ID:        int64(courseData.ID),
+			CreatedAt: courseData.CreatedAt,
+			UpdatedAt: courseData.UpdatedAt,
+		},
+		Name:            courseData.Name,
+		Description:     courseData.Description,
+		Requirements:    nullStringToString(courseData.Requirements),
+		WhatYouLearn:    nullStringToString(courseData.WhatYouLearn),
+		BackgroundColor: nullStringToString(courseData.BackgroundColor),
+		IconURL:         nullStringToString(courseData.IconUrl),
+		Duration:        int16(courseData.Duration.Int32),
+		DifficultyLevel: models.DifficultyLevel(courseData.DifficultyLevel.DifficultyLevel),
+		Rating:          courseData.Rating.Float64,
 	}
 
-	if err = json.Unmarshal(tags, &course.Tags); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal tags")
-		return nil, fmt.Errorf("failed to unmarshal tags")
+	// Get authors
+	authors, err := r.queries.GetCourseAuthors(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course authors")
+		return nil, fmt.Errorf("failed to get course authors: %w", err)
+	}
+	course.Authors = make([]models.Author, len(authors))
+	for i, author := range authors {
+		course.Authors[i] = models.Author{
+			ID:   int64(author.ID),
+			Name: author.Name,
+		}
 	}
 
-	if err = json.Unmarshal(units, &course.Units); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	// Get tags
+	tags, err := r.queries.GetCourseTags(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course tags")
+		return nil, fmt.Errorf("failed to get course tags: %w", err)
+	}
+	course.Tags = make([]models.Tag, len(tags))
+	for i, tag := range tags {
+		course.Tags[i] = models.Tag{
+			ID:   int64(tag.ID),
+			Name: tag.Name,
+		}
 	}
 
-	if err = json.Unmarshal(currentUnit, &course.CurrentUnit); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	// Set current unit and module if they exist
+	if courseData.CurrentUnitID.Valid {
+		course.CurrentUnit = &models.Unit{
+			BaseModel: models.BaseModel{
+				ID:        int64(courseData.CurrentUnitID.Int32),
+				CreatedAt: courseData.UnitCreatedAt.Time,
+				UpdatedAt: courseData.UnitUpdatedAt.Time,
+			},
+			UnitNumber:  int16(courseData.UnitNumber.Int32),
+			Name:        courseData.UnitName.String,
+			Description: courseData.UnitDescription.String,
+		}
 	}
 
-	if err = json.Unmarshal(currentModule, &course.CurrentModule); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	if courseData.CurrentModuleID.Valid {
+		course.CurrentModule = &models.Module{
+			BaseModel: models.BaseModel{
+				ID:        int64(courseData.CurrentModuleID.Int32),
+				CreatedAt: courseData.ModuleCreatedAt.Time,
+				UpdatedAt: courseData.ModuleUpdatedAt.Time,
+			},
+			ModuleNumber: int16(courseData.ModuleNumber.Int32),
+			ModuleUnitID: int64(courseData.ModuleUnitID.Int32),
+			Name:         courseData.ModuleName.String,
+			Description:  courseData.ModuleDescription.String,
+			Progress:     float32(courseData.ModuleProgress.Float64),
+			Status:       string(courseData.ModuleStatus.ModuleProgressStatus),
+		}
 	}
 
-	return &course, nil
+	// Get units with modules and their progress
+	units, err := r.queries.GetCourseUnits(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course units")
+		return nil, fmt.Errorf("failed to get course units: %w", err)
+	}
+
+	course.Units = make([]*models.Unit, len(units))
+	for i, unit := range units {
+		course.Units[i] = &models.Unit{
+			BaseModel: models.BaseModel{
+				ID:        int64(unit.ID),
+				CreatedAt: unit.CreatedAt,
+				UpdatedAt: unit.UpdatedAt,
+			},
+			UnitNumber:  int16(unit.UnitNumber),
+			Name:        unit.Name,
+			Description: unit.Description,
+		}
+
+		// Get modules with progress for each unit
+		modules, err := r.queries.GetModuleProgressByUnit(ctx, gen.GetModuleProgressByUnitParams{
+			UserID: int32(userID),
+			UnitID: unit.ID,
+		})
+		if err != nil {
+			log.WithError(err).Error("failed to get unit modules with progress")
+			return nil, fmt.Errorf("failed to get unit modules with progress: %w", err)
+		}
+
+		course.Units[i].Modules = make([]models.Module, len(modules))
+		for j, module := range modules {
+			course.Units[i].Modules[j] = models.Module{
+				BaseModel: models.BaseModel{
+					ID:        int64(module.ID),
+					CreatedAt: module.CreatedAt,
+					UpdatedAt: module.UpdatedAt,
+				},
+				ModuleNumber: int16(module.ModuleNumber),
+				ModuleUnitID: int64(module.UnitID),
+				Name:         module.Name,
+				Description:  module.Description,
+				Progress:     float32(module.Progress.Float64),
+				Status:       string(module.Status.ModuleProgressStatus),
+			}
+		}
+	}
+
+	return course, nil
 }
 
 func (r *courseRepository) GetCourseProgressFull(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
 	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseProgress")
 
-	var course models.Course
-	var authors, tags, currentUnit, currentModule, units []byte
-
-	var (
-		backgroundColor sql.NullString
-		iconURL         sql.NullString
-	)
-
-	err := r.db.QueryRowContext(ctx, `
-
-	SELECT DISTINCT ON (c.id)
-	c.id,
-	c.created_at,
-	c.updated_at,
-	c.name,
-	c.description,
-	NULLIF(c.requirements, ''),
-	NULLIF(c.what_you_learn, ''),
-	NULLIF(c.background_color, '') AS background_color,
-	NULLIF(c.icon_url, '') AS icon_url,
-	c.duration,
-	c.difficulty_level,
-	COALESCE((SELECT json_agg(jsonb_build_object(
-	'id', ca.author_id,
-	'name', a.name))
-	FROM course_authors ca
-	LEFT JOIN authors a ON a.id = ca.author_id
-	WHERE ca.course_id = c.id
-	), '[]'::json) AS authors,
-	COALESCE((SELECT json_agg(jsonb_build_object(
-	'id', t.id,
-	'name', t.name))
-	FROM course_tags ct
-	LEFT JOIN tags t ON t.id = ct.tag_id
-	WHERE ct.course_id = c.id
-	), '[]'::json) AS tags,
-	c.rating,
-	jsonb_build_object(
-	'id', u.id,
-	'createdAt', u.created_at,
-	'updatedAt', u.updated_at,
-	'unitNumber', u.unit_number,
-	'name', u.name,
-	'description', u.description
-	) AS current_unit,
-	jsonb_build_object(
-	'id', m.id,
-	'createdAt', m.created_at,
-	'updatedAt', m.updated_at,
-	'moduleNumber', m.module_number,
-	'unitId', m.unit_id,
-	'name', m.name,
-	'description', m.description,
-	'progress', ump.progress,
-	'status', ump.status
-	) AS current_module,
-	COALESCE((SELECT jsonb_agg(
-	jsonb_build_object(
-	'id', sub_u.id,
-	'createdAt', sub_u.created_at,
-	'updatedAt', sub_u.updated_at,
-	'unitNumber', sub_u.unit_number,
-	'courseId', sub_u.course_id,
-	'name', sub_u.name,
-	'description', sub_u.description,
-	'modules', COALESCE((SELECT
-	jsonb_agg(
-	jsonb_build_object(
-	'id', sub_m.id,
-	'createdAt', sub_m.created_at,
-	'updatedAt', sub_m.updated_at,
-	'moduleNumber', sub_m.module_number,
-	'unitId', sub_m.unit_id,
-	'name', sub_m.name,
-	'description', sub_m.description,
-	'progress', sub_ump.progress,
-	'status', sub_ump.status,
-	'sections', COALESCE((
-	SELECT jsonb_agg(
-	jsonb_build_object(
-	'id', sub_s.id,
-	'createdAt', sub_s.created_at,
-	'updatedAt', sub_s.updated_at,
-	'type', sub_s.type,
-	'position', sub_s.position,
-	'content', CASE sub_s.type
-	WHEN 'text' THEN (
-	SELECT jsonb_build_object('text', ts.text_content)
-	FROM text_sections ts
-	WHERE ts.section_id = sub_s.id
-	)
-	WHEN 'video' THEN (
-	SELECT jsonb_build_object('url', vs.url)
-	FROM video_sections vs
-	WHERE vs.section_id = sub_s.id
-	)
-	WHEN 'question' THEN (
-	SELECT jsonb_build_object(
-	'id', qs.question_id,
-	'question', q.question,
-	'type', q.type,
-	'options', COALESCE((
-	SELECT jsonb_agg( jsonb_build_object(
-	'id', qo.id,
-	'content', qo.content,
-	'isCorrect', qo.is_correct
-	))
-	FROM question_options qo
-	WHERE qo.question_id = q.id
-	), '[]'::jsonb
-	),
-	'userQuestionAnswer', COALESCE(jsonb_build_object(
-	'optionId', uqn.option_id,
-	'answeredAt', uqn.answered_at,
-	'isCorrect', uqn.is_correct
-	), NULL)
-	)
-	FROM question_sections qs
-	LEFT JOIN questions q ON q.id = qs.question_id
-	LEFT JOIN user_question_answers uqn ON uqn.question_id = qs.question_id
-	WHERE qs.section_id = sub_s.id
-	)
-	END,
-	'sectionProgress', jsonb_build_object(
-	'seenAt', usp.seen_at,
-	'startedAt', usp.started_at,
-	'completedAt', usp.completed_at,
-	'hasSeen', usp.has_seen
-	)
-	)
-
-	)
-	FROM sections sub_s
-	LEFT JOIN user_section_progress usp ON usp.section_id = sub_s.id
-	WHERE sub_s.module_id = sub_m.id
-	), '[]'::jsonb)
-	)
-	)
-	FROM modules AS sub_m
-	LEFT JOIN user_module_progress sub_ump ON sub_ump.module_id = sub_m.id
-	WHERE sub_u.id = sub_m.unit_id
-	),
-	'[]'::jsonb)
-	))
-	FROM units AS sub_u
-	WHERE sub_u.course_id = c.id
-	),
-	'[]'::jsonb) AS units
-	FROM courses c
-	JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1
-	LEFT JOIN units u ON u.id = uc.current_unit_id
-	LEFT JOIN modules m ON m.id = uc.current_module_id
-	JOIN user_module_progress ump ON ump.module_id = m.id
-	WHERE c.id = $2
-	ORDER BY c.id, uc.updated_at DESC;
-	`, userID, courseID).Scan(
-		&course.ID,
-		&course.CreatedAt,
-		&course.UpdatedAt,
-		&course.Name,
-		&course.Description,
-		&course.Requirements,
-		&course.WhatYouLearn,
-		&backgroundColor,
-		&iconURL,
-		&course.Duration,
-		&course.DifficultyLevel,
-		&authors,
-		&tags,
-		&course.Rating,
-		&currentUnit,
-		&currentModule,
-		&units,
-	)
-
+	// Get base course info with current progress
+	courseData, err := r.queries.GetCourseProgressFullBase(ctx, gen.GetCourseProgressFullBaseParams{
+		UserID:   int32(userID),
+		CourseID: int32(courseID),
+	})
 	if err != nil {
-		log.WithError(err).Errorf("error with queried rows")
-		return nil, fmt.Errorf("error with queried rows: %w", err)
+		log.WithError(err).Error("failed to get course progress full")
+		return nil, fmt.Errorf("failed to get course progress full: %w", err)
 	}
 
-	if err = json.Unmarshal(authors, &course.Authors); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal authors")
-		return nil, fmt.Errorf("failed to unmarshal authors")
+	course := &models.Course{
+		BaseModel: models.BaseModel{
+			ID:        int64(courseData.ID),
+			CreatedAt: courseData.CreatedAt,
+			UpdatedAt: courseData.UpdatedAt,
+		},
+		Name:            courseData.Name,
+		Description:     courseData.Description,
+		Requirements:    nullStringToString(courseData.Requirements),
+		WhatYouLearn:    nullStringToString(courseData.WhatYouLearn),
+		BackgroundColor: nullStringToString(courseData.BackgroundColor),
+		IconURL:         nullStringToString(courseData.IconUrl),
+		Duration:        int16(courseData.Duration.Int32),
+		DifficultyLevel: models.DifficultyLevel(courseData.DifficultyLevel.DifficultyLevel),
+		Rating:          courseData.Rating.Float64,
 	}
 
-	if err = json.Unmarshal(tags, &course.Tags); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal tags")
-		return nil, fmt.Errorf("failed to unmarshal tags")
+	// Get authors
+	authors, err := r.queries.GetCourseAuthors(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course authors")
+		return nil, fmt.Errorf("failed to get course authors: %w", err)
+	}
+	course.Authors = make([]models.Author, len(authors))
+	for i, author := range authors {
+		course.Authors[i] = models.Author{
+			ID:   int64(author.ID),
+			Name: author.Name,
+		}
 	}
 
-	if err = json.Unmarshal(units, &course.Units); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	// Get tags
+	tags, err := r.queries.GetCourseTags(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course tags")
+		return nil, fmt.Errorf("failed to get course tags: %w", err)
+	}
+	course.Tags = make([]models.Tag, len(tags))
+	for i, tag := range tags {
+		course.Tags[i] = models.Tag{
+			ID:   int64(tag.ID),
+			Name: tag.Name,
+		}
 	}
 
-	if err = json.Unmarshal(currentUnit, &course.CurrentUnit); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	// Set current unit and module if they exist
+	if courseData.CurrentUnitID.Valid {
+		course.CurrentUnit = &models.Unit{
+			BaseModel: models.BaseModel{
+				ID:        int64(courseData.CurrentUnitID.Int32),
+				CreatedAt: courseData.UnitCreatedAt.Time,
+				UpdatedAt: courseData.UnitUpdatedAt.Time,
+			},
+			UnitNumber:  int16(courseData.UnitNumber.Int32),
+			Name:        courseData.UnitName.String,
+			Description: courseData.UnitDescription.String,
+		}
 	}
 
-	if err = json.Unmarshal(currentModule, &course.CurrentModule); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal units")
-		return nil, fmt.Errorf("failed to unmarshal units")
+	if courseData.CurrentModuleID.Valid {
+		course.CurrentModule = &models.Module{
+			BaseModel: models.BaseModel{
+				ID:        int64(courseData.CurrentModuleID.Int32),
+				CreatedAt: courseData.ModuleCreatedAt.Time,
+				UpdatedAt: courseData.ModuleUpdatedAt.Time,
+			},
+			ModuleNumber: int16(courseData.ModuleNumber.Int32),
+			ModuleUnitID: int64(courseData.ModuleUnitID.Int32),
+			Name:         courseData.ModuleName.String,
+			Description:  courseData.ModuleDescription.String,
+			Progress:     float32(courseData.ModuleProgress.Float64),
+			Status:       string(courseData.ModuleStatus.ModuleProgressStatus),
+		}
 	}
 
-	return &course, nil
+	// Get units with modules and their progress
+	units, err := r.queries.GetCourseUnits(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course units")
+		return nil, fmt.Errorf("failed to get course units: %w", err)
+	}
+
+	course.Units = make([]*models.Unit, len(units))
+	for i, unit := range units {
+		course.Units[i] = &models.Unit{
+			BaseModel: models.BaseModel{
+				ID:        int64(unit.ID),
+				CreatedAt: unit.CreatedAt,
+				UpdatedAt: unit.UpdatedAt,
+			},
+			UnitNumber:  int16(unit.UnitNumber),
+			Name:        unit.Name,
+			Description: unit.Description,
+		}
+
+		// Get modules with progress and sections for each unit
+		modules, err := r.queries.GetModuleProgressWithSections(ctx, gen.GetModuleProgressWithSectionsParams{
+			UserID: int32(userID),
+			UnitID: unit.ID,
+		})
+		if err != nil {
+			log.WithError(err).Error("failed to get unit modules with sections")
+			return nil, fmt.Errorf("failed to get unit modules with sections: %w", err)
+		}
+
+		course.Units[i].Modules = make([]models.Module, len(modules))
+		for j, module := range modules {
+			course.Units[i].Modules[j] = models.Module{
+				BaseModel: models.BaseModel{
+					ID:        int64(module.ID),
+					CreatedAt: module.CreatedAt,
+					UpdatedAt: module.UpdatedAt,
+				},
+				ModuleNumber: int16(module.ModuleNumber),
+				ModuleUnitID: int64(module.UnitID),
+				Name:         module.Name,
+				Description:  module.Description,
+				Progress:     float32(module.Progress.Float64),
+				Status:       string(module.Status.ModuleProgressStatus),
+			}
+
+			// Get sections with progress for each module
+			sections, err := r.queries.GetModuleSectionsWithProgress(ctx, gen.GetModuleSectionsWithProgressParams{
+				UserID:   int32(userID),
+				ModuleID: module.ID,
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to get module sections")
+				return nil, fmt.Errorf("failed to get module sections: %w", err)
+			}
+
+			course.Units[i].Modules[j].Sections = make([]models.Section, len(sections))
+			for k, section := range sections {
+				sectionContent, err := r.queries.GetSectionContent(ctx, section.ID)
+				if err != nil {
+					log.WithError(err).Error("failed to get section content")
+					return nil, fmt.Errorf("failed to get section content: %w", err)
+				}
+
+				var baseSection models.BaseSection
+				switch section.Type {
+				case "text":
+					baseSection = models.BaseSection{
+						ModuleID: int64(module.ID),
+						Type:     section.Type,
+						Position: int16(section.Position),
+						Content:  sectionContent,
+						SectionProgress: models.SectionProgress{
+							SeenAt:      section.SeenAt.Time,
+							StartedAt:   section.StartedAt.Time,
+							CompletedAt: section.CompletedAt.Time,
+							HasSeen:     section.HasSeen.Bool,
+						},
+					}
+					course.Units[i].Modules[j].Sections[k] = &models.TextSection{
+						BaseModel:   models.BaseModel{ID: int64(section.ID)},
+						BaseSection: baseSection,
+					}
+				case "video":
+					baseSection = models.BaseSection{
+						ModuleID: int64(module.ID),
+						Type:     section.Type,
+						Position: int16(section.Position),
+						Content:  sectionContent,
+						SectionProgress: models.SectionProgress{
+							SeenAt:      section.SeenAt.Time,
+							StartedAt:   section.StartedAt.Time,
+							CompletedAt: section.CompletedAt.Time,
+							HasSeen:     section.HasSeen.Bool,
+						},
+					}
+					course.Units[i].Modules[j].Sections[k] = &models.VideoSection{
+						BaseModel:   models.BaseModel{ID: int64(section.ID)},
+						BaseSection: baseSection,
+					}
+				case "question":
+					baseSection = models.BaseSection{
+						ModuleID: int64(module.ID),
+						Type:     section.Type,
+						Position: int16(section.Position),
+						Content:  sectionContent,
+						SectionProgress: models.SectionProgress{
+							SeenAt:      section.SeenAt.Time,
+							StartedAt:   section.StartedAt.Time,
+							CompletedAt: section.CompletedAt.Time,
+							HasSeen:     section.HasSeen.Bool,
+						},
+					}
+					course.Units[i].Modules[j].Sections[k] = &models.QuestionSection{
+						BaseModel:   models.BaseModel{ID: int64(section.ID)},
+						BaseSection: baseSection,
+					}
+				}
+			}
+		}
+	}
+
+	return course, nil
+}
+
+func (r *courseRepository) GetCourseFull(ctx context.Context, courseID int64) (*models.Course, error) {
+	log := logger.Get().WithBaseFields(logger.Repository, "GetCourseFull")
+
+	// Get base course info
+	courseData, err := r.queries.GetCourseByID(ctx, int32(courseID))
+	if err != nil {
+		log.WithError(err).Error("failed to get course")
+		return nil, fmt.Errorf("failed to get course: %w", err)
+	}
+
+	course := &models.Course{
+		BaseModel: models.BaseModel{
+			ID:        int64(courseData.ID),
+			CreatedAt: courseData.CreatedAt,
+			UpdatedAt: courseData.UpdatedAt,
+		},
+		Name:            courseData.Name,
+		Description:     courseData.Description,
+		Requirements:    nullStringToString(courseData.Requirements),
+		WhatYouLearn:    nullStringToString(courseData.WhatYouLearn),
+		BackgroundColor: nullStringToString(courseData.BackgroundColor),
+		IconURL:         nullStringToString(courseData.IconUrl),
+		Duration:        int16(courseData.Duration.Int32),
+		DifficultyLevel: models.DifficultyLevel(courseData.DifficultyLevel.DifficultyLevel),
+		Rating:          courseData.Rating.Float64,
+	}
+
+	// Get authors
+	authors, err := r.queries.GetCourseAuthors(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course authors")
+		return nil, fmt.Errorf("failed to get course authors: %w", err)
+	}
+	course.Authors = make([]models.Author, len(authors))
+	for i, author := range authors {
+		course.Authors[i] = models.Author{
+			ID:   int64(author.ID),
+			Name: author.Name,
+		}
+	}
+
+	// Get tags
+	tags, err := r.queries.GetCourseTags(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course tags")
+		return nil, fmt.Errorf("failed to get course tags: %w", err)
+	}
+	course.Tags = make([]models.Tag, len(tags))
+	for i, tag := range tags {
+		course.Tags[i] = models.Tag{
+			ID:   int64(tag.ID),
+			Name: tag.Name,
+		}
+	}
+
+	// Get units with modules
+	units, err := r.queries.GetCourseUnits(ctx, courseData.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to get course units")
+		return nil, fmt.Errorf("failed to get course units: %w", err)
+	}
+
+	course.Units = make([]*models.Unit, len(units))
+	for i, unit := range units {
+		course.Units[i] = &models.Unit{
+			BaseModel: models.BaseModel{
+				ID:        int64(unit.ID),
+				CreatedAt: unit.CreatedAt,
+				UpdatedAt: unit.UpdatedAt,
+			},
+			UnitNumber:  int16(unit.UnitNumber),
+			Name:        unit.Name,
+			Description: unit.Description,
+		}
+
+		// Get modules for each unit
+		modules, err := r.queries.GetUnitModules(ctx, unit.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get unit modules")
+			return nil, fmt.Errorf("failed to get unit modules: %w", err)
+		}
+
+		course.Units[i].Modules = make([]models.Module, len(modules))
+		for j, module := range modules {
+			course.Units[i].Modules[j] = models.Module{
+				BaseModel: models.BaseModel{
+					ID:        int64(module.ID),
+					CreatedAt: module.CreatedAt,
+					UpdatedAt: module.UpdatedAt,
+				},
+				ModuleNumber: int16(module.ModuleNumber),
+				ModuleUnitID: int64(module.UnitID),
+				Name:         module.Name,
+				Description:  module.Description,
+			}
+
+			// Get sections for each module
+			sections, err := r.queries.GetModuleSections(ctx, module.ID)
+			if err != nil {
+				log.WithError(err).Error("failed to get module sections")
+				return nil, fmt.Errorf("failed to get module sections: %w", err)
+			}
+
+			course.Units[i].Modules[j].Sections = make([]models.Section, len(sections))
+			for k, section := range sections {
+				sectionContent, err := r.queries.GetSectionContent(ctx, section.ID)
+				if err != nil {
+					log.WithError(err).Error("failed to get section content")
+					return nil, fmt.Errorf("failed to get section content: %w", err)
+				}
+
+				var baseSection models.BaseSection
+				switch section.Type {
+				case "text":
+					baseSection = models.BaseSection{
+						ModuleID: int64(module.ID),
+						Type:     section.Type,
+						Position: int16(section.Position),
+						Content:  sectionContent,
+					}
+					course.Units[i].Modules[j].Sections[k] = &models.TextSection{
+						BaseModel:   models.BaseModel{ID: int64(section.ID)},
+						BaseSection: baseSection,
+					}
+				case "video":
+					baseSection = models.BaseSection{
+						ModuleID: int64(module.ID),
+						Type:     section.Type,
+						Position: int16(section.Position),
+						Content:  sectionContent,
+					}
+					course.Units[i].Modules[j].Sections[k] = &models.VideoSection{
+						BaseModel:   models.BaseModel{ID: int64(section.ID)},
+						BaseSection: baseSection,
+					}
+				case "question":
+					baseSection = models.BaseSection{
+						ModuleID: int64(module.ID),
+						Type:     section.Type,
+						Position: int16(section.Position),
+						Content:  sectionContent,
+					}
+					course.Units[i].Modules[j].Sections[k] = &models.QuestionSection{
+						BaseModel:   models.BaseModel{ID: int64(section.ID)},
+						BaseSection: baseSection,
+					}
+				}
+			}
+		}
+	}
+
+	return course, nil
 }

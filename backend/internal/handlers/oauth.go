@@ -122,24 +122,22 @@ func (h *oauthHandler) AppleCallback(w http.ResponseWriter, r *http.Request) {
 
 func (h *oauthHandler) handleOAuthUser(w http.ResponseWriter, r *http.Request, email, oauthID, state string) {
 	fmt.Printf("handleOAuthUser - State: %s\n", state) // Debugging state parameter
-	user, err := h.userRepo.GetUserByEmail(email)
+	user, err := h.userRepo.GetUserByEmail(r.Context(), email)
 	if err != nil {
 		if err.Error() == "user not found" {
 			// User does not exist, we create a new one
 			newUser := &models.User{
-				BaseModel: models.BaseModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
 				Email:           email,
 				OAuthID:         oauthID,
 				Role:            "user",
 				IsActive:        true,
 				IsEmailVerified: true,
 				CPUs:            0,
-				Preferences:     `{}`,
 			}
-			if err := h.userRepo.CreateUser(newUser); err != nil {
+			_, err := h.userRepo.CreateUser(newUser)
+			if err != nil {
 				http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
 				return
 			}

@@ -10,7 +10,17 @@ DECLARE
     v_section JSONB;
     v_question JSONB;
     v_current_progress FLOAT;
+    v_course_id INTEGER;
+    v_unit_id INTEGER;
+    v_course_progress FLOAT;
 BEGIN
+    -- Get course_id and unit_id
+    SELECT u.course_id, m.unit_id
+    INTO v_course_id, v_unit_id
+    FROM modules m
+    JOIN units u ON m.unit_id = u.id
+    WHERE m.id = p_module_id;
+
     -- Validate inputs
     IF p_sections IS NULL OR jsonb_array_length(p_sections) = 0 THEN
         RAISE EXCEPTION 'Sections array cannot be empty';
@@ -31,7 +41,7 @@ BEGIN
         has_seen,
         seen_at
     )
-    SELECT 
+    SELECT
         p_user_id,
         p_module_id,
         (section->>'sectionId')::INTEGER,
@@ -88,7 +98,7 @@ BEGIN
             WHERE s.module_id = p_module_id
             AND qs.question_id = (question->>'questionId')::INTEGER
         )
-         ON CONFLICT (user_module_progress_id, question_id) 
+         ON CONFLICT (user_module_progress_id, question_id)
         DO UPDATE SET
             option_id = EXCLUDED.option_id,
             is_correct = EXCLUDED.is_correct,
@@ -97,11 +107,11 @@ BEGIN
     END IF;
 
     -- calculate new progress
-    SELECT 
-        CASE 
+    SELECT
+        CASE
             WHEN COUNT(*) = 0 THEN 0
             ELSE (
-                COUNT(CASE 
+                COUNT(CASE
                     WHEN s.type = 'question' THEN
                         CASE WHEN uqa.is_correct THEN 1 END
                     ELSE
@@ -111,29 +121,88 @@ BEGIN
         END
     INTO v_current_progress
     FROM sections s
-    LEFT JOIN user_section_progress usp 
-        ON usp.section_id = s.id 
+    LEFT JOIN user_section_progress usp
+        ON usp.section_id = s.id
         AND usp.user_id = p_user_id
-    LEFT JOIN question_sections qs 
+    LEFT JOIN question_sections qs
         ON s.id = qs.section_id
-    LEFT JOIN user_question_answers uqa 
-        ON qs.question_id = uqa.question_id 
+    LEFT JOIN user_question_answers uqa
+        ON qs.question_id = uqa.question_id
         AND uqa.user_module_progress_id = v_progress_id
     WHERE s.module_id = p_module_id;
 
     -- update module progress
     UPDATE user_module_progress
-    SET 
+    SET
         progress = v_current_progress,
-        status = CASE 
+        status = CASE
             WHEN v_current_progress >= 100 THEN 'completed'::module_progress_status
             ELSE 'in_progress'::module_progress_status
         END,
-        completed_at = CASE 
+        completed_at = CASE
             WHEN v_current_progress >= 100 THEN NOW()
             ELSE NULL
         END
     WHERE id = v_progress_id;
+
+    -- If module is completed, update course progress
+       IF v_current_progress >= 100 THEN
+           -- Calculate overall course progress
+           SELECT
+               CASE
+                   WHEN COUNT(*) = 0 THEN 0
+                   ELSE (
+                       COUNT(CASE WHEN ump.status = 'completed' THEN 1 END)::FLOAT /
+                       COUNT(*)::FLOAT
+                   ) * 100
+               END
+           INTO v_course_progress
+           FROM modules m
+           JOIN units u ON m.unit_id = u.id
+           LEFT JOIN user_module_progress ump
+               ON ump.module_id = m.id
+               AND ump.user_id = p_user_id
+           WHERE u.course_id = v_course_id;
+
+           -- Update user_courses table
+           INSERT INTO user_courses (
+               user_id,
+               course_id,
+               current_unit_id,
+               current_module_id,
+               latest_module_progress_id,
+               progress
+           )
+           VALUES (
+               p_user_id,
+               v_course_id,
+               v_unit_id,
+               p_module_id,
+               v_progress_id,
+               v_course_progress
+           )
+           ON CONFLICT (user_id, course_id)
+           DO UPDATE SET
+               current_unit_id = EXCLUDED.current_unit_id,
+               current_module_id = EXCLUDED.current_module_id,
+               latest_module_progress_id = EXCLUDED.latest_module_progress_id,
+               progress = EXCLUDED.progress,
+               updated_at = NOW();
+
+           -- -- If course is completed (100%), trigger any necessary achievements or notifications
+           -- IF v_course_progress >= 100 THEN
+           --     -- Insert course completion achievement
+           --     INSERT INTO user_achievements (user_id, achievement_id)
+           --     SELECT p_user_id, id
+           --     FROM achievements
+           --     WHERE name = 'Course Completion'
+           --     ON CONFLICT (user_id, achievement_id) DO NOTHING;
+
+           --     -- Add completion notification
+           --     INSERT INTO notifications (user_id, content)
+           --     VALUES (p_user_id, 'Congratulations! You have completed the course.');
+           -- END IF;
+       END IF;
 
 
 END
@@ -142,7 +211,7 @@ $$ LANGUAGE plpgsql;
 -- name: create_module
 CREATE OR REPLACE FUNCTION create_module(
     author_id INTEGER,
-    m_unit_id INTEGER, 
+    m_unit_id INTEGER,
     m_name TEXT,
     m_description TEXT,
     m_sections JSONB,
@@ -158,12 +227,12 @@ BEGIN
         RAISE EXCEPTION 'Unit ID cannot be null';
     END IF;
 
-    IF m_name IS NULL OR m_name = '' THEN 
+    IF m_name IS NULL OR m_name = '' THEN
         RAISE EXCEPTION 'Module name cannot be empty';
     END IF;
 
     IF m_description IS NULL OR m_description = '' THEN
-        RAISE EXCEPTION 'Module description cannot be empty'; 
+        RAISE EXCEPTION 'Module description cannot be empty';
     END IF;
 
     -- Create new module
@@ -175,7 +244,7 @@ BEGIN
         name,
         description
     )
-    SELECT 
+    SELECT
         NOW(),
         NOW(),
         COALESCE((
@@ -216,11 +285,11 @@ BEGIN
                 WHEN 'text' THEN
                     INSERT INTO text_sections (section_id, text_content)
                     VALUES (section_id, m_sections->i->>'content');
-                    
+
                 WHEN 'video' THEN
                     INSERT INTO video_sections (section_id, url)
                     VALUES (section_id, m_sections->i->>'content');
-                    
+
                 WHEN 'question' THEN
                     -- Insert question
                     WITH question_insert AS (
@@ -245,7 +314,7 @@ BEGIN
                         SELECT id FROM questions WHERE id = currval('questions_id_seq')
                     )
                     INSERT INTO question_options (question_id, content, is_correct)
-                    SELECT 
+                    SELECT
                         (SELECT id FROM question_id),
                         opt->>'content',
                         (opt->>'is_correct')::boolean
@@ -266,7 +335,7 @@ BEGIN
                         SELECT id FROM questions WHERE id = currval('questions_id_seq')
                     )
                     INSERT INTO question_tags (question_id, tag_id)
-                    SELECT 
+                    SELECT
                         (SELECT id FROM question_id),
                         t.id
                     FROM jsonb_array_elements_text(m_sections->i->'content'->'tags') AS tag_name

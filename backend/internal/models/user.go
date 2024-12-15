@@ -5,7 +5,9 @@ import (
 )
 
 type User struct {
-	BaseModel
+	ID                int32             `json:"id"`
+	CreatedAt         time.Time         `json:"createdAt"`
+	UpdatedAt         time.Time         `json:"updatedAt"`
 	Username          string            `json:"username"`
 	Email             string            `json:"email"`
 	OAuthID           string            `json:"oauthId,omitempty"`
@@ -20,9 +22,15 @@ type User struct {
 	Bio               string            `json:"bio,omitempty"`
 	Location          string            `json:"location,omitempty"`
 	CPUs              int               `json:"cpus"`
-	Preferences       string            `json:"preferences,omitempty"`  // JSON for user preferences
-	Streaks           []Streak          `json:"streaks,omitempty"`      // Add streaks
-	Achievements      []UserAchievement `json:"achievements,omitempty"` // Add achievements
+	Preferences       Preferences       `json:"preferences,omitempty"`
+	Streaks           []Streak          `json:"streaks,omitempty"`
+	Achievements      []UserAchievement `json:"achievements,omitempty"`
+}
+
+type Preferences struct {
+	Theme    string `json:"theme"`
+	Language string `json:"lang"`
+	Timezone string `json:"timezone"`
 }
 
 // User Progress and Answers

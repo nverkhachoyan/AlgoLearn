@@ -5,45 +5,42 @@ PROJECT_NAME = algolearn-backend
 DOCKER_COMPOSE_FILE = docker-compose.yml
 
 # Default target
-all: run
+all: dev
 
-# Run Docker Compose and the Go application
-build: docker-build
-run: docker-up
-dev: docker-dev
-down: docker-down
+# Development setup
+dev: start-services run-backend
 
-# Build docker services
-docker-build:
-	@echo "Starting Docker Compose services..."
-	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) build
+# Start docker services
+start-services:
+	@echo "Starting Docker services..."
+	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up -d
 
-# Bring up Docker Compose services
-docker-up:
-	@echo "Starting Docker Compose services..."
-	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) up
+# Run backend locally
+run-backend:
+	@echo "Starting backend server..."
+	CompileDaemon -build="go build -o main cmd/server/main.go" -command="./main"
 
-
-# Bring up Docker Compose services for development
-docker-dev:
-	@echo "Starting Docker Compose services..."
-	$(DOCKER_COMPOSE) up -d db
-
-# Stop Docker Compose services
-docker-down:
-	@echo "Stopping Docker Compose services..."
+# Stop services
+stop:
+	@echo "Stopping Docker services..."
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down
 
-# Clean up Docker resources (excluding volumes)
+# Build the backend
+build:
+	@echo "Building backend..."
+	$(GO) build -o main cmd/server/main.go
+
+# Clean up
 clean:
-	@echo "Cleaning up Docker resources (excluding volumes)..."
+	@echo "Cleaning up..."
 	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down
+	rm -f main
 
-# Prune Docker resources, including volumes
-prune:
-	@echo "Pruning Docker resources and volumes..."
-	$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE) down --volumes
-	@docker system prune -f --volumes
-	@echo "All containers, volumes, and unused Docker resources removed."
+# Run migrations
+migrate-up:
+	go run cmd/cli/migrate.go up
 
-.PHONY: all run docker-up docker-down clean prune
+migrate-down:
+	go run cmd/cli/migrate.go down
+
+.PHONY: all dev start-services run-backend stop build clean migrate-up migrate-down

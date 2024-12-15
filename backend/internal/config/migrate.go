@@ -2,6 +2,7 @@ package config
 
 import (
 	"algolearn/pkg/logger"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,8 +12,13 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-func RunMigrations() {
-	log := logger.Get()
+const migrationsPath = "file://backend/migrations"
+
+type Migrator struct {
+	migrate *migrate.Migrate
+}
+
+func NewMigrator() (*Migrator, error) {
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -21,48 +27,69 @@ func RunMigrations() {
 		os.Getenv("DB_NAME"),
 	)
 
-	m, err := migrate.New(
-		"file://migrations",
-		dbURL)
+	m, err := migrate.New(migrationsPath, dbURL)
 	if err != nil {
-		log.Fatalf("Failed to create migrate instance: %v\n", err)
+		return nil, fmt.Errorf("failed to create migrator: %w", err)
 	}
 
-	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatalf("Failed to run migrate up: %v\n", err)
-	}
-
-	log.Println("Migrations applied successfully!")
+	return &Migrator{migrate: m}, nil
 }
 
-func DownMigration() {
+func (m *Migrator) Up(ctx context.Context) error {
 	log := logger.Get()
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
-	)
 
-	m, err := migrate.New(
-		"file://migrations",
-		dbURL)
-	if err != nil {
-		log.Fatalf("Failed to create migrate instance: %v\n", err)
+	if err := m.migrate.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			log.Info("No migrations to apply")
+			return nil
+		}
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		log.Fatalf("Failed to run migrate down: %v\n", err)
-	}
-
-	log.Println("Down migration applied successfully!")
+	log.Info("Migrations applied successfully")
+	return nil
 }
 
-func ApplyMigrations() {
+func (m *Migrator) Down(ctx context.Context) error {
+	log := logger.Get()
+
+	if err := m.migrate.Down(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			log.Info("No migrations to revert")
+			return nil
+		}
+		return fmt.Errorf("failed to revert migrations: %w", err)
+	}
+
+	log.Info("Migrations reverted successfully")
+	return nil
+}
+
+// ApplyMigrations handles migration based on environment variables
+func ApplyMigrations() error {
+	log := logger.Get()
+
+	migrator, err := NewMigrator()
+	if err != nil {
+		return fmt.Errorf("failed to create migrator: %w", err)
+	}
+	defer func() {
+		srcErr, dbErr := migrator.migrate.Close()
+		if srcErr != nil {
+			log.Errorf("Error closing source: %v", srcErr)
+		}
+		if dbErr != nil {
+			log.Errorf("Error closing database: %v", dbErr)
+		}
+	}()
+
+	ctx := context.Background()
+
 	if os.Getenv("RUN_MIGRATIONS") == "true" {
-		RunMigrations()
+		return migrator.Up(ctx)
 	} else if os.Getenv("RUN_DOWN_MIGRATIONS") == "true" {
-		DownMigration()
+		return migrator.Down(ctx)
 	}
+
+	return nil
 }

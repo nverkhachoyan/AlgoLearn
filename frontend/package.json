@@ -20,7 +20,7 @@
     "@react-native-community/cli": "^15.1.2",
     "@react-native-community/cli-platform-android": "^15.1.2",
     "@react-native-community/cli-platform-ios": "^15.1.2",
-    "@react-navigation/native": "^7.0.0",
+    "@react-navigation/native": "^7.0.14",
     "@shopify/flash-list": "1.7.1",
     "@tanstack/query-core": "^5.50.1",
     "@tanstack/react-query": "^5.61.0",

@@ -3,12 +3,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as authService from "@/src/features/auth/authService";
 import * as userService from "@/src/features/user/api/queries";
 import { User } from "../features/user/types";
-import { ApiResponse } from "../types";
-
-type SignInResponse = {
-  token: string;
-  user: User;
-};
+import { AxiosError } from "axios";
+import type {
+  ApiResponse,
+  AuthResponse,
+} from "@/src/features/auth/authService";
 
 export function useUser() {
   const queryClient = useQueryClient();
@@ -24,6 +23,7 @@ export function useUser() {
     isPending: isUserPending,
     error: userError,
     isError: isUserError,
+    isSuccess: isUserSuccess,
   } = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
@@ -53,44 +53,59 @@ export function useUser() {
     retry: false,
   });
 
-  const checkEmail = useMutation({
+  const checkEmail = useMutation<ApiResponse<void>, AxiosError, string>({
     mutationFn: async (email: string) => {
-      try {
-        const axiosResponse = await authService.checkEmailExists(email);
-        const response = axiosResponse.data;
-        if (!response.success) {
-          throw new Error(response.message);
-        }
-        return response.payload;
-      } catch (error: any) {
-        throw error;
-      }
+      const axiosResponse = await authService.checkEmailExists(email);
+      return axiosResponse.data;
     },
   });
 
-  const signIn = useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
-      try {
-        const axiosResponse = await authService.signIn(
-          credentials.email,
-          credentials.password
-        );
-        const response: ApiResponse<SignInResponse> = axiosResponse.data;
-
-        if (!response.success) {
-          throw new Error(response.message);
-        }
-
-        if (response.payload?.token) {
-          await AsyncStorage.setItem("authToken", response.payload.token);
-          queryClient.setQueryData(["authToken"], response.payload.token);
-        }
-        return response.payload;
-      } catch (error: any) {
-        throw error;
+  const signUp = useMutation<
+    ApiResponse<AuthResponse>,
+    AxiosError,
+    { email: string; password: string }
+  >({
+    mutationFn: async (credentials) => {
+      const axiosResponse = await authService.signUp(
+        credentials.email,
+        credentials.password
+      );
+      const response = axiosResponse.data;
+      if (!response.success) {
+        throw new Error(response.message);
       }
+      return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      if (response.payload?.token) {
+        AsyncStorage.setItem("authToken", response.payload.token);
+        queryClient.setQueryData(["authToken"], response.payload.token);
+      }
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+  });
+
+  const signIn = useMutation<
+    ApiResponse<AuthResponse>,
+    AxiosError,
+    { email: string; password: string }
+  >({
+    mutationFn: async (credentials) => {
+      const axiosResponse = await authService.signIn(
+        credentials.email,
+        credentials.password
+      );
+      const response = axiosResponse.data;
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      return response;
+    },
+    onSuccess: (response) => {
+      if (response.payload?.token) {
+        AsyncStorage.setItem("authToken", response.payload.token);
+        queryClient.setQueryData(["authToken"], response.payload.token);
+      }
       queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
@@ -103,7 +118,7 @@ export function useUser() {
     },
   });
 
-  const updateUser = useMutation({
+  const updateUser = useMutation<ApiResponse<User>, AxiosError, any>({
     mutationFn: async (data: any) => {
       try {
         if (!token) throw new Error("No auth token");
@@ -114,7 +129,7 @@ export function useUser() {
           throw new Error(response.message);
         }
 
-        return response.payload;
+        return response;
       } catch (error: any) {
         if (
           error?.response?.status === 401 ||
@@ -140,7 +155,7 @@ export function useUser() {
     queryClient.removeQueries({ queryKey: ["user"] });
   };
 
-  const isAuthenticated = !!token && !!user && !isUserError;
+  const isAuthenticated = !!token && isUserSuccess && !!user;
   const isLoading = !isInitialized || (!!token && isUserPending);
 
   return {
@@ -152,6 +167,7 @@ export function useUser() {
     userError,
     checkEmail,
     signIn,
+    signUp,
     signOut,
     updateUser,
     invalidateAuth,

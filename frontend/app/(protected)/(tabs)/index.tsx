@@ -7,11 +7,10 @@ import { useCourses } from "@/src/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { router } from "expo-router";
 import { useTheme } from "react-native-paper";
-import { useQueryClient } from "@tanstack/react-query";
-import { useModuleProgress } from "@/src/hooks/useModules";
+import { User } from "@/src/features/user/types";
 
 export default function Home() {
-  const { user } = useUser();
+  const { user }: { user: User } = useUser();
   const { colors } = useTheme();
   const { showToast } = useToast();
 
@@ -63,8 +62,8 @@ export default function Home() {
     >
       <StickyHeader
         cpus={user?.cpus ?? 0}
-        strikeCount={user?.strikeCount ?? 0}
-        userAvatar={""}
+        strikeCount={user?.streaks?.length ?? 0}
+        userAvatar={user?.profilePictureUrl ?? ""}
         onAvatarPress={() => router.push("/(protected)/(profile)")}
       />
 

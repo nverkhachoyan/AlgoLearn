@@ -12,7 +12,7 @@ import { useTheme } from "react-native-paper";
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
-  const { isAuthed, user, userError, signOut } = useUser();
+  const { isAuthenticated, user, userError, signOut } = useUser();
   const { colors } = useTheme();
 
   const handleSignOut = () => {
@@ -26,7 +26,7 @@ export default function Profile() {
     }
   }, [user, userError]);
 
-  if (!isAuthed || !user) {
+  if (!isAuthenticated || !user) {
     return <Text>Not logged in</Text>;
   }
 
@@ -108,13 +108,13 @@ export default function Profile() {
         title="Account Settings"
         onPress={() => router.replace("/preferences")}
         style={{
-          backgroundColor: colors.background,
+          backgroundColor: colors.onBackground,
           borderColor: colors.shadow,
           paddingHorizontal: 15,
         }}
-        textStyle={{ color: colors.onSurface }}
+        textStyle={{ color: colors.inverseOnSurface }}
         icon={{ name: "settings", position: "right" }}
-        iconStyle={{ color: colors.onSurface }}
+        iconStyle={{ color: colors.inverseOnSurface }}
       />
       <View style={styles.separator} />
       <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />

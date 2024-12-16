@@ -15,7 +15,6 @@ type FeatherIconName = keyof typeof Feather.glyphMap;
 type FontAwesomeIconName = keyof typeof FontAwesome.glyphMap;
 type IoniconsName = keyof typeof Ionicons.glyphMap;
 
-
 interface ButtonProps {
   onPress: () => void;
   title?: string;
@@ -30,10 +29,20 @@ interface ButtonProps {
   style?: ViewStyle; // Style for the Pressable
   textStyle?: TextStyle; // Style for the Text
   iconStyle?: TextStyle | {}; // Style for the Icon
+  disabled?: boolean;
 }
 
 export default function Button(props: ButtonProps) {
-  const { onPress, title, icon, style, textStyle, iconStyle, ...rest } = props;
+  const {
+    onPress,
+    title,
+    icon,
+    style,
+    textStyle,
+    iconStyle,
+    disabled,
+    ...rest
+  } = props;
   const [isPressed, setIsPressed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -96,6 +105,7 @@ export default function Button(props: ButtonProps) {
       onPressOut={() => setIsPressed(false)}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
+      disabled={disabled}
       {...rest}
     >
       {icon?.position === "left" && renderIcon()}

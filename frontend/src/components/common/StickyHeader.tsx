@@ -67,7 +67,7 @@ export function StickyHeaderSimple({ children }: { children: ReactNode }) {
       style={[
         styles.container,
         {
-          backgroundColor: colors.secondaryContainer,
+          backgroundColor: colors.surface,
           borderBottomEndRadius: 0,
           borderBottomStartRadius: 0,
         },

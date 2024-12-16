@@ -4,8 +4,8 @@ import (
 	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
+	"algolearn/pkg/security"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +26,6 @@ func Auth() gin.HandlerFunc {
 
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			log.Debug("no authorization header")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
@@ -36,7 +35,6 @@ func Auth() gin.HandlerFunc {
 		}
 
 		if !strings.HasPrefix(authHeader, BearerSchema) {
-			log.Debug("invalid authorization header format")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
@@ -46,17 +44,26 @@ func Auth() gin.HandlerFunc {
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, BearerSchema)
+
+		secretKey := security.GetJWTKey()
+		if len(secretKey) == 0 {
+			log.Error("JWT configuration error")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+				Success:   false,
+				ErrorCode: codes.Unauthorized,
+				Message:   "server configuration error",
+			})
+			return
+		}
+
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			// Validate the signing method
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			// Return the secret key used to sign the token
-			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+			return secretKey, nil
 		})
 
 		if err != nil {
-			log.WithError(err).Debug("failed to parse token")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
@@ -66,10 +73,8 @@ func Auth() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Get user ID from claims
 			userID, ok := claims["user_id"].(float64)
 			if !ok {
-				log.Debug("user_id claim not found or invalid")
 				c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 					Success:   false,
 					ErrorCode: codes.Unauthorized,
@@ -78,11 +83,9 @@ func Auth() gin.HandlerFunc {
 				return
 			}
 
-			// Set user ID in context
 			c.Set(UserIDKey, int64(userID))
 			c.Next()
 		} else {
-			log.Debug("invalid token claims")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,

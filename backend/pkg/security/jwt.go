@@ -1,14 +1,21 @@
 package security
 
 import (
-	"log"
-	"os"
+	"algolearn/internal/config"
+	"algolearn/pkg/logger"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
-var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+// GetJWTKey returns the JWT secret key from config
+func GetJWTKey() []byte {
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return nil
+	}
+	return []byte(cfg.Auth.JWTSecretKey)
+}
 
 type Claims struct {
 	UserID int32 `json:"user_id"`
@@ -16,6 +23,14 @@ type Claims struct {
 }
 
 func GenerateJWT(userID int32) (string, error) {
+	log := logger.Get()
+
+	jwtKey := GetJWTKey()
+	if len(jwtKey) == 0 {
+		log.Error("JWT configuration error")
+		return "", jwt.ErrSignatureInvalid
+	}
+
 	expirationTime := time.Now().Add(240 * time.Hour)
 	claims := &Claims{
 		UserID: userID,
@@ -25,10 +40,24 @@ func GenerateJWT(userID int32) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		log.Error("Error generating token")
+		return "", err
+	}
+
+	return tokenString, nil
 }
 
 func ValidateJWT(tokenString string) (*Claims, error) {
+	log := logger.Get()
+
+	jwtKey := GetJWTKey()
+	if len(jwtKey) == 0 {
+		log.Error("JWT configuration error")
+		return nil, jwt.ErrSignatureInvalid
+	}
+
 	claims := &Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -36,15 +65,14 @@ func ValidateJWT(tokenString string) (*Claims, error) {
 	})
 
 	if err != nil {
-		log.Printf("Error parsing JWT: %v", err)
+		log.Error("Token validation failed")
 		return nil, err
 	}
 
 	if !token.Valid {
-		log.Println("Invalid JWT token")
+		log.Error("Invalid token")
 		return nil, err
 	}
 
-	//	log.Printf("Successfully parsed JWT. UserID: %d", claims.UserID)
 	return claims, nil
 }

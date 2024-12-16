@@ -2,31 +2,47 @@
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
-import { Stack } from "expo-router";
-export default function PublicLayout() {
+import { Stack, router } from "expo-router";
+import { useUser } from "@/src/hooks/useUser";
+import { useEffect } from "react";
+import { ActivityIndicator } from "react-native";
+
+export default function AuthLayout() {
+  const { isAuthenticated, isLoading, token, user, isUserPending } = useUser();
   const { colors } = useTheme();
 
-  return (
-    <View style={{ flex: 1 }}>
-      <SafeAreaView
-        edges={["top"]}
-        style={{
-          flex: 0,
-          backgroundColor: colors.background,
-        }}
-      />
-      <SafeAreaView edges={["left", "right"]} style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="sign-up" />
-        </Stack>
-      </SafeAreaView>
-      <SafeAreaView
-        edges={["bottom"]}
-        style={{
-          flex: 0,
-          backgroundColor: colors.background,
-        }}
-      />
-    </View>
-  );
+  useEffect(() => {
+    let mounted = true;
+
+    // Only redirect when we have both token and user data
+    if (!isLoading && token && user && mounted) {
+      // Use setTimeout to ensure navigation happens after layout is mounted
+      const timer = setTimeout(() => {
+        console.log("Auth state verified, redirecting to protected tabs...");
+        router.replace("/(protected)/(tabs)");
+      }, 100);
+
+      return () => {
+        mounted = false;
+        clearTimeout(timer);
+      };
+    }
+  }, [isLoading, token, user]);
+
+  // Show loading state while checking auth
+  if (isLoading || (token && isUserPending)) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Don't render auth screens if already authenticated
+  if (isAuthenticated) {
+    return null;
+  }
+
+  // Only render auth screens if not authenticated
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

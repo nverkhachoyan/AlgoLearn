@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,20 +6,23 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
-import { useRouter, useSegments } from "expo-router";
+import { useRouter } from "expo-router";
 import Button from "@/src/components/common/Button";
 import { Feather } from "@expo/vector-icons";
 import { useUser } from "@/src/hooks/useUser";
-
 import { useColorScheme } from "react-native";
 import { useTheme } from "react-native-paper";
 import useToast from "@/src/hooks/useToast";
 
 export default function SignUp() {
   const router = useRouter();
-  const { isAuthed, isInitialized, checkEmail, signIn } = useUser();
+  const { isLoading, checkEmail, signIn, signUp } = useUser();
   const colorScheme = useColorScheme();
   const { colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
@@ -27,6 +30,8 @@ export default function SignUp() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [retryPassword, setRetryPassword] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
   const { showToast } = useToast();
 
   const isValidEmail = (email: string) => {
@@ -34,228 +39,363 @@ export default function SignUp() {
     return emailRegex.test(email);
   };
 
-  //TODO: Fix
-  const signUp = {};
-  const signInWithGoogle = () => {};
+  const validatePassword = (password: string) => {
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password must contain at least one uppercase letter";
+    }
+    if (!/[a-z]/.test(password)) {
+      return "Password must contain at least one lowercase letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    return "";
+  };
+
+  const signInWithGoogle = () => {
+    showToast("Google sign in coming soon!");
+  };
 
   const handleEmailCheck = async () => {
+    setEmailError("");
+    if (!email.trim()) {
+      setEmailError("Email is required");
+      return;
+    }
     if (!isValidEmail(email)) {
-      showToast("Please enter a valid email address.");
-    } else {
-      checkEmail.mutate(email, {
-        onSuccess: (res: any) => {
-          //          console.log("RES", res);
-          //          console.log("res.data", res.data);
+      setEmailError("Please enter a valid email address");
+      return;
+    }
 
-          if (true) {
-            setHasCheckedEmail(true);
-            setEmailExists(true);
+    checkEmail.mutate(email, {
+      onSuccess: (response) => {
+        setHasCheckedEmail(true);
+        setEmailExists(
+          response.success && response.errorCode === "ACCOUNT_EXISTS"
+        );
+        if (response.success && response.errorCode === "ACCOUNT_EXISTS") {
+          showToast("Welcome back! Please enter your password.");
+        } else {
+          showToast("Create a new account to get started!");
+        }
+      },
+      onError: (error: any) => {
+        setEmailError(error.response?.data?.message || "Error checking email");
+        showToast("Error checking email. Please try again.");
+      },
+    });
+  };
+
+  const handleSignUp = () => {
+    setPasswordError("");
+    const passwordValidation = validatePassword(password);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
+      return;
+    }
+    if (password !== retryPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    signUp.mutate(
+      { email, password },
+      {
+        onSuccess: (response) => {
+          if (response.success && response.payload) {
+            showToast("Account created successfully!");
+          } else {
+            setPasswordError(response.message);
+            showToast(response.message);
           }
         },
         onError: (error: any) => {
-          showToast(`Error checking email: ${error.message}`);
+          const errorMessage =
+            error.response?.data?.message || "Failed to create account";
+          setPasswordError(errorMessage);
+          showToast(errorMessage);
         },
-      });
-    }
-  };
-
-  //TODO: Fix
-  const handleSignUp = () => {
-    // if (password.length < 8) {
-    //   Alert.alert(
-    //     "Weak Password",
-    //     "Password must be at least 8 characters long."
-    //   );
-    //   return;
-    // }
-    // if (password !== retryPassword) {
-    //   Alert.alert("Password Mismatch", "Passwords do not match.");
-    // } else {
-    //   signUp.mutate(
-    //     { email, password },
-    //     {
-    //       onSuccess: () => {
-    //         router.navigate("/userdetails");
-    //       },
-    //       onError: (err: any) => {
-    //         showToast(`${err.response.message}`);
-    //       },
-    //     }
-    //   );
-    // }
+      }
+    );
   };
 
   const handleSignIn = () => {
+    setPasswordError("");
+    if (!password.trim()) {
+      setPasswordError("Password is required");
+      return;
+    }
+
     signIn.mutate(
       { email, password },
       {
-        onSuccess: () => {
-          router.navigate("/(auth)/sign-up");
-        },
-        onError: (err: any) => {
-          if (err.response.status === 401) {
-            showToast("Incorrect email or password.");
+        onSuccess: (response) => {
+          if (response.success && response.payload) {
+            showToast("Welcome back!");
+          } else {
+            setPasswordError(response.message);
+            showToast(response.message);
           }
+        },
+        onError: (error: any) => {
+          const errorMessage =
+            error.response?.data?.message || "Invalid email or password";
+          setPasswordError(errorMessage);
+          showToast(errorMessage);
         },
       }
     );
   };
 
   const handleContinue = () => {
-    if (checkEmail.isPending) return null;
-    if (emailExists === false) {
+    if (checkEmail.isPending) return;
+    if (!emailExists) {
       handleSignUp();
     } else {
       handleSignIn();
     }
   };
 
+  const isSubmitting =
+    signIn.isPending || signUp.isPending || checkEmail.isPending;
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
     >
-      <Pressable style={styles.goBackButton} onPress={() => router.back()}>
-        <Feather name="arrow-left" size={24} color={colors.onSurface} />
-      </Pressable>
-      <Text style={[styles.title, { color: colors.onSurface }]}>
-        Log in or sign up to AlgoLearn
-      </Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={[styles.container, { backgroundColor: colors.background }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Pressable
+            style={styles.goBackButton}
+            onPress={() => router.back()}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
+            <Feather name="arrow-left" size={24} color={colors.onSurface} />
+          </Pressable>
 
-      {/* SIGN-IN OR SIGN-UP FORM */}
-      <View style={styles.middleContent}>
-        <TextInput
-          style={[
-            styles.textInput,
-            {
-              borderColor: colors.shadow,
-              color: colors.onSurface,
-            },
-          ]}
-          placeholder="Email"
-          placeholderTextColor={colors.secondary}
-          value={email}
-          onChangeText={(newEmail) => setEmail(newEmail)}
-          autoCapitalize="none"
-        />
+          <Text style={[styles.title, { color: colors.onSurface }]}>
+            {emailExists ? "Welcome back!" : "Create an account"}
+          </Text>
 
-        {hasCheckedEmail && (
-          <>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  borderColor: colors.shadow,
-                  color: colors.onSurface,
-                },
-              ]}
-              placeholder="Enter your password"
-              placeholderTextColor={colors.secondary}
-              value={password}
-              onChangeText={(newPassword) => setPassword(newPassword)}
-              autoCapitalize="none"
-              secureTextEntry
-            />
-            {!emailExists && (
+          <View style={styles.middleContent}>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: colors.onSurface }]}>
+                Email
+              </Text>
               <TextInput
                 style={[
                   styles.textInput,
                   {
-                    borderColor: colors.shadow,
+                    borderColor: emailError ? colors.error : colors.shadow,
                     color: colors.onSurface,
+                    backgroundColor: colors.surface,
                   },
                 ]}
-                placeholder="Retype password"
-                placeholderTextColor={colors.secondary}
-                value={retryPassword}
-                onChangeText={(newRetryPassword) =>
-                  setRetryPassword(newRetryPassword)
-                }
+                placeholder="Enter your email"
+                placeholderTextColor={colors.surfaceDisabled}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError("");
+                }}
                 autoCapitalize="none"
-                secureTextEntry
+                keyboardType="email-address"
+                editable={!isSubmitting}
+                accessibilityLabel="Email input"
+                accessibilityHint="Enter your email address"
+              />
+              {emailError ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {emailError}
+                </Text>
+              ) : null}
+            </View>
+
+            {hasCheckedEmail && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: colors.onSurface }]}>
+                    Password
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        borderColor: passwordError
+                          ? colors.error
+                          : colors.shadow,
+                        color: colors.onSurface,
+                        backgroundColor: colors.surface,
+                      },
+                    ]}
+                    placeholder="Enter your password"
+                    placeholderTextColor={colors.surfaceDisabled}
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setPasswordError("");
+                    }}
+                    autoCapitalize="none"
+                    secureTextEntry
+                    editable={!isSubmitting}
+                    accessibilityLabel="Password input"
+                    accessibilityHint="Enter your password"
+                  />
+                  {!emailExists && (
+                    <>
+                      <Text
+                        style={[
+                          styles.label,
+                          { color: colors.onSurface, marginTop: 16 },
+                        ]}
+                      >
+                        Confirm Password
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.textInput,
+                          {
+                            borderColor: passwordError
+                              ? colors.error
+                              : colors.shadow,
+                            color: colors.onSurface,
+                            backgroundColor: colors.surface,
+                          },
+                        ]}
+                        placeholder="Retype password"
+                        placeholderTextColor={colors.surfaceDisabled}
+                        value={retryPassword}
+                        onChangeText={(text) => {
+                          setRetryPassword(text);
+                          setPasswordError("");
+                        }}
+                        autoCapitalize="none"
+                        secureTextEntry
+                        editable={!isSubmitting}
+                        accessibilityLabel="Confirm password input"
+                        accessibilityHint="Retype your password to confirm"
+                      />
+                    </>
+                  )}
+                  {passwordError ? (
+                    <Text style={[styles.errorText, { color: colors.error }]}>
+                      {passwordError}
+                    </Text>
+                  ) : null}
+                </View>
+                <Button
+                  title={isSubmitting ? "Please wait..." : "Continue"}
+                  onPress={handleContinue}
+                  icon={{ name: "arrow-right", position: "right" }}
+                  textStyle={{ color: colors.inverseOnSurface }}
+                  iconStyle={{
+                    position: "absolute",
+                    right: 12,
+                    color: colors.inverseOnSurface,
+                  }}
+                  style={{
+                    backgroundColor: colors.onBackground,
+                    opacity: isSubmitting ? 0.7 : 1,
+                    marginTop: 24,
+                  }}
+                  disabled={isSubmitting}
+                />
+              </>
+            )}
+
+            {!hasCheckedEmail && (
+              <Button
+                title={checkEmail.isPending ? "Checking..." : "Continue"}
+                onPress={handleEmailCheck}
+                icon={{ name: "arrow-right", position: "right" }}
+                textStyle={{ color: colors.inverseOnSurface }}
+                iconStyle={{
+                  position: "absolute",
+                  right: 12,
+                  color: colors.inverseOnSurface,
+                }}
+                style={{
+                  backgroundColor: colors.onBackground,
+                  opacity: isSubmitting ? 0.7 : 1,
+                  marginTop: 24,
+                }}
+                disabled={isSubmitting}
               />
             )}
+          </View>
+
+          <View style={styles.dividerContainer}>
+            <View
+              style={[styles.line, { backgroundColor: colors.onSurface }]}
+            />
+            <Text style={[styles.orText, { color: colors.onSurface }]}>or</Text>
+            <View
+              style={[styles.line, { backgroundColor: colors.onSurface }]}
+            />
+          </View>
+
+          <View style={styles.buttonContainer}>
             <Button
-              title="Continue"
-              onPress={handleContinue}
-              icon={{ name: "arrow-right", position: "right" }}
-              textStyle={{ color: colors.onSurface }}
-              iconStyle={{
-                position: "absolute",
-                right: 12,
+              title="Continue with Google"
+              onPress={signInWithGoogle}
+              icon={{
+                name: "google",
+                position: "left",
+                type: "png",
+                src: require("@/assets/icons/google.png"),
+              }}
+              iconStyle={{ width: 20, height: 20 }}
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.shadow,
+                borderWidth: 1,
+                opacity: isSubmitting ? 0.7 : 1,
+              }}
+              textStyle={{
                 color: colors.onSurface,
               }}
-              style={{
-                backgroundColor: colors.background,
-              }}
+              disabled={isSubmitting}
             />
-          </>
-        )}
-
-        {!hasCheckedEmail && (
-          <Button
-            title="Continue"
-            onPress={handleEmailCheck}
-            icon={{ name: "arrow-right", position: "right" }}
-            textStyle={{ color: colors.onSurface }}
-            iconStyle={{
-              position: "absolute",
-              right: 12,
-              color: colors.onSurface,
-            }}
-            style={{
-              backgroundColor: colors.background,
-            }}
-          />
-        )}
-      </View>
-
-      {/* SEPARATOR */}
-      <View style={styles.dividerContainer}>
-        <View style={[styles.line, { backgroundColor: colors.onSurface }]} />
-        <Text style={[styles.orText, { color: colors.onSurface }]}>or</Text>
-        <View style={[styles.line, { backgroundColor: colors.onSurface }]} />
-      </View>
-
-      {/* GOOGLE OAUTH BUTTON */}
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Continue with Google"
-          onPress={signInWithGoogle}
-          icon={{
-            name: "google",
-            position: "left",
-            type: "png",
-            src: require("@/assets/icons/google.png"),
-          }}
-          iconStyle={{ width: 20, height: 20 }}
-          style={{
-            backgroundColor:
-              (colorScheme ?? "light" === "light") ? "white" : "black",
-            borderColor: colors.shadow,
-            borderWidth: 1,
-          }}
-          textStyle={{
-            color: "#666",
-          }}
-        />
-      </View>
-    </ScrollView>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingLeft: 25,
-    paddingRight: 25,
+    paddingHorizontal: 25,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   goBackButton: {
     flexDirection: "row",
     alignItems: "center",
     position: "absolute",
     top: 20,
-    left: 0,
+    left: 25,
     zIndex: 1,
+    padding: 8,
   },
   titleContainer: {
     marginTop: 100,
@@ -271,6 +411,9 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 30,
   },
+  inputContainer: {
+    marginBottom: 16,
+  },
   title: {
     fontSize: 30,
     fontWeight: "bold",
@@ -278,17 +421,27 @@ const styles = StyleSheet.create({
     marginTop: 70,
     marginBottom: 30,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
   textInput: {
     height: 45,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
     borderRadius: 10,
-    marginBottom: 16,
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    marginTop: 4,
   },
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    marginVertical: 24,
   },
   line: {
     height: 1,

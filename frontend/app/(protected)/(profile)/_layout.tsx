@@ -8,13 +8,6 @@ export default function PublicLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <SafeAreaView
-        edges={["top"]}
-        style={{
-          flex: 0,
-          backgroundColor: colors.background,
-        }}
-      />
       <SafeAreaView edges={["left", "right"]} style={{ flex: 1 }}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="preferences" />

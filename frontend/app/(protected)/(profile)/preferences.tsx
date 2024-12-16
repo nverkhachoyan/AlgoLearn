@@ -34,7 +34,7 @@ interface UpdateUserData {
 }
 
 export default function Preferences() {
-  const { isAuthed, user, updateUser, signOut } = useUser();
+  const { isAuthenticated, user, updateUser, signOut } = useUser();
   const { colors } = useTheme();
   const { showToast } = useToast();
   const [image, setImage] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export default function Preferences() {
     router.replace("/");
   };
 
-  if (!isAuthed || !user) {
+  if (!isAuthenticated || !user) {
     return <Text>Not logged in</Text>;
   }
 
@@ -118,14 +118,17 @@ export default function Preferences() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StickyHeaderSimple>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Feather name="arrow-left" size={18} color={colors.onSurface} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}> Account Preferences </Text>
-        </View>
-      </StickyHeaderSimple>
+      <View style={{ backgroundColor: "red" }}>
+        <StickyHeaderSimple>
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Feather name="arrow-left" size={18} color={colors.onSurface} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}> Account Preferences </Text>
+          </View>
+        </StickyHeaderSimple>
+      </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContainer,

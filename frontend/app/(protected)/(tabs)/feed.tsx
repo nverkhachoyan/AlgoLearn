@@ -10,7 +10,7 @@ import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useUser } from "@/src/hooks/useUser";
 
 export default function Feed() {
-  const { isAuthed, user } = useUser();
+  const { isAuthenticated, user } = useUser();
   const { colors } = useTheme();
 
   const feedItems = [
@@ -51,7 +51,7 @@ export default function Feed() {
     }
   };
 
-  if (!isAuthed || !user) {
+  if (!isAuthenticated || !user) {
     return <Text style={styles.notLoggedInText}>Not logged in</Text>;
   }
 
@@ -69,7 +69,7 @@ export default function Feed() {
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={user.profile_picture_url}
         onAvatarPress={() => {
-          router.push("/profile");
+          router.push("/(protected)/profile");
         }}
       />
 

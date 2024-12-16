@@ -12,18 +12,28 @@ export default function Welcome() {
   const animation = useRef(null);
   const segments = useSegments();
   const router = useRouter();
-  const { isAuthed, isInitialized } = useUser();
+  const { isAuthenticated, isLoading, token, user } = useUser();
 
   useEffect(() => {
-    if (!isInitialized) return;
+    if (isLoading) return;
 
+    let mounted = true;
     // Get the current group (first segment)
     const currentGroup = segments[0];
 
-    if (isAuthed) {
+    // Only redirect when we have both token and user data
+    if (!isLoading && token && user && mounted) {
       // If user is authenticated but in auth/public areas, redirect to protected
       if (currentGroup === "(auth)" || currentGroup === "(public)") {
-        router.replace("/(protected)/(tabs)");
+        const timer = setTimeout(() => {
+          console.log("User authenticated, redirecting to protected tabs...");
+          router.replace("/(protected)/(tabs)");
+        }, 100);
+
+        return () => {
+          mounted = false;
+          clearTimeout(timer);
+        };
       }
     } else {
       // If user is not authenticated and tries to access protected routes
@@ -31,7 +41,11 @@ export default function Welcome() {
         router.replace("/(auth)");
       }
     }
-  }, [isAuthed, isInitialized, segments]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [isLoading, token, user, segments]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -55,17 +69,17 @@ export default function Welcome() {
       <View style={styles.buttonContainer}>
         <Button
           title="Get Started"
-          onPress={() => router.navigate("/(auth)" as any)}
+          onPress={() => router.push("/(auth)")}
           icon={{ name: "arrow-right", position: "right" }}
           iconStyle={{
             position: "absolute",
             right: 12,
-            color: colors.onSurface,
+            color: colors.inverseOnSurface,
           }}
           style={{
-            backgroundColor: colors.background,
+            backgroundColor: colors.onBackground,
           }}
-          textStyle={{ color: colors.onSurface }}
+          textStyle={{ color: colors.inverseOnSurface }}
         />
       </View>
     </View>

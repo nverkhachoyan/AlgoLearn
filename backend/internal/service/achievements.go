@@ -1,85 +1,105 @@
 package service
 
 import (
-	"algolearn/internal/config"
+	"algolearn/internal/database"
+	gen "algolearn/internal/database/generated"
 	"algolearn/internal/models"
+	"context"
 	"database/sql"
+	"fmt"
 )
 
 type AchievementsService interface {
 	GetAllAchievements() ([]models.Achievement, error)
-	GetAchievementByID(id int) (*models.Achievement, error)
+	GetAchievementByID(id int32) (*models.Achievement, error)
 	CreateAchievement(achievement *models.Achievement) error
 	UpdateAchievement(achievement *models.Achievement) error
-	DeleteAchievement(id int) error
+	DeleteAchievement(id int32) error
 }
 
 type achievementsService struct {
-	db *sql.DB
+	db *database.Database
 }
 
 func NewAchievementsService(db *sql.DB) AchievementsService {
-	return &achievementsService{db: db}
+	return &achievementsService{db: database.New(db)}
 }
 
 func (h *achievementsService) GetAllAchievements() ([]models.Achievement, error) {
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, name, description, points, created_at, updated_at FROM achievements")
+	ctx := context.Background()
+	achievements, err := h.db.GetAllAchievements(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get achievements: %v", err)
 	}
-	defer rows.Close()
 
-	var achievements []models.Achievement
-	for rows.Next() {
-		var achievement models.Achievement
-		err := rows.Scan(&achievement.ID, &achievement.Name, &achievement.Description, &achievement.Points, &achievement.CreatedAt, &achievement.UpdatedAt)
-		if err != nil {
-			return nil, err
+	result := make([]models.Achievement, len(achievements))
+	for i, a := range achievements {
+		result[i] = models.Achievement{
+			ID:          a.ID,
+			Name:        a.Name,
+			Description: a.Description,
+			Points:      a.Points,
+			CreatedAt:   a.CreatedAt,
+			UpdatedAt:   a.UpdatedAt,
 		}
-		achievements = append(achievements, achievement)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return achievements, nil
+	return result, nil
 }
 
-func (h *achievementsService) GetAchievementByID(id int) (*models.Achievement, error) {
-	db := config.GetDB()
-	row := db.QueryRow("SELECT id, name, description, points, created_at, updated_at FROM achievements WHERE id = $1", id)
-
-	var achievement models.Achievement
-	err := row.Scan(&achievement.ID, &achievement.Name, &achievement.Description, &achievement.Points, &achievement.CreatedAt, &achievement.UpdatedAt)
+func (h *achievementsService) GetAchievementByID(id int32) (*models.Achievement, error) {
+	ctx := context.Background()
+	achievement, err := h.db.GetAchievementByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get achievement: %v", err)
 	}
 
-	return &achievement, nil
+	return &models.Achievement{
+		ID:          achievement.ID,
+		Name:        achievement.Name,
+		Description: achievement.Description,
+		Points:      achievement.Points,
+		CreatedAt:   achievement.CreatedAt,
+		UpdatedAt:   achievement.UpdatedAt,
+	}, nil
 }
 
 func (h *achievementsService) CreateAchievement(achievement *models.Achievement) error {
-	db := config.GetDB()
-	err := db.QueryRow(
-		"INSERT INTO achievements (name, description, points) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at",
-		achievement.Name, achievement.Description, achievement.Points,
-	).Scan(&achievement.ID, &achievement.CreatedAt, &achievement.UpdatedAt)
-	return err
+	ctx := context.Background()
+	result, err := h.db.CreateAchievement(ctx, gen.CreateAchievementParams{
+		Name:        achievement.Name,
+		Description: achievement.Description,
+		Points:      achievement.Points,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create achievement: %v", err)
+	}
+
+	achievement.ID = result.ID
+	achievement.CreatedAt = result.CreatedAt
+	achievement.UpdatedAt = result.UpdatedAt
+	return nil
 }
 
 func (h *achievementsService) UpdateAchievement(achievement *models.Achievement) error {
-	db := config.GetDB()
-	_, err := db.Exec(
-		"UPDATE achievements SET name = $1, description = $2, points = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
-		achievement.Name, achievement.Description, achievement.Points, achievement.ID,
-	)
-	return err
+	ctx := context.Background()
+	_, err := h.db.UpdateAchievement(ctx, gen.UpdateAchievementParams{
+		Name:        achievement.Name,
+		Description: achievement.Description,
+		Points:      achievement.Points,
+		ID:          achievement.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update achievement: %v", err)
+	}
+	return nil
 }
 
-func (h *achievementsService) DeleteAchievement(id int) error {
-	db := config.GetDB()
-	_, err := db.Exec("DELETE FROM achievements WHERE id = $1", id)
-	return err
+func (h *achievementsService) DeleteAchievement(id int32) error {
+	ctx := context.Background()
+	err := h.db.DeleteAchievement(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete achievement: %v", err)
+	}
+	return nil
 }

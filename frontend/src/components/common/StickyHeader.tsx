@@ -4,6 +4,7 @@ import { useRef, ReactNode } from "react";
 import { Feather } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { router, usePathname } from "expo-router";
+import { Colors } from "@/constants/Colors";
 
 export function StickyHeader(props: {
   cpus: number;
@@ -78,11 +79,41 @@ export function StickyHeaderSimple({ children }: { children: ReactNode }) {
   );
 }
 
+export function HeaderGoBack({ title }: { title: string }) {
+  const { colors }: { colors: Colors } = useTheme();
+  const pathname = usePathname();
+
+  return (
+    <View
+      style={[
+        styles.container,
+
+        {
+          backgroundColor: colors.surface,
+          justifyContent: "flex-start",
+          gap: 10,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => {
+          router.back();
+        }}
+      >
+        <Feather name="chevron-left" size={24} color={colors.onSurface} />
+      </TouchableOpacity>
+
+      <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
     paddingHorizontal: 20,
     height: 50,
     shadowColor: "#000",

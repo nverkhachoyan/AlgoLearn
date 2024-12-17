@@ -4,6 +4,7 @@ import (
 	"algolearn/internal/models"
 
 	"algolearn/internal/service"
+	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
 
 	"net/http"
@@ -18,15 +19,18 @@ type NotificationsHandler interface {
 
 type notificationsHandler struct {
 	repo service.NotificationsService
+	log  *logger.Logger
 }
 
 func NewNotificationsHandler(repo service.NotificationsService) NotificationsHandler {
-	return &notificationsHandler{repo: repo}
+	return &notificationsHandler{repo: repo, log: logger.Get()}
 }
 
 func (h *notificationsHandler) GetAllNotifications(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "GetAllNotifications")
 	notifications, err := h.repo.GetAllNotifications()
 	if err != nil {
+		log.WithError(err).Error("failed to get all notifications")
 		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Internal server error"})
 		return
 	}
@@ -34,7 +38,7 @@ func (h *notificationsHandler) GetAllNotifications(c *gin.Context) {
 	response := models.Response{
 		Success: true,
 		Message: "Notifications retrieved successfully",
-		Data:    map[string]interface{}{"notifications": notifications},
+		Payload: map[string]interface{}{"notifications": notifications},
 	}
 
 	c.JSON(http.StatusOK, response)

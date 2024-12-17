@@ -1,30 +1,35 @@
 import { useLocalSearchParams, router } from "expo-router";
 import { StyleSheet, View, ScrollView } from "react-native";
-import { Text } from "react-native-paper";
+import { Text, ActivityIndicator } from "react-native-paper";
 import { useState } from "react";
 import { useTheme } from "react-native-paper";
-import { useCourse } from "@/src/hooks/useCourses";
+import { useCourse } from "@/src/features/course/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import CourseHeader from "@/src/features/course/components/CourseHeader";
 import CurrentModuleCard from "@/src/features/course/components/CurrentModuleCard";
 import TableOfContents from "@/src/features/course/components/TableOfContents";
 import CourseInfo from "@/src/features/course/components/CourseInfo";
 import FooterButtons from "@/src/features/course/components/FooterButtons";
+import { useUser } from "@/src/features/user/hooks/useUser";
+import { Filter, Type } from "@/src/features/module/api/types";
+import { Colors } from "@/constants/Colors";
+import Loading from "@/src/components/common/Loading";
 
 export default function CourseDetails() {
   const { courseId, filter } = useLocalSearchParams();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
+  const { user } = useUser();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
 
   const { course, isLoading } = useCourse({
-    userId: 4,
+    userId: user?.id,
     courseId: parseInt(courseId as string),
-    type: "full",
-    filter: filter as any,
+    type: "full" as Type,
+    filter: filter as Filter,
   });
 
   if (isLoading) {
-    return <Text>Loading...</Text>;
+    return <Loading />;
   }
 
   if (!course) {
@@ -64,6 +69,7 @@ export default function CourseDetails() {
           {course.currentModule && (
             <CurrentModuleCard
               course={course}
+              userId={user?.id}
               isPressed={isCurrentModulePressed}
               onPressIn={() => setIsCurrentModulePressed(true)}
               onPressOut={() => setIsCurrentModulePressed(false)}
@@ -99,5 +105,10 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#333",
     opacity: 0.2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

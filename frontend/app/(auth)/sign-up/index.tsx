@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Alert,
   TouchableOpacity,
   Image,
 } from "react-native";
@@ -19,7 +18,8 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import useToast from "@/src/hooks/useToast";
 
 import { ImageFile } from "@/src/types/common";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
+import { Colors } from "@/constants/Colors";
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -30,7 +30,7 @@ export default function UserDetails() {
   const [image, setImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<ImageFile>(null);
   const { updateUser } = useUser();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
   const { showToast } = useToast();
 
   const pickImage = async () => {

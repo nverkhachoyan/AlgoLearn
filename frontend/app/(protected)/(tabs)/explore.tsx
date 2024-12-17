@@ -1,22 +1,21 @@
 import { useState } from "react";
 import { StyleSheet, ScrollView, View } from "react-native";
-import { Searchbar, Text } from "react-native-paper";
-
+import { Searchbar } from "react-native-paper";
 import { router } from "expo-router";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useTheme } from "react-native-paper";
-import CourseCard from "../../../src/features/course/components/CourseCard";
-import { useCourses } from "@/src/hooks/useCourses";
-import { useUser } from "@/src/hooks/useUser";
+import { useCourses } from "@/src/features/course/hooks/useCourses";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import { CourseSection } from "@/src/features/course/components/CourseList";
+import { Colors } from "@/constants/Colors";
 
 export default function Explore() {
   const { user } = useUser();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const { courses, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useCourses({
-      userId: 4,
+      userId: user?.id,
       currentPage: 1,
       pageSize: 5,
       type: "summary",
@@ -36,9 +35,7 @@ export default function Explore() {
         cpus={user.cpus ?? 0}
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={user.profile_picture_url}
-        onAvatarPress={() => {
-          router.push("/profile");
-        }}
+        onAvatarPress={() => router.push("/(protected)/(profile)")}
       />
 
       <ScrollView
@@ -78,7 +75,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    // fontFamily: "OpenSauceOne-Regular",
     alignSelf: "center",
   },
   separator: {

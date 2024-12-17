@@ -5,11 +5,12 @@ import React from "react";
 import { router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
+import { Colors } from "@/constants/Colors";
 
 export default function Leaderboard() {
   const { isAuthenticated, user } = useUser();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
 
   function getRandomColor() {
     var letters = "0123456789ABCDEF";
@@ -25,8 +26,8 @@ export default function Leaderboard() {
       id: 1,
       name: "Alice Johnson",
       score: 1200,
-      rank: "Quantum Circuit", // New: Circuit Level
-      icon: "memory", // New: Icon for Circuit Level
+      rank: "Quantum Circuit",
+      icon: "memory",
     },
     {
       id: 2,
@@ -75,9 +76,7 @@ export default function Leaderboard() {
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={null}
-        onAvatarPress={() => {
-          router.push("/profile");
-        }}
+        onAvatarPress={() => router.push("/(protected)/(profile)")}
       />
       <ScrollView
         style={[styles.scrollContainer, { backgroundColor: colors.background }]}
@@ -160,7 +159,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    // fontFamily: "OpenSauceOne-Bold",
   },
   loadingText: {
     fontSize: 18,
@@ -197,16 +195,13 @@ const styles = StyleSheet.create({
   leaderboardItemName: {
     fontSize: 20,
     fontWeight: "bold",
-    // fontFamily: "OpenSauceOne-SemiBold",
   },
   leaderboardItemScore: {
     fontSize: 16,
-    // fontFamily: "OpenSauceOne-Regular",
     marginTop: 2,
   },
   leaderboardItemRank: {
     fontSize: 14,
-    // fontFamily: "OpenSauceOne-Regular",
     marginTop: 2,
   },
   leaderboardItemIcon: {

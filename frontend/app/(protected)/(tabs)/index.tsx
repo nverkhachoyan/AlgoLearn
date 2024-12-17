@@ -1,13 +1,14 @@
 import React from "react";
 import { StyleSheet, ScrollView, View } from "react-native";
 import { CourseSection } from "@/src/features/course/components/CourseList";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import useToast from "@/src/hooks/useToast";
-import { useCourses } from "@/src/hooks/useCourses";
+import { useCourses } from "@/src/features/course/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { router } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { User } from "@/src/features/user/types";
+import CustomErrorBoundary from "@/src/components/ErrorBoundary";
 
 export default function Home() {
   const { user }: { user: User } = useUser();
@@ -21,7 +22,7 @@ export default function Home() {
     isFetchingNextPage: isFetchingNextLearning,
     error: learningError,
   } = useCourses({
-    userId: 4,
+    userId: user?.id,
     currentPage: 1,
     pageSize: 1,
     type: "summary",
@@ -52,49 +53,38 @@ export default function Home() {
   }, [learningError, exploreError]);
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.background,
-        },
-      ]}
-    >
-      <StickyHeader
-        cpus={user?.cpus ?? 0}
-        strikeCount={user?.streaks?.length ?? 0}
-        userAvatar={user?.profilePictureUrl ?? ""}
-        onAvatarPress={() => router.push("/(protected)/(profile)")}
-      />
-
-      <ScrollView contentContainerStyle={[styles.scrollContent]}>
-        <CourseSection
-          title="Your Courses"
-          courses={learningCourses}
-          hasNextPage={hasNextLearning}
-          isFetchingNextPage={isFetchingNextLearning}
-          onLoadMore={() => {
-            if (hasNextLearning && !isFetchingNextLearning) {
-              fetchNextLearning();
-            }
-          }}
-          filter="learning"
+    <CustomErrorBoundary>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <StickyHeader
+          cpus={user?.cpus ?? 0}
+          strikeCount={user?.streaks?.length ?? 0}
+          userAvatar={user?.profilePictureUrl ?? ""}
+          onAvatarPress={() => router.push("/(protected)/(profile)")}
         />
 
-        <CourseSection
-          title="Explore Courses"
-          courses={exploreCourses}
-          hasNextPage={hasNextExplore}
-          isFetchingNextPage={isFetchingNextExplore}
-          onLoadMore={() => {
-            if (hasNextExplore && !isFetchingNextExplore) {
-              fetchNextExplore();
-            }
-          }}
-          filter="explore"
-        />
-      </ScrollView>
-    </View>
+        <ScrollView contentContainerStyle={[styles.scrollContent]}>
+          <CourseSection
+            title="Your Courses"
+            courses={learningCourses}
+            hasNextPage={hasNextLearning}
+            isFetchingNextPage={isFetchingNextLearning}
+            onLoadMore={() => {
+              if (hasNextLearning && !isFetchingNextLearning) {
+                fetchNextLearning();
+              }
+            }}
+            filter="learning"
+          />
+        </ScrollView>
+      </View>
+    </CustomErrorBoundary>
   );
 }
 
@@ -111,7 +101,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    // fontFamily: "OpenSauceOne-Regular",
     alignSelf: "center",
   },
   separator: {

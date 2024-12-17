@@ -13,15 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var (
-	maxExpansionDepth  = 3
-	validRelationships = map[string]bool{
-		"units":     true,
-		"modules":   true,
-		"questions": true,
-	}
-)
-
 type CourseHandler interface {
 	GetCourses(c *gin.Context)
 	GetCourse(c *gin.Context)
@@ -32,6 +23,7 @@ type CourseHandler interface {
 type courseHandler struct {
 	courseRepo service.CourseService
 	userRepo   service.UserService
+	log        *logger.Logger
 }
 
 func NewCourseHandler(courseRepo service.CourseService,
@@ -39,11 +31,12 @@ func NewCourseHandler(courseRepo service.CourseService,
 	return &courseHandler{
 		courseRepo: courseRepo,
 		userRepo:   userRepo,
+		log:        logger.Get(),
 	}
 }
 
 func (h *courseHandler) GetCourses(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "GetCourses")
+	log := h.log.WithBaseFields(logger.Handler, "GetCourses")
 	queryParams := models.ModuleQueryParams{
 		Type: c.Query("type"),
 	}
@@ -69,7 +62,7 @@ func (h *courseHandler) GetCourses(c *gin.Context) {
 }
 
 func (h *courseHandler) GetCourse(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "GetCourse")
+	log := h.log.WithBaseFields(logger.Handler, "GetCourse")
 	ctx := c.Request.Context()
 
 	queryParams := models.ModuleQueryParams{
@@ -135,12 +128,12 @@ func (h *courseHandler) GetCourse(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "course progress retrieved successfully",
-		Data:    course,
+		Payload: course,
 	})
 }
 
 func (h *courseHandler) DeleteCourse(c *gin.Context) {
-	log := logger.Get()
+	log := h.log
 	ctx := c.Request.Context()
 	userID, exists := c.Get(middleware.UserIDKey)
 	if !exists {
@@ -201,7 +194,7 @@ func (h *courseHandler) DeleteCourse(c *gin.Context) {
 }
 
 func (h *courseHandler) getCoursesProgressSummary(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "GetCoursesProgress")
+	log := h.log.WithBaseFields(logger.Handler, "GetCoursesProgress")
 	ctx := c.Request.Context()
 
 	userID, err := strconv.ParseInt(c.Query("userId"), 10, 64)
@@ -247,10 +240,27 @@ func (h *courseHandler) getCoursesProgressSummary(c *gin.Context) {
 
 	totalPages := (totalCount + pageSize - 1) / pageSize
 
+	if len(courses) == 0 {
+		c.JSON(http.StatusOK, models.Response{
+			Success: true,
+			Message: "no courses in progress",
+			Payload: models.PaginatedPayload{
+				Items: []models.Course{},
+				Pagination: models.Pagination{
+					TotalItems:  0,
+					PageSize:    0,
+					CurrentPage: 0,
+					TotalPages:  0,
+				},
+			},
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "courses progress retrieved successfully",
-		Data: models.PaginatedPayload{
+		Payload: models.PaginatedPayload{
 			Items: courses,
 			Pagination: models.Pagination{
 				TotalItems:  totalCount,

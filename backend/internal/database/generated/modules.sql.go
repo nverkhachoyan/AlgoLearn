@@ -8,6 +8,7 @@ package gen
 import (
 	"context"
 	"encoding/json"
+	"time"
 )
 
 const createModule = `-- name: CreateModule :one
@@ -58,6 +59,36 @@ func (q *Queries) DeleteModule(ctx context.Context, moduleID int32) error {
 	return err
 }
 
+const getModuleBase = `-- name: GetModuleBase :one
+SELECT jsonb_build_object(
+    'id', m.id,
+    'createdAt', m.created_at,
+    'updatedAt', m.updated_at,
+    'moduleNumber', m.module_number,
+    'unitId', m.unit_id,
+    'name', m.name,
+    'description', m.description,
+    'progress', ump.progress,
+    'status', ump.status
+) as module
+FROM modules m
+LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1::int
+WHERE m.unit_id = $2::int AND m.id = $3::int
+`
+
+type GetModuleBaseParams struct {
+	UserID   int32 `json:"userId"`
+	UnitID   int32 `json:"unitId"`
+	ModuleID int32 `json:"moduleId"`
+}
+
+func (q *Queries) GetModuleBase(ctx context.Context, arg GetModuleBaseParams) (json.RawMessage, error) {
+	row := q.db.QueryRowContext(ctx, getModuleBase, arg.UserID, arg.UnitID, arg.ModuleID)
+	var module json.RawMessage
+	err := row.Scan(&module)
+	return module, err
+}
+
 const getModuleTotalCount = `-- name: GetModuleTotalCount :one
 SELECT COUNT(*) FROM modules m WHERE m.unit_id = $1::int
 `
@@ -69,276 +100,231 @@ func (q *Queries) GetModuleTotalCount(ctx context.Context, unitID int32) (int64,
 	return count, err
 }
 
-const getModuleWithProgress = `-- name: GetModuleWithProgress :one
-WITH section_content AS (
-    SELECT s.id as section_id, 
-        CASE s.type
-            WHEN 'text' THEN (
-                SELECT jsonb_build_object('text', text_content)
-                FROM text_sections ts
-                WHERE ts.section_id = s.id
-            )
-            WHEN 'video' THEN (
-                SELECT jsonb_build_object('url', url)
-                FROM video_sections vs
-                WHERE vs.section_id = s.id
-            )
-            WHEN 'question' THEN (
-                SELECT jsonb_build_object(
-                    'id', q.id,
-                    'question', q.question,
-                    'type', q.type,
-                    'options', COALESCE(
-                        (SELECT jsonb_agg(
-                            jsonb_build_object(
-                                'id', qo.id,
-                                'content', qo.content,
-                                'isCorrect', qo.is_correct
-                            ) ORDER BY qo.id
-                        )
-                        FROM question_options qo
-                        WHERE qo.question_id = q.id
-                        ), '[]'::jsonb),
-                    'userQuestionAnswer', (
-                        SELECT jsonb_build_object(
-                            'optionId', uqa.option_id,
-                            'answeredAt', uqa.answered_at,
-                            'isCorrect', uqa.is_correct
-                        )
-                        FROM user_question_answers uqa
-                        JOIN user_module_progress ump2 ON ump2.id = uqa.user_module_progress_id
-                        WHERE ump2.user_id = $1::int
-                        AND uqa.question_id = q.id
-                    )
-                )
-                FROM question_sections qs
-                JOIN questions q ON q.id = qs.question_id
-                WHERE qs.section_id = s.id
-            )
-        END as content
-    FROM sections s
-    WHERE s.module_id = $3::int
-),
-section_progress AS (
-    SELECT 
-        s.id as section_id,
+const getModulesList = `-- name: GetModulesList :many
+SELECT m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description, 
+    COALESCE(
         jsonb_build_object(
-            'sectionId', s.id,
-            'seenAt', usp.seen_at,
-            'hasSeen', usp.has_seen,
-            'startedAt', usp.started_at,
-            'completedAt', usp.completed_at
-        ) as progress
-    FROM sections s
-    LEFT JOIN user_section_progress usp ON usp.section_id = s.id 
-    AND usp.user_id = $1::int
-    WHERE s.module_id = $3::int
-),
-unit_modules AS (
-    SELECT id, module_number
-    FROM modules
-    WHERE unit_id = $2::int
-    ORDER BY module_number ASC
-),
-current_module AS (
-    SELECT id, module_number
-    FROM unit_modules
-    WHERE id = $3::int
-)
-SELECT
-    jsonb_build_object(
-        'id', m.id,
-        'createdAt', m.created_at,
-        'updatedAt', m.updated_at,
-        'moduleNumber', m.module_number,
-        'unitId', m.unit_id,
-        'name', m.name,
-        'description', m.description,
-        'progress', ump.progress,
-        'status', ump.status,
-        'sections', COALESCE((
-            SELECT jsonb_agg(
-                jsonb_build_object(
-                    'id', s.id,
-                    'createdAt', s.created_at,
-                    'updatedAt', s.updated_at,
-                    'type', s.type,
-                    'position', s.position,
-                    'content', sc.content,
-                    'sectionProgress', sp.progress
-                )
-                ORDER BY s.position
-            )
-            FROM sections s
-            LEFT JOIN section_content sc ON sc.section_id = s.id
-            LEFT JOIN section_progress sp ON sp.section_id = s.id
-            WHERE s.module_id = m.id
-        ), '[]'::jsonb)
-    ) as module,
-    (
-        SELECT id
-        FROM unit_modules
-        WHERE module_number > (SELECT module_number FROM current_module)
-        ORDER BY module_number ASC LIMIT 1
-    ) as next_module_id,
-    EXISTS (
-        SELECT 1
-        FROM unit_modules
-        WHERE module_number > (SELECT module_number FROM current_module)
-        LIMIT 1
-    ) as has_next_module
+            'progress', ump.progress,
+            'status', ump.status
+        ),
+        '{}'::jsonb
+    )::json as module_progress
 FROM modules m
 LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1::int
-WHERE m.unit_id = $2::int AND m.id = $3::int
+WHERE m.unit_id = $2::int
+ORDER BY m.module_number
+LIMIT $4::int
+OFFSET $3::int
 `
 
-type GetModuleWithProgressParams struct {
-	UserID   int32 `json:"userId"`
-	UnitID   int32 `json:"unitId"`
-	ModuleID int32 `json:"moduleId"`
-}
-
-type GetModuleWithProgressRow struct {
-	Module        json.RawMessage `json:"module"`
-	NextModuleID  int32           `json:"nextModuleId"`
-	HasNextModule bool            `json:"hasNextModule"`
-}
-
-func (q *Queries) GetModuleWithProgress(ctx context.Context, arg GetModuleWithProgressParams) (GetModuleWithProgressRow, error) {
-	row := q.db.QueryRowContext(ctx, getModuleWithProgress, arg.UserID, arg.UnitID, arg.ModuleID)
-	var i GetModuleWithProgressRow
-	err := row.Scan(&i.Module, &i.NextModuleID, &i.HasNextModule)
-	return i, err
-}
-
-const getModulesWithProgress = `-- name: GetModulesWithProgress :one
-WITH section_content AS (
-    SELECT s.id as section_id, s.module_id,
-        CASE s.type
-            WHEN 'text' THEN (
-                SELECT jsonb_build_object('text', text_content)
-                FROM text_sections ts
-                WHERE ts.section_id = s.id
-            )
-            WHEN 'video' THEN (
-                SELECT jsonb_build_object('url', url)
-                FROM video_sections vs
-                WHERE vs.section_id = s.id
-            )
-            WHEN 'question' THEN (
-                SELECT jsonb_build_object(
-                    'id', q.id,
-                    'question', q.question,
-                    'type', q.type,
-                    'options', COALESCE(
-                        (SELECT jsonb_agg(
-                            jsonb_build_object(
-                                'id', qo.id,
-                                'content', qo.content,
-                                'isCorrect', qo.is_correct
-                            ) ORDER BY qo.id
-                        )
-                        FROM question_options qo
-                        WHERE qo.question_id = q.id
-                        ), '[]'::jsonb),
-                    'userQuestionAnswer', (
-                        SELECT jsonb_build_object(
-                            'optionId', uqa.option_id,
-                            'answeredAt', uqa.answered_at,
-                            'isCorrect', uqa.is_correct
-                        )
-                        FROM user_question_answers uqa
-                        JOIN user_module_progress ump2 ON ump2.id = uqa.user_module_progress_id
-                        WHERE ump2.user_id = $1::int
-                        AND uqa.question_id = q.id
-                    )
-                )
-                FROM question_sections qs
-                JOIN questions q ON q.id = qs.question_id
-                WHERE qs.section_id = s.id
-            )
-        END as content
-    FROM sections s
-    WHERE s.module_id IN (SELECT id FROM modules WHERE unit_id = $2::int)
-),
-section_progress AS (
-    SELECT 
-        s.id as section_id,
-        s.module_id,
-        jsonb_build_object(
-            'sectionId', s.id,
-            'seenAt', usp.seen_at,
-            'hasSeen', usp.has_seen,
-            'startedAt', usp.started_at,
-            'completedAt', usp.completed_at
-        ) as progress
-    FROM sections s
-    LEFT JOIN user_section_progress usp ON usp.section_id = s.id 
-    AND usp.user_id = $1::int
-    WHERE s.module_id IN (SELECT id FROM modules WHERE unit_id = $2::int)
-),
-unit_modules AS (
-    SELECT id, created_at, updated_at, module_number, unit_id, name, description
-    FROM modules
-    WHERE unit_id = $2::int
-    ORDER BY module_number
-    LIMIT $4::int
-    OFFSET $3::int
-)
-SELECT COALESCE(
-    jsonb_agg(
-        jsonb_build_object(
-            'id', m.id,
-            'createdAt', m.created_at,
-            'updatedAt', m.updated_at,
-            'moduleNumber', m.module_number,
-            'unitId', m.unit_id,
-            'name', m.name,
-            'description', m.description,
-            'progress', ump.progress,
-            'status', ump.status,
-            'sections', COALESCE((
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'id', s.id,
-                        'createdAt', s.created_at,
-                        'updatedAt', s.updated_at,
-                        'type', s.type,
-                        'position', s.position,
-                        'content', sc.content,
-                        'sectionProgress', sp.progress
-                    )
-                    ORDER BY s.position
-                )
-                FROM sections s
-                LEFT JOIN section_content sc ON sc.section_id = s.id
-                LEFT JOIN section_progress sp ON sp.section_id = s.id
-                WHERE s.module_id = m.id
-            ), '[]'::jsonb)
-        )
-    ), '[]'::jsonb
-) as modules
-FROM unit_modules m
-LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1::int
-`
-
-type GetModulesWithProgressParams struct {
+type GetModulesListParams struct {
 	UserID     int32 `json:"userId"`
 	UnitID     int32 `json:"unitId"`
 	PageOffset int32 `json:"pageOffset"`
 	PageSize   int32 `json:"pageSize"`
 }
 
-func (q *Queries) GetModulesWithProgress(ctx context.Context, arg GetModulesWithProgressParams) (interface{}, error) {
-	row := q.db.QueryRowContext(ctx, getModulesWithProgress,
+type GetModulesListRow struct {
+	ID             int32           `json:"id"`
+	CreatedAt      time.Time       `json:"createdAt"`
+	UpdatedAt      time.Time       `json:"updatedAt"`
+	ModuleNumber   int32           `json:"moduleNumber"`
+	UnitID         int32           `json:"unitId"`
+	Name           string          `json:"name"`
+	Description    string          `json:"description"`
+	ModuleProgress json.RawMessage `json:"moduleProgress"`
+}
+
+func (q *Queries) GetModulesList(ctx context.Context, arg GetModulesListParams) ([]GetModulesListRow, error) {
+	rows, err := q.db.QueryContext(ctx, getModulesList,
 		arg.UserID,
 		arg.UnitID,
 		arg.PageOffset,
 		arg.PageSize,
 	)
-	var modules interface{}
-	err := row.Scan(&modules)
-	return modules, err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetModulesListRow{}
+	for rows.Next() {
+		var i GetModulesListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ModuleNumber,
+			&i.UnitID,
+			&i.Name,
+			&i.Description,
+			&i.ModuleProgress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getNextModuleId = `-- name: GetNextModuleId :one
+SELECT 
+    id
+FROM modules 
+WHERE unit_id = $1::int 
+AND module_number > $2::int 
+ORDER BY module_number ASC LIMIT 1
+`
+
+type GetNextModuleIdParams struct {
+	UnitID       int32 `json:"unitId"`
+	ModuleNumber int32 `json:"moduleNumber"`
+}
+
+func (q *Queries) GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getNextModuleId, arg.UnitID, arg.ModuleNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getSectionProgress = `-- name: GetSectionProgress :many
+SELECT 
+    section_id,
+    jsonb_build_object(
+        'sectionId', section_id,
+        'seenAt', seen_at,
+        'hasSeen', has_seen,
+        'startedAt', started_at,
+        'completedAt', completed_at
+    ) as progress
+FROM user_section_progress
+WHERE user_id = $1::int AND module_id = $2::int
+`
+
+type GetSectionProgressParams struct {
+	UserID   int32 `json:"userId"`
+	ModuleID int32 `json:"moduleId"`
+}
+
+type GetSectionProgressRow struct {
+	SectionID int32           `json:"sectionId"`
+	Progress  json.RawMessage `json:"progress"`
+}
+
+func (q *Queries) GetSectionProgress(ctx context.Context, arg GetSectionProgressParams) ([]GetSectionProgressRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSectionProgress, arg.UserID, arg.ModuleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetSectionProgressRow{}
+	for rows.Next() {
+		var i GetSectionProgressRow
+		if err := rows.Scan(&i.SectionID, &i.Progress); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSingleModuleSections = `-- name: GetSingleModuleSections :many
+SELECT 
+    s.id,
+    s.created_at,
+    s.updated_at,
+    s.type,
+    s.position,
+    COALESCE(
+        CASE s.type
+            WHEN 'text' THEN (
+                SELECT jsonb_build_object('text', text_content)
+                FROM text_sections ts
+                WHERE ts.section_id = s.id
+            )
+            WHEN 'video' THEN (
+                SELECT jsonb_build_object('url', url)
+                FROM video_sections vs
+                WHERE vs.section_id = s.id
+            )
+            WHEN 'question' THEN (
+                SELECT jsonb_build_object(
+                    'id', q.id,
+                    'question', q.question,
+                    'type', q.type,
+                    'options', COALESCE(
+                        (SELECT jsonb_agg(
+                            jsonb_build_object(
+                                'id', qo.id,
+                                'content', qo.content,
+                                'isCorrect', qo.is_correct
+                            ) ORDER BY qo.id
+                        )
+                        FROM question_options qo
+                        WHERE qo.question_id = q.id
+                        ), '[]'::jsonb)
+                )
+                FROM question_sections qs
+                JOIN questions q ON q.id = qs.question_id
+                WHERE qs.section_id = s.id
+            )
+        END,
+        '{}'::jsonb
+    )::json as content
+FROM sections s
+WHERE s.module_id = $1::int
+ORDER BY s.position
+`
+
+type GetSingleModuleSectionsRow struct {
+	ID        int32           `json:"id"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
+	Type      string          `json:"type"`
+	Position  int32           `json:"position"`
+	Content   json.RawMessage `json:"content"`
+}
+
+func (q *Queries) GetSingleModuleSections(ctx context.Context, moduleID int32) ([]GetSingleModuleSectionsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSingleModuleSections, moduleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetSingleModuleSectionsRow{}
+	for rows.Next() {
+		var i GetSingleModuleSectionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Type,
+			&i.Position,
+			&i.Content,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const saveModuleProgress = `-- name: SaveModuleProgress :exec

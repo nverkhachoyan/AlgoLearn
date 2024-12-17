@@ -19,7 +19,7 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import { SplashScreen } from "expo-router";
 import { ThemeProvider, useAppTheme } from "@/src/context/ThemeContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import { StatusBar } from "expo-status-bar";
 
 // Initialize QueryClient

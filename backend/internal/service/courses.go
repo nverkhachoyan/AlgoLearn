@@ -22,10 +22,11 @@ type CourseService interface {
 
 type courseService struct {
 	queries *gen.Queries
+	log     *logger.Logger
 }
 
 func NewCourseService(db *sql.DB) CourseService {
-	return &courseService{queries: gen.New(db)}
+	return &courseService{queries: gen.New(db), log: logger.Get()}
 }
 
 // Helper functions for type conversions
@@ -57,26 +58,8 @@ func nullFloat64ToFloat32(n sql.NullFloat64) float32 {
 	return 0
 }
 
-// SectionContent holds all possible section content fields
-type sectionContent struct {
-	// Text section
-	TextContent string
-
-	// Video section
-	URL          string
-	Duration     sql.NullFloat64
-	ThumbnailURL sql.NullString
-
-	// Question section
-	QuestionID   int32
-	Question     string
-	QuestionType string
-	Explanation  string
-	Options      json.RawMessage
-}
-
 func (r *courseService) GetCourseSummary(ctx context.Context, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
+	log := r.log.WithBaseFields(logger.Service, "GetCourseProgress")
 
 	// Get base course info
 	courseData, err := r.queries.GetCourseByID(ctx, int32(courseID))
@@ -177,18 +160,21 @@ func (r *courseService) GetCourseSummary(ctx context.Context, courseID int64) (*
 }
 
 func (r *courseService) DeleteCourse(ctx context.Context, id int64) error {
+	log := r.log.WithBaseFields(logger.Service, "DeleteCourse")
+
 	err := r.queries.DeleteCourse(ctx, int32(id))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return codes.ErrNotFound
 		}
+		log.WithError(err).Error("failed to delete course")
 		return fmt.Errorf("failed to delete course: %w", err)
 	}
 	return nil
 }
 
 func (r *courseService) GetCoursesProgressSummary(ctx context.Context, page int, pageSize int, userID int64, queryFilter string) (int64, []models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Service, "GetCoursesProgress")
+	log := r.log.WithBaseFields(logger.Service, "GetCoursesProgress")
 
 	offset := (page - 1) * pageSize
 
@@ -292,7 +278,7 @@ func (r *courseService) GetCoursesProgressSummary(ctx context.Context, page int,
 }
 
 func (r *courseService) GetCourseProgressSummary(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
+	log := r.log.WithBaseFields(logger.Service, "GetCourseProgress")
 
 	// Get base course info with current progress
 	courseData, err := r.queries.GetCourseProgressSummaryBase(ctx, gen.GetCourseProgressSummaryBaseParams{
@@ -451,10 +437,9 @@ func (r *courseService) GetCourseProgressSummary(ctx context.Context, userID int
 }
 
 func (r *courseService) getSectionContent(ctx context.Context, section gen.GetModuleSectionsWithProgressRow) (models.SectionInterface, error) {
-	log := logger.Get().WithBaseFields(logger.Service, "getSectionContent")
+	log := r.log.WithBaseFields(logger.Service, "getSectionContent")
 
 	var result models.SectionInterface
-	var content sectionContent
 
 	switch section.Type {
 	case "text":
@@ -463,7 +448,7 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			log.WithError(err).Error("failed to get text section content")
 			return nil, fmt.Errorf("failed to get text section content: %w", err)
 		}
-		content.TextContent = textContent
+
 		result = &models.TextSection{
 			BaseModel: models.BaseModel{
 				ID:        int64(section.ID),
@@ -636,7 +621,7 @@ func (r *courseService) getSectionContentWithoutProgress(ctx context.Context, se
 }
 
 func (r *courseService) GetCourseProgressFull(ctx context.Context, userID int64, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Service, "GetCourseProgress")
+	log := r.log.WithBaseFields(logger.Service, "GetCourseProgress")
 
 	// Get base course info with current progress
 	courseData, err := r.queries.GetCourseProgressFullBase(ctx, gen.GetCourseProgressFullBaseParams{
@@ -795,7 +780,7 @@ func (r *courseService) GetCourseProgressFull(ctx context.Context, userID int64,
 }
 
 func (r *courseService) GetCourseFull(ctx context.Context, courseID int64) (*models.Course, error) {
-	log := logger.Get().WithBaseFields(logger.Service, "GetCourseFull")
+	log := r.log.WithBaseFields(logger.Service, "GetCourseFull")
 
 	// Get base course info
 	courseData, err := r.queries.GetCourseByID(ctx, int32(courseID))

@@ -1,5 +1,5 @@
 import { Stack, router } from "expo-router";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";

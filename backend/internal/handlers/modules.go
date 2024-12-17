@@ -29,6 +29,7 @@ type ModuleHandler interface {
 type moduleHandler struct {
 	moduleRepo service.ModuleService
 	userRepo   service.UserService
+	log        *logger.Logger
 }
 
 func NewModuleHandler(moduleRepo service.ModuleService,
@@ -36,11 +37,12 @@ func NewModuleHandler(moduleRepo service.ModuleService,
 	return &moduleHandler{
 		moduleRepo: moduleRepo,
 		userRepo:   userRepo,
+		log:        logger.Get(),
 	}
 }
 
 func (h *moduleHandler) GetModule(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
+	log := h.log.WithBaseFields(logger.Handler, "UpdateModule")
 	query := c.Request.URL.Query()
 
 	queryParams := models.ModuleQueryParams{
@@ -62,7 +64,7 @@ func (h *moduleHandler) GetModule(c *gin.Context) {
 }
 
 func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "GetModuleWithProgress")
+	log := h.log.WithBaseFields(logger.Handler, "GetModuleWithProgress")
 	ctx := c.Request.Context()
 	params := c.Params
 
@@ -87,7 +89,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 		return
 	}
 
-	module, _, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
+	module, hasNextModule, nextModuleID, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not found")
 		c.JSON(http.StatusNotFound, models.Response{
@@ -109,12 +111,16 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "module retrieved successfully",
-		Data:    module,
+		Payload: models.ModuleWithProgressResponse{
+			Module:        *module,
+			HasNextModule: hasNextModule,
+			NextModuleID:  nextModuleID,
+		},
 	})
 }
 
 func (h *moduleHandler) CreateModule(c *gin.Context) {
-	log := logger.Get()
+	log := h.log.WithBaseFields(logger.Handler, "CreateModule")
 	ctx := c.Request.Context()
 
 	userID, exists := c.Get(middleware.UserIDKey)
@@ -186,12 +192,12 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	c.JSON(http.StatusCreated, models.Response{
 		Success: true,
 		Message: "Module created successfully",
-		Data:    createdModule,
+		Payload: createdModule,
 	})
 }
 
 func (h *moduleHandler) UpdateModule(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModule")
+	log := h.log.WithBaseFields(logger.Handler, "UpdateModule")
 	ctx := c.Request.Context()
 	userID, exists := c.Get(middleware.UserIDKey)
 	if !exists {
@@ -250,12 +256,12 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "module updated successfully",
-		Data:    updatedModule,
+		Payload: updatedModule,
 	})
 }
 
 func (h *moduleHandler) DeleteModule(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "DeleteModule")
+	log := h.log.WithBaseFields(logger.Handler, "DeleteModule")
 
 	ctx := c.Request.Context()
 	userID, exists := c.Get(middleware.UserIDKey)
@@ -270,6 +276,16 @@ func (h *moduleHandler) DeleteModule(c *gin.Context) {
 
 	params := c.Params
 	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
+	if err != nil {
+		log.WithError(err).Debug("invalid unit ID format in the route")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			Message:   "invalid unit ID format in the route",
+			ErrorCode: codes.InvalidRequest,
+		})
+		return
+	}
+
 	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
 	log.WithField("module_id", moduleID)
 	if err != nil {
@@ -293,7 +309,7 @@ func (h *moduleHandler) DeleteModule(c *gin.Context) {
 		return
 	}
 
-	_, _, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
+	_, _, _, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
 	if errors.Is(err, codes.ErrNotFound) {
 		log.WithError(err).Warn("module not fout")
 		c.JSON(http.StatusNotFound, models.Response{
@@ -338,7 +354,7 @@ func (h *moduleHandler) DeleteModule(c *gin.Context) {
 }
 
 func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "UpdateModuleProgress")
+	log := h.log.WithBaseFields(logger.Handler, "UpdateModuleProgress")
 	ctx := c.Request.Context()
 	query := c.Request.URL.Query()
 	params := c.Params
@@ -423,7 +439,7 @@ func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
 }
 
 func (h *moduleHandler) GetModules(c *gin.Context) {
-	log := logger.Get().WithBaseFields(logger.Handler, "GetModules")
+	log := h.log.WithBaseFields(logger.Handler, "GetModules")
 	ctx := c.Request.Context()
 	params := c.Params
 	query := c.Request.URL.Query()
@@ -495,7 +511,7 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "modules retrieved successfully",
-		Data: models.PaginatedPayload{
+		Payload: models.PaginatedPayload{
 			Items: modules,
 			Pagination: models.Pagination{
 				TotalItems:  totalCount,

@@ -8,10 +8,10 @@ import {
 } from "react-native";
 import { Text } from "react-native-paper";
 import { useTheme } from "react-native-paper";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
 
 export default function SessionTOC() {
-  const { isAuthed, user } = useUser();
+  const { isAuthenticated, user } = useUser();
   const { colors } = useTheme();
 
   const units = [
@@ -46,7 +46,7 @@ export default function SessionTOC() {
     },
   ];
 
-  if (!isAuthed || !user) {
+  if (!isAuthenticated || !user) {
     return <Text>Not logged in</Text>;
   }
 

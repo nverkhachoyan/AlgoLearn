@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
 

@@ -4,15 +4,17 @@ import { router, useSegments, useRouter } from "expo-router";
 import Button from "@/src/components/common/Button";
 import LottieView from "lottie-react-native";
 import { useTheme } from "react-native-paper";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
+import { Colors } from "@/constants/Colors";
+import CustomErrorBoundary from "@/src/components/ErrorBoundary";
 
 export default function Welcome() {
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
 
   const animation = useRef(null);
   const segments = useSegments();
   const router = useRouter();
-  const { isAuthenticated, isLoading, token, user } = useUser();
+  const { isLoading, token, user } = useUser();
 
   useEffect(() => {
     if (isLoading) return;
@@ -48,41 +50,43 @@ export default function Welcome() {
   }, [isLoading, token, user, segments]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.middleContent}>
-        <LottieView
-          autoPlay={true}
-          loop={false}
-          ref={animation}
-          style={styles.logo}
-          source={require("@/assets/lotties/AlgoLearnLogo.json")}
-        />
-        <Text style={[styles.title, { color: colors.onSurface }]}>
-          Master programming with bite-sized content
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.onSurface }]}>
-          Learn programming at your own pace with lessons that are{" "}
-          <Text style={styles.italic}>fun</Text> and{" "}
-          <Text style={styles.italic}>rewarding</Text>.
-        </Text>
+    <CustomErrorBoundary>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.middleContent}>
+          <LottieView
+            autoPlay={true}
+            loop={false}
+            ref={animation}
+            style={styles.logo}
+            source={require("@/assets/lotties/AlgoLearnLogo.json")}
+          />
+          <Text style={[styles.title, { color: colors.onSurface }]}>
+            Master programming with bite-sized content
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.onSurface }]}>
+            Learn programming at your own pace with lessons that are{" "}
+            <Text style={styles.italic}>fun</Text> and{" "}
+            <Text style={styles.italic}>rewarding</Text>.
+          </Text>
+        </View>
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Get Started"
+            onPress={() => router.push("/(auth)")}
+            icon={{ name: "arrow-right", position: "right" }}
+            iconStyle={{
+              position: "absolute",
+              right: 12,
+              color: colors.inverseOnSurface,
+            }}
+            style={{
+              backgroundColor: colors.onBackground,
+            }}
+            textStyle={{ color: colors.inverseOnSurface }}
+          />
+        </View>
       </View>
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Get Started"
-          onPress={() => router.push("/(auth)")}
-          icon={{ name: "arrow-right", position: "right" }}
-          iconStyle={{
-            position: "absolute",
-            right: 12,
-            color: colors.inverseOnSurface,
-          }}
-          style={{
-            backgroundColor: colors.onBackground,
-          }}
-          textStyle={{ color: colors.inverseOnSurface }}
-        />
-      </View>
-    </View>
+    </CustomErrorBoundary>
   );
 }
 

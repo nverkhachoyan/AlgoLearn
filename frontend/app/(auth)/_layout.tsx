@@ -3,13 +3,13 @@ import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
 import { Stack, router } from "expo-router";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import { useEffect } from "react";
 import { ActivityIndicator } from "react-native";
-
+import { Colors } from "@/constants/Colors";
 export default function AuthLayout() {
   const { isAuthenticated, isLoading, token, user, isUserPending } = useUser();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
 
   useEffect(() => {
     let mounted = true;

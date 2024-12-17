@@ -6,14 +6,22 @@ package gen
 
 import (
 	"context"
+	"encoding/json"
 )
 
 type Querier interface {
+	CreateAchievement(ctx context.Context, arg CreateAchievementParams) (Achievement, error)
 	CreateModule(ctx context.Context, arg CreateModuleParams) (Module, error)
+	CreateNotification(ctx context.Context, arg CreateNotificationParams) (Notification, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteAchievement(ctx context.Context, id int32) error
 	DeleteCourse(ctx context.Context, courseID int32) error
 	DeleteModule(ctx context.Context, moduleID int32) error
+	DeleteNotification(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
+	GetAchievementByID(ctx context.Context, id int32) (Achievement, error)
+	GetAllAchievements(ctx context.Context) ([]Achievement, error)
+	GetAllNotifications(ctx context.Context) ([]Notification, error)
 	GetCourseAuthors(ctx context.Context, courseID int32) ([]Author, error)
 	GetCourseByID(ctx context.Context, courseID int32) (Course, error)
 	GetCourseProgressFullBase(ctx context.Context, arg GetCourseProgressFullBaseParams) (GetCourseProgressFullBaseRow, error)
@@ -21,18 +29,22 @@ type Querier interface {
 	GetCourseTags(ctx context.Context, courseID int32) ([]Tag, error)
 	GetCourseUnits(ctx context.Context, courseID int32) ([]Unit, error)
 	GetCoursesProgressSummary(ctx context.Context, arg GetCoursesProgressSummaryParams) ([]GetCoursesProgressSummaryRow, error)
+	GetModuleBase(ctx context.Context, arg GetModuleBaseParams) (json.RawMessage, error)
 	GetModuleProgress(ctx context.Context, arg GetModuleProgressParams) (GetModuleProgressRow, error)
 	GetModuleProgressByUnit(ctx context.Context, arg GetModuleProgressByUnitParams) ([]GetModuleProgressByUnitRow, error)
 	GetModuleProgressWithSections(ctx context.Context, arg GetModuleProgressWithSectionsParams) ([]GetModuleProgressWithSectionsRow, error)
 	GetModuleSections(ctx context.Context, moduleID int32) ([]GetModuleSectionsRow, error)
 	GetModuleSectionsWithProgress(ctx context.Context, arg GetModuleSectionsWithProgressParams) ([]GetModuleSectionsWithProgressRow, error)
 	GetModuleTotalCount(ctx context.Context, unitID int32) (int64, error)
-	GetModuleWithProgress(ctx context.Context, arg GetModuleWithProgressParams) (GetModuleWithProgressRow, error)
-	GetModulesWithProgress(ctx context.Context, arg GetModulesWithProgressParams) (interface{}, error)
+	GetModulesList(ctx context.Context, arg GetModulesListParams) ([]GetModulesListRow, error)
+	GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams) (int32, error)
+	GetNotificationByID(ctx context.Context, id int32) (Notification, error)
 	GetQuestionOptions(ctx context.Context, questionID int32) ([]GetQuestionOptionsRow, error)
 	GetQuestionSection(ctx context.Context, sectionID int32) (GetQuestionSectionRow, error)
 	GetQuestionSectionContent(ctx context.Context, sectionID int32) (GetQuestionSectionContentRow, error)
 	GetSectionContent(ctx context.Context, sectionID int32) (interface{}, error)
+	GetSectionProgress(ctx context.Context, arg GetSectionProgressParams) ([]GetSectionProgressRow, error)
+	GetSingleModuleSections(ctx context.Context, moduleID int32) ([]GetSingleModuleSectionsRow, error)
 	GetTextSection(ctx context.Context, sectionID int32) (string, error)
 	GetTextSectionContent(ctx context.Context, sectionID int32) (string, error)
 	GetUnitModules(ctx context.Context, unitID int32) ([]Module, error)
@@ -44,7 +56,9 @@ type Querier interface {
 	GetVideoSectionContent(ctx context.Context, sectionID int32) (string, error)
 	InsertUserPreferences(ctx context.Context, arg InsertUserPreferencesParams) (UserPreference, error)
 	SaveModuleProgress(ctx context.Context, arg SaveModuleProgressParams) error
+	UpdateAchievement(ctx context.Context, arg UpdateAchievementParams) (Achievement, error)
 	UpdateModule(ctx context.Context, arg UpdateModuleParams) (Module, error)
+	UpdateNotification(ctx context.Context, arg UpdateNotificationParams) (Notification, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
 }

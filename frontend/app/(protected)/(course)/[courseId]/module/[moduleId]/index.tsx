@@ -1,28 +1,18 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { StyleSheet, ViewToken, View } from "react-native";
-import {
-  ActivityIndicator,
-  MD2Colors,
-  Text,
-  useTheme,
-} from "react-native-paper";
+import { ActivityIndicator, Text, useTheme } from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import SectionsList from "@/src/features/course/components/module-session/SectionsList";
 import Button from "@/src/components/common/Button";
-import { useModuleProgress } from "@/src/hooks/useModules";
-import {
-  isQuestionSection,
-  QuestionProgress,
-  Section,
-  SectionProgress,
-} from "@/src/features/module/types";
+import { useModuleProgress } from "@/src/features/module/hooks/useModules";
+import { isQuestionSection, Section } from "@/src/features/module/types";
 import { ModuleHeader } from "@/src/features/course/components/module-session/ModuleHeader";
 import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
-import { useModuleProgressInit } from "@/src/hooks/useModuleProgressInit";
+import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProgressInit";
 import { Filter, Type } from "@/src/features/module/api/types";
+import { Colors } from "@/constants/Colors";
 
-// Constants
 const SECTION_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 50,
   minimumViewTime: 500,
@@ -40,13 +30,13 @@ interface RouteParams extends Record<string, string | undefined> {
   unitId: string;
   moduleId: string;
   userId: string;
-  type?: string;
-  filter?: string;
+  type?: Type;
+  filter?: Filter;
 }
 
 export default function ModuleSession() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
   const params = useLocalSearchParams<RouteParams | any>();
   const [isCompleting, setIsCompleting] = useState(false);
   const ids = useMemo(
@@ -56,9 +46,8 @@ export default function ModuleSession() {
       moduleId: Number(params.moduleId),
       userId: Number(params.userId),
     }),
-    [params],
+    [params]
   );
-
   const {
     currentModule: modulePayload,
     hasNextModule,
@@ -71,29 +60,22 @@ export default function ModuleSession() {
     moduleId: ids.moduleId,
     userId: ids.userId,
   });
-
   const { moduleProgress, setModuleProgress } = useModuleProgressInit(
-    modulePayload?.module,
+    modulePayload?.module
   );
-
-  console.log("ModuleSession - Initial moduleProgress:", {
-    sections: JSON.stringify(moduleProgress.sections),
-    questions: JSON.stringify(moduleProgress.questions),
-  });
-
   const sortedSections: Section[] = useMemo(
     () =>
       modulePayload?.module?.sections
         ?.slice()
         .sort((a: any, b: any) => a.position - b.position) ?? [],
-    [modulePayload?.module?.sections],
+    [modulePayload?.module?.sections]
   );
 
   const handleQuestionAnswer = useCallback(
     (
       questionId: number,
       optionId: number | null,
-      isCorrect: boolean | null,
+      isCorrect: boolean | null
     ) => {
       console.log("handleQuestionAnswer called with:", {
         questionId,
@@ -126,14 +108,14 @@ export default function ModuleSession() {
                 isCorrect: state.isCorrect,
                 answeredAt: state.answeredAt,
               },
-            }),
+            })
           ),
         });
 
         return newState;
       });
     },
-    [setModuleProgress],
+    [setModuleProgress]
   );
 
   const handleViewableItemsChanged = useCallback(
@@ -167,7 +149,7 @@ export default function ModuleSession() {
           : prev;
       });
     },
-    [setModuleProgress],
+    [setModuleProgress]
   );
 
   const calculateProgress = useMemo(() => {
@@ -203,13 +185,13 @@ export default function ModuleSession() {
     });
 
     const completedCount = completedSections.filter(
-      (s: any) => s.isCompleted,
+      (s: any) => s.isCompleted
     ).length;
     const totalProgress =
       totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
 
     const answeredQuestions = Array.from(questions.values()).filter(
-      (q) => q.hasAnswered,
+      (q) => q.hasAnswered
     ).length;
     const questionProgress =
       questions.size > 0 ? (answeredQuestions / questions.size) * 100 : 0;
@@ -295,7 +277,7 @@ export default function ModuleSession() {
             optionId: state.optionId,
             isCorrect: state.isCorrect,
           },
-        })),
+        }))
       );
 
       // Create a key that changes when the question state changes
@@ -313,7 +295,7 @@ export default function ModuleSession() {
         </View>
       );
     },
-    [handleQuestionAnswer, moduleProgress],
+    [handleQuestionAnswer, moduleProgress]
   );
 
   if (error) {

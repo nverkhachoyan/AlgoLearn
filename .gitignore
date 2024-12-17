@@ -131,5 +131,5 @@ dist
 .pnp.*
 
 # Temp files
-backend/tmp/*
+backend/tmp/
 backend/tmp/main

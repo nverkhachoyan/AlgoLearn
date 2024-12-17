@@ -13,12 +13,16 @@ import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import LabeledInput from "@/src/components/common/LabeledInput";
-import { StickyHeaderSimple } from "@/src/components/common/StickyHeader";
+import {
+  StickyHeaderSimple,
+  HeaderGoBack,
+} from "@/src/components/common/StickyHeader";
 import useToast from "@/src/hooks/useToast";
 import { ImageFile } from "@/src/types/common";
 import * as ImagePicker from "expo-image-picker";
 import { FontAwesome } from "@expo/vector-icons";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
+import { EmptyFooter } from "@/src/components/common/Footer";
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -118,16 +122,7 @@ export default function Preferences() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={{ backgroundColor: "red" }}>
-        <StickyHeaderSimple>
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Feather name="arrow-left" size={18} color={colors.onSurface} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}> Account Preferences </Text>
-          </View>
-        </StickyHeaderSimple>
-      </View>
+      <HeaderGoBack title="Account Preferences" />
 
       <ScrollView
         contentContainerStyle={[
@@ -256,6 +251,7 @@ export default function Preferences() {
         </View>
         <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
       </ScrollView>
+      <EmptyFooter />
     </View>
   );
 }

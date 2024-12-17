@@ -5,6 +5,7 @@ import { router } from "expo-router";
 
 export default function CurrentModuleCard({
   course,
+  userId,
   isPressed,
   onPressIn,
   onPressOut,
@@ -13,13 +14,12 @@ export default function CurrentModuleCard({
     <Card
       onPress={() =>
         router.push({
-          pathname:
-            "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
+          pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
           params: {
             courseId: course.courseID,
             unitId: course.currentUnit?.id,
             moduleId: course.currentModule?.id as number,
-            userId: 4,
+            userId: userId,
             type: "full",
             filter: "learning",
           },
@@ -56,13 +56,12 @@ export default function CurrentModuleCard({
           title="Jump back in"
           onPress={() => {
             router.push({
-              pathname:
-                "/(protected)/(course)/[courseId]/module/[moduleId]/module-session",
+              pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
               params: {
                 courseId: course.courseID,
                 unitId: course.currentUnit?.id,
                 moduleId: course.currentModule?.id as number,
-                userId: 4,
+                userId: userId,
                 type: "full",
                 filter: "learning",
               },

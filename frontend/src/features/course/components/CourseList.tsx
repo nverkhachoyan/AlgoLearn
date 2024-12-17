@@ -6,6 +6,7 @@ import Button from "@/src/components/common/Button";
 import { Course } from "@/src/features/course/types";
 import { useTheme } from "react-native-paper";
 import { FlashList } from "@shopify/flash-list";
+import { router } from "expo-router";
 
 interface CourseSectionProps {
   title: string;
@@ -17,10 +18,11 @@ interface CourseSectionProps {
 }
 
 const MESSAGES = {
-  NO_COURSES_LEARNING: "No courses in progress",
+  NO_COURSES_LEARNING: "You don't have any courses yet",
   NO_COURSES_EXPLORE: "No courses to explore",
   NO_MORE_COURSES: "No more courses to load",
   LOAD_MORE: "Load more",
+  EXPLORE_COURSES: "Explore Courses",
 } as const;
 
 export const CourseSection = memo<CourseSectionProps>(
@@ -28,11 +30,28 @@ export const CourseSection = memo<CourseSectionProps>(
     const { colors } = useTheme();
 
     const renderEmptyState = () => (
-      <Text style={styles.emptyMessage}>
-        {filter === "learning"
-          ? MESSAGES.NO_COURSES_LEARNING
-          : MESSAGES.NO_COURSES_EXPLORE}
-      </Text>
+      <View style={styles.emptyStateContainer}>
+        <Text style={styles.emptyMessage}>
+          {filter === "learning"
+            ? MESSAGES.NO_COURSES_LEARNING
+            : MESSAGES.NO_COURSES_EXPLORE}
+        </Text>
+        {filter === "learning" && (
+          <Button
+            title={MESSAGES.EXPLORE_COURSES}
+            onPress={() => {
+              router.push("/(protected)/(tabs)/explore");
+            }}
+            style={{
+              backgroundColor: colors.primary,
+              marginTop: 16,
+            }}
+            textStyle={{
+              color: colors.onPrimary,
+            }}
+          />
+        )}
+      </View>
     );
 
     const renderLoadMoreButton = () => (
@@ -56,28 +75,34 @@ export const CourseSection = memo<CourseSectionProps>(
     );
 
     const renderItem = useCallback(
-      ({ item: course }: { item: Course }) => (
-        <CourseCard
-          key={`course-${course.id}`}
-          courseID={course.id.toString()}
-          courseTitle={course.name}
-          backgroundColor={course.backgroundColor || colors.surface}
-          iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
-          description={course.description}
-          authors={course.authors}
-          difficultyLevel={course.difficultyLevel}
-          duration={`${course.duration}`}
-          rating={course.rating}
-          currentUnit={filter === "learning" ? course.currentUnit : null}
-          currentModule={filter === "learning" ? course.currentModule : null}
-          type="summary"
-          filter={filter}
-        />
-      ),
+      ({ item: course }: { item: Course | null }) => {
+        if (!course) return null;
+        return (
+          <CourseCard
+            key={`course-${course.id}`}
+            courseID={course.id.toString()}
+            courseTitle={course.name}
+            backgroundColor={course.backgroundColor || colors.surface}
+            iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+            description={course.description}
+            authors={course.authors}
+            difficultyLevel={course.difficultyLevel}
+            duration={`${course.duration}`}
+            rating={course.rating}
+            currentUnit={filter === "learning" ? course.currentUnit : null}
+            currentModule={filter === "learning" ? course.currentModule : null}
+            type="summary"
+            filter={filter}
+          />
+        );
+      },
       [colors.surface, filter]
     );
 
-    const keyExtractor = useCallback((item: Course) => `course-${item.id}`, []);
+    const keyExtractor = useCallback((item: Course | null) => {
+      if (!item) return "empty-course";
+      return `course-${item.id}`;
+    }, []);
 
     const ListHeaderComponent = useCallback(
       () => (
@@ -119,6 +144,7 @@ export const CourseSection = memo<CourseSectionProps>(
           ListFooterComponent={ListFooterComponent}
           onEndReached={hasNextPage ? onLoadMore : undefined}
           onEndReachedThreshold={0.5}
+          contentContainerStyle={styles.flashListContainer}
         />
       </View>
     );
@@ -167,10 +193,21 @@ const styles = StyleSheet.create({
     padding: 10,
     color: "#666",
   },
+  emptyStateContainer: {
+    height: 300,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
   emptyMessage: {
     textAlign: "center",
     padding: 16,
     color: "#666",
     fontStyle: "italic",
+    fontSize: 16,
+  },
+  flashListContainer: {
+    minHeight: 400,
+    paddingBottom: 20,
   },
 });

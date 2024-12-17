@@ -7,11 +7,12 @@ import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
-import { useUser } from "@/src/hooks/useUser";
+import { useUser } from "@/src/features/user/hooks/useUser";
+import { Colors } from "@/constants/Colors";
 
 export default function Feed() {
   const { isAuthenticated, user } = useUser();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
 
   const feedItems = [
     {
@@ -68,9 +69,7 @@ export default function Feed() {
         cpus={user.cpus}
         strikeCount={user.streaks?.length ?? 0}
         userAvatar={user.profile_picture_url}
-        onAvatarPress={() => {
-          router.push("/(protected)/profile");
-        }}
+        onAvatarPress={() => router.push("/(protected)/(profile)")}
       />
 
       <ScrollView

@@ -195,6 +195,9 @@ export const customLightTheme = {
 // Type definitions
 export type AppTheme = typeof customLightTheme | typeof customDarkTheme;
 export type ThemeType = "light" | "dark";
+export type Colors =
+  | typeof customLightTheme.colors
+  | typeof customDarkTheme.colors;
 
 // Optional: Export themes object for convenience
 export const themes = {

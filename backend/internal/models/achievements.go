@@ -3,8 +3,8 @@ package models
 import "time"
 
 type Streak struct {
-	ID            int       `json:"id"`
-	UserID        int       `json:"userId"`
+	ID            int32     `json:"id"`
+	UserID        int64     `json:"userId"`
 	StartDate     time.Time `json:"startDate"`
 	EndDate       time.Time `json:"endDate,omitempty"`
 	CurrentStreak int       `json:"currentStreak"`
@@ -14,20 +14,20 @@ type Streak struct {
 }
 
 type Achievement struct {
-	ID          int       `json:"id"`
+	ID          int32     `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
-	Points      int       `json:"points"`
+	Points      int32     `json:"points"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type UserAchievement struct {
-	ID            int       `json:"id"`
-	UserID        int       `json:"userId"`
-	AchievementID int       `json:"achievementId"`
+	ID            int32     `json:"id"`
+	UserID        int64     `json:"userId"`
+	AchievementID int32     `json:"achievementId"`
 	AchievedAt    time.Time `json:"achievedAt"`
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
-	Points        int       `json:"points"`
+	Points        int32     `json:"points"`
 }

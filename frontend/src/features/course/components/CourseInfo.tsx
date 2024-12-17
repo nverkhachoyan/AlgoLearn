@@ -1,26 +1,39 @@
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons, AntDesign } from "@expo/vector-icons";
-
-export default function CourseInfo({ course, colors }: any) {
+import { Course } from "@/src/features/course/types";
+import { Colors } from "@/constants/Colors";
+export default function CourseInfo({
+  course,
+  colors,
+}: {
+  course: Course;
+  colors: Colors;
+}) {
   return (
     <View style={styles.courseDescriptionContainer}>
       <InfoSection
         icon={
-          <MaterialIcons name="description" size={24} color={colors.icon} />
+          <MaterialIcons
+            name="description"
+            size={24}
+            color={colors.onSurface}
+          />
         }
         title="Description"
         content={course.description}
       />
       <InfoSection
-        icon={<AntDesign name="pushpin" size={24} color={colors.icon} />}
+        icon={<AntDesign name="pushpin" size={24} color={colors.onSurface} />}
         title="Requirements"
         content={course.requirements}
       />
       <InfoSection
-        icon={<AntDesign name="codesquare" size={24} color={colors.icon} />}
+        icon={
+          <AntDesign name="codesquare" size={24} color={colors.onSurface} />
+        }
         title="What you will learn"
-        content={course.what_you_learn}
+        content={course.whatYouLearn}
       />
     </View>
   );

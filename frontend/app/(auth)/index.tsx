@@ -15,16 +15,15 @@ import {
 import { useRouter } from "expo-router";
 import Button from "@/src/components/common/Button";
 import { Feather } from "@expo/vector-icons";
-import { useUser } from "@/src/hooks/useUser";
-import { useColorScheme } from "react-native";
+import { useUser } from "@/src/features/user/hooks/useUser";
 import { useTheme } from "react-native-paper";
 import useToast from "@/src/hooks/useToast";
+import { Colors } from "@/constants/Colors";
 
 export default function SignUp() {
   const router = useRouter();
   const { isLoading, checkEmail, signIn, signUp } = useUser();
-  const colorScheme = useColorScheme();
-  const { colors } = useTheme();
+  const { colors }: { colors: Colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
   const [emailExists, setEmailExists] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");

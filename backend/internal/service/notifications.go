@@ -1,79 +1,102 @@
 package service
 
 import (
+	"algolearn/internal/database"
+	gen "algolearn/internal/database/generated"
 	"algolearn/internal/models"
+	"context"
 	"database/sql"
+	"fmt"
 )
 
 type NotificationsService interface {
 	GetAllNotifications() ([]models.Notification, error)
-	GetNotificationByID(id int) (*models.Notification, error)
+	GetNotificationByID(id int32) (*models.Notification, error)
 	CreateNotification(notification *models.Notification) error
 	UpdateNotification(notification *models.Notification) error
-	DeleteNotification(id int) error
+	DeleteNotification(id int32) error
 }
 
 type notificationsService struct {
-	db *sql.DB
+	db *database.Database
 }
 
 func NewNotificationsService(db *sql.DB) NotificationsService {
-	return &notificationsService{db: db}
+	return &notificationsService{db: database.New(db)}
 }
 
 func (r *notificationsService) GetAllNotifications() ([]models.Notification, error) {
-	rows, err := r.db.Query("SELECT id, user_id, content, read, created_at FROM notifications")
+	ctx := context.Background()
+	notifications, err := r.db.GetAllNotifications(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get notifications: %v", err)
 	}
-	defer rows.Close()
 
-	var notifications []models.Notification
-	for rows.Next() {
-		var notification models.Notification
-		err := rows.Scan(&notification.ID, &notification.UserID, &notification.Content, &notification.Read, &notification.CreatedAt)
-		if err != nil {
-			return nil, err
+	result := make([]models.Notification, len(notifications))
+	for i, n := range notifications {
+		result[i] = models.Notification{
+			ID:        n.ID,
+			UserID:    int64(n.UserID),
+			Content:   n.Content,
+			Read:      n.Read,
+			CreatedAt: n.CreatedAt,
 		}
-		notifications = append(notifications, notification)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return notifications, nil
+	return result, nil
 }
 
-func (r *notificationsService) GetNotificationByID(id int) (*models.Notification, error) {
-	row := r.db.QueryRow("SELECT id, user_id, content, read, created_at FROM notifications WHERE id = $1", id)
-
-	var notification models.Notification
-	err := row.Scan(&notification.ID, &notification.UserID, &notification.Content, &notification.Read, &notification.CreatedAt)
+func (r *notificationsService) GetNotificationByID(id int32) (*models.Notification, error) {
+	ctx := context.Background()
+	notification, err := r.db.GetNotificationByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get notification: %v", err)
 	}
 
-	return &notification, nil
+	return &models.Notification{
+		ID:        notification.ID,
+		UserID:    int64(notification.UserID),
+		Content:   notification.Content,
+		Read:      notification.Read,
+		CreatedAt: notification.CreatedAt,
+	}, nil
 }
 
 func (r *notificationsService) CreateNotification(notification *models.Notification) error {
-	err := r.db.QueryRow(
-		"INSERT INTO notifications (user_id, content, read) VALUES ($1, $2, $3) RETURNING id, created_at",
-		notification.UserID, notification.Content, notification.Read,
-	).Scan(&notification.ID, &notification.CreatedAt)
-	return err
+	ctx := context.Background()
+	result, err := r.db.CreateNotification(ctx, gen.CreateNotificationParams{
+		UserID:  int32(notification.UserID),
+		Content: notification.Content,
+		Read:    notification.Read,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create notification: %v", err)
+	}
+
+	notification.ID = result.ID
+	notification.CreatedAt = result.CreatedAt
+	return nil
 }
 
 func (r *notificationsService) UpdateNotification(notification *models.Notification) error {
-	_, err := r.db.Exec(
-		"UPDATE notifications SET user_id = $1, content = $2, read = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4",
-		notification.UserID, notification.Content, notification.Read, notification.ID,
-	)
-	return err
+	ctx := context.Background()
+	_, err := r.db.UpdateNotification(ctx, gen.UpdateNotificationParams{
+		UserID:  int32(notification.UserID),
+		Content: notification.Content,
+		Read:    notification.Read,
+		ID:      notification.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update notification: %v", err)
+	}
+	return nil
 }
 
-func (r *notificationsService) DeleteNotification(id int) error {
-	_, err := r.db.Exec("DELETE FROM notifications WHERE id = $1", id)
-	return err
+func (r *notificationsService) DeleteNotification(id int32) error {
+	ctx := context.Background()
+	err := r.db.DeleteNotification(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete notification: %v", err)
+	}
+	return nil
 }

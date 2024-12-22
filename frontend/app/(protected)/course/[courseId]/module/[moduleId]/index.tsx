@@ -10,7 +10,6 @@ import { isQuestionSection, Section } from "@/src/features/module/types";
 import { ModuleHeader } from "@/src/features/course/components/module-session/ModuleHeader";
 import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
 import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProgressInit";
-import { Filter, Type } from "@/src/features/module/api/types";
 import { Colors } from "@/constants/Colors";
 
 const SECTION_VIEWABILITY_CONFIG = {
@@ -30,8 +29,6 @@ interface RouteParams extends Record<string, string | undefined> {
   unitId: string;
   moduleId: string;
   userId: string;
-  type?: Type;
-  filter?: Filter;
   hasProgress?: string;
 }
 
@@ -59,7 +56,6 @@ export default function ModuleSession() {
     courseId: ids.courseId,
     unitId: ids.unitId,
     moduleId: ids.moduleId,
-    userId: ids.userId,
   });
   const { moduleProgress, setModuleProgress } = useModuleProgressInit(
     modulePayload?.module
@@ -236,24 +232,20 @@ export default function ModuleSession() {
       // Navigate to next module if available
       if (hasNextModule) {
         router.push({
-          pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
+          pathname: "/(protected)/course/[courseId]/module/[moduleId]",
           params: {
             courseId: ids.courseId,
             unitId: ids.unitId,
             moduleId: modulePayload?.nextModuleId ?? "",
             userId: ids.userId,
-            type: "full",
-            filter: "learning",
           },
         });
       } else {
         // Handle course completion
         router.replace({
-          pathname: "/(protected)/(course)/[courseId]",
+          pathname: "/(protected)/course/[courseId]",
           params: {
             courseId: ids.courseId,
-            type: "summary",
-            filter: "learning",
           },
         });
       }

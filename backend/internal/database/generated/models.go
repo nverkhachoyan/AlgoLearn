@@ -311,6 +311,7 @@ type UserCourse struct {
 	CurrentUnitID          sql.NullInt32 `json:"currentUnitId"`
 	CurrentModuleID        sql.NullInt32 `json:"currentModuleId"`
 	LatestModuleProgressID sql.NullInt32 `json:"latestModuleProgressId"`
+	Progress               float64       `json:"progress"`
 }
 
 type UserModuleProgress struct {
@@ -343,6 +344,7 @@ type UserQuestionAnswer struct {
 	OptionID             int32     `json:"optionId"`
 	AnsweredAt           time.Time `json:"answeredAt"`
 	IsCorrect            bool      `json:"isCorrect"`
+	Progress             float64   `json:"progress"`
 }
 
 type UserSectionProgress struct {
@@ -354,6 +356,7 @@ type UserSectionProgress struct {
 	CompletedAt sql.NullTime `json:"completedAt"`
 	HasSeen     bool         `json:"hasSeen"`
 	SeenAt      sql.NullTime `json:"seenAt"`
+	Progress    float64      `json:"progress"`
 }
 
 type VideoSection struct {

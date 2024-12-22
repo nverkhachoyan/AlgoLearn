@@ -1,6 +1,7 @@
 import api from "@/src/features/auth/setup";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { AxiosResponse } from "axios";
+import AuthEvents from "@/src/features/auth/events/authEvents";
 
 const apiWithForm = axios.create({
   baseURL: process.env.EXPO_PUBLIC_BACKEND_URL,
@@ -10,12 +11,22 @@ const apiWithForm = axios.create({
 });
 
 export const fetchUser = async (token: string): Promise<AxiosResponse> => {
-  const response = await api.get("/users/me", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return response;
+  try {
+    const response = await api.get("/users/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      const errorCode = error.response?.data?.errorCode;
+      if (errorCode === "ACCOUNT_NOT_FOUND" || errorCode === "UNAUTHORIZED") {
+        await AuthEvents.handleAuthFailure(error);
+      }
+    }
+    throw error;
+  }
 };
 
 export const updateUser = async (

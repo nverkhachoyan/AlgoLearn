@@ -9,6 +9,7 @@ import (
 	"algolearn/pkg/middleware"
 	"algolearn/pkg/security"
 	"context"
+	"errors"
 
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,8 @@ import (
 	"net/http"
 	"regexp"
 	"time"
+
+	"database/sql"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -71,30 +74,27 @@ func (h *userHandler) CheckEmailExists(c *gin.Context) {
 	exists, err := h.repo.CheckEmailExists(ctx, email)
 	if err != nil {
 		log.WithError(err).Error("failed to check if email exists")
-		c.JSON(http.StatusAccepted,
+		c.JSON(http.StatusInternalServerError,
 			models.Response{
-				Success:   true,
+				Success:   false,
 				ErrorCode: httperr.DatabaseFail,
 				Message:   "failed to check if email exists",
 			})
 		return
 	}
 
+	message := "email is available"
 	if exists {
-		c.JSON(http.StatusAccepted,
-			models.Response{
-				Success:   true,
-				ErrorCode: httperr.AccountExists,
-				Message:   "an account with this email already exists",
-			})
-		return
+		message = "an account with this email already exists"
 	}
 
 	c.JSON(http.StatusOK,
 		models.Response{
-			Success:   false,
-			ErrorCode: httperr.NoData,
-			Message:   "an account with this email does not exist",
+			Success: true,
+			Message: message,
+			Payload: models.EmailCheckResponse{
+				Exists: exists,
+			},
 		})
 }
 
@@ -451,12 +451,22 @@ func (h *userHandler) GetUser(c *gin.Context) {
 
 	user, err := h.repo.GetUserByID(ctx, userID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.WithError(err).Warn("user not found in database")
+			c.JSON(http.StatusNotFound,
+				models.Response{
+					Success:   false,
+					ErrorCode: httperr.AccountNotFound,
+					Message:   "user account not found",
+				})
+			return
+		}
 		log.WithError(err).Error("failed to retrieve user from database")
 		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: httperr.DatabaseFail,
-				Message:   "failed to retrieve user from database: " + err.Error(),
+				Message:   "failed to retrieve user from database",
 			})
 		return
 	}
@@ -497,7 +507,7 @@ func (h *userHandler) RegisterRoutes(r *gin.RouterGroup) {
 	users := r.Group("/users")
 	users.POST("/sign-up", h.RegisterUser)
 	users.POST("/sign-in", h.LoginUser)
-	users.POST("/check-email", h.CheckEmailExists)
+	users.GET("/check-email", h.CheckEmailExists)
 	users.POST("/refresh-token", h.RefreshToken)
 
 	// Protected routes (require authentication)

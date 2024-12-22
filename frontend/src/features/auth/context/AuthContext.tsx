@@ -6,13 +6,13 @@ import React, {
 } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { tokenService } from "../services/tokenService";
-import * as authService from "../authService";
+import * as authService from "../services/authService";
 import type {
   ApiResponse,
   AuthResponse,
   EmailCheckResponse,
-} from "../authService";
-import { AxiosError } from "axios";
+} from "../services/authService";
+import { AxiosError, AxiosResponse } from "axios";
 import { useRouter, useRootNavigation } from "expo-router";
 import { Platform } from "react-native";
 import AuthEvents from "../events/authEvents";
@@ -25,9 +25,11 @@ interface AuthContextType {
   isLoading: boolean;
   token: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (username: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  checkEmail: (email: string) => Promise<void>;
+  checkEmail: (
+    email: string
+  ) => Promise<AxiosResponse<ApiResponse<EmailCheckResponse>>>;
 }
 
 interface AuthProviderProps {
@@ -40,10 +42,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({
   children,
-  onAuthSuccess = () => {
-    const router = useRouter();
-    const rootNavigation = useRootNavigation();
+  onAuthSuccess,
+  onSignOut,
+}: AuthProviderProps) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const rootNavigation = useRootNavigation();
 
+  const defaultOnAuthSuccess = useCallback(() => {
     if (!rootNavigation?.isReady) return;
 
     if (Platform.OS === "web") {
@@ -53,19 +59,26 @@ export function AuthProvider({
     } else {
       router.replace(PROTECTED_ROUTE);
     }
-  },
-  onSignOut = () => {
-    const router = useRouter();
-    const rootNavigation = useRootNavigation();
+  }, [router, rootNavigation?.isReady]);
 
+  const defaultOnSignOut = useCallback(() => {
     if (!rootNavigation?.isReady) return;
     router.replace(AUTH_ROUTE);
-  },
-}: AuthProviderProps) {
-  const queryClient = useQueryClient();
+  }, [router, rootNavigation?.isReady]);
 
-  const { data: token, isLoading } = useQuery({
-    queryKey: ["authToken"],
+  const effectiveOnAuthSuccess = onAuthSuccess || defaultOnAuthSuccess;
+  const effectiveOnSignOut = onSignOut || defaultOnSignOut;
+
+  const handleSignOut = useCallback(async () => {
+    console.debug("[AuthContext] Signing out...");
+    queryClient.setQueryData(["authToken"], null);
+    queryClient.removeQueries({ queryKey: ["user"] });
+    await tokenService.clearTokens();
+    effectiveOnSignOut();
+  }, [queryClient, effectiveOnSignOut]);
+
+  const { data: token = null, isLoading } = useQuery({
+    queryKey: ["auth", "token"],
     queryFn: async () => {
       const token = await tokenService.getToken();
       console.debug(
@@ -75,10 +88,7 @@ export function AuthProvider({
       return token;
     },
     staleTime: Infinity,
-    initialData: null,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    gcTime: Infinity,
   });
 
   useEffect(() => {
@@ -86,8 +96,13 @@ export function AuthProvider({
       try {
         const storedToken = await tokenService.getToken();
         if (storedToken) {
-          queryClient.setQueryData(["authToken"], storedToken);
+          queryClient.setQueryData(["auth", "token"], storedToken);
           console.debug("[AuthContext] Restored auth state from storage");
+          if (router.canGoBack()) {
+            effectiveOnAuthSuccess();
+          }
+        } else if (router.canGoBack()) {
+          effectiveOnSignOut();
         }
       } catch (error) {
         console.error("[AuthContext] Error initializing auth state:", error);
@@ -96,31 +111,38 @@ export function AuthProvider({
     };
 
     initAuth();
-  }, [queryClient]);
+  }, []);
+
+  const handleAuthError = useCallback(
+    async (error?: AxiosError) => {
+      console.debug(
+        "[AuthContext] Handling auth error...",
+        error?.response?.data
+      );
+      const errorCode = (error?.response?.data as any)?.errorCode;
+
+      if (errorCode === "ACCOUNT_NOT_FOUND" || errorCode === "UNAUTHORIZED") {
+        console.debug(
+          "[AuthContext] User not found or unauthorized, clearing auth state..."
+        );
+        queryClient.setQueryData(["authToken"], null);
+        queryClient.removeQueries();
+
+        await tokenService.clearTokens();
+
+        if (Platform.OS === "web") {
+          window.location.replace("/");
+        } else {
+          router.replace(AUTH_ROUTE);
+        }
+      }
+    },
+    [router, queryClient]
+  );
 
   useEffect(() => {
-    console.debug("[AuthContext] Auth state changed:", {
-      isAuthenticated: !!token,
-      isLoading,
-    });
-  }, [token, isLoading]);
-
-  const handleSignOut = useCallback(async () => {
-    console.debug("[AuthContext] Signing out...");
-    await tokenService.clearTokens();
-    queryClient.setQueryData(["authToken"], null);
-    queryClient.removeQueries({ queryKey: ["user"] });
-    onSignOut();
-  }, [queryClient, onSignOut]);
-
-  const handleAuthFailure = useCallback(async () => {
-    console.debug("[AuthContext] Handling auth failure...");
-    await handleSignOut();
-  }, [handleSignOut]);
-
-  useEffect(() => {
-    AuthEvents.setAuthFailureHandler(handleAuthFailure);
-  }, [handleAuthFailure]);
+    AuthEvents.setAuthFailureHandler(handleAuthError);
+  }, [handleAuthError]);
 
   const checkEmailMutation = useMutation<
     ApiResponse<EmailCheckResponse>,
@@ -133,36 +155,30 @@ export function AuthProvider({
     },
   });
 
-  const signUpMutation = useMutation<
-    ApiResponse<AuthResponse>,
-    AxiosError,
-    { email: string; password: string }
-  >({
-    mutationFn: async (credentials) => {
-      console.debug("[AuthContext] Starting signup...");
-      const axiosResponse = await authService.signUp(
-        credentials.email,
-        credentials.password
-      );
-      const response = axiosResponse.data;
-      if (!response.success) {
-        throw new Error(response.message);
+  const signUpMutation = useMutation({
+    mutationFn: async ({
+      username,
+      email,
+      password,
+    }: {
+      username: string;
+      email: string;
+      password: string;
+    }) => {
+      const response = await authService.signUp(username, email, password);
+      if (!response.data.success || !response.data.payload) {
+        throw new Error(response.data.message || "Failed to sign up");
       }
-      if (response.payload?.token) {
-        console.debug("[AuthContext] Setting tokens from signup...");
-        await tokenService.setToken(response.payload.token);
-        if (response.payload.refreshToken) {
-          await tokenService.setRefreshToken(response.payload.refreshToken);
-        }
-        queryClient.setQueryData(["authToken"], response.payload.token);
-        console.debug("[AuthContext] Tokens set from signup");
+      const authResponse = response.data.payload;
+      await tokenService.setToken(authResponse.token);
+      if (typeof authResponse.refreshToken === "string") {
+        await tokenService.setRefreshToken(authResponse.refreshToken);
       }
-      return response;
+      queryClient.setQueryData(["auth", "token"], authResponse.token);
+      await router.replace("/(protected)/(tabs)");
     },
-    onSuccess: () => {
-      console.debug("[AuthContext] Signup successful");
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      onAuthSuccess();
+    onError: (error: AxiosError) => {
+      handleAuthError(error);
     },
   });
 
@@ -195,9 +211,38 @@ export function AuthProvider({
     onSuccess: () => {
       console.debug("[AuthContext] Signin successful");
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      onAuthSuccess();
+      effectiveOnAuthSuccess();
     },
   });
+
+  const checkEmail = async (email: string) => {
+    try {
+      const response = await authService.checkEmailExists(email);
+      return response;
+    } catch (error) {
+      handleAuthError(error as AxiosError);
+      throw error;
+    }
+  };
+
+  const signUp = async (username: string, email: string, password: string) => {
+    try {
+      const response = await authService.signUp(username, email, password);
+      if (!response.data.success || !response.data.payload) {
+        throw new Error(response.data.message || "Failed to sign up");
+      }
+      const { token, refreshToken } = response.data.payload;
+      await tokenService.setToken(token);
+      if (typeof refreshToken === "string") {
+        await tokenService.setRefreshToken(refreshToken);
+      }
+      queryClient.setQueryData(["auth", "token"], token);
+      await router.replace("/(protected)/(tabs)");
+    } catch (error) {
+      handleAuthError(error as AxiosError);
+      throw error;
+    }
+  };
 
   const value = {
     isAuthenticated: !!token,
@@ -206,13 +251,11 @@ export function AuthProvider({
     signIn: async (email: string, password: string) => {
       await signInMutation.mutateAsync({ email, password });
     },
-    signUp: async (email: string, password: string) => {
-      await signUpMutation.mutateAsync({ email, password });
+    signUp: async (username: string, email: string, password: string) => {
+      await signUpMutation.mutateAsync({ username, email, password });
     },
     signOut: handleSignOut,
-    checkEmail: async (email: string) => {
-      await checkEmailMutation.mutateAsync(email);
-    },
+    checkEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

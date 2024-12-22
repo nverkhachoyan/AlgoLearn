@@ -11,15 +11,17 @@ import { useTheme } from "react-native-paper";
 import { HeaderGoBack } from "@/src/components/common/StickyHeader";
 import { ScrollView } from "react-native";
 import { EmptyFooter } from "@/src/components/common/Footer";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
-  const { isAuthenticated, user, userError, signOut } = useUser();
+  const { isAuthenticated, user, userError } = useUser();
+  const { signOut } = useAuth();
   const { colors } = useTheme();
 
   const handleSignOut = () => {
-    signOut.mutate();
+    signOut();
     router.replace("/");
   };
 

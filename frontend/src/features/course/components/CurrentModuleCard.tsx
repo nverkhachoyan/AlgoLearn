@@ -14,14 +14,11 @@ export default function CurrentModuleCard({
     <Card
       onPress={() =>
         router.push({
-          pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
+          pathname: "/(protected)/course/[courseId]/module/[moduleId]",
           params: {
             courseId: course.courseID,
             unitId: course.currentUnit?.id,
             moduleId: course.currentModule?.id as number,
-            userId: userId,
-            type: "full",
-            filter: "learning",
           },
         })
       }
@@ -56,14 +53,11 @@ export default function CurrentModuleCard({
           title="Jump back in"
           onPress={() => {
             router.push({
-              pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
+              pathname: "/(protected)/course/[courseId]/module/[moduleId]",
               params: {
                 courseId: course.courseID,
                 unitId: course.currentUnit?.id,
                 moduleId: course.currentModule?.id as number,
-                userId: userId,
-                type: "full",
-                filter: "learning",
               },
             });
           }}

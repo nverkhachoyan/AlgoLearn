@@ -29,4 +29,5 @@ export interface Course extends BaseModel {
   currentUnit: Unit;
   currentModule: Module;
   units: Unit[];
+  progress: number;
 }

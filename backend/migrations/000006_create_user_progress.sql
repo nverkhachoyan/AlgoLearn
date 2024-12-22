@@ -30,6 +30,7 @@ CREATE TABLE user_courses (
     current_unit_id INTEGER,
     current_module_id INTEGER,
     latest_module_progress_id INTEGER,
+    progress FLOAT NOT NULL DEFAULT 0.0,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE,
     FOREIGN KEY (current_unit_id) REFERENCES units (id) ON DELETE SET NULL,
@@ -46,6 +47,7 @@ CREATE TABLE user_section_progress (
     completed_at TIMESTAMPTZ,
     has_seen BOOLEAN NOT NULL DEFAULT FALSE,
     seen_at TIMESTAMPTZ,
+    progress FLOAT NOT NULL DEFAULT 0.0,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
@@ -60,6 +62,7 @@ CREATE TABLE user_question_answers (
     option_id INTEGER NOT NULL,
     answered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     is_correct BOOLEAN NOT NULL DEFAULT FALSE,
+    progress FLOAT NOT NULL DEFAULT 0.0,
     FOREIGN KEY (user_module_progress_id) REFERENCES user_module_progress (id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE,
     FOREIGN KEY (option_id) REFERENCES question_options (id) ON DELETE CASCADE

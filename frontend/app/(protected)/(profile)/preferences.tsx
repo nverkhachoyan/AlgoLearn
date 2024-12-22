@@ -23,6 +23,7 @@ import * as ImagePicker from "expo-image-picker";
 import { FontAwesome } from "@expo/vector-icons";
 import { useUser } from "@/src/features/user/hooks/useUser";
 import { EmptyFooter } from "@/src/components/common/Footer";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -38,7 +39,8 @@ interface UpdateUserData {
 }
 
 export default function Preferences() {
-  const { isAuthenticated, user, updateUser, signOut } = useUser();
+  const { isAuthenticated, user, updateUser } = useUser();
+  const { signOut } = useAuth();
   const { colors } = useTheme();
   const { showToast } = useToast();
   const [image, setImage] = useState<string | null>(null);
@@ -88,9 +90,12 @@ export default function Preferences() {
     // });
   };
 
-  const handleSignOut = () => {
-    signOut.mutate();
-    router.replace("/");
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      showToast("Error signing out");
+    }
   };
 
   if (!isAuthenticated || !user) {

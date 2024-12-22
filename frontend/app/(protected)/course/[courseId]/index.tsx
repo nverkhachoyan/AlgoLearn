@@ -59,7 +59,7 @@ export default function CourseDetails() {
           },
           {
             text: "Sign In",
-            onPress: () => router.push("/sign-in"),
+            onPress: () => router.push("/(auth)"),
           },
         ]
       );
@@ -67,7 +67,7 @@ export default function CourseDetails() {
     }
 
     router.push({
-      pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
+      pathname: "/(protected)/course/[courseId]/module/[moduleId]",
       params: {
         courseId,
         unitId,
@@ -88,7 +88,7 @@ export default function CourseDetails() {
           },
           {
             text: "Sign In",
-            onPress: () => router.push("/sign-in"),
+            onPress: () => router.push("/(auth)"),
           },
         ]
       );
@@ -137,7 +137,7 @@ export default function CourseDetails() {
               if (response?.success) {
                 // Refresh the page with progress after restart
                 router.replace({
-                  pathname: "/(protected)/(course)/[courseId]",
+                  pathname: "/(protected)/course/[courseId]",
                   params: {
                     courseId: parseInt(courseId as string),
                     hasProgress: "true",

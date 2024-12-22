@@ -22,6 +22,7 @@ const (
 	InvalidCourseID     ErrorCode = "INVALID_COURSE_ID"
 	NotImplemented      ErrorCode = "NOT_IMPLEMENTED"
 	Forbidden           ErrorCode = "FORBIDDEN"
+	AccountNotFound     ErrorCode = "ACCOUNT_NOT_FOUND"
 )
 
 var ErrNotFound = errors.New("item not found")

@@ -2,12 +2,15 @@ package service
 
 import (
 	gen "algolearn/internal/database/generated"
+	httperr "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"time"
 )
 
 type ModuleService interface {
@@ -32,25 +35,30 @@ func NewModuleService(db *sql.DB) ModuleService {
 func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitID, moduleID int64) (*models.Module, bool, int32, error) {
 	log := s.log.WithBaseFields(logger.Service, "GetModuleWithProgress")
 
-	// Get base module info
-	moduleBase, err := s.queries.GetModuleBase(ctx, gen.GetModuleBaseParams{
+	// Get module with progress
+	moduleData, err := s.queries.GetModuleWithProgress(ctx, gen.GetModuleWithProgressParams{
 		UserID:   int32(userID),
 		UnitID:   int32(unitID),
 		ModuleID: int32(moduleID),
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to get module base")
-		return nil, false, 0, fmt.Errorf("failed to get module base: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, false, 0, httperr.ErrNotFound
+		}
+		log.WithError(err).Error("failed to get module with progress")
+		return nil, false, 0, fmt.Errorf("failed to get module with progress: %w", err)
 	}
 
 	var module models.Module
-	if err := json.Unmarshal(moduleBase, &module); err != nil {
+	if err := json.Unmarshal(moduleData, &module); err != nil {
 		log.WithError(err).Error("failed to unmarshal module")
 		return nil, false, 0, fmt.Errorf("failed to unmarshal module: %w", err)
 	}
 
-	// Get sections
-	sections, err := s.queries.GetSingleModuleSections(ctx, int32(moduleID))
+	// Get sections with content
+	sections, err := s.queries.GetSingleModuleSections(ctx, gen.GetSingleModuleSectionsParams{
+		ModuleID: int32(moduleID),
+	})
 	if err != nil {
 		log.WithError(err).Error("failed to get module sections")
 		return nil, false, 0, fmt.Errorf("failed to get module sections: %w", err)
@@ -61,12 +69,12 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 		UserID:   int32(userID),
 		ModuleID: int32(moduleID),
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithError(err).Error("failed to get section progress")
 		return nil, false, 0, fmt.Errorf("failed to get section progress: %w", err)
 	}
 
-	// Build sections map
+	// Build progress map
 	progressMap := make(map[int32]json.RawMessage)
 	for _, p := range progress {
 		progressMap[p.SectionID] = p.Progress
@@ -80,10 +88,12 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 			log.WithError(err).Error("failed to unmarshal section content")
 			return nil, false, 0, fmt.Errorf("failed to unmarshal section content: %w", err)
 		}
+
 		section.ID = int64(s.ID)
 		section.CreatedAt = s.CreatedAt
 		section.UpdatedAt = s.UpdatedAt
 		section.Type = s.Type
+
 		section.Position = int16(s.Position)
 
 		if progress, ok := progressMap[s.ID]; ok {
@@ -101,7 +111,7 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 		UnitID:       int32(unitID),
 		ModuleNumber: int32(module.ModuleNumber),
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithError(err).Error("failed to get next module id")
 		return nil, false, 0, fmt.Errorf("failed to get next module id: %w", err)
 	}
@@ -128,8 +138,12 @@ func (s *moduleService) GetModulesWithProgress(ctx context.Context, userID, unit
 	result := make([]models.Module, len(modules))
 	for i, m := range modules {
 		var progress struct {
-			Progress float32 `json:"progress"`
-			Status   string  `json:"status"`
+			Progress         float32   `json:"progress"`
+			Status           string    `json:"status"`
+			StartedAt        time.Time `json:"startedAt"`
+			CompletedAt      time.Time `json:"completedAt,omitempty"`
+			LastAccessed     time.Time `json:"lastAccessed"`
+			CurrentSectionID int32     `json:"currentSectionId,omitempty"`
 		}
 		if err := json.Unmarshal(m.ModuleProgress, &progress); err != nil {
 			log.WithError(err).Error("failed to unmarshal module progress")
@@ -142,13 +156,17 @@ func (s *moduleService) GetModulesWithProgress(ctx context.Context, userID, unit
 				CreatedAt: m.CreatedAt,
 				UpdatedAt: m.UpdatedAt,
 			},
-			ModuleNumber: int16(m.ModuleNumber),
-			ModuleUnitID: int64(m.UnitID),
-			Name:         m.Name,
-			Description:  m.Description,
-			Progress:     progress.Progress,
-			Status:       progress.Status,
-			Sections:     make([]models.SectionInterface, 0),
+			ModuleNumber:     int16(m.ModuleNumber),
+			ModuleUnitID:     int64(m.UnitID),
+			Name:             m.Name,
+			Description:      m.Description,
+			Progress:         progress.Progress,
+			Status:           progress.Status,
+			StartedAt:        progress.StartedAt,
+			CompletedAt:      progress.CompletedAt,
+			LastAccessed:     progress.LastAccessed,
+			CurrentSectionID: progress.CurrentSectionID,
+			Sections:         make([]models.SectionInterface, 0),
 		}
 	}
 

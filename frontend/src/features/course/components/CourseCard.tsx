@@ -41,11 +41,9 @@ export default function CourseCard(props: {
       ]}
       onPress={() =>
         router.push({
-          pathname: "/(protected)/(course)/[courseId]",
+          pathname: "/(protected)/course/[courseId]",
           params: {
             courseId: props.courseID,
-            type: props.type,
-            filter: props.filter,
           },
         })
       }
@@ -88,14 +86,11 @@ export default function CourseCard(props: {
           <Card
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(course)/[courseId]/module/[moduleId]",
+                pathname: "/(protected)/course/[courseId]/module/[moduleId]",
                 params: {
                   courseId: props.courseID,
                   unitId: props.currentUnit?.id,
                   moduleId: props.currentModule?.id as number,
-                  userId: 4,
-                  type: "full",
-                  filter: "learning",
                   hasProgress: props.hasProgress ? "true" : "false",
                 },
               })
@@ -146,14 +141,11 @@ export default function CourseCard(props: {
                 onPress={() =>
                   router.push({
                     pathname:
-                      "/(protected)/(course)/[courseId]/module/[moduleId]",
+                      "/(protected)/course/[courseId]/module/[moduleId]",
                     params: {
                       courseId: props.courseID,
                       moduleId: props.currentModule?.id as number,
                       unitId: props.currentUnit?.id,
-                      userId: 4,
-                      type: "full",
-                      filter: "learning",
                     },
                   })
                 }
@@ -185,11 +177,9 @@ export default function CourseCard(props: {
             title="Check it out"
             onPress={() =>
               router.push({
-                pathname: "/(protected)/(course)/[courseId]",
+                pathname: "/(protected)/course/[courseId]",
                 params: {
                   courseId: props.courseID,
-                  type: props.type,
-                  filter: props.filter,
                 },
               })
             }

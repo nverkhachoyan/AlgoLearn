@@ -29,12 +29,6 @@ type PaginatedPayload struct {
 	Pagination `json:"pagination"`
 }
 
-type RegistrationRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type ModuleWithProgressResponse struct {
 	Module        Module `json:"module"`
 	HasNextModule bool   `json:"hasNextModule"`

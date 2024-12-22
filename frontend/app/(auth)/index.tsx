@@ -19,6 +19,10 @@ import { useTheme } from "react-native-paper";
 import useToast from "@/src/hooks/useToast";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import type {
+  ApiResponse,
+  EmailCheckResponse,
+} from "@/src/features/auth/authService";
 
 export default function SignUp() {
   const router = useRouter();
@@ -72,23 +76,25 @@ export default function SignUp() {
 
     setIsSubmitting(true);
     try {
-      await checkEmail(email);
+      const response = await checkEmail(email);
+      const exists = response.data.payload?.exists;
+      if (exists === undefined) {
+        throw new Error("Error checking email");
+      }
       setHasCheckedEmail(true);
-      setEmailExists(true);
-      showToast("Welcome back! Please enter your password.");
+      setEmailExists(exists);
+      showToast(
+        exists
+          ? "Welcome back! Please enter your password."
+          : "Create a new account to get started!"
+      );
     } catch (error: any) {
       console.error("[Auth] Email check error:", error);
-      if (error.response?.data?.errorCode === "NO_DATA") {
-        setHasCheckedEmail(true);
-        setEmailExists(false);
-        showToast("Create a new account to get started!");
-      } else {
-        const errorMessage =
-          error.response?.data?.message || "Error checking email";
-        setEmailError(errorMessage);
-        showToast(errorMessage);
-        setHasCheckedEmail(false);
-      }
+      const errorMessage =
+        error.response?.data?.message || "Error checking email";
+      setEmailError(errorMessage);
+      showToast(errorMessage);
+      setHasCheckedEmail(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +114,8 @@ export default function SignUp() {
 
     setIsSubmitting(true);
     try {
-      await signUp(email, password);
+      const username = email.split("@")[0];
+      await signUp(username, email, password);
       showToast("Account created successfully!");
     } catch (error: any) {
       console.error("[Auth] Sign up error:", error);

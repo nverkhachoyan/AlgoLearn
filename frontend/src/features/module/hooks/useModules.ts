@@ -20,7 +20,6 @@ export type UseModuleProgressProps = {
   courseId: number;
   unitId: number;
   moduleId: number;
-  userId: number;
 };
 
 type UseModuleProgressReturn = {
@@ -37,26 +36,15 @@ export const useModuleProgress = (
   props: UseModuleProgressProps
 ): UseModuleProgressReturn => {
   const queryClient = useQueryClient();
-  const { courseId, unitId, moduleId, userId } = props;
+  const { courseId, unitId, moduleId } = props;
 
   const currentModule = useQuery({
-    queryKey: [
-      "module",
-      courseId,
-      unitId,
-      moduleId,
-      userId,
-      "full",
-      "learning",
-    ],
+    queryKey: ["module", courseId, unitId, moduleId],
     queryFn: async (): Promise<ModulePayload> => {
       const response = await fetchModule({
         courseId,
         unitId,
         moduleId,
-        userId,
-        type: "full",
-        filter: "learning",
       });
 
       const axiosResponse = response.data;
@@ -73,7 +61,6 @@ export const useModuleProgress = (
       const res = await updateModuleProgress({
         courseId,
         unitId,
-        userId,
         moduleId,
         moduleProgress,
       });
@@ -82,38 +69,19 @@ export const useModuleProgress = (
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          "module",
-          courseId,
-          unitId,
-          moduleId,
-          userId,
-          "full",
-          "learning",
-        ],
+        queryKey: ["module", courseId, unitId, moduleId],
       });
     },
   });
 
   if (currentModule.data?.nextModuleId) {
     queryClient.prefetchQuery({
-      queryKey: [
-        "module",
-        courseId,
-        unitId,
-        currentModule.data?.nextModuleId,
-        userId,
-        "full",
-        "learning",
-      ],
+      queryKey: ["module", courseId, unitId, currentModule.data?.nextModuleId],
       queryFn: async (): Promise<ModulePayload> => {
         const response = await fetchModule({
           courseId,
           unitId,
           moduleId: currentModule.data?.nextModuleId,
-          userId,
-          type: "full",
-          filter: "learning",
         });
         const axiosResponse = response.data;
         const payload = axiosResponse.payload;

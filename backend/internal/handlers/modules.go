@@ -6,7 +6,6 @@ import (
 	"algolearn/internal/service"
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
-
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -19,7 +18,6 @@ type ModuleHandler interface {
 	CreateModule(c *gin.Context)
 	UpdateModule(c *gin.Context)
 	DeleteModule(c *gin.Context)
-	GetModule(c *gin.Context)
 	GetModuleWithProgress(c *gin.Context)
 	UpdateModuleProgress(c *gin.Context)
 	GetModules(c *gin.Context)
@@ -41,76 +39,64 @@ func NewModuleHandler(moduleRepo service.ModuleService,
 	}
 }
 
-func (h *moduleHandler) GetModule(c *gin.Context) {
-	log := h.log.WithBaseFields(logger.Handler, "UpdateModule")
-	query := c.Request.URL.Query()
-
-	queryParams := models.ModuleQueryParams{
-		Type:   query.Get("type"),
-		Filter: query.Get("filter"),
-	}
-
-	if queryParams.Type == "full" && queryParams.Filter == "learning" {
-		h.GetModuleWithProgress(c)
-		return
-	}
-
-	log.Warn("invalid query parameters")
-	c.JSON(http.StatusBadRequest, models.Response{
-		Success:   false,
-		ErrorCode: httperr.InvalidRequest,
-		Message:   "invalid query parameters",
-	})
-}
-
+// GetModuleWithProgress handles GET /modules/:moduleId/progress
+// Returns details of a module with user's progress information
 func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "GetModuleWithProgress")
 	ctx := c.Request.Context()
-	params := c.Params
 
-	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
+	userID, err := GetUserID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
+		c.JSON(http.StatusUnauthorized, models.Response{
 			Success:   false,
-			Message:   "invalid unit ID parameter in URL",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to access module progress",
 		})
 		return
 	}
 
-	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
-	log.WithField("module_id", moduleID)
-	if err != nil {
+	unitID, err := strconv.ParseInt(c.Param("unitId"), 10, 64)
+	if err != nil || unitID <= 0 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "invalid module ID parameter in URL",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid unit ID: must be a positive integer",
 		})
 		return
 	}
 
-	module, hasNextModule, nextModuleID, err := h.moduleRepo.GetModuleWithProgress(ctx, 4, unitID, moduleID)
-	if errors.Is(err, httperr.ErrNotFound) {
-		log.WithError(err).Warn("module not found")
-		c.JSON(http.StatusNotFound, models.Response{
+	moduleID, err := strconv.ParseInt(c.Param("moduleId"), 10, 64)
+	if err != nil || moduleID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "could not retrieve module",
-			ErrorCode: httperr.NoData,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid module ID: must be a positive integer",
 		})
 		return
-	} else if err != nil {
-		log.WithError(err).Error("error querying module")
+	}
+
+	module, hasNextModule, nextModuleID, err := h.moduleRepo.GetModuleWithProgress(ctx, int64(userID), unitID, moduleID)
+	if err != nil {
+		if errors.Is(err, httperr.ErrNotFound) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "module not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error fetching module")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
-			Message:   "could not retrieve module",
 			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving module",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
-		Message: "module retrieved successfully",
+		Message: "module progress retrieved successfully",
 		Payload: models.ModuleWithProgressResponse{
 			Module:        *module,
 			HasNextModule: hasNextModule,
@@ -119,6 +105,8 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	})
 }
 
+// CreateModule handles POST /modules
+// Creates a new module in a unit
 func (h *moduleHandler) CreateModule(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "CreateModule")
 	ctx := c.Request.Context()
@@ -127,20 +115,18 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, models.Response{
 			Success:   false,
-			Message:   "unauthorized",
 			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to create a module",
 		})
 		return
 	}
 
-	params := c.Params
-	unitID, unitIDerr := strconv.ParseInt(params.ByName("unitId"), 10, 64)
-	if unitIDerr != nil {
-		log.Debug("incorrect unit ID format in the route")
+	unitID, err := strconv.ParseInt(c.Param("unitId"), 10, 64)
+	if err != nil || unitID <= 0 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			ErrorCode: httperr.InvalidRequest,
-			Message:   "incorrect unit ID format in the route",
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid unit ID: must be a positive integer",
 		})
 		return
 	}
@@ -149,8 +135,8 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	if err != nil || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, models.Response{
 			Success:   false,
-			Message:   "access denied",
-			ErrorCode: httperr.Unauthorized,
+			ErrorCode: httperr.Forbidden,
+			Message:   "only administrators can create modules",
 		})
 		return
 	}
@@ -159,74 +145,72 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	if err := json.NewDecoder(c.Request.Body).Decode(&module); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   err.Error(),
 			ErrorCode: httperr.InvalidJson,
+			Message:   "invalid request body: " + err.Error(),
 		})
 		return
 	}
 
-	err = module.Validate()
-	if err != nil {
+	if err := module.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   err.Error(),
 			ErrorCode: httperr.InvalidFormData,
+			Message:   "validation error: " + err.Error(),
 		})
 		return
 	}
 
 	module.ModuleUnitID = unitID
-
 	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, module.Name, module.Description)
 	if err != nil {
-		log.Printf("Error creating module: %v", err)
+		log.WithError(err).Error("error creating module")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
-			Message:   "Failed to create the module in the database",
 			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while creating module",
 		})
 		return
 	}
 
 	c.JSON(http.StatusCreated, models.Response{
 		Success: true,
-		Message: "Module created successfully",
+		Message: "module created successfully",
 		Payload: createdModule,
 	})
 }
 
+// UpdateModule handles PUT /modules/:moduleId
+// Updates an existing module
 func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "UpdateModule")
 	ctx := c.Request.Context()
+
 	userID, err := GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, models.Response{
 			Success:   false,
-			Message:   "Unauthorized",
 			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to update a module",
 		})
 		return
 	}
 
-	// Only admin users can update modules
 	user, err := h.userRepo.GetUserByID(ctx, int32(userID))
 	if err != nil || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, models.Response{
 			Success:   false,
-			Message:   "access denied",
-			ErrorCode: httperr.Unauthorized,
+			ErrorCode: httperr.Forbidden,
+			Message:   "only administrators can update modules",
 		})
 		return
 	}
 
-	params := c.Params
-	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
-	if err != nil {
-		log.Debug("invalid module ID format in the route")
+	moduleID, err := strconv.ParseInt(c.Param("moduleId"), 10, 64)
+	if err != nil || moduleID <= 0 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "Invalid module ID format in the route",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid module ID: must be a positive integer",
 		})
 		return
 	}
@@ -235,19 +219,27 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	if err := json.NewDecoder(c.Request.Body).Decode(&module); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "Invalid input",
 			ErrorCode: httperr.InvalidJson,
+			Message:   "invalid request body: " + err.Error(),
 		})
 		return
 	}
 
 	updatedModule, err := h.moduleRepo.UpdateModule(ctx, moduleID, module.Name, module.Description)
 	if err != nil {
-		log.Printf("error updating module %d: %v", moduleID, err)
+		if errors.Is(err, httperr.ErrNotFound) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "module not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error updating module")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
-			Message:   "failed to update module in the database",
 			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while updating module",
 		})
 		return
 	}
@@ -259,214 +251,167 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	})
 }
 
+// DeleteModule handles DELETE /modules/:moduleId
+// Deletes an existing module
 func (h *moduleHandler) DeleteModule(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "DeleteModule")
-
 	ctx := c.Request.Context()
+
 	userID, err := GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, models.Response{
 			Success:   false,
-			Message:   "unauthorized",
 			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to delete a module",
 		})
 		return
 	}
 
-	params := c.Params
-	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
-	if err != nil {
-		log.WithError(err).Debug("invalid unit ID format in the route")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			Message:   "invalid unit ID format in the route",
-			ErrorCode: httperr.InvalidRequest,
-		})
-		return
-	}
-
-	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
-	log.WithField("module_id", moduleID)
-	if err != nil {
-		log.WithError(err).Debug("invalid module ID format in the route")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			Message:   "invalid module ID format in the route",
-			ErrorCode: httperr.InvalidRequest,
-		})
-		return
-	}
-
-	// Only admin users can delete modules
 	user, err := h.userRepo.GetUserByID(ctx, int32(userID))
 	if err != nil || user.Role != "admin" {
 		c.JSON(http.StatusForbidden, models.Response{
 			Success:   false,
-			Message:   "Access denied",
-			ErrorCode: httperr.Unauthorized,
+			ErrorCode: httperr.Forbidden,
+			Message:   "only administrators can delete modules",
 		})
 		return
 	}
 
-	_, _, _, err = h.moduleRepo.GetModuleWithProgress(ctx, 0, unitID, moduleID)
-	if errors.Is(err, httperr.ErrNotFound) {
-		log.WithError(err).Warn("module not fout")
-		c.JSON(http.StatusNotFound, models.Response{
+	moduleID, err := strconv.ParseInt(c.Param("moduleId"), 10, 64)
+	if err != nil || moduleID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "module not found",
-			ErrorCode: httperr.NoData,
-		})
-		return
-	} else if err != nil {
-		log.WithError(err).Errorf("error fetching module %d: %v", moduleID, err)
-		c.JSON(http.StatusNotFound, models.Response{
-			Success:   false,
-			Message:   "module not found",
-			ErrorCode: httperr.NoData,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid module ID: must be a positive integer",
 		})
 		return
 	}
 
 	err = h.moduleRepo.DeleteModule(ctx, moduleID)
-	if errors.Is(err, httperr.ErrNotFound) {
-		log.Printf("error deleting module %d: %v", moduleID, err)
-		c.JSON(http.StatusNotFound, models.Response{
-			Success:   false,
-			Message:   "could not delete module",
-			ErrorCode: httperr.NoData,
-		})
-		return
-	} else if err != nil {
-		log.Printf("Error deleting module %d: %v", moduleID, err)
+	if err != nil {
+		if errors.Is(err, httperr.ErrNotFound) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "module not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error deleting module")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
-			Message:   "Could not delete module",
 			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while deleting module",
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+// UpdateModuleProgress handles POST /modules/:moduleId/progress
+// Updates the progress of a user in a module
+func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "UpdateModuleProgress")
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to update module progress",
+		})
+		return
+	}
+
+	moduleID, err := strconv.ParseInt(c.Param("moduleId"), 10, 64)
+	if err != nil || moduleID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid module ID: must be a positive integer",
+		})
+		return
+	}
+
+	var batch models.BatchModuleProgress
+	if err := json.NewDecoder(c.Request.Body).Decode(&batch); err != nil {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidJson,
+			Message:   "invalid request body: " + err.Error(),
+		})
+		return
+	}
+
+	err = h.moduleRepo.SaveModuleProgress(ctx, int64(userID), moduleID, batch.Sections, batch.Questions)
+	if err != nil {
+		if errors.Is(err, httperr.ErrNotFound) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "module not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error updating module progress")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while updating module progress",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
-		Message: "Module deleted successfully",
+		Message: "module progress updated successfully",
 	})
 }
 
-func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
-	log := h.log.WithBaseFields(logger.Handler, "UpdateModuleProgress")
-	ctx := c.Request.Context()
-	params := c.Params
-
-	userID, err := GetUserID(c)
-	if err != nil {
-		log.Errorf("invalid userIid query parameter")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InvalidRequest,
-			Message:   "invalid userIid query parameters",
-		})
-		return
-	}
-
-	moduleID, err := strconv.ParseInt(params.ByName("moduleId"), 10, 64)
-	if err != nil {
-		log.WithError(err).Errorf("invalid module_id query parameter")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InvalidRequest,
-			Message:   "invalid module_id query parameter",
-		})
-		return
-	}
-
-	var batch models.BatchModuleProgress
-	if err = json.NewDecoder(c.Request.Body).Decode(&batch); err != nil {
-		log.WithError(err).Errorf("failed to unmarshal request")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InvalidRequest,
-			Message:   "failed to unmarshal request",
-		})
-		return
-	}
-
-	if h.moduleRepo == nil {
-		log.Error("moduleRepo is not initialized")
-		c.JSON(http.StatusInternalServerError, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InternalError,
-			Message:   "internal server error",
-		})
-		return
-	}
-
-	err = h.moduleRepo.SaveModuleProgress(ctx, int64(userID), moduleID, batch.Sections, batch.Questions)
-	if errors.Is(err, httperr.ErrNotFound) {
-		log.WithError(err).Errorf("resource not found")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.NoData,
-			Message:   "resource not found",
-		})
-		return
-	} else if err != nil {
-		log.WithError(err).Errorf("failed to update module progress")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InternalError,
-			Message:   "failed to update module progress",
-		})
-		return
-	}
-
-	c.JSON(http.StatusAccepted, models.Response{
-		Success: true,
-		Message: "successfully updated user module progress",
-	})
-}
-
+// GetModules handles GET /modules
+// Returns a paginated list of modules for a unit
 func (h *moduleHandler) GetModules(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "GetModules")
 	ctx := c.Request.Context()
-	params := c.Params
-	query := c.Request.URL.Query()
 
-	unitID, err := strconv.ParseInt(params.ByName("unitId"), 10, 64)
-	if err != nil {
+	unitID, err := strconv.ParseInt(c.Param("unitId"), 10, 64)
+	if err != nil || unitID <= 0 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "invalid unit ID",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid unit ID: must be a positive integer",
 		})
 		return
 	}
 
 	userID, err := GetUserID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
+		c.JSON(http.StatusUnauthorized, models.Response{
 			Success:   false,
-			Message:   "invalid user ID",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to list modules",
 		})
 		return
 	}
 
-	page, err := strconv.ParseInt(query.Get("currentPage"), 10, 64)
-	if err != nil {
+	page, err := strconv.ParseInt(c.Query("currentPage"), 10, 64)
+	if err != nil || page < 1 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "invalid page number",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid page number: must be a positive integer",
 		})
 		return
 	}
 
-	pageSize, err := strconv.ParseInt(query.Get("pageSize"), 10, 64)
-	if err != nil {
+	pageSize, err := strconv.ParseInt(c.Query("pageSize"), 10, 64)
+	if err != nil || pageSize < 1 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			Message:   "invalid page size",
-			ErrorCode: httperr.InvalidRequest,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid page size: must be a positive integer",
 		})
 		return
 	}
@@ -477,7 +422,7 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
 			ErrorCode: httperr.DatabaseFail,
-			Message:   "could not retrieve modules from the database",
+			Message:   "internal server error while retrieving modules",
 		})
 		return
 	}
@@ -488,7 +433,7 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
 			ErrorCode: httperr.DatabaseFail,
-			Message:   "could not retrieve total count",
+			Message:   "internal server error while retrieving total count",
 		})
 		return
 	}
@@ -515,13 +460,17 @@ func (h *moduleHandler) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Public routes
 	modules := r.Group(basePath)
-	modules.GET("", h.GetModules)
-	modules.GET("/:moduleId", h.GetModule)
+	{
+		modules.GET("", h.GetModules) // GET /modules
+	}
 
-	// Protected routes (require authentication)
+	// Protected routes
 	authorized := modules.Group("", middleware.Auth())
-	authorized.POST("", h.CreateModule)
-	authorized.PUT("/:moduleId", h.UpdateModule)
-	authorized.DELETE("/:moduleId", h.DeleteModule)
-	authorized.POST("/:moduleId/progress", h.UpdateModuleProgress)
+	{
+		authorized.GET("/:moduleId", h.GetModuleWithProgress)         // GET /modules/:moduleId
+		authorized.POST("", h.CreateModule)                           // POST /modules
+		authorized.PUT("/:moduleId", h.UpdateModule)                  // PUT /modules/:moduleId
+		authorized.DELETE("/:moduleId", h.DeleteModule)               // DELETE /modules/:moduleId
+		authorized.PUT("/:moduleId/progress", h.UpdateModuleProgress) // PUT /modules/:moduleId/progress
+	}
 }

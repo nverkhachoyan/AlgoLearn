@@ -21,13 +21,17 @@ type ModulePayload struct {
 
 type Module struct {
 	BaseModel
-	ModuleNumber int16              `json:"moduleNumber"`
-	ModuleUnitID int64              `json:"moduleUnitId"`
-	Name         string             `json:"name"`
-	Description  string             `json:"description"`
-	Progress     float32            `json:"progress"`
-	Status       string             `json:"status"`
-	Sections     []SectionInterface `json:"sections"`
+	ModuleNumber     int16              `json:"moduleNumber"`
+	ModuleUnitID     int64              `json:"moduleUnitId"`
+	Name             string             `json:"name"`
+	Description      string             `json:"description"`
+	Progress         float32            `json:"progress"`
+	Status           string             `json:"status"`
+	StartedAt        time.Time          `json:"startedAt"`
+	CompletedAt      time.Time          `json:"completedAt,omitempty"`
+	LastAccessed     time.Time          `json:"lastAccessed"`
+	CurrentSectionID int32              `json:"currentSectionId,omitempty"`
+	Sections         []SectionInterface `json:"sections"`
 }
 
 func (m *Module) UnmarshalJSON(data []byte) error {
@@ -117,6 +121,7 @@ type SectionProgress struct {
 	HasSeen     bool      `json:"hasSeen"`
 	StartedAt   time.Time `json:"startedAt,omitempty"`
 	CompletedAt time.Time `json:"completedAt,omitempty"`
+	Progress    float32   `json:"progress"`
 }
 
 type QuestionProgress struct {
@@ -125,6 +130,7 @@ type QuestionProgress struct {
 	HasAnswered bool      `json:"hasAnswered"`
 	IsCorrect   *bool     `json:"isCorrect,omitempty"`
 	AnsweredAt  time.Time `json:"answeredAt"`
+	Progress    float32   `json:"progress"`
 }
 
 type BatchModuleProgress struct {
@@ -160,6 +166,7 @@ type UserAnswer struct {
 	OptionID   *int64    `json:"optionId"`
 	AnsweredAt time.Time `json:"answeredAt"`
 	IsCorrect  bool      `json:"isCorrect"`
+	Progress   float32   `json:"progress"`
 }
 
 type Section struct {

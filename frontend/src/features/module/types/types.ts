@@ -5,6 +5,12 @@ export interface Module extends BaseModel {
   moduleNumber: number;
   moduleUnitId: number;
   name: string;
+  progress: number;
+  status: string;
+  startedAt: string;
+  completedAt: string;
+  lastAccessed: string;
+  currentSectionId: number;
   description: string;
   sections?: Section[];
 }

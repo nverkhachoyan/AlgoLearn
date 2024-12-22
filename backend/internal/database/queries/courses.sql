@@ -215,23 +215,7 @@ FROM
     LEFT JOIN modules m ON m.id = uc.current_module_id
     LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = @user_id::int
 WHERE
-    CASE
-        WHEN @filter_type::text = 'learning' THEN 
-            (uc.current_unit_id IS NOT NULL OR uc.current_module_id IS NOT NULL)
-            AND uc.user_id = @user_id::int
-        WHEN @filter_type::text = 'explore' THEN 
-            (uc.current_unit_id IS NULL AND uc.current_module_id IS NULL)
-            OR uc.user_id != @user_id::int
-            OR uc.user_id IS NULL
-        ELSE true
-    END
-GROUP BY
-    c.id, c.created_at, c.updated_at, c.name, c.description,
-    c.requirements, c.what_you_learn, c.background_color, c.icon_url,
-    c.difficulty_level, c.rating,
-    u.id, u.created_at, u.updated_at, u.unit_number, u.name, u.description,
-    m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description,
-    ump.progress, ump.status, uc.updated_at
+    uc.user_id = @user_id::int
 ORDER BY c.id, uc.updated_at DESC NULLS LAST
 LIMIT @page_limit::int
 OFFSET @page_offset::int;
@@ -379,3 +363,57 @@ SELECT
     END as content
 FROM sections s
 WHERE s.id = @section_id::int;
+
+-- name: GetFirstUnitAndModule :one
+SELECT u.id as unit_id, m.id as module_id
+FROM units u
+JOIN modules m ON m.unit_id = u.id
+WHERE u.course_id = @course_id::int
+LIMIT 1;
+
+-- name: StartCourse :exec
+INSERT INTO user_courses 
+(user_id, course_id, current_unit_id, current_module_id)
+VALUES (@user_id::int, @course_id::int, @unit_id::int, @module_id::int)
+RETURNING current_unit_id, current_module_id;
+
+-- name: DeleteCourseProgress :exec
+DELETE FROM user_courses WHERE user_id = @user_id::int AND course_id = @course_id::int;
+
+-- name: ListCourses :many
+SELECT
+    c.id,
+    c.created_at,
+    c.updated_at,
+    c.name,
+    c.description,
+    c.requirements,
+    c.what_you_learn,
+    c.background_color,
+    c.icon_url,
+    c.duration,
+    c.difficulty_level,
+    c.rating,
+    COUNT(*) OVER() as total_count
+FROM courses c
+ORDER BY c.created_at DESC
+LIMIT @page_limit::int
+OFFSET @page_offset::int;
+
+-- name: GetCourse :one
+SELECT
+    id,
+    created_at,
+    updated_at,
+    name,
+    description,
+    requirements,
+    what_you_learn,
+    background_color,
+    icon_url,
+    duration,
+    difficulty_level,
+    rating
+FROM courses
+WHERE
+    id = @course_id::int;

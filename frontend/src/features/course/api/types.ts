@@ -8,3 +8,8 @@ export interface CourseFetchParams {
   type: Type;
   filter: Filter;
 }
+
+export interface StartCourseParams {
+  userId: number;
+  courseId: number;
+}

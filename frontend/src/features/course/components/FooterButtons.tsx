@@ -1,42 +1,73 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ActivityIndicator, ViewStyle } from "react-native";
 import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
+import { Colors } from "@/constants/Colors";
 
-export default function FooterButtons({ colors }: any) {
+interface FooterButtonsProps {
+  colors: Colors;
+  rightButton?: string;
+  leftButton?: string;
+  onStartCourse?: () => void;
+  onLeftButtonPress?: () => void;
+  isLoading?: boolean;
+}
+
+export default function FooterButtons({
+  colors,
+  rightButton,
+  leftButton,
+  onStartCourse,
+  onLeftButtonPress,
+  isLoading,
+}: FooterButtonsProps) {
   return (
-    <View style={[styles.stickyFooter, { backgroundColor: colors.surface }]}>
-      <Button
-        icon={{
-          name: "arrow-left",
-          size: 22,
-          color: colors.inverseOnSurface,
-          position: "middle",
-        }}
-        style={{ backgroundColor: colors.onSurface }}
-        textStyle={{ color: colors.inverseOnSurface }}
-        onPress={() => router.back()}
-      />
-      <Button
-        title="Start Course"
-        style={{ backgroundColor: colors.onSurface, width: "70%" }}
-        textStyle={{ color: colors.inverseOnSurface }}
-        onPress={() => console.log("Start Course")}
-      />
+    <View style={[styles.footer, { backgroundColor: colors.background }]}>
+      {leftButton && (
+        <Button
+          title={leftButton}
+          style={
+            { ...styles.button, backgroundColor: colors.error } as ViewStyle
+          }
+          textStyle={{ color: colors.onError }}
+          onPress={onLeftButtonPress || (() => {})}
+          disabled={isLoading}
+        />
+      )}
+      {rightButton && (
+        <Button
+          title={rightButton}
+          style={
+            { ...styles.button, backgroundColor: colors.primary } as ViewStyle
+          }
+          textStyle={{ color: colors.onPrimary }}
+          onPress={onStartCourse || (() => {})}
+          disabled={isLoading}
+        />
+      )}
+      {isLoading && (
+        <ActivityIndicator
+          size="small"
+          color={colors.primary}
+          style={styles.loader}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stickyFooter: {
-    paddingTop: 15,
+  footer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderTopEndRadius: 8,
-    borderTopStartRadius: 8,
+    justifyContent: "space-around",
+    alignItems: "center",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  button: {
+    minWidth: 150,
+  },
+  loader: {
+    position: "absolute",
+    right: 24,
   },
 });

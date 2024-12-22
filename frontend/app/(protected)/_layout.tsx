@@ -1,6 +1,5 @@
 import { Stack, router } from "expo-router";
 import { useUser } from "@/src/features/user/hooks/useUser";
-import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
@@ -8,13 +7,6 @@ import { useTheme } from "react-native-paper";
 export default function ProtectedLayout() {
   const { isAuthenticated, isLoading, userError } = useUser();
   const { colors } = useTheme();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log("Not authenticated, redirecting to auth...");
-      router.replace("/(auth)");
-    }
-  }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
     return (

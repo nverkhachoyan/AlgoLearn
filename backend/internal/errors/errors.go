@@ -1,4 +1,4 @@
-package errors
+package httperr
 
 import "errors"
 
@@ -18,6 +18,10 @@ const (
 	InvalidCredentials  ErrorCode = "INVALID_CREDENTIALS"
 	InvalidInput        ErrorCode = "INVALID_INPUT"
 	MissingFields       ErrorCode = "MISSING_FIELDS"
+	InvalidToken        ErrorCode = "INVALID_TOKEN"
+	InvalidCourseID     ErrorCode = "INVALID_COURSE_ID"
+	NotImplemented      ErrorCode = "NOT_IMPLEMENTED"
+	Forbidden           ErrorCode = "FORBIDDEN"
 )
 
 var ErrNotFound = errors.New("item not found")

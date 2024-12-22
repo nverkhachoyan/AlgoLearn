@@ -155,7 +155,7 @@ func (h *oauthHandler) handleOAuthUser(c *gin.Context, email, oauthID, state str
 				IsEmailVerified: true,
 				CPUs:            0,
 			}
-			_, err := h.userRepo.CreateUser(newUser)
+			_, err := h.userRepo.CreateUser(c.Request.Context(), newUser)
 			if err != nil {
 				log.WithError(err).Error("failed to create user")
 				c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Could not create user: " + err.Error()})

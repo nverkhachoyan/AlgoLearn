@@ -19,10 +19,11 @@ import { useUser } from "@/src/features/user/hooks/useUser";
 import { useTheme } from "react-native-paper";
 import useToast from "@/src/hooks/useToast";
 import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function SignUp() {
   const router = useRouter();
-  const { isLoading, checkEmail, signIn, signUp } = useUser();
+  const { isLoading, signIn, signUp, checkEmail } = useAuth();
   const { colors }: { colors: Colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
   const [emailExists, setEmailExists] = useState<boolean>(false);
@@ -31,6 +32,7 @@ export default function SignUp() {
   const [retryPassword, setRetryPassword] = useState<string>("");
   const [emailError, setEmailError] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { showToast } = useToast();
 
   const isValidEmail = (email: string) => {
@@ -69,26 +71,31 @@ export default function SignUp() {
       return;
     }
 
-    checkEmail.mutate(email, {
-      onSuccess: (response) => {
+    setIsSubmitting(true);
+    try {
+      await checkEmail(email);
+      setHasCheckedEmail(true);
+      setEmailExists(true);
+      showToast("Welcome back! Please enter your password.");
+    } catch (error: any) {
+      console.error("[Auth] Email check error:", error);
+      if (error.response?.data?.errorCode === "NO_DATA") {
         setHasCheckedEmail(true);
-        setEmailExists(
-          response.success && response.errorCode === "ACCOUNT_EXISTS"
-        );
-        if (response.success && response.errorCode === "ACCOUNT_EXISTS") {
-          showToast("Welcome back! Please enter your password.");
-        } else {
-          showToast("Create a new account to get started!");
-        }
-      },
-      onError: (error: any) => {
-        setEmailError(error.response?.data?.message || "Error checking email");
-        showToast("Error checking email. Please try again.");
-      },
-    });
+        setEmailExists(false);
+        showToast("Create a new account to get started!");
+      } else {
+        const errorMessage =
+          error.response?.data?.message || "Error checking email";
+        setEmailError(errorMessage);
+        showToast(errorMessage);
+        setHasCheckedEmail(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     setPasswordError("");
     const passwordValidation = validatePassword(password);
     if (passwordValidation) {
@@ -100,66 +107,50 @@ export default function SignUp() {
       return;
     }
 
-    signUp.mutate(
-      { email, password },
-      {
-        onSuccess: (response) => {
-          if (response.success && response.payload) {
-            showToast("Account created successfully!");
-          } else {
-            setPasswordError(response.message);
-            showToast(response.message);
-          }
-        },
-        onError: (error: any) => {
-          const errorMessage =
-            error.response?.data?.message || "Failed to create account";
-          setPasswordError(errorMessage);
-          showToast(errorMessage);
-        },
-      }
-    );
+    setIsSubmitting(true);
+    try {
+      await signUp(email, password);
+      showToast("Account created successfully!");
+    } catch (error: any) {
+      console.error("[Auth] Sign up error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to create account";
+      setPasswordError(errorMessage);
+      showToast(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     setPasswordError("");
     if (!password.trim()) {
       setPasswordError("Password is required");
       return;
     }
 
-    signIn.mutate(
-      { email, password },
-      {
-        onSuccess: (response) => {
-          if (response.success && response.payload) {
-            showToast("Welcome back!");
-          } else {
-            setPasswordError(response.message);
-            showToast(response.message);
-          }
-        },
-        onError: (error: any) => {
-          const errorMessage =
-            error.response?.data?.message || "Invalid email or password";
-          setPasswordError(errorMessage);
-          showToast(errorMessage);
-        },
-      }
-    );
+    setIsSubmitting(true);
+    try {
+      await signIn(email, password);
+      showToast("Welcome back!");
+    } catch (error: any) {
+      console.error("[Auth] Sign in error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Invalid email or password";
+      setPasswordError(errorMessage);
+      showToast(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleContinue = () => {
-    if (checkEmail.isPending) return;
     if (!emailExists) {
       handleSignUp();
     } else {
       handleSignIn();
     }
   };
-
-  const isSubmitting =
-    signIn.isPending || signUp.isPending || checkEmail.isPending;
 
   if (isLoading) {
     return (
@@ -320,7 +311,7 @@ export default function SignUp() {
 
             {!hasCheckedEmail && (
               <Button
-                title={checkEmail.isPending ? "Checking..." : "Continue"}
+                title={isSubmitting ? "Checking..." : "Continue"}
                 onPress={handleEmailCheck}
                 icon={{ name: "arrow-right", position: "right" }}
                 textStyle={{ color: colors.inverseOnSurface }}

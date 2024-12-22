@@ -15,11 +15,8 @@ export default function Explore() {
   const [searchQuery, setSearchQuery] = useState("");
   const { courses, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useCourses({
-      userId: user?.id,
-      currentPage: 1,
       pageSize: 5,
-      type: "summary",
-      filter: "explore",
+      isAuthenticated: false,
     });
 
   return (
@@ -58,7 +55,7 @@ export default function Explore() {
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={() => {}}
-            filter="explore"
+            hasProgress={false}
           />
         </View>
       </ScrollView>

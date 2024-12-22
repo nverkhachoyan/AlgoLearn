@@ -1,38 +1,58 @@
 import api from "@/src/lib/api/client";
 import { AxiosResponse } from "axios";
-import { CourseFetchParams } from "./types";
 
-export const fetchCourses = async ({
-  userId,
-  currentPage,
+interface PaginationParams {
+  page: number;
+  pageSize: number;
+}
+
+interface CourseProgressParams extends PaginationParams {
+  page: number;
+  pageSize: number;
+}
+
+// Public endpoints
+export const listCourses = async ({
+  page,
   pageSize,
-  filter,
-  type,
-}: CourseFetchParams): Promise<AxiosResponse> => {
-  const response = await api.get(`/courses`, {
+}: PaginationParams): Promise<AxiosResponse> => {
+  return api.get(`/courses`, {
     params: {
-      userId,
-      currentPage,
+      page,
       pageSize,
-      filter,
-      type,
     },
   });
-  return response;
 };
 
-export const fetchCourse = async ({
-  userId,
-  courseId,
-  type,
-  filter,
-}: CourseFetchParams): Promise<AxiosResponse> => {
-  const response = await api.get(`/courses/${courseId}`, {
+export const getCourse = async (courseId: number): Promise<AxiosResponse> => {
+  return api.get(`/courses/${courseId}`);
+};
+
+// Protected endpoints (require authentication)
+export const listCoursesProgress = async ({
+  page,
+  pageSize,
+}: CourseProgressParams): Promise<AxiosResponse> => {
+  return api.get(`/courses/progress`, {
     params: {
-      userId,
-      type,
-      filter,
+      page,
+      pageSize,
     },
   });
-  return response;
+};
+
+export const getCourseProgress = async (
+  courseId: number
+): Promise<AxiosResponse> => {
+  return api.get(`/courses/${courseId}/progress`);
+};
+
+export const startCourse = async (courseId: number): Promise<AxiosResponse> => {
+  return api.post(`/courses/${courseId}/start`);
+};
+
+export const restartCourse = async (
+  courseId: number
+): Promise<AxiosResponse> => {
+  return api.post(`/courses/${courseId}/restart`);
 };

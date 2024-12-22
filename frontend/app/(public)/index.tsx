@@ -1,53 +1,31 @@
-import React, { useRef, useEffect } from "react";
-import { Text, StyleSheet, View } from "react-native";
-import { router, useSegments, useRouter } from "expo-router";
+import React, { useRef, useEffect, useState } from "react";
+import { Text, StyleSheet, View, ActivityIndicator } from "react-native";
+import { router } from "expo-router";
 import Button from "@/src/components/common/Button";
 import LottieView from "lottie-react-native";
 import { useTheme } from "react-native-paper";
-import { useUser } from "@/src/features/user/hooks/useUser";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { Colors } from "@/constants/Colors";
 import CustomErrorBoundary from "@/src/components/ErrorBoundary";
 
 export default function Welcome() {
   const { colors }: { colors: Colors } = useTheme();
-
+  const [isMounted, setIsMounted] = useState(false);
   const animation = useRef(null);
-  const segments = useSegments();
-  const router = useRouter();
-  const { isLoading, token, user } = useUser();
+  const { isLoading } = useAuth();
 
   useEffect(() => {
-    if (isLoading) return;
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
-    let mounted = true;
-    // Get the current group (first segment)
-    const currentGroup = segments[0];
-
-    // Only redirect when we have both token and user data
-    if (!isLoading && token && user && mounted) {
-      // If user is authenticated but in auth/public areas, redirect to protected
-      if (currentGroup === "(auth)" || currentGroup === "(public)") {
-        const timer = setTimeout(() => {
-          console.log("User authenticated, redirecting to protected tabs...");
-          router.replace("/(protected)/(tabs)");
-        }, 100);
-
-        return () => {
-          mounted = false;
-          clearTimeout(timer);
-        };
-      }
-    } else {
-      // If user is not authenticated and tries to access protected routes
-      if (currentGroup === "(protected)") {
-        router.replace("/(auth)");
-      }
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [isLoading, token, user, segments]);
+  if (isLoading || !isMounted) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <CustomErrorBoundary>
@@ -72,7 +50,11 @@ export default function Welcome() {
         <View style={styles.buttonContainer}>
           <Button
             title="Get Started"
-            onPress={() => router.push("/(auth)")}
+            onPress={() => {
+              if (isMounted) {
+                router.push("/(auth)");
+              }
+            }}
             icon={{ name: "arrow-right", position: "right" }}
             iconStyle={{
               position: "absolute",
@@ -124,5 +106,10 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: "100%",
     justifyContent: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

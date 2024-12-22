@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	httperr "algolearn/internal/errors"
 	"algolearn/internal/models"
 
 	"algolearn/internal/service"
@@ -31,7 +32,12 @@ func (h *notificationsHandler) GetAllNotifications(c *gin.Context) {
 	notifications, err := h.repo.GetAllNotifications()
 	if err != nil {
 		log.WithError(err).Error("failed to get all notifications")
-		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Internal server error"})
+		c.JSON(http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				Message:   "Internal server error",
+				ErrorCode: httperr.InternalError,
+			})
 		return
 	}
 

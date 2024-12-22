@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 )
 
 const (
@@ -26,6 +25,7 @@ func Auth() gin.HandlerFunc {
 
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			log.Warn("Missing authorization header")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
@@ -34,7 +34,8 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		if !strings.HasPrefix(authHeader, BearerSchema) {
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			log.Warnf("Invalid auth header format. Expected 'Bearer <token>', got: '%s'", authHeader)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
@@ -43,27 +44,20 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, BearerSchema)
-
-		secretKey := security.GetJWTKey()
-		if len(secretKey) == 0 {
-			log.Error("JWT configuration error")
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if len(tokenString) == 0 {
+			log.Warn("Empty token after Bearer prefix")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
-				Message:   "server configuration error",
+				Message:   "empty token",
 			})
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return secretKey, nil
-		})
-
+		claims, err := security.ValidateJWT(tokenString)
 		if err != nil {
+			log.Warnf("Token validation failed: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
@@ -72,26 +66,7 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			userID, ok := claims["user_id"].(float64)
-			if !ok {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
-					Success:   false,
-					ErrorCode: codes.Unauthorized,
-					Message:   "invalid token claims",
-				})
-				return
-			}
-
-			c.Set(UserIDKey, int64(userID))
-			c.Next()
-		} else {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
-				Success:   false,
-				ErrorCode: codes.Unauthorized,
-				Message:   "invalid token claims",
-			})
-			return
-		}
+		c.Set(UserIDKey, claims.UserID)
+		c.Next()
 	}
 }

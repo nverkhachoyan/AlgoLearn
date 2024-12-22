@@ -7,4 +7,5 @@ const (
 	Service    LogPackage = "service"
 	Handler    LogPackage = "handler"
 	Middleware LogPackage = "middleware"
+	Security   LogPackage = "security"
 )

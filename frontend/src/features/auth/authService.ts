@@ -32,46 +32,79 @@ export interface UserResponse {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   user: UserResponse;
+}
+
+export interface EmailCheckResponse {
+  exists: boolean;
 }
 
 export const checkEmailExists = async (
   email: string
-): Promise<AxiosResponse<ApiResponse<void>>> => {
-  const response = await api.get<ApiResponse<void>>(`/users/checkemail`, {
-    params: { email },
-  });
-  return response;
+): Promise<AxiosResponse<ApiResponse<EmailCheckResponse>>> => {
+  console.debug("[AuthService] Checking email:", email);
+  try {
+    const response = await api.post<ApiResponse<EmailCheckResponse>>(
+      "/users/check-email",
+      { email }
+    );
+    console.debug("[AuthService] Email check response:", response.data);
+    return response;
+  } catch (error) {
+    console.error("[AuthService] Email check failed:", error);
+    throw error;
+  }
 };
 
 export const signIn = async (
   email: string,
   password: string
 ): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => {
-  const response = await api.post<ApiResponse<AuthResponse>>("/users/login", {
+  return api.post<ApiResponse<AuthResponse>>("/users/sign-in", {
     email,
     password,
   });
-  return response;
 };
 
 export const signUp = async (
   email: string,
   password: string
 ): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => {
-  const response = await api.post<ApiResponse<AuthResponse>>(
-    "/users/register",
-    {
-      username: email,
-      email,
-      password,
-    }
-  );
-  return response;
+  return api.post<ApiResponse<AuthResponse>>("/users/sign-up", {
+    email,
+    password,
+  });
 };
 
-export const getAuthToken = async (): Promise<string> => {
-  const token = await AsyncStorage.getItem("authToken");
-  if (!token) throw new Error("No token available");
-  return token;
+export const getAuthToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    return token;
+  } catch (error) {
+    console.error("Error getting auth token:", error);
+    return null;
+  }
+};
+
+export const setAuthToken = async (token: string) => {
+  try {
+    await AsyncStorage.setItem("authToken", token);
+  } catch (error) {
+    console.error("Error setting auth token:", error);
+  }
+};
+
+export const removeAuthToken = async () => {
+  try {
+    await AsyncStorage.removeItem("authToken");
+  } catch (error) {
+    console.error("Error removing auth token:", error);
+  }
+};
+
+export const refreshToken = (
+  refreshToken: string
+): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => {
+  return api.post("/users/refresh-token", { refreshToken });
 };

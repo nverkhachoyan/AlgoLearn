@@ -3,18 +3,18 @@ package config
 import (
 	"algolearn/pkg/logger"
 	"context"
-	"errors"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq" // Import postgres driver
+	"github.com/pressly/goose/v3"
 )
 
 type Migrator struct {
-	migrate *migrate.Migrate
+	db            *sql.DB
+	migrationsDir string
 }
 
 func NewMigrator() (*Migrator, error) {
@@ -23,9 +23,7 @@ func NewMigrator() (*Migrator, error) {
 		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	fullPath := fmt.Sprintf("file://%s", filepath.Join(workDir, "migrations"))
-
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	dbURL := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_HOST"),
@@ -33,22 +31,25 @@ func NewMigrator() (*Migrator, error) {
 		os.Getenv("DB_NAME"),
 	)
 
-	m, err := migrate.New(fullPath, dbURL)
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create migrator: %w", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	return &Migrator{migrate: m}, nil
+	if err := goose.SetDialect("postgres"); err != nil {
+		return nil, fmt.Errorf("failed to set dialect: %w", err)
+	}
+
+	return &Migrator{
+		db:            db,
+		migrationsDir: filepath.Join(workDir, "migrations"),
+	}, nil
 }
 
 func (m *Migrator) Up(ctx context.Context) error {
 	log := logger.Get()
 
-	if err := m.migrate.Up(); err != nil {
-		if errors.Is(err, migrate.ErrNoChange) {
-			log.Info("No migrations to apply")
-			return nil
-		}
+	if err := goose.Up(m.db, m.migrationsDir); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -59,16 +60,16 @@ func (m *Migrator) Up(ctx context.Context) error {
 func (m *Migrator) Down(ctx context.Context) error {
 	log := logger.Get()
 
-	if err := m.migrate.Down(); err != nil {
-		if errors.Is(err, migrate.ErrNoChange) {
-			log.Info("No migrations to revert")
-			return nil
-		}
+	if err := goose.Down(m.db, m.migrationsDir); err != nil {
 		return fmt.Errorf("failed to revert migrations: %w", err)
 	}
 
 	log.Info("Migrations reverted successfully")
 	return nil
+}
+
+func (m *Migrator) Close() error {
+	return m.db.Close()
 }
 
 // ApplyMigrations handles migration based on environment variables
@@ -80,12 +81,8 @@ func ApplyMigrations() error {
 		return fmt.Errorf("failed to create migrator: %w", err)
 	}
 	defer func() {
-		srcErr, dbErr := migrator.migrate.Close()
-		if srcErr != nil {
-			log.Errorf("Error closing source: %v", srcErr)
-		}
-		if dbErr != nil {
-			log.Errorf("Error closing database: %v", dbErr)
+		if err := migrator.Close(); err != nil {
+			log.Errorf("Error closing database: %v", err)
 		}
 	}()
 

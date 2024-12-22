@@ -1,13 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as authService from "@/src/features/auth/authService";
 import * as userService from "@/src/features/user/api/queries";
 import { User } from "../types";
 import { AxiosError } from "axios";
-import type {
-  ApiResponse,
-  AuthResponse,
-} from "@/src/features/auth/authService";
+import type { ApiResponse } from "@/src/features/auth/authService";
 
 export function useUser() {
   const queryClient = useQueryClient();
@@ -44,6 +40,7 @@ export function useUser() {
         ) {
           console.log("Auth error detected, clearing auth state...");
           await invalidateAuth();
+          return null;
         }
         throw error;
       }
@@ -51,71 +48,6 @@ export function useUser() {
     enabled: !!token,
     staleTime: 5 * 60 * 1000,
     retry: false,
-  });
-
-  const checkEmail = useMutation<ApiResponse<void>, AxiosError, string>({
-    mutationFn: async (email: string) => {
-      const axiosResponse = await authService.checkEmailExists(email);
-      return axiosResponse.data;
-    },
-  });
-
-  const signUp = useMutation<
-    ApiResponse<AuthResponse>,
-    AxiosError,
-    { email: string; password: string }
-  >({
-    mutationFn: async (credentials) => {
-      const axiosResponse = await authService.signUp(
-        credentials.email,
-        credentials.password
-      );
-      const response = axiosResponse.data;
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-      return response;
-    },
-    onSuccess: (response) => {
-      if (response.payload?.token) {
-        AsyncStorage.setItem("authToken", response.payload.token);
-        queryClient.setQueryData(["authToken"], response.payload.token);
-      }
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-    },
-  });
-
-  const signIn = useMutation<
-    ApiResponse<AuthResponse>,
-    AxiosError,
-    { email: string; password: string }
-  >({
-    mutationFn: async (credentials) => {
-      const axiosResponse = await authService.signIn(
-        credentials.email,
-        credentials.password
-      );
-      const response = axiosResponse.data;
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-      return response;
-    },
-    onSuccess: (response) => {
-      if (response.payload?.token) {
-        AsyncStorage.setItem("authToken", response.payload.token);
-        queryClient.setQueryData(["authToken"], response.payload.token);
-      }
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-    },
-  });
-
-  const signOut = useMutation({
-    mutationFn: async () => {
-      await AsyncStorage.removeItem("authToken");
-      queryClient.setQueryData(["authToken"], null);
-      queryClient.removeQueries({ queryKey: ["user"] });
-    },
   });
 
   const updateUser = useMutation<ApiResponse<User>, AxiosError, any>({
@@ -165,10 +97,6 @@ export function useUser() {
     user,
     isUserPending,
     userError,
-    checkEmail,
-    signIn,
-    signUp,
-    signOut,
     updateUser,
     invalidateAuth,
   };

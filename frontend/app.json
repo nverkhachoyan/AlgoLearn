@@ -8,14 +8,17 @@
     "icon": "./assets/images/icon.png",
     "scheme": "app.algolearn",
     "userInterfaceStyle": "automatic",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "backgroundColor": "#24272E",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#24272E"
     },
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nverkhachoyan.algolearn",
@@ -41,7 +44,10 @@
       },
       "userInterfaceStyle": "automatic"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true
     },
@@ -58,6 +64,9 @@
     "updates": {
       "url": "https://u.expo.dev/8973f7e9-27c5-43e1-aa75-aff16ec756c8"
     },
-    "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"]
+    "assetBundlePatterns": [
+      "assets/fonts/*",
+      "assets/images/*"
+    ]
   }
 }

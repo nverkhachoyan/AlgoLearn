@@ -1,16 +1,16 @@
 package models
 
 import (
-	"algolearn/internal/errors"
+	httperr "algolearn/internal/errors"
 )
 
 // TODO: change variable names to match json names
 type Response struct {
-	Success   bool             `json:"success"`
-	Message   string           `json:"message"`
-	Payload   interface{}      `json:"payload,omitempty"`
-	Error     string           `json:"error,omitempty"`
-	ErrorCode errors.ErrorCode `json:"errorCode,omitempty"`
+	Success   bool              `json:"success"`
+	Message   string            `json:"message"`
+	Payload   interface{}       `json:"payload,omitempty"`
+	Error     string            `json:"error,omitempty"`
+	ErrorCode httperr.ErrorCode `json:"errorCode,omitempty"`
 }
 
 type PaginationRequest struct {
@@ -29,11 +29,6 @@ type PaginatedPayload struct {
 	Pagination `json:"pagination"`
 }
 
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type RegistrationRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -44,4 +39,9 @@ type ModuleWithProgressResponse struct {
 	Module        Module `json:"module"`
 	HasNextModule bool   `json:"hasNextModule"`
 	NextModuleID  int32  `json:"nextModuleID"`
+}
+
+type StartCourseResponse struct {
+	UnitID   int32 `json:"unitId"`
+	ModuleID int32 `json:"moduleId"`
 }

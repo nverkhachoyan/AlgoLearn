@@ -20,6 +20,59 @@ func (q *Queries) DeleteCourse(ctx context.Context, courseID int32) error {
 	return err
 }
 
+const deleteCourseProgress = `-- name: DeleteCourseProgress :exec
+DELETE FROM user_courses WHERE user_id = $1::int AND course_id = $2::int
+`
+
+type DeleteCourseProgressParams struct {
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
+}
+
+func (q *Queries) DeleteCourseProgress(ctx context.Context, arg DeleteCourseProgressParams) error {
+	_, err := q.db.ExecContext(ctx, deleteCourseProgress, arg.UserID, arg.CourseID)
+	return err
+}
+
+const getCourse = `-- name: GetCourse :one
+SELECT
+    id,
+    created_at,
+    updated_at,
+    name,
+    description,
+    requirements,
+    what_you_learn,
+    background_color,
+    icon_url,
+    duration,
+    difficulty_level,
+    rating
+FROM courses
+WHERE
+    id = $1::int
+`
+
+func (q *Queries) GetCourse(ctx context.Context, courseID int32) (Course, error) {
+	row := q.db.QueryRowContext(ctx, getCourse, courseID)
+	var i Course
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Description,
+		&i.Requirements,
+		&i.WhatYouLearn,
+		&i.BackgroundColor,
+		&i.IconUrl,
+		&i.Duration,
+		&i.DifficultyLevel,
+		&i.Rating,
+	)
+	return i, err
+}
+
 const getCourseAuthors = `-- name: GetCourseAuthors :many
 SELECT a.id, a.name
 FROM authors a
@@ -422,33 +475,16 @@ FROM
     LEFT JOIN modules m ON m.id = uc.current_module_id
     LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1::int
 WHERE
-    CASE
-        WHEN $2::text = 'learning' THEN 
-            (uc.current_unit_id IS NOT NULL OR uc.current_module_id IS NOT NULL)
-            AND uc.user_id = $1::int
-        WHEN $2::text = 'explore' THEN 
-            (uc.current_unit_id IS NULL AND uc.current_module_id IS NULL)
-            OR uc.user_id != $1::int
-            OR uc.user_id IS NULL
-        ELSE true
-    END
-GROUP BY
-    c.id, c.created_at, c.updated_at, c.name, c.description,
-    c.requirements, c.what_you_learn, c.background_color, c.icon_url,
-    c.difficulty_level, c.rating,
-    u.id, u.created_at, u.updated_at, u.unit_number, u.name, u.description,
-    m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description,
-    ump.progress, ump.status, uc.updated_at
+    uc.user_id = $1::int
 ORDER BY c.id, uc.updated_at DESC NULLS LAST
-LIMIT $4::int
-OFFSET $3::int
+LIMIT $3::int
+OFFSET $2::int
 `
 
 type GetCoursesProgressSummaryParams struct {
-	UserID     int32  `json:"userId"`
-	FilterType string `json:"filterType"`
-	PageOffset int32  `json:"pageOffset"`
-	PageLimit  int32  `json:"pageLimit"`
+	UserID     int32 `json:"userId"`
+	PageOffset int32 `json:"pageOffset"`
+	PageLimit  int32 `json:"pageLimit"`
 }
 
 type GetCoursesProgressSummaryRow struct {
@@ -483,12 +519,7 @@ type GetCoursesProgressSummaryRow struct {
 }
 
 func (q *Queries) GetCoursesProgressSummary(ctx context.Context, arg GetCoursesProgressSummaryParams) ([]GetCoursesProgressSummaryRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCoursesProgressSummary,
-		arg.UserID,
-		arg.FilterType,
-		arg.PageOffset,
-		arg.PageLimit,
-	)
+	rows, err := q.db.QueryContext(ctx, getCoursesProgressSummary, arg.UserID, arg.PageOffset, arg.PageLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -537,6 +568,26 @@ func (q *Queries) GetCoursesProgressSummary(ctx context.Context, arg GetCoursesP
 		return nil, err
 	}
 	return items, nil
+}
+
+const getFirstUnitAndModule = `-- name: GetFirstUnitAndModule :one
+SELECT u.id as unit_id, m.id as module_id
+FROM units u
+JOIN modules m ON m.unit_id = u.id
+WHERE u.course_id = $1::int
+LIMIT 1
+`
+
+type GetFirstUnitAndModuleRow struct {
+	UnitID   int32 `json:"unitId"`
+	ModuleID int32 `json:"moduleId"`
+}
+
+func (q *Queries) GetFirstUnitAndModule(ctx context.Context, courseID int32) (GetFirstUnitAndModuleRow, error) {
+	row := q.db.QueryRowContext(ctx, getFirstUnitAndModule, courseID)
+	var i GetFirstUnitAndModuleRow
+	err := row.Scan(&i.UnitID, &i.ModuleID)
+	return i, err
 }
 
 const getModuleProgress = `-- name: GetModuleProgress :one
@@ -1146,4 +1197,107 @@ func (q *Queries) GetVideoSectionContent(ctx context.Context, sectionID int32) (
 	var url string
 	err := row.Scan(&url)
 	return url, err
+}
+
+const listCourses = `-- name: ListCourses :many
+SELECT
+    c.id,
+    c.created_at,
+    c.updated_at,
+    c.name,
+    c.description,
+    c.requirements,
+    c.what_you_learn,
+    c.background_color,
+    c.icon_url,
+    c.duration,
+    c.difficulty_level,
+    c.rating,
+    COUNT(*) OVER() as total_count
+FROM courses c
+ORDER BY c.created_at DESC
+LIMIT $2::int
+OFFSET $1::int
+`
+
+type ListCoursesParams struct {
+	PageOffset int32 `json:"pageOffset"`
+	PageLimit  int32 `json:"pageLimit"`
+}
+
+type ListCoursesRow struct {
+	ID              int32               `json:"id"`
+	CreatedAt       time.Time           `json:"createdAt"`
+	UpdatedAt       time.Time           `json:"updatedAt"`
+	Name            string              `json:"name"`
+	Description     string              `json:"description"`
+	Requirements    sql.NullString      `json:"requirements"`
+	WhatYouLearn    sql.NullString      `json:"whatYouLearn"`
+	BackgroundColor sql.NullString      `json:"backgroundColor"`
+	IconUrl         sql.NullString      `json:"iconUrl"`
+	Duration        sql.NullInt32       `json:"duration"`
+	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
+	Rating          sql.NullFloat64     `json:"rating"`
+	TotalCount      int64               `json:"totalCount"`
+}
+
+func (q *Queries) ListCourses(ctx context.Context, arg ListCoursesParams) ([]ListCoursesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCourses, arg.PageOffset, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListCoursesRow{}
+	for rows.Next() {
+		var i ListCoursesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Requirements,
+			&i.WhatYouLearn,
+			&i.BackgroundColor,
+			&i.IconUrl,
+			&i.Duration,
+			&i.DifficultyLevel,
+			&i.Rating,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const startCourse = `-- name: StartCourse :exec
+INSERT INTO user_courses 
+(user_id, course_id, current_unit_id, current_module_id)
+VALUES ($1::int, $2::int, $3::int, $4::int)
+RETURNING current_unit_id, current_module_id
+`
+
+type StartCourseParams struct {
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
+	UnitID   int32 `json:"unitId"`
+	ModuleID int32 `json:"moduleId"`
+}
+
+func (q *Queries) StartCourse(ctx context.Context, arg StartCourseParams) error {
+	_, err := q.db.ExecContext(ctx, startCourse,
+		arg.UserID,
+		arg.CourseID,
+		arg.UnitID,
+		arg.ModuleID,
+	)
+	return err
 }

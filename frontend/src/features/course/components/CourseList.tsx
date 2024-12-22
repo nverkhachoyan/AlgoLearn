@@ -14,7 +14,7 @@ interface CourseSectionProps {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   onLoadMore: () => void;
-  filter: "learning" | "explore";
+  hasProgress: boolean;
 }
 
 const MESSAGES = {
@@ -26,31 +26,32 @@ const MESSAGES = {
 } as const;
 
 export const CourseSection = memo<CourseSectionProps>(
-  ({ title, courses, hasNextPage, isFetchingNextPage, onLoadMore, filter }) => {
+  ({
+    title,
+    courses,
+    hasNextPage,
+    isFetchingNextPage,
+    onLoadMore,
+    hasProgress,
+  }) => {
     const { colors } = useTheme();
 
     const renderEmptyState = () => (
       <View style={styles.emptyStateContainer}>
-        <Text style={styles.emptyMessage}>
-          {filter === "learning"
-            ? MESSAGES.NO_COURSES_LEARNING
-            : MESSAGES.NO_COURSES_EXPLORE}
-        </Text>
-        {filter === "learning" && (
-          <Button
-            title={MESSAGES.EXPLORE_COURSES}
-            onPress={() => {
-              router.push("/(protected)/(tabs)/explore");
-            }}
-            style={{
-              backgroundColor: colors.primary,
-              marginTop: 16,
-            }}
-            textStyle={{
-              color: colors.onPrimary,
-            }}
-          />
-        )}
+        <Text style={styles.emptyMessage}>{MESSAGES.NO_COURSES_LEARNING}</Text>
+        <Button
+          title={MESSAGES.EXPLORE_COURSES}
+          onPress={() => {
+            router.push("/(protected)/(tabs)/explore");
+          }}
+          style={{
+            backgroundColor: colors.primary,
+            marginTop: 16,
+          }}
+          textStyle={{
+            color: colors.onPrimary,
+          }}
+        />
       </View>
     );
 
@@ -89,14 +90,14 @@ export const CourseSection = memo<CourseSectionProps>(
             difficultyLevel={course.difficultyLevel}
             duration={`${course.duration}`}
             rating={course.rating}
-            currentUnit={filter === "learning" ? course.currentUnit : null}
-            currentModule={filter === "learning" ? course.currentModule : null}
+            currentUnit={course.currentUnit}
+            currentModule={course.currentModule}
             type="summary"
-            filter={filter}
+            hasProgress={hasProgress}
           />
         );
       },
-      [colors.surface, filter]
+      [colors.surface]
     );
 
     const keyExtractor = useCallback((item: Course | null) => {
@@ -115,7 +116,7 @@ export const CourseSection = memo<CourseSectionProps>(
       [title]
     );
 
-    const ListEmptyComponent = useCallback(() => renderEmptyState(), [filter]);
+    const ListEmptyComponent = useCallback(() => renderEmptyState(), []);
 
     const ListFooterComponent = useCallback(
       () => (
@@ -124,12 +125,12 @@ export const CourseSection = memo<CourseSectionProps>(
           {isFetchingNextPage && (
             <ActivityIndicator size="small" color="#25A879" />
           )}
-          {!hasNextPage && courses.length > 0 && filter === "explore" && (
+          {!hasNextPage && courses.length > 0 && (
             <Text style={styles.endMessage}>{MESSAGES.NO_MORE_COURSES}</Text>
           )}
         </View>
       ),
-      [hasNextPage, isFetchingNextPage, courses.length, filter]
+      [hasNextPage, isFetchingNextPage, courses.length]
     );
 
     return (
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   flashListContainer: {
-    minHeight: 400,
+    // minHeight: 400,
     paddingBottom: 20,
   },
 });

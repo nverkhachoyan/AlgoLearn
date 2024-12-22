@@ -23,6 +23,7 @@ export default function CourseCard(props: {
   currentModule?: Module | null;
   type?: string;
   filter?: string;
+  hasProgress?: boolean;
 }) {
   const { colors } = useTheme();
   const [isCoursePressed, setIsCoursePressed] = useState(false);
@@ -95,6 +96,7 @@ export default function CourseCard(props: {
                   userId: 4,
                   type: "full",
                   filter: "learning",
+                  hasProgress: props.hasProgress ? "true" : "false",
                 },
               })
             }

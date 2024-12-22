@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	codes "algolearn/internal/errors"
+	httperr "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/internal/service"
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
@@ -14,10 +15,14 @@ import (
 )
 
 type CourseHandler interface {
-	GetCourses(c *gin.Context)
+	ListCourses(c *gin.Context)
 	GetCourse(c *gin.Context)
+	ListCoursesProgress(c *gin.Context)
+	GetCourseProgress(c *gin.Context)
+	StartCourse(c *gin.Context)
 	DeleteCourse(c *gin.Context)
 	RegisterRoutes(r *gin.RouterGroup)
+	RestartCourse(c *gin.Context)
 }
 
 type courseHandler struct {
@@ -35,227 +40,151 @@ func NewCourseHandler(courseRepo service.CourseService,
 	}
 }
 
-func (h *courseHandler) GetCourses(c *gin.Context) {
-	log := h.log.WithBaseFields(logger.Handler, "GetCourses")
-	queryParams := models.ModuleQueryParams{
-		Type: c.Query("type"),
-	}
-
-	switch queryParams.Type {
-	case "summary":
-		h.getCoursesProgressSummary(c)
-	case "full":
-		log.Warn("full queries of courses not supported")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			Message:   "full queries of courses not supported",
-			ErrorCode: codes.InvalidRequest,
-		})
-	default:
-		log.Warn("possibly incorrect or missing query parameters")
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			Message:   "possibly incorrect or missing query parameters",
-			ErrorCode: codes.InvalidRequest,
-		})
-	}
-}
-
-func (h *courseHandler) GetCourse(c *gin.Context) {
-	log := h.log.WithBaseFields(logger.Handler, "GetCourse")
+// ListCourses handles GET /courses
+// Returns a paginated list of all available courses
+func (h *courseHandler) ListCourses(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "ListCourses")
 	ctx := c.Request.Context()
 
-	queryParams := models.ModuleQueryParams{
-		Type:   c.Query("type"),
-		Filter: c.Query("filter"),
-	}
-
-	userID, err := strconv.ParseInt(c.Query("userId"), 10, 64)
-	if err != nil {
+	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
+	if err != nil || page < 1 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			ErrorCode: codes.InvalidInput,
-			Message:   "invalid user ID in query parameters",
-		})
-		return
-	}
-
-	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: codes.InvalidInput,
-			Message:   "invalid course ID in path parameter",
-		})
-		return
-	}
-
-	log.Infof("Handler called with type %s", queryParams.Type)
-
-	var course *models.Course
-	switch queryParams.Type {
-	case "summary":
-		if queryParams.Filter == "learning" {
-			course, err = h.courseRepo.GetCourseProgressSummary(ctx, userID, courseID)
-		} else if queryParams.Filter == "explore" {
-			course, err = h.courseRepo.GetCourseSummary(ctx, courseID)
-		}
-	case "full":
-		if queryParams.Filter == "learning" {
-			course, err = h.courseRepo.GetCourseProgressFull(ctx, userID, courseID)
-		} else if queryParams.Filter == "explore" {
-			course, err = h.courseRepo.GetCourseFull(ctx, courseID)
-		}
-	default:
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: codes.InvalidRequest,
-			Message:   "invalid type in the query parameter",
-		})
-		return
-	}
-
-	if err != nil {
-		log.WithError(err).Error("error fetching courses progress")
-		c.JSON(http.StatusInternalServerError, models.Response{
-			Success:   false,
-			ErrorCode: codes.DatabaseFail,
-			Message:   "could not retrieve courses progress from the database",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, models.Response{
-		Success: true,
-		Message: "course progress retrieved successfully",
-		Payload: course,
-	})
-}
-
-func (h *courseHandler) DeleteCourse(c *gin.Context) {
-	log := h.log
-	ctx := c.Request.Context()
-	userID, exists := c.Get(middleware.UserIDKey)
-	if !exists {
-		log.Debug("unauthorized user tried to delete a course")
-		c.JSON(http.StatusUnauthorized, models.Response{
-			Success:   false,
-			ErrorCode: codes.Unauthorized,
-			Message:   "you are not authorized to delete a course",
-		})
-		return
-	}
-
-	id, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: codes.InvalidInput,
-			Message:   "invalid course ID in the route",
-		})
-		return
-	}
-
-	// Only admin users can update courses
-	user, err := h.userRepo.GetUserByID(int32(userID.(int64)))
-	if err != nil || user.Role != "admin" {
-		log.Debug("User without admin role tried to delete a course")
-		c.JSON(http.StatusForbidden, models.Response{
-			Success:   false,
-			ErrorCode: codes.Unauthorized,
-			Message:   "Only users with the admin role may delete a course",
-		})
-		return
-	}
-
-	err = h.courseRepo.DeleteCourse(ctx, id)
-	if errors.Is(err, codes.ErrNotFound) {
-		log.Infof("attempt to delete course that does not exist %d: %v", id, err)
-		c.JSON(http.StatusNotFound, models.Response{
-			Success:   false,
-			ErrorCode: codes.NoData,
-			Message:   "course not found",
-		})
-		return
-	} else if err != nil {
-		log.Debugf("error deleting course %d: %v", id, err)
-		c.JSON(http.StatusInternalServerError, models.Response{
-			Success:   false,
-			ErrorCode: codes.DatabaseFail,
-			Message:   "failed to delete the course from the database",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, models.Response{
-		Success: true,
-		Message: "course deleted successfully",
-	})
-}
-
-func (h *courseHandler) getCoursesProgressSummary(c *gin.Context) {
-	log := h.log.WithBaseFields(logger.Handler, "GetCoursesProgress")
-	ctx := c.Request.Context()
-
-	userID, err := strconv.ParseInt(c.Query("userId"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: codes.InvalidInput,
-			Message:   "invalid user ID in query parameters",
-		})
-		return
-	}
-
-	page, err := strconv.ParseInt(c.Query("currentPage"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: codes.InvalidInput,
-			Message:   "invalid page number in query parameters",
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid page number: must be a positive integer",
 		})
 		return
 	}
 
 	pageSize, err := strconv.ParseInt(c.Query("pageSize"), 10, 64)
-	if err != nil {
+	if err != nil || pageSize < 1 {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
-			ErrorCode: codes.InvalidInput,
-			Message:   "invalid page size in query parameters",
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid page size: must be a positive integer",
 		})
 		return
 	}
 
-	totalCount, courses, err := h.courseRepo.GetCoursesProgressSummary(ctx, int(page), int(pageSize), userID, c.Query("filter"))
+	totalCount, courses, err := h.courseRepo.ListCourses(ctx, int(page), int(pageSize))
 	if err != nil {
-		log.WithError(err).Error("error fetching courses progress")
+		log.WithError(err).Error("error fetching courses")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
-			ErrorCode: codes.DatabaseFail,
-			Message:   "could not retrieve courses progress from the database",
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving courses",
 		})
 		return
 	}
 
 	totalPages := (totalCount + pageSize - 1) / pageSize
 
-	if len(courses) == 0 {
-		c.JSON(http.StatusOK, models.Response{
-			Success: true,
-			Message: "no courses in progress",
-			Payload: models.PaginatedPayload{
-				Items: []models.Course{},
-				Pagination: models.Pagination{
-					TotalItems:  0,
-					PageSize:    0,
-					CurrentPage: 0,
-					TotalPages:  0,
-				},
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "courses retrieved successfully",
+		Payload: models.PaginatedPayload{
+			Items: courses,
+			Pagination: models.Pagination{
+				TotalItems:  totalCount,
+				PageSize:    int(pageSize),
+				CurrentPage: int(page),
+				TotalPages:  int(totalPages),
 			},
+		},
+	})
+}
+
+// GetCourse handles GET /courses/:courseId
+// Returns details of a specific course
+func (h *courseHandler) GetCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "GetCourse")
+	ctx := c.Request.Context()
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
 		})
 		return
 	}
+
+	course, err := h.courseRepo.GetCourse(ctx, courseID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "course not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error fetching course")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course retrieved successfully",
+		Payload: course,
+	})
+}
+
+// ListCoursesProgress handles GET /courses/progress
+// Returns a paginated list of courses with user's progress
+func (h *courseHandler) ListCoursesProgress(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "ListCoursesProgress")
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Debug("unauthorized user tried to get courses progress")
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to access course progress",
+		})
+		return
+	}
+
+	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
+	if err != nil || page < 1 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid page number: must be a positive integer",
+		})
+		return
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("pageSize"), 10, 64)
+	if err != nil || pageSize < 1 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid page size: must be a positive integer",
+		})
+		return
+	}
+
+	totalCount, courses, err := h.courseRepo.ListCoursesProgress(ctx, int(page), int(pageSize), int64(userID))
+	if err != nil {
+		log.WithError(err).Error("error fetching courses progress")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving courses progress",
+		})
+		return
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
 
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
@@ -272,17 +201,247 @@ func (h *courseHandler) getCoursesProgressSummary(c *gin.Context) {
 	})
 }
 
-func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
-	// Public routes
-	courses := r.Group("/courses")
-	courses.GET("", h.GetCourses)
-	courses.GET("/:courseId", h.GetCourse)
+// GetCourseProgress handles GET /courses/:courseId/progress
+// Returns details of a specific course with user's progress
+func (h *courseHandler) GetCourseProgress(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "GetCourseProgress")
+	ctx := c.Request.Context()
 
-	// Protected routes (require authentication)
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Debug("unauthorized user tried to get course progress")
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to access course progress",
+		})
+		return
+	}
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
+		})
+		return
+	}
+
+	course, err := h.courseRepo.GetCourseProgress(ctx, int64(userID), courseID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "course not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error fetching course progress")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving course progress",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course progress retrieved successfully",
+		Payload: course,
+	})
+}
+
+func (h *courseHandler) StartCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "StartCourse")
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Debug("unauthorized user tried to start a course")
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to start a course",
+		})
+		return
+	}
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 32)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
+		})
+		return
+	}
+
+	unitID, moduleID, err := h.courseRepo.StartCourse(ctx, int64(userID), int32(courseID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "course not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error starting course")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while starting the course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, models.Response{
+		Success: true,
+		Message: "course started successfully",
+		Payload: models.StartCourseResponse{
+			UnitID:   unitID,
+			ModuleID: moduleID,
+		},
+	})
+}
+
+func (h *courseHandler) DeleteCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "DeleteCourse")
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Debug("unauthorized user tried to delete a course")
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to delete a course",
+		})
+		return
+	}
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
+		})
+		return
+	}
+
+	// Only admin users can delete courses
+	user, err := h.userRepo.GetUserByID(ctx, int32(userID))
+	if err != nil {
+		log.WithError(err).Error("error fetching user data")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while verifying user permissions",
+		})
+		return
+	}
+
+	if user.Role != "admin" {
+		log.Debug("non-admin user tried to delete a course")
+		c.JSON(http.StatusForbidden, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Forbidden,
+			Message:   "only administrators can delete courses",
+		})
+		return
+	}
+
+	err = h.courseRepo.DeleteCourse(ctx, courseID)
+	if err != nil {
+		if errors.Is(err, httperr.ErrNotFound) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "course not found",
+			})
+			return
+		}
+		log.WithError(err).Error("error deleting course")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while deleting the course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *courseHandler) RestartCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "RestartCourse")
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to restart a course",
+		})
+		return
+	}
+
+	courseID, err := strconv.Atoi(c.Param("courseId"))
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidFormData,
+			Message:   "invalid course ID: must be a positive integer",
+		})
+		return
+	}
+
+	err = h.courseRepo.DeleteCourseProgress(ctx, int64(userID), int64(courseID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, models.Response{
+				Success:   false,
+				ErrorCode: httperr.NoData,
+				Message:   "course not found or no progress exists",
+			})
+			return
+		}
+		log.WithError(err).Error("failed to delete course progress")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while restarting the course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course progress reset successfully",
+	})
+}
+
+func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
+	courses := r.Group("/courses")
+
+	// Public routes
+	{
+		courses.GET("", h.ListCourses)         // GET /courses
+		courses.GET("/:courseId", h.GetCourse) // GET /courses/:courseId
+	}
+
+	// Protected routes
 	authorized := courses.Group("", middleware.Auth())
-	// authorized.POST("", h.CreateCourse)
-	// authorized.PUT("/:courseId", h.UpdateCourse)
-	authorized.DELETE("/:courseId", h.DeleteCourse)
-	// authorized.POST("/:courseId/progress", h.UpdateCourseProgress)
-	// authorized.GET("/:courseId/progress", h.GetCourseProgress)
+	{
+		authorized.GET("/progress", h.ListCoursesProgress)         // GET /courses/progress
+		authorized.GET("/:courseId/progress", h.GetCourseProgress) // GET /courses/:courseId/progress
+		authorized.POST("/:courseId/start", h.StartCourse)         // POST /courses/:courseId/start
+		authorized.POST("/:courseId/restart", h.RestartCourse)     // POST /courses/:courseId/restart
+		authorized.DELETE("/:courseId", h.DeleteCourse)            // DELETE /courses/:courseId
+	}
 }

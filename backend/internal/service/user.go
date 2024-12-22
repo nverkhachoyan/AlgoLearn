@@ -3,20 +3,22 @@ package service
 import (
 	"algolearn/internal/database"
 	gen "algolearn/internal/database/generated"
+	codes "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
 type UserService interface {
-	CreateUser(user *models.User) (*models.User, error)
-	UpdateUser(user *models.User) error
-	GetUserByID(id int32) (*models.User, error)
+	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
+	UpdateUser(ctx context.Context, user *models.User) error
+	GetUserByID(ctx context.Context, id int32) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	CheckEmailExists(ctx context.Context, email string) (bool, error)
-	DeleteUser(id int32) error
+	DeleteUser(ctx context.Context, id int32) error
 }
 
 type userService struct {
@@ -28,10 +30,8 @@ func NewUserService(db *sql.DB) UserService {
 	return &userService{db: database.New(db), log: logger.Get()}
 }
 
-func (r *userService) CreateUser(user *models.User) (*models.User, error) {
+func (r *userService) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	log := r.log.WithBaseFields(logger.Service, "CreateUser")
-
-	ctx := context.Background()
 
 	var userParams gen.CreateUserParams
 	userParams.Username = user.Username
@@ -98,12 +98,14 @@ func (r *userService) CreateUser(user *models.User) (*models.User, error) {
 	}, nil
 }
 
-func (r *userService) GetUserByID(id int32) (*models.User, error) {
+func (r *userService) GetUserByID(ctx context.Context, id int32) (*models.User, error) {
 	log := r.log.WithBaseFields(logger.Service, "GetUserByID")
 
-	ctx := context.Background()
 	user, err := r.db.GetUserByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, codes.ErrNotFound
+		}
 		log.WithError(err).Error("failed to get user by id")
 		return nil, fmt.Errorf("could not fetch user: %v", err)
 	}
@@ -137,6 +139,9 @@ func (r *userService) GetUserByEmail(ctx context.Context, email string) (*models
 
 	user, err := r.db.GetUserByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, codes.ErrNotFound
+		}
 		log.WithError(err).Error("failed to get user by email")
 		return nil, fmt.Errorf("could not fetch user: %v", err)
 	}
@@ -169,24 +174,21 @@ func (r *userService) GetUserByEmail(ctx context.Context, email string) (*models
 func (r *userService) CheckEmailExists(ctx context.Context, email string) (bool, error) {
 	log := r.log.WithBaseFields(logger.Service, "CheckEmailExists")
 
-	var exists bool
-	user, err := r.db.GetUserByEmail(ctx, email)
+	_, err := r.db.GetUserByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
 		log.WithError(err).Error("failed to fetch user")
-		return false, fmt.Errorf("failed to fetch user: %v", err)
+		return false, fmt.Errorf("failed to check email: %v", err)
 	}
 
-	if user.ID != 0 {
-		exists = true
-	}
-
-	return exists, nil
+	return true, nil
 }
 
-func (r *userService) UpdateUser(user *models.User) error {
+func (r *userService) UpdateUser(ctx context.Context, user *models.User) error {
 	log := r.log.WithBaseFields(logger.Service, "UpdateUser")
 
-	ctx := context.Background()
 	_, err := r.db.UpdateUser(ctx, gen.UpdateUserParams{
 		ID:                user.ID,
 		Username:          user.Username,
@@ -198,18 +200,23 @@ func (r *userService) UpdateUser(user *models.User) error {
 		Location:          user.Location,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("user not found")
+		}
 		log.WithError(err).Error("failed to update user")
 		return fmt.Errorf("could not update user: %v", err)
 	}
 	return nil
 }
 
-func (r *userService) DeleteUser(id int32) error {
+func (r *userService) DeleteUser(ctx context.Context, id int32) error {
 	log := r.log.WithBaseFields(logger.Service, "DeleteUser")
 
-	ctx := context.Background()
 	err := r.db.DeleteUser(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("user not found")
+		}
 		log.WithError(err).Error("failed to delete user")
 		return fmt.Errorf("could not delete user: %v", err)
 	}

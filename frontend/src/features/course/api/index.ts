@@ -1,4 +1,20 @@
-import { fetchCourse, fetchCourses } from "./queries";
-import { CourseFetchParams } from "./types";
+import {
+  restartCourse,
+  startCourse,
+  listCourses,
+  getCourse,
+  getCourseProgress,
+  listCoursesProgress,
+} from "./queries";
+import { CourseFetchParams, StartCourseParams } from "./types";
 
-export { fetchCourse, fetchCourses, CourseFetchParams };
+export {
+  CourseFetchParams,
+  startCourse,
+  StartCourseParams,
+  restartCourse,
+  listCourses,
+  getCourse,
+  listCoursesProgress,
+  getCourseProgress,
+};

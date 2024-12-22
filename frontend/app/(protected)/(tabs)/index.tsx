@@ -9,48 +9,25 @@ import { router } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { User } from "@/src/features/user/types";
 import CustomErrorBoundary from "@/src/components/ErrorBoundary";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function Home() {
   const { user }: { user: User } = useUser();
+  const { isAuthenticated } = useAuth();
   const { colors } = useTheme();
   const { showToast } = useToast();
 
-  const {
-    courses: learningCourses,
-    fetchNextPage: fetchNextLearning,
-    hasNextPage: hasNextLearning,
-    isFetchingNextPage: isFetchingNextLearning,
-    error: learningError,
-  } = useCourses({
-    userId: user?.id,
-    currentPage: 1,
-    pageSize: 1,
-    type: "summary",
-    filter: "learning",
-  });
-
-  const {
-    courses: exploreCourses,
-    fetchNextPage: fetchNextExplore,
-    hasNextPage: hasNextExplore,
-    isFetchingNextPage: isFetchingNextExplore,
-    error: exploreError,
-  } = useCourses({
-    userId: 4,
-    currentPage: 1,
-    pageSize: 5,
-    type: "summary",
-    filter: "explore",
-  });
+  const { courses, fetchNextPage, hasNextPage, isFetchingNextPage, error } =
+    useCourses({
+      pageSize: 5,
+      isAuthenticated: isAuthenticated,
+    });
 
   React.useEffect(() => {
-    if (learningError || exploreError) {
-      showToast(
-        "Failed to fetch courses" +
-          (learningError?.message || exploreError?.message)
-      );
+    if (error) {
+      showToast("Failed to fetch courses" + error?.message);
     }
-  }, [learningError, exploreError]);
+  }, [error]);
 
   return (
     <CustomErrorBoundary>
@@ -72,15 +49,15 @@ export default function Home() {
         <ScrollView contentContainerStyle={[styles.scrollContent]}>
           <CourseSection
             title="Your Courses"
-            courses={learningCourses}
-            hasNextPage={hasNextLearning}
-            isFetchingNextPage={isFetchingNextLearning}
+            courses={courses}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
             onLoadMore={() => {
-              if (hasNextLearning && !isFetchingNextLearning) {
-                fetchNextLearning();
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
               }
             }}
-            filter="learning"
+            hasProgress={true}
           />
         </ScrollView>
       </View>

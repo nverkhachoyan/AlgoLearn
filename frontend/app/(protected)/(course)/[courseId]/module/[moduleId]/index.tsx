@@ -32,6 +32,7 @@ interface RouteParams extends Record<string, string | undefined> {
   userId: string;
   type?: Type;
   filter?: Filter;
+  hasProgress?: string;
 }
 
 export default function ModuleSession() {

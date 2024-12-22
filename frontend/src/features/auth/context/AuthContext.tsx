@@ -13,8 +13,12 @@ import type {
   EmailCheckResponse,
 } from "../authService";
 import { AxiosError } from "axios";
-import { router } from "expo-router";
-import { AuthEventEmitter } from "@/src/lib/api/client";
+import { useRouter, useRootNavigation } from "expo-router";
+import { Platform } from "react-native";
+import AuthEvents from "../events/authEvents";
+
+const PROTECTED_ROUTE = "/(protected)/(tabs)" as const;
+const AUTH_ROUTE = "/(auth)" as const;
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -36,8 +40,27 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({
   children,
-  onAuthSuccess = () => router.replace("/(protected)/(tabs)"),
-  onSignOut = () => router.replace("/(auth)"),
+  onAuthSuccess = () => {
+    const router = useRouter();
+    const rootNavigation = useRootNavigation();
+
+    if (!rootNavigation?.isReady) return;
+
+    if (Platform.OS === "web") {
+      setTimeout(() => {
+        router.replace(PROTECTED_ROUTE);
+      }, 0);
+    } else {
+      router.replace(PROTECTED_ROUTE);
+    }
+  },
+  onSignOut = () => {
+    const router = useRouter();
+    const rootNavigation = useRootNavigation();
+
+    if (!rootNavigation?.isReady) return;
+    router.replace(AUTH_ROUTE);
+  },
 }: AuthProviderProps) {
   const queryClient = useQueryClient();
 
@@ -96,7 +119,7 @@ export function AuthProvider({
   }, [handleSignOut]);
 
   useEffect(() => {
-    AuthEventEmitter.setAuthFailureHandler(handleAuthFailure);
+    AuthEvents.setAuthFailureHandler(handleAuthFailure);
   }, [handleAuthFailure]);
 
   const checkEmailMutation = useMutation<

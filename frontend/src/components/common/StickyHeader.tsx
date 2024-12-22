@@ -1,10 +1,19 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Platform,
+} from "react-native";
 import LottieView from "lottie-react-native";
 import { useRef, ReactNode } from "react";
 import { Feather } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { router, usePathname } from "expo-router";
 import { Colors } from "@/constants/Colors";
+
+const HEADER_HEIGHT = Platform.select({ web: 64, default: 50 });
 
 export function StickyHeader(props: {
   cpus: number;
@@ -23,39 +32,51 @@ export function StickyHeader(props: {
         {
           backgroundColor: colors.surface,
         },
+        Platform.OS === "web" && styles.webContainer,
       ]}
     >
-      <TouchableOpacity
-        onPress={() => {
-          if (pathname !== "/") {
-            router.back();
-          }
-        }}
-      >
-        <LottieView
-          autoPlay={true}
-          loop={false}
-          ref={animation}
-          style={styles.logo}
-          source={require("@/assets/lotties/AlgoLearnLogo.json")}
-        />
-      </TouchableOpacity>
-      <View style={styles.headerItem}>
-        <Feather name="cpu" size={24} color="#1CC0CB" />
-        <Text style={{ color: colors.onSurface }}>{props.cpus}</Text>
-      </View>
-      <View style={styles.headerItem}>
-        <Feather name="zap" size={24} color="#1CC0CB" />
-        <Text style={{ color: colors.onBackground }}>{props.strikeCount}</Text>
-      </View>
+      <View style={styles.content}>
+        <TouchableOpacity
+          onPress={() => {
+            if (pathname !== "/") {
+              router.back();
+            }
+          }}
+          style={styles.logoContainer}
+        >
+          <LottieView
+            autoPlay={true}
+            loop={false}
+            ref={animation}
+            style={styles.logo}
+            source={require("@/assets/lotties/AlgoLearnLogo.json")}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <View style={styles.rightSection}>
+          <View style={styles.headerItem}>
+            <Feather name="cpu" size={24} color="#1CC0CB" />
+            <Text style={{ color: colors.onSurface }}>{props.cpus}</Text>
+          </View>
+          <View style={styles.headerItem}>
+            <Feather name="zap" size={24} color="#1CC0CB" />
+            <Text style={{ color: colors.onBackground }}>
+              {props.strikeCount}
+            </Text>
+          </View>
 
-      <TouchableOpacity onPress={props.onAvatarPress} style={styles.headerItem}>
-        {props.userAvatar ? (
-          <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
-        ) : (
-          <Feather name="user" size={24} color={colors.onSurface} />
-        )}
-      </TouchableOpacity>
+          <TouchableOpacity
+            onPress={props.onAvatarPress}
+            style={styles.headerItem}
+          >
+            {props.userAvatar ? (
+              <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
+            ) : (
+              <Feather name="user" size={24} color={colors.onSurface} />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -72,9 +93,10 @@ export function StickyHeaderSimple({ children }: { children: ReactNode }) {
           borderBottomEndRadius: 0,
           borderBottomStartRadius: 0,
         },
+        Platform.OS === "web" && styles.webContainer,
       ]}
     >
-      {children}
+      <View style={styles.content}>{children}</View>
     </View>
   );
 }
@@ -87,35 +109,31 @@ export function HeaderGoBack({ title }: { title: string }) {
     <View
       style={[
         styles.container,
-
         {
           backgroundColor: colors.surface,
-          justifyContent: "flex-start",
-          gap: 10,
         },
+        Platform.OS === "web" && styles.webContainer,
       ]}
     >
-      <TouchableOpacity
-        onPress={() => {
-          router.back();
-        }}
-      >
-        <Feather name="chevron-left" size={24} color={colors.onSurface} />
-      </TouchableOpacity>
+      <View style={[styles.content, styles.goBackContent]}>
+        <TouchableOpacity
+          onPress={() => {
+            router.back();
+          }}
+        >
+          <Feather name="chevron-left" size={24} color={colors.onSurface} />
+        </TouchableOpacity>
 
-      <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
+        <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 20,
-    height: 50,
+    height: HEADER_HEIGHT,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.05,
@@ -124,18 +142,54 @@ const styles = StyleSheet.create({
     borderBottomStartRadius: 8,
     zIndex: 100,
   },
+  webContainer: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    borderBottomEndRadius: 0,
+    borderBottomStartRadius: 0,
+    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+  },
+  content: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: Platform.OS === "web" ? 20 : 12,
+    maxWidth: Platform.OS === "web" ? 1200 : undefined,
+    marginHorizontal: Platform.OS === "web" ? "auto" : undefined,
+    ...(Platform.OS === "web"
+      ? { justifyContent: "space-between" }
+      : { justifyContent: "space-around" }),
+  },
+  goBackContent: {
+    justifyContent: "flex-start",
+    gap: 10,
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Platform.OS === "web" ? 20 : 8,
+  },
   headerItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: Platform.OS === "web" ? 10 : 6,
+    minWidth: Platform.OS === "web" ? undefined : 45,
+  },
+  logoContainer: {
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    ...(Platform.OS === "web" ? {} : { marginLeft: -8 }), // Adjust logo position on mobile
   },
   logo: {
     width: 36,
     height: 36,
   },
   avatar: {
-    width: 33,
-    height: 33,
+    width: Platform.OS === "web" ? 33 : 30,
+    height: Platform.OS === "web" ? 33 : 30,
     borderRadius: 100,
   },
   title: {

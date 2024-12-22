@@ -1,5 +1,12 @@
-import React, { memo, useCallback } from "react";
-import { StyleSheet, ActivityIndicator, View } from "react-native";
+import React, { memo, useCallback, useMemo } from "react";
+import {
+  StyleSheet,
+  ActivityIndicator,
+  View,
+  useWindowDimensions,
+  Platform,
+  ViewStyle,
+} from "react-native";
 import { Text } from "react-native-paper";
 import CourseCard from "@/src/features/course/components/CourseCard";
 import Button from "@/src/components/common/Button";
@@ -25,6 +32,12 @@ const MESSAGES = {
   EXPLORE_COURSES: "Explore Courses",
 } as const;
 
+// Breakpoints for responsive design
+const BREAKPOINTS = {
+  TABLET: 768,
+  DESKTOP: 1024,
+};
+
 export const CourseSection = memo<CourseSectionProps>(
   ({
     title,
@@ -35,6 +48,28 @@ export const CourseSection = memo<CourseSectionProps>(
     hasProgress,
   }) => {
     const { colors } = useTheme();
+    const { width } = useWindowDimensions();
+
+    // Calculate number of columns based on screen width
+    const numColumns = useMemo(() => {
+      if (Platform.OS !== "web") return 1;
+      if (width >= BREAKPOINTS.DESKTOP) return 3;
+      if (width >= BREAKPOINTS.TABLET) return 2;
+      return 1;
+    }, [width]);
+
+    // Calculate item width based on number of columns
+    const getWebStyles = useMemo((): ViewStyle => {
+      if (Platform.OS !== "web") return {};
+      const gap = 16; // Gap between items
+      const calculatedWidth =
+        100 / numColumns - (gap * (numColumns - 1)) / numColumns;
+      return {
+        width: `${calculatedWidth}%` as unknown as number,
+        marginHorizontal: 8,
+        marginBottom: 16,
+      };
+    }, [numColumns]);
 
     const renderEmptyState = () => (
       <View style={styles.emptyStateContainer}>
@@ -79,25 +114,32 @@ export const CourseSection = memo<CourseSectionProps>(
       ({ item: course }: { item: Course | null }) => {
         if (!course) return null;
         return (
-          <CourseCard
-            key={`course-${course.id}`}
-            courseID={course.id.toString()}
-            courseTitle={course.name}
-            backgroundColor={course.backgroundColor || colors.surface}
-            iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
-            description={course.description}
-            authors={course.authors}
-            difficultyLevel={course.difficultyLevel}
-            duration={`${course.duration}`}
-            rating={course.rating}
-            currentUnit={course.currentUnit}
-            currentModule={course.currentModule}
-            type="summary"
-            hasProgress={hasProgress}
-          />
+          <View
+            style={[
+              styles.courseCardContainer,
+              Platform.OS === "web" && getWebStyles,
+            ]}
+          >
+            <CourseCard
+              key={`course-${course.id}`}
+              courseID={course.id.toString()}
+              courseTitle={course.name}
+              backgroundColor={course.backgroundColor || colors.surface}
+              iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+              description={course.description}
+              authors={course.authors}
+              difficultyLevel={course.difficultyLevel}
+              duration={`${course.duration}`}
+              rating={course.rating}
+              currentUnit={course.currentUnit}
+              currentModule={course.currentModule}
+              type="summary"
+              hasProgress={hasProgress}
+            />
+          </View>
         );
       },
-      [colors.surface]
+      [colors.surface, getWebStyles]
     );
 
     const keyExtractor = useCallback((item: Course | null) => {
@@ -133,19 +175,31 @@ export const CourseSection = memo<CourseSectionProps>(
       [hasNextPage, isFetchingNextPage, courses.length]
     );
 
+    const getWebContainerStyles = useMemo(() => {
+      if (Platform.OS !== "web") return styles.flashListContainer;
+      return {
+        ...styles.flashListContainer,
+        maxWidth: 1200,
+        marginHorizontal: "auto",
+        paddingHorizontal: 16,
+      };
+    }, []);
+
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FlashList
+          key={`course-list-${numColumns}`}
           data={courses}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           estimatedItemSize={200}
+          numColumns={numColumns}
           ListHeaderComponent={ListHeaderComponent}
           ListEmptyComponent={ListEmptyComponent}
           ListFooterComponent={ListFooterComponent}
           onEndReached={hasNextPage ? onLoadMore : undefined}
           onEndReachedThreshold={0.5}
-          contentContainerStyle={styles.flashListContainer}
+          contentContainerStyle={getWebContainerStyles}
         />
       </View>
     );
@@ -208,7 +262,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   flashListContainer: {
-    // minHeight: 400,
     paddingBottom: 20,
+  },
+  courseCardContainer: {
+    flex: 1,
   },
 });

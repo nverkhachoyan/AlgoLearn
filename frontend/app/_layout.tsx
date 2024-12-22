@@ -1,11 +1,7 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { Platform, AppState, StyleSheet, View } from "react-native";
-import {
-  QueryClient,
-  QueryClientProvider,
-  focusManager,
-} from "@tanstack/react-query";
+import { QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { PaperProvider } from "react-native-paper";
 import { useFonts } from "expo-font";
@@ -16,19 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { AuthGuard } from "@/src/features/auth/components/AuthGuard";
 import { AuthProvider } from "@/src/features/auth/context/AuthContext";
-
-// Initialize QueryClient
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 30,
-      refetchOnWindowFocus: Platform.OS === "web",
-      refetchOnReconnect: "always",
-    },
-  },
-});
+import { queryClient } from "@/src/lib/react-query/queryClient";
 
 focusManager.setEventListener((handleFocus) => {
   const subscription = AppState.addEventListener("change", (state) => {

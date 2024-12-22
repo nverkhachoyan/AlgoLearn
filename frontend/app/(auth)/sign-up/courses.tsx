@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "bold",
-    // fontFamily: "OpenSauceOne-SemiBold",
     textAlign: "left",
     marginTop: 70,
     marginBottom: 30,
@@ -132,7 +131,6 @@ const styles = StyleSheet.create({
   },
   description: {
     marginBottom: 20,
-    // fontFamily: "OpenSauceOne-Medium",
     fontSize: 16,
   },
   informative: {

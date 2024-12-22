@@ -17,9 +17,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
 import { AppTheme } from "@/constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SafeAreaView } from "react-native-safe-area-context";
 
-const TAB_BAR_HEIGHT = 20;
+const TAB_BAR_HEIGHT = Platform.select({ web: 60, default: 20 });
 const ICON_SIZE = 28;
 
 interface TabBarIconProps {
@@ -128,16 +127,36 @@ export default function TabLayout() {
   );
 
   const dynamicStyles = {
-    tabBar: {
-      paddingBottom: Math.max(insets.bottom, 2),
-      height: TAB_BAR_HEIGHT + insets.bottom,
-    },
+    tabBar: Platform.select({
+      web: {
+        height: TAB_BAR_HEIGHT,
+        position: "fixed" as const,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+      },
+      default: {
+        paddingBottom: Math.max(insets.bottom, 2),
+        height: TAB_BAR_HEIGHT + insets.bottom,
+      },
+    }),
   };
 
+  const containerStyle = Platform.select({
+    web: {
+      ...styles.container,
+      backgroundColor: theme.colors.background,
+      paddingBottom: TAB_BAR_HEIGHT,
+    },
+    default: {
+      ...styles.container,
+      backgroundColor: theme.colors.background,
+    },
+  });
+
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <View style={containerStyle}>
       <Tabs
         screenOptions={{
           headerShown: useClientOnlyValue(false, true),
@@ -150,13 +169,9 @@ export default function TabLayout() {
           tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
           tabBarStyle: {
             backgroundColor: theme.colors.surfaceVariant,
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
             ...dynamicStyles.tabBar,
-            borderTopStartRadius: 16,
-            borderTopEndRadius: 16,
+            borderTopStartRadius: Platform.OS === "web" ? 0 : 16,
+            borderTopEndRadius: Platform.OS === "web" ? 0 : 16,
             shadowColor: theme.colors.shadow,
             shadowOffset: Platform.select({
               ios: {
@@ -167,9 +182,12 @@ export default function TabLayout() {
                 width: 0,
                 height: 2,
               },
+              web: {
+                width: 0,
+                height: -2,
+              },
             }),
             shadowOpacity: 0.5,
-
             shadowRadius: 8,
             elevation: Platform.OS === "android" ? 10 : 0,
             borderTopWidth: 0,
@@ -178,7 +196,11 @@ export default function TabLayout() {
             <View
               style={[
                 styles.tabBarBackground,
-                { backgroundColor: theme.colors.surfaceVariant },
+                {
+                  backgroundColor: theme.colors.surfaceVariant,
+                  borderTopLeftRadius: Platform.OS === "web" ? 0 : 16,
+                  borderTopRightRadius: Platform.OS === "web" ? 0 : 16,
+                },
               ]}
             />
           ),
@@ -287,7 +309,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    marginTop: 10,
+    marginTop: Platform.OS === "web" ? 0 : 10,
     borderRadius: 8,
     minWidth: 44,
     minHeight: 44,
@@ -306,7 +328,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
   },
 });

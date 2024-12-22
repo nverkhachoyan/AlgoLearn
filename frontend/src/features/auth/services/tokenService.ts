@@ -1,13 +1,26 @@
 import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 const TOKEN_KEY = "auth_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
 class TokenService {
+  private isWeb = Platform.OS === "web";
+
   async getToken(): Promise<string | null> {
     try {
-      // Try SecureStore first
+      // On web, only use AsyncStorage
+      if (this.isWeb) {
+        const token = await AsyncStorage.getItem(TOKEN_KEY);
+        console.debug(
+          "[TokenService] Token from AsyncStorage (web):",
+          token ? "exists" : "null"
+        );
+        return token;
+      }
+
+      // For native platforms, try SecureStore first
       let token = await SecureStore.getItemAsync(TOKEN_KEY);
       console.debug(
         "[TokenService] Token from SecureStore:",
@@ -39,10 +52,18 @@ class TokenService {
 
   async setToken(token: string): Promise<void> {
     try {
+      // On web, only use AsyncStorage
+      if (this.isWeb) {
+        await AsyncStorage.setItem(TOKEN_KEY, token);
+        console.debug("[TokenService] Token saved to AsyncStorage (web)");
+        return;
+      }
+
+      // For native platforms, try SecureStore first
       await SecureStore.setItemAsync(TOKEN_KEY, token);
       console.debug("[TokenService] Token saved to SecureStore");
     } catch (error) {
-      console.error("[TokenService] Error saving token to SecureStore:", error);
+      console.error("[TokenService] Error saving token:", error);
       // Fallback to AsyncStorage if SecureStore fails
       try {
         await AsyncStorage.setItem(TOKEN_KEY, token);
@@ -59,7 +80,17 @@ class TokenService {
 
   async getRefreshToken(): Promise<string | null> {
     try {
-      // Try SecureStore first
+      // On web, only use AsyncStorage
+      if (this.isWeb) {
+        const refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+        console.debug(
+          "[TokenService] Refresh token from AsyncStorage (web):",
+          refreshToken ? "exists" : "null"
+        );
+        return refreshToken;
+      }
+
+      // For native platforms, try SecureStore first
       let refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
       console.debug(
         "[TokenService] Refresh token from SecureStore:",
@@ -93,6 +124,16 @@ class TokenService {
 
   async setRefreshToken(refreshToken: string): Promise<void> {
     try {
+      // On web, only use AsyncStorage
+      if (this.isWeb) {
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        console.debug(
+          "[TokenService] Refresh token saved to AsyncStorage (web)"
+        );
+        return;
+      }
+
+      // For native platforms, try SecureStore first
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
       console.debug("[TokenService] Refresh token saved to SecureStore");
     } catch (error) {
@@ -119,13 +160,23 @@ class TokenService {
   async clearTokens(): Promise<void> {
     try {
       console.debug("[TokenService] Clearing tokens...");
-      await Promise.all([
-        SecureStore.deleteItemAsync(TOKEN_KEY),
-        SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
-        AsyncStorage.removeItem(TOKEN_KEY),
-        AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
-      ]);
-      console.debug("[TokenService] Tokens cleared from both storages");
+      if (this.isWeb) {
+        // On web, only clear AsyncStorage
+        await Promise.all([
+          AsyncStorage.removeItem(TOKEN_KEY),
+          AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+        ]);
+        console.debug("[TokenService] Tokens cleared from AsyncStorage (web)");
+      } else {
+        // For native platforms, clear both storages
+        await Promise.all([
+          SecureStore.deleteItemAsync(TOKEN_KEY),
+          SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
+          AsyncStorage.removeItem(TOKEN_KEY),
+          AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+        ]);
+        console.debug("[TokenService] Tokens cleared from both storages");
+      }
     } catch (error) {
       console.error("[TokenService] Error clearing tokens:", error);
       throw error;

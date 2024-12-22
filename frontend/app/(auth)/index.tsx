@@ -15,7 +15,6 @@ import {
 import { useRouter } from "expo-router";
 import Button from "@/src/components/common/Button";
 import { Feather } from "@expo/vector-icons";
-import { useUser } from "@/src/features/user/hooks/useUser";
 import { useTheme } from "react-native-paper";
 import useToast from "@/src/hooks/useToast";
 import { Colors } from "@/constants/Colors";

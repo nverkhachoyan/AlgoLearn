@@ -1,4 +1,4 @@
-import api from "@/src/lib/api/client";
+import api from "@/src/features/auth/setup";
 import axios from "axios";
 import { AxiosResponse } from "axios";
 

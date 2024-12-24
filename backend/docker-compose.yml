@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ${POSTGRES_DATA_DEVICE}/${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - algolearn-net
     healthcheck:
@@ -22,10 +22,6 @@ services:
 volumes:
   postgres-data:
     driver: local
-    driver_opts:
-      type: none
-      device: ${POSTGRES_DATA_DEVICE}
-      o: bind
 
 networks:
   algolearn-net: {}

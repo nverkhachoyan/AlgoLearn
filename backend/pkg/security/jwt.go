@@ -77,6 +77,12 @@ func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error)
 	})
 
 	if err != nil {
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				log.Debug("Token is expired")
+				return nil, errors.New("token is expired")
+			}
+		}
 		log.WithError(err).Error("Failed to parse token")
 		return nil, err
 	}
@@ -88,8 +94,8 @@ func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error)
 
 	// Check if token is too old (prevent refresh token reuse)
 	if time.Unix(claims.IssuedAt, 0).Add(maxExpiry).Before(time.Now()) {
-		log.Error("Token is too old")
-		return nil, errors.New("token is too old")
+		log.Error("Token has exceeded maximum lifetime")
+		return nil, errors.New("token has exceeded maximum lifetime")
 	}
 
 	log.Debug("Successfully validated token for user ID:", claims.UserID)

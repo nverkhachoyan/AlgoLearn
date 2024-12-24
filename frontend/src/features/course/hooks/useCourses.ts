@@ -4,7 +4,8 @@ import {
   listCoursesProgress,
   getCourseProgress,
   startCourse,
-  restartCourse,
+  resetCourseProgress,
+  searchCourses,
 } from "@/src/features/course/api";
 import {
   useInfiniteQuery,
@@ -84,14 +85,12 @@ interface CourseParams {
 }
 
 // Hook for getting a single course (public or with progress)
-export const useCourse = ({
-  courseId,
-  isAuthenticated = false,
-}: CourseParams) => {
+export const useCourse = ({ courseId, isAuthenticated }: CourseParams) => {
   const queryKey = isAuthenticated
     ? ["course", courseId, "progress"]
     : ["course", courseId];
 
+  console.log("isAuthenticated", isAuthenticated);
   const queryResult = useQuery<Course>({
     queryKey,
     queryFn: async () => {
@@ -169,7 +168,7 @@ export const useStartCourse = (courseId: number) => {
 };
 
 // Hook for restarting a course
-export const useRestartCourse = (courseId: number) => {
+export const useResetCourseProgress = (courseId: number) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation<RestartCourseResponse, Error>({
@@ -179,7 +178,7 @@ export const useRestartCourse = (courseId: number) => {
       }
 
       try {
-        const { data } = await restartCourse(courseId);
+        const { data } = await resetCourseProgress(courseId);
         if (!data.success) {
           throw new Error(data.message || "Failed to restart course");
         }
@@ -198,10 +197,74 @@ export const useRestartCourse = (courseId: number) => {
   });
 
   return {
-    restartCourse: mutation.mutateAsync,
+    resetCourseProgress: mutation.mutateAsync,
     isLoading: mutation.isPending,
     isSuccess: mutation.isSuccess,
     error: mutation.error,
     data: mutation.data,
+  };
+};
+
+interface SearchCoursesParams {
+  query: string;
+  pageSize: number;
+  useFullText?: boolean;
+}
+
+// Hook for searching courses
+export const useSearchCourses = ({
+  query,
+  pageSize,
+  useFullText = false,
+}: SearchCoursesParams) => {
+  const queryResult = useInfiniteQuery<PaginatedPayload<Course>>({
+    queryKey: ["courses", "search", query, useFullText],
+    queryFn: async ({ pageParam = 1 }) => {
+      if (!query.trim()) {
+        return {
+          items: [] as Course[],
+          pagination: {
+            totalItems: 0,
+            pageSize,
+            currentPage: pageParam as number,
+            totalPages: 0,
+          },
+        };
+      }
+
+      try {
+        const { data } = await searchCourses({
+          q: query,
+          page: pageParam as number,
+          pageSize,
+          fulltext: useFullText,
+        });
+
+        if (!data.payload) {
+          throw new Error("No data received");
+        }
+
+        return handleResponse(data);
+      } catch (error) {
+        throw new Error(handleApiError(error));
+      }
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.currentPage < lastPage.pagination.totalPages
+        ? lastPage.pagination.currentPage + 1
+        : undefined,
+    initialPageParam: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: Boolean(query.trim()), // Only run the query if there's a search term
+  });
+
+  return {
+    courses: queryResult.data?.pages.flatMap((page) => page.items) ?? [],
+    totalItems: queryResult.data?.pages[0]?.pagination.totalItems ?? 0,
+    fetchNextPage: queryResult.fetchNextPage,
+    hasNextPage: queryResult.hasNextPage,
+    isFetchingNextPage: queryResult.isFetchingNextPage,
+    isLoading: queryResult.isPending,
+    error: queryResult.error,
   };
 };

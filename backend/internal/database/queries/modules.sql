@@ -11,8 +11,7 @@ SELECT jsonb_build_object(
     'status', COALESCE(ump.status, 'uninitiated'::module_progress_status),
     'startedAt', ump.started_at,
     'completedAt', ump.completed_at,
-    'lastAccessed', ump.last_accessed,
-    'currentSectionId', ump.current_section_id
+    'lastAccessed', ump.last_accessed
 ) as module
 FROM modules m
 LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = @user_id::int
@@ -28,6 +27,11 @@ WITH section_content AS (
                 SELECT jsonb_build_object('text', text_content)
                 FROM text_sections ts
                 WHERE ts.section_id = s.id
+            )
+            WHEN 'markdown' THEN (
+                SELECT jsonb_build_object('markdown', markdown)
+                FROM markdown_sections ms
+                WHERE ms.section_id = s.id
             )
             WHEN 'video' THEN (
                 SELECT jsonb_build_object('url', url)
@@ -64,8 +68,9 @@ WITH section_content AS (
                         FROM question_sections qs2
                         LEFT JOIN user_module_progress ump ON ump.module_id = @module_id::int AND ump.user_id = @user_id::int
                         LEFT JOIN user_question_answers uqa ON uqa.user_module_progress_id = ump.id 
-                            AND uqa.question_id = qs2.question_id
+                            AND uqa.question_id = q.id
                         WHERE qs2.section_id = s.id
+                        LIMIT 1
                     )
                 )
                 FROM question_sections qs
@@ -144,9 +149,6 @@ RETURNING *;
 -- name: DeleteModule :exec
 DELETE FROM modules WHERE id = @module_id::int;
 
--- name: SaveModuleProgress :exec
-SELECT save_module_progress(@user_id::int, @module_id::int, @sections::jsonb, @questions::jsonb);
-
 -- name: GetModulesList :many
 SELECT 
     m.*,
@@ -164,3 +166,223 @@ WHERE m.unit_id = @unit_id::int
 ORDER BY m.module_number
 LIMIT @page_size::int
 OFFSET @page_offset::int;
+
+-- name: GetLastModuleNumber :one
+SELECT COALESCE(MAX(module_number), 0) as last_number
+FROM modules
+WHERE
+    unit_id = @unit_id::int;
+
+-- name: InsertModule :one
+INSERT INTO
+    modules (
+        module_number,
+        unit_id,
+        name,
+        description
+    )
+VALUES ($1, $2, $3, $4) RETURNING *;
+
+-- name: InsertSection :one
+INSERT INTO
+    sections (module_id, type, position)
+VALUES ($1, $2, $3) RETURNING *;
+
+-- name: InsertTextSection :exec
+INSERT INTO
+    text_sections (section_id, text_content)
+VALUES ($1, $2);
+
+-- name: InsertVideoSection :exec
+INSERT INTO video_sections (section_id, url) VALUES ($1, $2);
+
+-- name: InsertQuestion :one
+INSERT INTO
+    questions (
+        type,
+        question,
+        difficulty_level
+    )
+VALUES ($1, $2, $3) RETURNING *;
+
+-- name: InsertQuestionSection :exec
+INSERT INTO
+    question_sections (section_id, question_id)
+VALUES ($1, $2);
+
+-- name: InsertQuestionOption :exec
+INSERT INTO
+    question_options (
+        question_id,
+        content,
+        is_correct
+    )
+VALUES ($1, $2, $3);
+
+-- name: InsertTag :one
+INSERT INTO
+    tags (name)
+VALUES ($1) ON CONFLICT (name) DO
+UPDATE
+SET
+    name = EXCLUDED.name RETURNING id;
+
+-- name: InsertQuestionTag :exec
+INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2);
+
+-- name: GetCourseAndUnitIDs :one
+SELECT u.course_id, m.unit_id
+FROM modules m
+    JOIN units u ON m.unit_id = u.id
+WHERE
+    m.id = $1;
+
+-- name: UpsertUserModuleProgress :one
+INSERT INTO user_module_progress (
+    user_id,
+    module_id,
+    status,
+    progress
+)
+VALUES (
+    $1,
+    $2,
+    'in_progress',
+    COALESCE($3, 0)
+)
+ON CONFLICT (user_id, module_id)
+DO UPDATE SET
+    progress = COALESCE($3, user_module_progress.progress),
+    status = CASE
+        WHEN $3 >= 100 THEN 'completed'::module_progress_status
+        ELSE 'in_progress'::module_progress_status
+    END,
+    completed_at = CASE
+        WHEN $3 >= 100 THEN NOW()
+        ELSE NULL
+    END,
+    updated_at = NOW()
+RETURNING id;
+
+-- name: UpsertSectionProgress :exec
+INSERT INTO
+    user_section_progress (
+        user_id,
+        module_id,
+        section_id,
+        has_seen,
+        seen_at
+    )
+VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, section_id) DO
+UPDATE
+SET
+    has_seen = EXCLUDED.has_seen,
+    seen_at = EXCLUDED.seen_at;
+
+-- name: UpsertQuestionAnswer :exec
+INSERT INTO
+    user_question_answers (
+        user_module_progress_id,
+        question_id,
+        option_id,
+        is_correct,
+        answered_at
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        COALESCE($5, NOW())
+    ) ON CONFLICT (
+        user_module_progress_id,
+        question_id
+    ) DO
+UPDATE
+SET
+    option_id = EXCLUDED.option_id,
+    is_correct = EXCLUDED.is_correct,
+    answered_at = EXCLUDED.answered_at,
+    updated_at = NOW();
+
+-- name: CalculateModuleProgress :one
+SELECT
+    CASE
+        WHEN COUNT(*) = 0 THEN 0::float
+        ELSE (
+            COUNT(CASE
+                WHEN s.type = 'question' THEN
+                    CASE WHEN uqa.is_correct THEN 1 END
+                ELSE
+                    CASE WHEN usp.has_seen THEN 1 END
+            END)::FLOAT / COUNT(*)::FLOAT
+        ) * 100
+    END as progress
+FROM sections s
+LEFT JOIN user_section_progress usp
+    ON usp.section_id = s.id
+    AND usp.user_id = $1
+LEFT JOIN question_sections qs
+    ON s.id = qs.section_id
+LEFT JOIN user_question_answers uqa
+    ON qs.question_id = uqa.question_id
+    AND uqa.user_module_progress_id = $2
+WHERE s.module_id = $3;
+
+-- name: CalculateCourseProgress :one
+SELECT
+    CASE
+        WHEN COUNT(*) = 0 THEN 0::float
+        ELSE (
+            COUNT(CASE WHEN ump.status = 'completed' THEN 1 END)::FLOAT /
+            COUNT(*)::FLOAT
+        ) * 100
+    END as progress
+FROM modules m
+JOIN units u ON m.unit_id = u.id
+LEFT JOIN user_module_progress ump
+    ON ump.module_id = m.id
+    AND ump.user_id = $1
+WHERE u.course_id = $2;
+
+-- name: UpsertUserCourse :exec
+INSERT INTO
+    user_courses (user_id, course_id, progress)
+VALUES ($1, $2, $3) ON CONFLICT (user_id, course_id) DO
+UPDATE
+SET
+    progress = EXCLUDED.progress,
+    updated_at = NOW();
+
+-- name: GetCurrentUnitAndModule :one
+WITH latest_module_progress AS (
+    SELECT 
+        ump.module_id,
+        ump.updated_at
+    FROM user_module_progress ump
+    JOIN modules m ON m.id = ump.module_id
+    JOIN units u ON u.id = m.unit_id
+    WHERE ump.user_id = $1 
+    AND u.course_id = $2
+    ORDER BY ump.updated_at DESC NULLS LAST
+    LIMIT 1
+)
+SELECT
+    u.id as unit_id,
+    u.created_at as unit_created_at,
+    u.updated_at as unit_updated_at,
+    u.name as unit_name,
+    u.description as unit_description,
+    u.unit_number as unit_number,
+    m.id as module_id,
+    m.created_at as module_created_at,
+    m.updated_at as module_updated_at,
+    m.name as module_name,
+    m.description as module_description,
+    m.module_number as module_number,
+    COALESCE(ump.progress, 0) as module_progress,
+    COALESCE(ump.status, 'uninitiated'::module_progress_status) as module_status
+FROM latest_module_progress lmp
+JOIN modules m ON m.id = lmp.module_id
+JOIN units u ON u.id = m.unit_id
+LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1;

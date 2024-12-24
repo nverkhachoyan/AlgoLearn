@@ -9,9 +9,11 @@ import { useTheme } from "react-native-paper";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useUser } from "@/src/features/user/hooks/useUser";
 import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function Feed() {
-  const { isAuthenticated, user } = useUser();
+  const { user } = useUser();
+  const { isAuthenticated } = useAuth();
   const { colors }: { colors: Colors } = useTheme();
 
   const feedItems = [

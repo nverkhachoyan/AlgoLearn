@@ -277,7 +277,19 @@ func (h *userHandler) RefreshToken(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, models.Response{
 			Success:   false,
 			ErrorCode: httperr.InvalidToken,
-			Message:   "Invalid refresh token",
+			Message:   "Invalid or expired refresh token",
+		})
+		return
+	}
+
+	// Get user data
+	user, err := h.repo.GetUserByID(c.Request.Context(), claims.UserID)
+	if err != nil {
+		log.WithError(err).Error("Failed to get user data during token refresh")
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.AccountNotFound,
+			Message:   "User account not found",
 		})
 		return
 	}
@@ -312,6 +324,7 @@ func (h *userHandler) RefreshToken(c *gin.Context) {
 		Payload: models.AuthResponse{
 			Token:        accessToken,
 			RefreshToken: newRefreshToken,
+			User:         *user,
 		},
 	})
 }

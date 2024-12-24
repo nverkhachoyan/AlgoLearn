@@ -9,12 +9,11 @@ CREATE TABLE user_module_progress (
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
     progress FLOAT NOT NULL DEFAULT 0.0,
-    current_section_id INTEGER,
+    current_section_number INTEGER,
     last_accessed TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     status module_progress_status NOT NULL DEFAULT 'in_progress',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE,
-    FOREIGN KEY (current_section_id) REFERENCES sections (id) ON DELETE SET NULL,
     CONSTRAINT check_progress_range CHECK (
         progress >= 0.0
         AND progress <= 100.0
@@ -27,15 +26,9 @@ CREATE TABLE user_courses (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     user_id INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
-    current_unit_id INTEGER,
-    current_module_id INTEGER,
-    latest_module_progress_id INTEGER,
     progress FLOAT NOT NULL DEFAULT 0.0,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE,
-    FOREIGN KEY (current_unit_id) REFERENCES units (id) ON DELETE SET NULL,
-    FOREIGN KEY (current_module_id) REFERENCES modules (id) ON DELETE SET NULL,
-    FOREIGN KEY (latest_module_progress_id) REFERENCES user_module_progress (id) ON DELETE SET NULL
+    FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_section_progress (

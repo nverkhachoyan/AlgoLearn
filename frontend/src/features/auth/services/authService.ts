@@ -56,3 +56,9 @@ export const checkEmailExists = async (
 ): Promise<AxiosResponse<ApiResponse<EmailCheckResponse>>> => {
   return api.get(`/users/check-email?email=${encodeURIComponent(email)}`);
 };
+
+export const refreshToken = async (
+  refreshToken: string
+): Promise<AxiosResponse<ApiResponse<AuthResponse>>> => {
+  return api.post("/users/refresh-token", { refreshToken });
+};

@@ -7,9 +7,77 @@ package gen
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 )
+
+const calculateCourseProgress = `-- name: CalculateCourseProgress :one
+SELECT
+    CASE
+        WHEN COUNT(*) = 0 THEN 0::float
+        ELSE (
+            COUNT(CASE WHEN ump.status = 'completed' THEN 1 END)::FLOAT /
+            COUNT(*)::FLOAT
+        ) * 100
+    END as progress
+FROM modules m
+JOIN units u ON m.unit_id = u.id
+LEFT JOIN user_module_progress ump
+    ON ump.module_id = m.id
+    AND ump.user_id = $1
+WHERE u.course_id = $2
+`
+
+type CalculateCourseProgressParams struct {
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
+}
+
+func (q *Queries) CalculateCourseProgress(ctx context.Context, arg CalculateCourseProgressParams) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, calculateCourseProgress, arg.UserID, arg.CourseID)
+	var progress interface{}
+	err := row.Scan(&progress)
+	return progress, err
+}
+
+const calculateModuleProgress = `-- name: CalculateModuleProgress :one
+SELECT
+    CASE
+        WHEN COUNT(*) = 0 THEN 0::float
+        ELSE (
+            COUNT(CASE
+                WHEN s.type = 'question' THEN
+                    CASE WHEN uqa.is_correct THEN 1 END
+                ELSE
+                    CASE WHEN usp.has_seen THEN 1 END
+            END)::FLOAT / COUNT(*)::FLOAT
+        ) * 100
+    END as progress
+FROM sections s
+LEFT JOIN user_section_progress usp
+    ON usp.section_id = s.id
+    AND usp.user_id = $1
+LEFT JOIN question_sections qs
+    ON s.id = qs.section_id
+LEFT JOIN user_question_answers uqa
+    ON qs.question_id = uqa.question_id
+    AND uqa.user_module_progress_id = $2
+WHERE s.module_id = $3
+`
+
+type CalculateModuleProgressParams struct {
+	UserID               int32 `json:"userId"`
+	UserModuleProgressID int32 `json:"userModuleProgressId"`
+	ModuleID             int32 `json:"moduleId"`
+}
+
+func (q *Queries) CalculateModuleProgress(ctx context.Context, arg CalculateModuleProgressParams) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, calculateModuleProgress, arg.UserID, arg.UserModuleProgressID, arg.ModuleID)
+	var progress interface{}
+	err := row.Scan(&progress)
+	return progress, err
+}
 
 const createModule = `-- name: CreateModule :one
 WITH new_module AS (
@@ -61,6 +129,118 @@ func (q *Queries) DeleteModule(ctx context.Context, moduleID int32) error {
 	return err
 }
 
+const getCourseAndUnitIDs = `-- name: GetCourseAndUnitIDs :one
+SELECT u.course_id, m.unit_id
+FROM modules m
+    JOIN units u ON m.unit_id = u.id
+WHERE
+    m.id = $1
+`
+
+type GetCourseAndUnitIDsRow struct {
+	CourseID int32 `json:"courseId"`
+	UnitID   int32 `json:"unitId"`
+}
+
+func (q *Queries) GetCourseAndUnitIDs(ctx context.Context, id int32) (GetCourseAndUnitIDsRow, error) {
+	row := q.db.QueryRowContext(ctx, getCourseAndUnitIDs, id)
+	var i GetCourseAndUnitIDsRow
+	err := row.Scan(&i.CourseID, &i.UnitID)
+	return i, err
+}
+
+const getCurrentUnitAndModule = `-- name: GetCurrentUnitAndModule :one
+WITH latest_module_progress AS (
+    SELECT 
+        ump.module_id,
+        ump.updated_at
+    FROM user_module_progress ump
+    JOIN modules m ON m.id = ump.module_id
+    JOIN units u ON u.id = m.unit_id
+    WHERE ump.user_id = $1 
+    AND u.course_id = $2
+    ORDER BY ump.updated_at DESC NULLS LAST
+    LIMIT 1
+)
+SELECT
+    u.id as unit_id,
+    u.created_at as unit_created_at,
+    u.updated_at as unit_updated_at,
+    u.name as unit_name,
+    u.description as unit_description,
+    u.unit_number as unit_number,
+    m.id as module_id,
+    m.created_at as module_created_at,
+    m.updated_at as module_updated_at,
+    m.name as module_name,
+    m.description as module_description,
+    m.module_number as module_number,
+    COALESCE(ump.progress, 0) as module_progress,
+    COALESCE(ump.status, 'uninitiated'::module_progress_status) as module_status
+FROM latest_module_progress lmp
+JOIN modules m ON m.id = lmp.module_id
+JOIN units u ON u.id = m.unit_id
+LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1
+`
+
+type GetCurrentUnitAndModuleParams struct {
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
+}
+
+type GetCurrentUnitAndModuleRow struct {
+	UnitID            int32                `json:"unitId"`
+	UnitCreatedAt     time.Time            `json:"unitCreatedAt"`
+	UnitUpdatedAt     time.Time            `json:"unitUpdatedAt"`
+	UnitName          string               `json:"unitName"`
+	UnitDescription   string               `json:"unitDescription"`
+	UnitNumber        int32                `json:"unitNumber"`
+	ModuleID          int32                `json:"moduleId"`
+	ModuleCreatedAt   time.Time            `json:"moduleCreatedAt"`
+	ModuleUpdatedAt   time.Time            `json:"moduleUpdatedAt"`
+	ModuleName        string               `json:"moduleName"`
+	ModuleDescription string               `json:"moduleDescription"`
+	ModuleNumber      int32                `json:"moduleNumber"`
+	ModuleProgress    float64              `json:"moduleProgress"`
+	ModuleStatus      ModuleProgressStatus `json:"moduleStatus"`
+}
+
+func (q *Queries) GetCurrentUnitAndModule(ctx context.Context, arg GetCurrentUnitAndModuleParams) (GetCurrentUnitAndModuleRow, error) {
+	row := q.db.QueryRowContext(ctx, getCurrentUnitAndModule, arg.UserID, arg.CourseID)
+	var i GetCurrentUnitAndModuleRow
+	err := row.Scan(
+		&i.UnitID,
+		&i.UnitCreatedAt,
+		&i.UnitUpdatedAt,
+		&i.UnitName,
+		&i.UnitDescription,
+		&i.UnitNumber,
+		&i.ModuleID,
+		&i.ModuleCreatedAt,
+		&i.ModuleUpdatedAt,
+		&i.ModuleName,
+		&i.ModuleDescription,
+		&i.ModuleNumber,
+		&i.ModuleProgress,
+		&i.ModuleStatus,
+	)
+	return i, err
+}
+
+const getLastModuleNumber = `-- name: GetLastModuleNumber :one
+SELECT COALESCE(MAX(module_number), 0) as last_number
+FROM modules
+WHERE
+    unit_id = $1::int
+`
+
+func (q *Queries) GetLastModuleNumber(ctx context.Context, unitID int32) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getLastModuleNumber, unitID)
+	var last_number interface{}
+	err := row.Scan(&last_number)
+	return last_number, err
+}
+
 const getModuleTotalCount = `-- name: GetModuleTotalCount :one
 SELECT COUNT(*) FROM modules WHERE unit_id = $1::int
 `
@@ -85,8 +265,7 @@ SELECT jsonb_build_object(
     'status', COALESCE(ump.status, 'uninitiated'::module_progress_status),
     'startedAt', ump.started_at,
     'completedAt', ump.completed_at,
-    'lastAccessed', ump.last_accessed,
-    'currentSectionId', ump.current_section_id
+    'lastAccessed', ump.last_accessed
 ) as module
 FROM modules m
 LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1::int
@@ -260,6 +439,11 @@ WITH section_content AS (
                 FROM text_sections ts
                 WHERE ts.section_id = s.id
             )
+            WHEN 'markdown' THEN (
+                SELECT jsonb_build_object('markdown', markdown)
+                FROM markdown_sections ms
+                WHERE ms.section_id = s.id
+            )
             WHEN 'video' THEN (
                 SELECT jsonb_build_object('url', url)
                 FROM video_sections vs
@@ -295,8 +479,9 @@ WITH section_content AS (
                         FROM question_sections qs2
                         LEFT JOIN user_module_progress ump ON ump.module_id = $1::int AND ump.user_id = $2::int
                         LEFT JOIN user_question_answers uqa ON uqa.user_module_progress_id = ump.id 
-                            AND uqa.question_id = qs2.question_id
+                            AND uqa.question_id = q.id
                         WHERE qs2.section_id = s.id
+                        LIMIT 1
                     )
                 )
                 FROM question_sections qs
@@ -364,24 +549,194 @@ func (q *Queries) GetSingleModuleSections(ctx context.Context, arg GetSingleModu
 	return items, nil
 }
 
-const saveModuleProgress = `-- name: SaveModuleProgress :exec
-SELECT save_module_progress($1::int, $2::int, $3::jsonb, $4::jsonb)
+const insertModule = `-- name: InsertModule :one
+INSERT INTO
+    modules (
+        module_number,
+        unit_id,
+        name,
+        description
+    )
+VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at, module_number, unit_id, name, description
 `
 
-type SaveModuleProgressParams struct {
-	UserID    int32           `json:"userId"`
-	ModuleID  int32           `json:"moduleId"`
-	Sections  json.RawMessage `json:"sections"`
-	Questions json.RawMessage `json:"questions"`
+type InsertModuleParams struct {
+	ModuleNumber int32  `json:"moduleNumber"`
+	UnitID       int32  `json:"unitId"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
 }
 
-func (q *Queries) SaveModuleProgress(ctx context.Context, arg SaveModuleProgressParams) error {
-	_, err := q.db.ExecContext(ctx, saveModuleProgress,
-		arg.UserID,
-		arg.ModuleID,
-		arg.Sections,
-		arg.Questions,
+func (q *Queries) InsertModule(ctx context.Context, arg InsertModuleParams) (Module, error) {
+	row := q.db.QueryRowContext(ctx, insertModule,
+		arg.ModuleNumber,
+		arg.UnitID,
+		arg.Name,
+		arg.Description,
 	)
+	var i Module
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ModuleNumber,
+		&i.UnitID,
+		&i.Name,
+		&i.Description,
+	)
+	return i, err
+}
+
+const insertQuestion = `-- name: InsertQuestion :one
+INSERT INTO
+    questions (
+        type,
+        question,
+        difficulty_level
+    )
+VALUES ($1, $2, $3) RETURNING id, created_at, updated_at, type, question, difficulty_level
+`
+
+type InsertQuestionParams struct {
+	Type            string              `json:"type"`
+	Question        string              `json:"question"`
+	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
+}
+
+func (q *Queries) InsertQuestion(ctx context.Context, arg InsertQuestionParams) (Question, error) {
+	row := q.db.QueryRowContext(ctx, insertQuestion, arg.Type, arg.Question, arg.DifficultyLevel)
+	var i Question
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Type,
+		&i.Question,
+		&i.DifficultyLevel,
+	)
+	return i, err
+}
+
+const insertQuestionOption = `-- name: InsertQuestionOption :exec
+INSERT INTO
+    question_options (
+        question_id,
+        content,
+        is_correct
+    )
+VALUES ($1, $2, $3)
+`
+
+type InsertQuestionOptionParams struct {
+	QuestionID int32  `json:"questionId"`
+	Content    string `json:"content"`
+	IsCorrect  bool   `json:"isCorrect"`
+}
+
+func (q *Queries) InsertQuestionOption(ctx context.Context, arg InsertQuestionOptionParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuestionOption, arg.QuestionID, arg.Content, arg.IsCorrect)
+	return err
+}
+
+const insertQuestionSection = `-- name: InsertQuestionSection :exec
+INSERT INTO
+    question_sections (section_id, question_id)
+VALUES ($1, $2)
+`
+
+type InsertQuestionSectionParams struct {
+	SectionID  int32 `json:"sectionId"`
+	QuestionID int32 `json:"questionId"`
+}
+
+func (q *Queries) InsertQuestionSection(ctx context.Context, arg InsertQuestionSectionParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuestionSection, arg.SectionID, arg.QuestionID)
+	return err
+}
+
+const insertQuestionTag = `-- name: InsertQuestionTag :exec
+INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2)
+`
+
+type InsertQuestionTagParams struct {
+	QuestionID int32 `json:"questionId"`
+	TagID      int32 `json:"tagId"`
+}
+
+func (q *Queries) InsertQuestionTag(ctx context.Context, arg InsertQuestionTagParams) error {
+	_, err := q.db.ExecContext(ctx, insertQuestionTag, arg.QuestionID, arg.TagID)
+	return err
+}
+
+const insertSection = `-- name: InsertSection :one
+INSERT INTO
+    sections (module_id, type, position)
+VALUES ($1, $2, $3) RETURNING id, created_at, updated_at, module_id, type, position
+`
+
+type InsertSectionParams struct {
+	ModuleID int32  `json:"moduleId"`
+	Type     string `json:"type"`
+	Position int32  `json:"position"`
+}
+
+func (q *Queries) InsertSection(ctx context.Context, arg InsertSectionParams) (Section, error) {
+	row := q.db.QueryRowContext(ctx, insertSection, arg.ModuleID, arg.Type, arg.Position)
+	var i Section
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ModuleID,
+		&i.Type,
+		&i.Position,
+	)
+	return i, err
+}
+
+const insertTag = `-- name: InsertTag :one
+INSERT INTO
+    tags (name)
+VALUES ($1) ON CONFLICT (name) DO
+UPDATE
+SET
+    name = EXCLUDED.name RETURNING id
+`
+
+func (q *Queries) InsertTag(ctx context.Context, name string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, insertTag, name)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const insertTextSection = `-- name: InsertTextSection :exec
+INSERT INTO
+    text_sections (section_id, text_content)
+VALUES ($1, $2)
+`
+
+type InsertTextSectionParams struct {
+	SectionID   int32  `json:"sectionId"`
+	TextContent string `json:"textContent"`
+}
+
+func (q *Queries) InsertTextSection(ctx context.Context, arg InsertTextSectionParams) error {
+	_, err := q.db.ExecContext(ctx, insertTextSection, arg.SectionID, arg.TextContent)
+	return err
+}
+
+const insertVideoSection = `-- name: InsertVideoSection :exec
+INSERT INTO video_sections (section_id, url) VALUES ($1, $2)
+`
+
+type InsertVideoSectionParams struct {
+	SectionID int32  `json:"sectionId"`
+	Url       string `json:"url"`
+}
+
+func (q *Queries) InsertVideoSection(ctx context.Context, arg InsertVideoSectionParams) error {
+	_, err := q.db.ExecContext(ctx, insertVideoSection, arg.SectionID, arg.Url)
 	return err
 }
 
@@ -414,4 +769,147 @@ func (q *Queries) UpdateModule(ctx context.Context, arg UpdateModuleParams) (Mod
 		&i.Description,
 	)
 	return i, err
+}
+
+const upsertQuestionAnswer = `-- name: UpsertQuestionAnswer :exec
+INSERT INTO
+    user_question_answers (
+        user_module_progress_id,
+        question_id,
+        option_id,
+        is_correct,
+        answered_at
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        COALESCE($5, NOW())
+    ) ON CONFLICT (
+        user_module_progress_id,
+        question_id
+    ) DO
+UPDATE
+SET
+    option_id = EXCLUDED.option_id,
+    is_correct = EXCLUDED.is_correct,
+    answered_at = EXCLUDED.answered_at,
+    updated_at = NOW()
+`
+
+type UpsertQuestionAnswerParams struct {
+	UserModuleProgressID int32       `json:"userModuleProgressId"`
+	QuestionID           int32       `json:"questionId"`
+	OptionID             int32       `json:"optionId"`
+	IsCorrect            bool        `json:"isCorrect"`
+	Column5              interface{} `json:"column5"`
+}
+
+func (q *Queries) UpsertQuestionAnswer(ctx context.Context, arg UpsertQuestionAnswerParams) error {
+	_, err := q.db.ExecContext(ctx, upsertQuestionAnswer,
+		arg.UserModuleProgressID,
+		arg.QuestionID,
+		arg.OptionID,
+		arg.IsCorrect,
+		arg.Column5,
+	)
+	return err
+}
+
+const upsertSectionProgress = `-- name: UpsertSectionProgress :exec
+INSERT INTO
+    user_section_progress (
+        user_id,
+        module_id,
+        section_id,
+        has_seen,
+        seen_at
+    )
+VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, section_id) DO
+UPDATE
+SET
+    has_seen = EXCLUDED.has_seen,
+    seen_at = EXCLUDED.seen_at
+`
+
+type UpsertSectionProgressParams struct {
+	UserID    int32        `json:"userId"`
+	ModuleID  int32        `json:"moduleId"`
+	SectionID int32        `json:"sectionId"`
+	HasSeen   bool         `json:"hasSeen"`
+	SeenAt    sql.NullTime `json:"seenAt"`
+}
+
+func (q *Queries) UpsertSectionProgress(ctx context.Context, arg UpsertSectionProgressParams) error {
+	_, err := q.db.ExecContext(ctx, upsertSectionProgress,
+		arg.UserID,
+		arg.ModuleID,
+		arg.SectionID,
+		arg.HasSeen,
+		arg.SeenAt,
+	)
+	return err
+}
+
+const upsertUserCourse = `-- name: UpsertUserCourse :exec
+INSERT INTO
+    user_courses (user_id, course_id, progress)
+VALUES ($1, $2, $3) ON CONFLICT (user_id, course_id) DO
+UPDATE
+SET
+    progress = EXCLUDED.progress,
+    updated_at = NOW()
+`
+
+type UpsertUserCourseParams struct {
+	UserID   int32   `json:"userId"`
+	CourseID int32   `json:"courseId"`
+	Progress float64 `json:"progress"`
+}
+
+func (q *Queries) UpsertUserCourse(ctx context.Context, arg UpsertUserCourseParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserCourse, arg.UserID, arg.CourseID, arg.Progress)
+	return err
+}
+
+const upsertUserModuleProgress = `-- name: UpsertUserModuleProgress :one
+INSERT INTO user_module_progress (
+    user_id,
+    module_id,
+    status,
+    progress
+)
+VALUES (
+    $1,
+    $2,
+    'in_progress',
+    COALESCE($3, 0)
+)
+ON CONFLICT (user_id, module_id)
+DO UPDATE SET
+    progress = COALESCE($3, user_module_progress.progress),
+    status = CASE
+        WHEN $3 >= 100 THEN 'completed'::module_progress_status
+        ELSE 'in_progress'::module_progress_status
+    END,
+    completed_at = CASE
+        WHEN $3 >= 100 THEN NOW()
+        ELSE NULL
+    END,
+    updated_at = NOW()
+RETURNING id
+`
+
+type UpsertUserModuleProgressParams struct {
+	UserID   int32       `json:"userId"`
+	ModuleID int32       `json:"moduleId"`
+	Column3  interface{} `json:"column3"`
+}
+
+func (q *Queries) UpsertUserModuleProgress(ctx context.Context, arg UpsertUserModuleProgressParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, upsertUserModuleProgress, arg.UserID, arg.ModuleID, arg.Column3)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }

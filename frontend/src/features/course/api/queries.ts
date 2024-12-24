@@ -6,6 +6,11 @@ interface PaginationParams {
   pageSize: number;
 }
 
+interface SearchCoursesParams extends PaginationParams {
+  q: string;
+  fulltext?: boolean;
+}
+
 interface CourseProgressParams extends PaginationParams {
   page: number;
   pageSize: number;
@@ -20,6 +25,22 @@ export const listCourses = async ({
     params: {
       page,
       pageSize,
+    },
+  });
+};
+
+export const searchCourses = async ({
+  q,
+  page,
+  pageSize,
+  fulltext = false,
+}: SearchCoursesParams): Promise<AxiosResponse> => {
+  return api.get(`/courses/search`, {
+    params: {
+      q,
+      page,
+      pageSize,
+      fulltext,
     },
   });
 };
@@ -51,8 +72,8 @@ export const startCourse = async (courseId: number): Promise<AxiosResponse> => {
   return api.post(`/courses/${courseId}/start`);
 };
 
-export const restartCourse = async (
+export const resetCourseProgress = async (
   courseId: number
 ): Promise<AxiosResponse> => {
-  return api.post(`/courses/${courseId}/restart`);
+  return api.post(`/courses/${courseId}/reset`);
 };

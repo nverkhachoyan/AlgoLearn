@@ -15,7 +15,6 @@ import LottieView from "lottie-react-native";
 import { useTheme } from "react-native-paper";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 import { Colors } from "@/constants/Colors";
-import CustomErrorBoundary from "@/src/components/ErrorBoundary";
 
 // Breakpoints for responsive design
 const BREAKPOINTS = {
@@ -93,71 +92,69 @@ export default function Welcome() {
   }
 
   return (
-    <CustomErrorBoundary>
-      <View
-        style={[
-          styles.backgroundContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <View style={[styles.container, responsiveStyles.container]}>
-          <View style={styles.middleContent}>
-            <View style={responsiveStyles.logoContainer}>
-              <LottieView
-                autoPlay={true}
-                loop={false}
-                ref={animation}
-                style={[styles.logo, responsiveStyles.logo]}
-                source={require("@/assets/lotties/AlgoLearnLogo.json")}
-                resizeMode="contain"
-              />
-            </View>
-            <View style={styles.textContainer}>
-              <Text
-                style={[
-                  styles.title,
-                  { color: colors.onSurface },
-                  responsiveStyles.title,
-                ]}
-              >
-                Master programming with bite-sized content
-              </Text>
-              <Text
-                style={[
-                  styles.subtitle,
-                  { color: colors.onSurface },
-                  responsiveStyles.subtitle,
-                ]}
-              >
-                Learn programming at your own pace with lessons that are{" "}
-                <Text style={styles.italic}>fun</Text> and{" "}
-                <Text style={styles.italic}>rewarding</Text>.
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.buttonContainer, responsiveStyles.button]}>
-            <Button
-              title="Get Started"
-              onPress={() => {
-                if (isMounted) {
-                  router.push("/(auth)");
-                }
-              }}
-              icon={{ name: "arrow-right", position: "right" }}
-              iconStyle={{
-                position: "absolute",
-                right: 12,
-                color: colors.inverseOnSurface,
-              }}
-              style={{
-                backgroundColor: colors.onBackground,
-              }}
-              textStyle={{ color: colors.inverseOnSurface }}
+    <View
+      style={[
+        styles.backgroundContainer,
+        { backgroundColor: colors.background },
+      ]}
+    >
+      <View style={[styles.container, responsiveStyles.container]}>
+        <View style={styles.middleContent}>
+          <View style={responsiveStyles.logoContainer}>
+            <LottieView
+              autoPlay={true}
+              loop={false}
+              ref={animation}
+              style={[styles.logo, responsiveStyles.logo]}
+              source={require("@/assets/lotties/AlgoLearnLogo.json")}
+              resizeMode="contain"
             />
           </View>
+          <View style={styles.textContainer}>
+            <Text
+              style={[
+                styles.title,
+                { color: colors.onSurface },
+                responsiveStyles.title,
+              ]}
+            >
+              Master programming with bite-sized content
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                { color: colors.onSurface },
+                responsiveStyles.subtitle,
+              ]}
+            >
+              Learn programming at your own pace with lessons that are{" "}
+              <Text style={styles.italic}>fun</Text> and{" "}
+              <Text style={styles.italic}>rewarding</Text>.
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.buttonContainer, responsiveStyles.button]}>
+          <Button
+            title="Get Started"
+            onPress={() => {
+              if (isMounted) {
+                router.push("/(auth)");
+              }
+            }}
+            icon={{ name: "arrow-right", position: "right" }}
+            iconStyle={{
+              position: "absolute",
+              right: 12,
+              color: colors.inverseOnSurface,
+            }}
+            style={{
+              backgroundColor: colors.onBackground,
+            }}
+            textStyle={{ color: colors.inverseOnSurface }}
+          />
         </View>
       </View>
-    </CustomErrorBoundary>
+    </View>
   );
 }
 

@@ -42,7 +42,7 @@ export function StickyHeader(props: {
               router.back();
             }
           }}
-          style={styles.logoContainer}
+          style={[styles.headerItem, styles.logoContainer]}
         >
           <LottieView
             autoPlay={true}
@@ -53,29 +53,28 @@ export function StickyHeader(props: {
             resizeMode="contain"
           />
         </TouchableOpacity>
-        <View style={styles.rightSection}>
-          <View style={styles.headerItem}>
-            <Feather name="cpu" size={24} color="#1CC0CB" />
-            <Text style={{ color: colors.onSurface }}>{props.cpus}</Text>
-          </View>
-          <View style={styles.headerItem}>
-            <Feather name="zap" size={24} color="#1CC0CB" />
-            <Text style={{ color: colors.onBackground }}>
-              {props.strikeCount}
-            </Text>
-          </View>
 
-          <TouchableOpacity
-            onPress={props.onAvatarPress}
-            style={styles.headerItem}
-          >
-            {props.userAvatar ? (
-              <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
-            ) : (
-              <Feather name="user" size={24} color={colors.onSurface} />
-            )}
-          </TouchableOpacity>
+        <View style={styles.headerItem}>
+          <Feather name="cpu" size={24} color="#1CC0CB" />
+          <Text style={{ color: colors.onSurface }}>{props.cpus}</Text>
         </View>
+        <View style={styles.headerItem}>
+          <Feather name="zap" size={24} color="#1CC0CB" />
+          <Text style={{ color: colors.onBackground }}>
+            {props.strikeCount}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={props.onAvatarPress}
+          style={styles.headerItem}
+        >
+          {props.userAvatar ? (
+            <Image source={{ uri: props.userAvatar }} style={styles.avatar} />
+          ) : (
+            <Feather name="user" size={24} color={colors.onSurface} />
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -156,11 +155,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: Platform.OS === "web" ? 20 : 12,
-    maxWidth: Platform.OS === "web" ? 1200 : undefined,
-    marginHorizontal: Platform.OS === "web" ? "auto" : undefined,
+    // maxWidth: Platform.OS === "web" ? 1200 : undefined,
+    marginHorizontal: Platform.OS === "web" ? 10 : undefined,
     ...(Platform.OS === "web"
       ? { justifyContent: "space-between" }
-      : { justifyContent: "space-around" }),
+      : { justifyContent: "space-between" }),
   },
   goBackContent: {
     justifyContent: "flex-start",
@@ -174,14 +173,12 @@ const styles = StyleSheet.create({
   headerItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Platform.OS === "web" ? 10 : 6,
-    minWidth: Platform.OS === "web" ? undefined : 45,
+    gap: Platform.OS === "web" ? 8 : 6,
   },
   logoContainer: {
     height: 36,
     justifyContent: "center",
     alignItems: "center",
-    ...(Platform.OS === "web" ? {} : { marginLeft: -8 }), // Adjust logo position on mobile
   },
   logo: {
     width: 36,

@@ -11,17 +11,18 @@ const apiWithForm = axios.create({
 });
 
 export const fetchUser = async (token: string): Promise<AxiosResponse> => {
+  if (!token) {
+    throw new Error("No token provided");
+  }
+
   try {
-    const response = await api.get("/users/me", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await api.get("/users/me");
     return response;
   } catch (error) {
     if (error instanceof AxiosError) {
       const errorCode = error.response?.data?.errorCode;
       if (errorCode === "ACCOUNT_NOT_FOUND" || errorCode === "UNAUTHORIZED") {
+        console.debug("[User API] Auth error:", errorCode);
         await AuthEvents.handleAuthFailure(error);
       }
     }

@@ -2,6 +2,10 @@ export interface TextContent {
   text: string;
 }
 
+export interface MarkdownContent {
+  markdown: string;
+}
+
 export interface VideoContent {
   url: string;
 }
@@ -51,9 +55,9 @@ export interface Section {
   id: number;
   createdAt: string;
   updatedAt: string;
-  type: "text" | "video" | "question" | "code";
+  type: "text" | "video" | "question" | "code" | "markdown";
   position: number;
-  content: TextContent | VideoContent | QuestionContent;
+  content: TextContent | VideoContent | QuestionContent | MarkdownContent;
   sectionProgress?: SectionProgress;
 }
 
@@ -73,6 +77,12 @@ export function isTextSection(
   section: Section
 ): section is Section & { content: TextContent } {
   return section.type === "text";
+}
+
+export function isMarkdownSection(
+  section: Section
+): section is Section & { content: MarkdownContent } {
+  return section.type === "markdown";
 }
 
 export function isCodeSection(

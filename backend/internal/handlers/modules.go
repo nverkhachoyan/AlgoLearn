@@ -39,8 +39,6 @@ func NewModuleHandler(moduleRepo service.ModuleService,
 	}
 }
 
-// GetModuleWithProgress handles GET /modules/:moduleId/progress
-// Returns details of a module with user's progress information
 func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "GetModuleWithProgress")
 	ctx := c.Request.Context()
@@ -105,8 +103,6 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	})
 }
 
-// CreateModule handles POST /modules
-// Creates a new module in a unit
 func (h *moduleHandler) CreateModule(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "CreateModule")
 	ctx := c.Request.Context()
@@ -141,8 +137,13 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 		return
 	}
 
-	var module models.Module
-	if err := json.NewDecoder(c.Request.Body).Decode(&module); err != nil {
+	var moduleRequest struct {
+		Name        string           `json:"name"`
+		Description string           `json:"description"`
+		Sections    []models.Section `json:"sections"`
+	}
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&moduleRequest); err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
 			ErrorCode: httperr.InvalidJson,
@@ -151,17 +152,50 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 		return
 	}
 
-	if err := module.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InvalidFormData,
-			Message:   "validation error: " + err.Error(),
+	if len(moduleRequest.Sections) > 0 {
+		positions := make(map[int16]bool)
+		for _, section := range moduleRequest.Sections {
+			if section.Position < 0 {
+				c.JSON(http.StatusBadRequest, models.Response{
+					Success:   false,
+					ErrorCode: httperr.InvalidFormData,
+					Message:   "section position must be positive",
+				})
+				return
+			}
+
+			if positions[section.Position] {
+				c.JSON(http.StatusBadRequest, models.Response{
+					Success:   false,
+					ErrorCode: httperr.InvalidFormData,
+					Message:   "duplicate section position",
+				})
+				return
+			}
+			positions[section.Position] = true
+		}
+
+		createdModule, err := h.moduleRepo.CreateModuleWithContent(ctx, unitID, moduleRequest.Name, moduleRequest.Description, moduleRequest.Sections)
+		if err != nil {
+			log.WithError(err).Error("error creating module with content")
+			c.JSON(http.StatusInternalServerError, models.Response{
+				Success:   false,
+				ErrorCode: httperr.DatabaseFail,
+				Message:   "internal server error while creating module",
+			})
+			return
+		}
+
+		c.JSON(http.StatusCreated, models.Response{
+			Success: true,
+			Message: "module created successfully",
+			Payload: createdModule,
 		})
 		return
 	}
 
-	module.ModuleUnitID = unitID
-	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, module.Name, module.Description)
+	// Create module without sections
+	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, moduleRequest.Name, moduleRequest.Description)
 	if err != nil {
 		log.WithError(err).Error("error creating module")
 		c.JSON(http.StatusInternalServerError, models.Response{
@@ -179,8 +213,6 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	})
 }
 
-// UpdateModule handles PUT /modules/:moduleId
-// Updates an existing module
 func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "UpdateModule")
 	ctx := c.Request.Context()
@@ -251,8 +283,6 @@ func (h *moduleHandler) UpdateModule(c *gin.Context) {
 	})
 }
 
-// DeleteModule handles DELETE /modules/:moduleId
-// Deletes an existing module
 func (h *moduleHandler) DeleteModule(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "DeleteModule")
 	ctx := c.Request.Context()
@@ -309,8 +339,6 @@ func (h *moduleHandler) DeleteModule(c *gin.Context) {
 	c.JSON(http.StatusNoContent, nil)
 }
 
-// UpdateModuleProgress handles POST /modules/:moduleId/progress
-// Updates the progress of a user in a module
 func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "UpdateModuleProgress")
 	ctx := c.Request.Context()
@@ -370,8 +398,6 @@ func (h *moduleHandler) UpdateModuleProgress(c *gin.Context) {
 	})
 }
 
-// GetModules handles GET /modules
-// Returns a paginated list of modules for a unit
 func (h *moduleHandler) GetModules(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "GetModules")
 	ctx := c.Request.Context()
@@ -458,19 +484,17 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 func (h *moduleHandler) RegisterRoutes(r *gin.RouterGroup) {
 	basePath := "/courses/:courseId/units/:unitId/modules"
 
-	// Public routes
 	modules := r.Group(basePath)
 	{
-		modules.GET("", h.GetModules) // GET /modules
+		modules.GET("", h.GetModules)
 	}
 
-	// Protected routes
 	authorized := modules.Group("", middleware.Auth())
 	{
-		authorized.GET("/:moduleId", h.GetModuleWithProgress)         // GET /modules/:moduleId
-		authorized.POST("", h.CreateModule)                           // POST /modules
-		authorized.PUT("/:moduleId", h.UpdateModule)                  // PUT /modules/:moduleId
-		authorized.DELETE("/:moduleId", h.DeleteModule)               // DELETE /modules/:moduleId
-		authorized.PUT("/:moduleId/progress", h.UpdateModuleProgress) // PUT /modules/:moduleId/progress
+		authorized.GET("/:moduleId", h.GetModuleWithProgress)
+		authorized.POST("", h.CreateModule)
+		authorized.PUT("/:moduleId", h.UpdateModule)
+		authorized.DELETE("/:moduleId", h.DeleteModule)
+		authorized.PUT("/:moduleId/progress", h.UpdateModuleProgress)
 	}
 }

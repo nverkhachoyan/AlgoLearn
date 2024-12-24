@@ -32,6 +32,7 @@ type Course struct {
 	Rating          float64         `json:"rating"`
 	CurrentUnit     *Unit           `json:"currentUnit"`
 	CurrentModule   *Module         `json:"currentModule"`
+	Progress        float64         `json:"progress"`
 	Units           []*Unit         `json:"units"`
 }
 

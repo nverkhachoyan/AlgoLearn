@@ -4,7 +4,7 @@ export default function Layout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="toc" />
+      <Stack.Screen name="toc" options={{ presentation: "modal" }} />
     </Stack>
   );
 }

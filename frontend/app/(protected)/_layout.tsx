@@ -1,24 +1,10 @@
-import { Stack, router } from "expo-router";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { ActivityIndicator, View } from "react-native";
+import { Stack } from "expo-router";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "react-native-paper";
 
 export default function ProtectedLayout() {
-  const { isAuthenticated, isLoading, userError } = useUser();
   const { colors } = useTheme();
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -30,7 +16,9 @@ export default function ProtectedLayout() {
         }}
       />
       <SafeAreaView edges={["left", "right"]} style={{ flex: 1 }}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <View style={{ flex: 1, backgroundColor: "#333333" }}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </View>
       </SafeAreaView>
       <SafeAreaView
         edges={["bottom"]}

@@ -1,28 +1,24 @@
-import { type FallbackProps } from "react-error-boundary";
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import Button from "./common/Button";
-import useTheme from "../hooks/useTheme";
+import { useTheme } from "react-native-paper";
 import { useEffect } from "react";
 import useToast from "@/src/hooks/useToast";
 
-export function DefaultFallback({ error, resetErrorBoundary }: FallbackProps) {
+export function DefaultFallback({ error, resetErrorBoundary }: any) {
   const { colors } = useTheme();
 
   return (
     <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.secondaryBackground },
-      ]}
+      style={[styles.container, { backgroundColor: colors.secondaryContainer }]}
     >
       <Text style={styles.title}>Oops!</Text>
       <Text style={styles.message}>{error.message}</Text>
       <Button
         title="Try again"
         onPress={resetErrorBoundary}
-        style={{ backgroundColor: colors.buttonBackground }}
-        textStyle={{ color: colors.buttonText }}
+        style={{ backgroundColor: colors.onBackground }}
+        textStyle={{ color: colors.onBackground }}
       />
     </View>
   );

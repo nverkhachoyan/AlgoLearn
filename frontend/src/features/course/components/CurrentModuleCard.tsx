@@ -2,21 +2,26 @@ import { StyleSheet } from "react-native";
 import { Card, Divider, Text as PaperText } from "react-native-paper";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
+import { Course } from "../types/types";
 
 export default function CurrentModuleCard({
   course,
-  userId,
   isPressed,
   onPressIn,
   onPressOut,
-}: any) {
+}: {
+  course: Course;
+  isPressed: boolean;
+  onPressIn: () => void;
+  onPressOut: () => void;
+}) {
   return (
     <Card
       onPress={() =>
-        router.push({
+        router.replace({
           pathname: "/(protected)/course/[courseId]/module/[moduleId]",
           params: {
-            courseId: course.courseID,
+            courseId: course.id,
             unitId: course.currentUnit?.id,
             moduleId: course.currentModule?.id as number,
           },
@@ -55,9 +60,10 @@ export default function CurrentModuleCard({
             router.push({
               pathname: "/(protected)/course/[courseId]/module/[moduleId]",
               params: {
-                courseId: course.courseID,
+                courseId: course.id,
                 unitId: course.currentUnit?.id,
                 moduleId: course.currentModule?.id as number,
+                hasProgress: "true",
               },
             });
           }}
@@ -80,6 +86,7 @@ const styles = StyleSheet.create({
     width: "90%",
     marginVertical: 10,
     alignSelf: "center",
+    marginBottom: 30,
   },
   cardDivider: {
     backgroundColor: "#E8E8E8",

@@ -181,6 +181,11 @@ type CourseTag struct {
 	TagID    int32 `json:"tagId"`
 }
 
+type MarkdownSection struct {
+	SectionID int32  `json:"sectionId"`
+	Markdown  string `json:"markdown"`
+}
+
 type Module struct {
 	ID           int32     `json:"id"`
 	CreatedAt    time.Time `json:"createdAt"`
@@ -303,29 +308,26 @@ type UserAchievement struct {
 }
 
 type UserCourse struct {
-	ID                     int32         `json:"id"`
-	CreatedAt              time.Time     `json:"createdAt"`
-	UpdatedAt              time.Time     `json:"updatedAt"`
-	UserID                 int32         `json:"userId"`
-	CourseID               int32         `json:"courseId"`
-	CurrentUnitID          sql.NullInt32 `json:"currentUnitId"`
-	CurrentModuleID        sql.NullInt32 `json:"currentModuleId"`
-	LatestModuleProgressID sql.NullInt32 `json:"latestModuleProgressId"`
-	Progress               float64       `json:"progress"`
+	ID        int32     `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	UserID    int32     `json:"userId"`
+	CourseID  int32     `json:"courseId"`
+	Progress  float64   `json:"progress"`
 }
 
 type UserModuleProgress struct {
-	ID               int32                `json:"id"`
-	CreatedAt        time.Time            `json:"createdAt"`
-	UpdatedAt        time.Time            `json:"updatedAt"`
-	UserID           int32                `json:"userId"`
-	ModuleID         int32                `json:"moduleId"`
-	StartedAt        time.Time            `json:"startedAt"`
-	CompletedAt      sql.NullTime         `json:"completedAt"`
-	Progress         float64              `json:"progress"`
-	CurrentSectionID sql.NullInt32        `json:"currentSectionId"`
-	LastAccessed     time.Time            `json:"lastAccessed"`
-	Status           ModuleProgressStatus `json:"status"`
+	ID                   int32                `json:"id"`
+	CreatedAt            time.Time            `json:"createdAt"`
+	UpdatedAt            time.Time            `json:"updatedAt"`
+	UserID               int32                `json:"userId"`
+	ModuleID             int32                `json:"moduleId"`
+	StartedAt            time.Time            `json:"startedAt"`
+	CompletedAt          sql.NullTime         `json:"completedAt"`
+	Progress             float64              `json:"progress"`
+	CurrentSectionNumber sql.NullInt32        `json:"currentSectionNumber"`
+	LastAccessed         time.Time            `json:"lastAccessed"`
+	Status               ModuleProgressStatus `json:"status"`
 }
 
 type UserPreference struct {

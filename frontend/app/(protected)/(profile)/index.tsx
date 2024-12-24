@@ -16,7 +16,8 @@ import { useAuth } from "@/src/features/auth/context/AuthContext";
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
-  const { isAuthenticated, user, userError } = useUser();
+  const { user, error } = useUser();
+  const { isAuthenticated } = useAuth();
   const { signOut } = useAuth();
   const { colors } = useTheme();
 
@@ -26,10 +27,10 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    if (userError) {
-      console.log("Error while fetching user", userError.message);
+    if (error) {
+      console.log("Error while fetching user", error.message);
     }
-  }, [user, userError]);
+  }, [error]);
 
   if (!isAuthenticated || !user) {
     return <Text>Not logged in</Text>;

@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { Course } from "@/src/features/course/types";
@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
   courseDescriptionContainer: {
     justifyContent: "space-between",
     marginHorizontal: 20,
+    marginVertical: Platform.OS === "web" ? 20 : 0,
   },
   courseInfoTitleContainer: {
     flexDirection: "row",

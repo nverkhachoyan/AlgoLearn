@@ -21,25 +21,29 @@ type ModulePayload struct {
 
 type Module struct {
 	BaseModel
-	ModuleNumber     int16              `json:"moduleNumber"`
-	ModuleUnitID     int64              `json:"moduleUnitId"`
-	Name             string             `json:"name"`
-	Description      string             `json:"description"`
-	Progress         float32            `json:"progress"`
-	Status           string             `json:"status"`
-	StartedAt        time.Time          `json:"startedAt"`
-	CompletedAt      time.Time          `json:"completedAt,omitempty"`
-	LastAccessed     time.Time          `json:"lastAccessed"`
-	CurrentSectionID int32              `json:"currentSectionId,omitempty"`
-	Sections         []SectionInterface `json:"sections"`
+	ModuleNumber         int16              `json:"moduleNumber"`
+	Name                 string             `json:"name"`
+	Description          string             `json:"description"`
+	Progress             float32            `json:"progress"`
+	Status               string             `json:"status"`
+	StartedAt            time.Time          `json:"startedAt"`
+	CompletedAt          time.Time          `json:"completedAt,omitempty"`
+	LastAccessed         time.Time          `json:"lastAccessed"`
+	CurrentSectionNumber int32              `json:"currentSectionNumber,omitempty"`
+	Sections             []SectionInterface `json:"sections"`
 }
 
 func (m *Module) UnmarshalJSON(data []byte) error {
 	type TempModule struct {
 		BaseModel
-		ModuleUnitID int64             `json:"unitId"`
+		ModuleNumber int16             `json:"moduleNumber"`
 		Name         string            `json:"name"`
 		Description  string            `json:"description"`
+		Progress     float32           `json:"progress"`
+		Status       string            `json:"status"`
+		StartedAt    time.Time         `json:"startedAt"`
+		CompletedAt  time.Time         `json:"completedAt,omitempty"`
+		LastAccessed time.Time         `json:"lastAccessed"`
 		Sections     []json.RawMessage `json:"sections"`
 	}
 
@@ -49,9 +53,14 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 	}
 
 	m.BaseModel = temp.BaseModel
-	m.ModuleUnitID = temp.ModuleUnitID
+	m.ModuleNumber = temp.ModuleNumber
 	m.Name = temp.Name
 	m.Description = temp.Description
+	m.Progress = temp.Progress
+	m.Status = temp.Status
+	m.StartedAt = temp.StartedAt
+	m.CompletedAt = temp.CompletedAt
+	m.LastAccessed = temp.LastAccessed
 
 	m.Sections = make([]SectionInterface, 0, len(temp.Sections))
 	for _, rawSection := range temp.Sections {
@@ -80,6 +89,12 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 			var s QuestionSection
 			if err := json.Unmarshal(rawSection, &s); err != nil {
 				return fmt.Errorf("failed to unmarshal question section: %w", err)
+			}
+			section = &s
+		case "markdown":
+			var s MarkdownSection
+			if err := json.Unmarshal(rawSection, &s); err != nil {
+				return fmt.Errorf("failed to unmarshal markdown section: %w", err)
 			}
 			section = &s
 		default:
@@ -112,7 +127,6 @@ func (m *Module) Validate() error {
 type SectionInterface interface {
 	GetType() string
 	GetPosition() int16
-	GetModuleID() int64
 }
 
 type SectionProgress struct {
@@ -144,6 +158,10 @@ type TextContent struct {
 	Text string `json:"text"`
 }
 
+type MarkdownContent struct {
+	Markdown string `json:"markdown"`
+}
+
 type VideoContent struct {
 	URL string `json:"url"`
 }
@@ -153,6 +171,7 @@ type QuestionContent struct {
 	Question           string      `json:"question"`
 	Type               string      `json:"type"`
 	Options            []Option    `json:"options"`
+	Tags               []string    `json:"tags"`
 	UserQuestionAnswer *UserAnswer `json:"userQuestionAnswer,omitempty"`
 }
 
@@ -202,14 +221,29 @@ func (s *Section) UnmarshalJSON(data []byte) error {
 	s.UpdatedAt = temp.UpdatedAt
 	s.Type = temp.Type
 	s.Position = temp.Position
-	s.Content = temp.Content
 	s.SectionProgress = temp.SectionProgress
-	s.Progress = temp.Progress.(json.RawMessage)
+
+	// Handle nil content
+	if temp.Content == nil {
+		s.Content = json.RawMessage("{}")
+	} else {
+		s.Content = temp.Content
+	}
+
+	// Handle nil progress
+	if temp.Progress == nil {
+		s.Progress = json.RawMessage("{}")
+	} else {
+		var err error
+		s.Progress, err = json.Marshal(temp.Progress)
+		if err != nil {
+			return fmt.Errorf("failed to marshal progress: %w", err)
+		}
+	}
 
 	return nil
 }
 
-func (s *Section) GetModuleID() int64 { return 0 }
 func (s *Section) GetType() string    { return s.Type }
 func (s *Section) GetPosition() int16 { return s.Position }
 
@@ -237,14 +271,20 @@ type QuestionSection struct {
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
-func (ts *TextSection) GetModuleID() int64     { return 0 }
-func (vs *VideoSection) GetModuleID() int64    { return 0 }
-func (qs *QuestionSection) GetModuleID() int64 { return 0 }
+type MarkdownSection struct {
+	BaseModel
+	Type            string           `json:"type"`
+	Position        int16            `json:"position"`
+	Content         MarkdownContent  `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress"`
+}
 
 func (ts *TextSection) GetType() string     { return ts.Type }
 func (vs *VideoSection) GetType() string    { return vs.Type }
 func (qs *QuestionSection) GetType() string { return qs.Type }
+func (ms *MarkdownSection) GetType() string { return ms.Type }
 
 func (ts *TextSection) GetPosition() int16     { return ts.Position }
 func (vs *VideoSection) GetPosition() int16    { return vs.Position }
 func (qs *QuestionSection) GetPosition() int16 { return qs.Position }
+func (ms *MarkdownSection) GetPosition() int16 { return ms.Position }

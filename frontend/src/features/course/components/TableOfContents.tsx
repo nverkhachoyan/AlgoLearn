@@ -10,6 +10,7 @@ import { List, Surface, Text } from "react-native-paper";
 import { Feather } from "@expo/vector-icons";
 import { View } from "react-native";
 import { Unit } from "@/src/features/course/types/units";
+import { router } from "expo-router";
 
 // Enable LayoutAnimation for Android
 if (
@@ -20,8 +21,8 @@ if (
 }
 
 interface TableOfContentsProps {
+  courseId: number;
   units: Unit[];
-  onModulePress?: (moduleId: number) => void;
 }
 
 const ANIMATION_DURATION = 200;
@@ -60,14 +61,18 @@ const ChevronIcon: React.FC<{ rotation: Animated.Value; color: string }> =
   });
 
 const ModuleItem: React.FC<{
+  courseId: number;
+  unitId: number;
   module: Unit["modules"][0];
   unitNumber: number;
   moduleNumber: number;
-  onPress: (moduleId: number) => void;
+  onPress: (courseId: number, unitId: number, moduleId: number) => void;
   backgroundColor: string;
   textColor: string;
 }> = React.memo(
   ({
+    courseId,
+    unitId,
     module,
     unitNumber,
     moduleNumber,
@@ -82,14 +87,14 @@ const ModuleItem: React.FC<{
       title={module.name}
       style={[styles.moduleItem, { backgroundColor }]}
       titleStyle={{ color: textColor }}
-      onPress={() => onPress(module.id)}
+      onPress={() => onPress(courseId, unitId, module.id)}
     />
   )
 );
 
 const TableOfContents: React.FC<TableOfContentsProps> = ({
+  courseId,
   units = [],
-  onModulePress,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<number>();
@@ -125,13 +130,20 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
     [expandedId, unitRotations]
   );
 
-  const handleModulePress = useCallback(
-    (moduleId: number) => {
-      onModulePress?.(moduleId);
-    },
-    [onModulePress]
-  );
-
+  const handleModulePress = (
+    courseId: number,
+    unitId: number,
+    moduleId: number
+  ) => {
+    router.replace({
+      pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+      params: {
+        courseId: courseId,
+        unitId: unitId,
+        moduleId: moduleId,
+      },
+    });
+  };
   const mainChevronStyle = useMemo(
     () => ({
       transform: [
@@ -186,6 +198,8 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
                   {unit.modules?.map((module) => (
                     <ModuleItem
                       key={module.id}
+                      courseId={courseId}
+                      unitId={unit.id}
                       module={module}
                       unitNumber={unit.unitNumber}
                       moduleNumber={module.moduleNumber}

@@ -7,9 +7,11 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useUser } from "@/src/features/user/hooks/useUser";
 import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function Leaderboard() {
-  const { isAuthenticated, user } = useUser();
+  const { user } = useUser();
+  const { isAuthenticated } = useAuth();
   const { colors }: { colors: Colors } = useTheme();
 
   function getRandomColor() {

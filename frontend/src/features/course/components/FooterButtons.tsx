@@ -1,73 +1,46 @@
-import { View, StyleSheet, ActivityIndicator, ViewStyle } from "react-native";
-import Button from "@/src/components/common/Button";
+import { StyleSheet, View, ViewStyle } from "react-native";
+import { Button } from "react-native-paper";
 import { Colors } from "@/constants/Colors";
 
 interface FooterButtonsProps {
   colors: Colors;
-  rightButton?: string;
-  leftButton?: string;
-  onStartCourse?: () => void;
-  onLeftButtonPress?: () => void;
+  rightButton: string;
+  onStartCourse: () => void;
   isLoading?: boolean;
 }
 
 export default function FooterButtons({
   colors,
   rightButton,
-  leftButton,
   onStartCourse,
-  onLeftButtonPress,
   isLoading,
 }: FooterButtonsProps) {
+  const buttonStyle: ViewStyle = {
+    ...styles.button,
+    backgroundColor: colors.primary,
+  };
+
   return (
-    <View style={[styles.footer, { backgroundColor: colors.background }]}>
-      {leftButton && (
-        <Button
-          title={leftButton}
-          style={
-            { ...styles.button, backgroundColor: colors.error } as ViewStyle
-          }
-          textStyle={{ color: colors.onError }}
-          onPress={onLeftButtonPress || (() => {})}
-          disabled={isLoading}
-        />
-      )}
-      {rightButton && (
-        <Button
-          title={rightButton}
-          style={
-            { ...styles.button, backgroundColor: colors.primary } as ViewStyle
-          }
-          textStyle={{ color: colors.onPrimary }}
-          onPress={onStartCourse || (() => {})}
-          disabled={isLoading}
-        />
-      )}
-      {isLoading && (
-        <ActivityIndicator
-          size="small"
-          color={colors.primary}
-          style={styles.loader}
-        />
-      )}
+    <View style={styles.container}>
+      <Button
+        mode="contained"
+        onPress={onStartCourse}
+        loading={isLoading}
+        style={buttonStyle}
+        labelStyle={{ color: colors.onPrimary }}
+        disabled={isLoading}
+      >
+        {rightButton}
+      </Button>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  footer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
+  container: {
+    width: "100%",
   },
   button: {
-    minWidth: 150,
-  },
-  loader: {
-    position: "absolute",
-    right: 24,
+    borderRadius: 8,
   },
 });

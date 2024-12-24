@@ -1,12 +1,27 @@
 import { useLocalSearchParams, router } from "expo-router";
-import { StyleSheet, View, ScrollView } from "react-native";
-import { Text, ActivityIndicator } from "react-native-paper";
-import { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Animated,
+  Button,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
+import {
+  Text,
+  ActivityIndicator,
+  Menu,
+  IconButton,
+  Portal,
+  RadioButton,
+} from "react-native-paper";
+import { useEffect, useState, useRef } from "react";
 import { useTheme } from "react-native-paper";
 import {
   useCourse,
   useStartCourse,
-  useRestartCourse,
+  useResetCourseProgress,
 } from "@/src/features/course/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import CourseHeader from "@/src/features/course/components/CourseHeader";
@@ -18,26 +33,28 @@ import { useUser } from "@/src/features/user/hooks/useUser";
 import { Colors } from "@/constants/Colors";
 import Loading from "@/src/components/common/Loading";
 import { Alert } from "react-native";
+import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function CourseDetails() {
-  const { courseId, hasProgress } = useLocalSearchParams();
+  const { courseId } = useLocalSearchParams();
   const { colors }: { colors: Colors } = useTheme();
   const { user } = useUser();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
-
-  const shouldFetchProgress = hasProgress === "true" && !!user;
-
+  const { isAuthenticated } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const rotationValue = useRef(new Animated.Value(0)).current;
   const { course, isLoading, error } = useCourse({
     courseId: parseInt(courseId as string),
-    isAuthenticated: shouldFetchProgress,
+    isAuthenticated: true,
   });
-
   const { startCourse, isLoading: isStartCourseLoading } = useStartCourse(
     parseInt(courseId as string)
   );
-  const { restartCourse, isLoading: isRestartLoading } = useRestartCourse(
-    parseInt(courseId as string)
-  );
+  const { resetCourseProgress, isLoading: isResetCourseProgressLoading } =
+    useResetCourseProgress(parseInt(courseId as string));
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= 1024;
+  const isMediumScreen = width >= 768 && width < 1024;
 
   const goToModule = ({
     courseId,
@@ -111,9 +128,12 @@ export default function CourseDetails() {
             moduleId: response.moduleId,
           });
         } else {
-          Alert.alert("Error", "Could not start the course. Please try again.");
+          router.dismissTo({
+            pathname: "/(protected)/(tabs)",
+          });
         }
       } catch (error) {
+        console.log("Failed to start the course", error);
         Alert.alert("Error", "Failed to start the course. Please try again.");
       }
     }
@@ -133,15 +153,10 @@ export default function CourseDetails() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await restartCourse();
+              const response = await resetCourseProgress();
               if (response?.success) {
-                // Refresh the page with progress after restart
-                router.replace({
-                  pathname: "/(protected)/course/[courseId]",
-                  params: {
-                    courseId: parseInt(courseId as string),
-                    hasProgress: "true",
-                  },
+                router.dismissTo({
+                  pathname: "/(protected)/(tabs)",
                 });
               }
             } catch (error) {
@@ -155,6 +170,35 @@ export default function CourseDetails() {
       ]
     );
   };
+
+  const startRotation = () => {
+    Animated.timing(rotationValue, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const stopRotation = () => {
+    Animated.timing(rotationValue, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  useEffect(() => {
+    if (menuVisible) {
+      startRotation();
+    } else {
+      stopRotation();
+    }
+  }, [menuVisible]);
+
+  const spin = rotationValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "90deg"],
+  });
 
   if (isLoading) {
     return <Loading />;
@@ -189,6 +233,7 @@ export default function CourseDetails() {
       >
         <Text style={{ fontSize: 20, fontWeight: "bold" }}>
           Course not found.
+          <IconButton icon="arrow-left" onPress={() => router.back()} />
         </Text>
       </View>
     );
@@ -196,73 +241,193 @@ export default function CourseDetails() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StickyHeader
-        cpus={user?.cpus || 0}
-        strikeCount={user?.strikeCount || 0}
-        userAvatar={user?.avatar}
-        onAvatarPress={() => user && router.push("/(protected)/(profile)")}
-      />
+      <View style={[styles.headerContainer, isLargeScreen && styles.webHeader]}>
+        <StickyHeader
+          cpus={user?.cpus || 0}
+          strikeCount={user?.strikeCount || 0}
+          userAvatar={user?.avatar}
+          onAvatarPress={() => user && router.push("/(protected)/(profile)")}
+        />
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.scrollView,
           { backgroundColor: colors.background },
+          isLargeScreen && styles.webScrollView,
+        ]}
+        style={[
+          styles.scrollViewContainer,
+          isLargeScreen && styles.webScrollViewContainer,
         ]}
       >
-        <View style={styles.container}>
+        <View
+          style={[
+            styles.content,
+            isLargeScreen && styles.webContent,
+            isMediumScreen && styles.tabletContent,
+          ]}
+        >
           <CourseHeader course={course} />
 
-          {shouldFetchProgress && course.currentModule && (
-            <CurrentModuleCard
-              course={course}
-              userId={user.id}
-              isPressed={isCurrentModulePressed}
-              onPressIn={() => setIsCurrentModulePressed(true)}
-              onPressOut={() => setIsCurrentModulePressed(false)}
-            />
-          )}
+          <View style={isLargeScreen ? styles.webLayout : styles.mobileLayout}>
+            <View
+              style={
+                isLargeScreen ? styles.webMainContent : styles.mobileMainContent
+              }
+            >
+              {isAuthenticated && course.currentModule && (
+                <CurrentModuleCard
+                  course={course}
+                  isPressed={isCurrentModulePressed}
+                  onPressIn={() => setIsCurrentModulePressed(true)}
+                  onPressOut={() => setIsCurrentModulePressed(false)}
+                />
+              )}
 
-          {course.units && <TableOfContents units={course.units} />}
+              <CourseInfo course={course} colors={colors} />
+            </View>
 
-          <View style={styles.separator} />
-
-          <CourseInfo course={course} colors={colors} />
+            <View
+              style={isLargeScreen ? styles.webSidebar : styles.mobileSidebar}
+            >
+              {course.units && (
+                <TableOfContents
+                  courseId={parseInt(courseId as string)}
+                  units={course.units}
+                />
+              )}
+            </View>
+          </View>
         </View>
       </ScrollView>
 
-      <FooterButtons
-        colors={colors}
-        rightButton={
-          shouldFetchProgress && course.currentModule
-            ? "Continue Course"
-            : "Start Course"
-        }
-        onStartCourse={handleStartCourse}
-        leftButton={
-          shouldFetchProgress && course.currentModule
-            ? "Restart Course"
-            : undefined
-        }
-        onLeftButtonPress={
-          shouldFetchProgress && course.currentModule
-            ? handleRestartCourse
-            : undefined
-        }
-        isLoading={isStartCourseLoading || isRestartLoading}
-      />
+      <View
+        style={[
+          styles.footerContainer,
+          { backgroundColor: colors.surface },
+          isLargeScreen && styles.webFooter,
+        ]}
+      >
+        {course.currentModule && (
+          <View>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              elevation={5}
+              anchor={
+                <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                  <IconButton
+                    icon="cog"
+                    size={24}
+                    onPress={() => setMenuVisible(!menuVisible)}
+                    style={styles.settingsButton}
+                    mode="contained"
+                  />
+                </Animated.View>
+              }
+              anchorPosition="top"
+              contentStyle={[
+                styles.menuContent,
+                { backgroundColor: colors.surface },
+              ]}
+            >
+              <Menu.Item
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleRestartCourse();
+                }}
+                title="Restart Course"
+                leadingIcon="restart"
+              />
+            </Menu>
+          </View>
+        )}
+        <View
+          style={[styles.mainButton, isLargeScreen && styles.webMainButton]}
+        >
+          <FooterButtons
+            colors={colors}
+            rightButton={
+              isAuthenticated && course.currentModule
+                ? "Continue Course"
+                : "Start Course"
+            }
+            onStartCourse={handleStartCourse}
+            isLoading={isStartCourseLoading || isResetCourseProgressLoading}
+          />
+        </View>
+      </View>
     </View>
   );
 }
 
+const HEADER_HEIGHT = 80;
+const MAX_CONTENT_WIDTH = 1200;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "flex-start",
-    gap: 10,
+  },
+  headerContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  webHeader: {
+    position: "fixed",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+  },
+  scrollViewContainer: {
+    flex: 1,
+    marginTop: HEADER_HEIGHT,
+  },
+  webScrollViewContainer: {
+    marginTop: HEADER_HEIGHT + 20,
   },
   scrollView: {
     flexGrow: 1,
-    justifyContent: "flex-start",
     paddingVertical: 15,
+    paddingHorizontal: Platform.OS === "web" ? 0 : 15,
+  },
+  webScrollView: {
+    alignItems: "center",
+  },
+  content: {
+    flex: 1,
+    gap: 20,
+    width: "100%",
+  },
+  webContent: {
+    maxWidth: MAX_CONTENT_WIDTH,
+    paddingHorizontal: 40,
+  },
+  tabletContent: {
+    maxWidth: "100%",
+    paddingHorizontal: 24,
+  },
+  webLayout: {
+    flexDirection: "row",
+    gap: 40,
+  },
+  mobileLayout: {
+    flexDirection: "column",
+    gap: 20,
+  },
+  webMainContent: {
+    flex: 2,
+  },
+  mobileMainContent: {
+    width: "100%",
+  },
+  webSidebar: {
+    flex: 1,
+    minWidth: 300,
+    maxWidth: 400,
+  },
+  mobileSidebar: {
+    width: "100%",
   },
   separator: {
     marginVertical: 10,
@@ -274,5 +439,39 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  footerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0, 0, 0, 0.1)",
+  },
+  webFooter: {
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+  },
+  settingsButton: {
+    marginRight: 8,
+  },
+  mainButton: {
+    flex: 1,
+  },
+  webMainButton: {
+    maxWidth: 300,
+    marginLeft: "auto",
+  },
+  menuContent: {
+    borderRadius: 8,
+    marginTop: -40,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 });

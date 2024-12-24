@@ -54,6 +54,12 @@ CREATE TABLE question_sections (
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
 
+CREATE TABLE markdown_sections (
+    section_id INTEGER PRIMARY KEY,
+    markdown TEXT NOT NULL,
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
+);
+
 CREATE TABLE module_questions (
     id SERIAL PRIMARY KEY,
     module_id INTEGER NOT NULL,

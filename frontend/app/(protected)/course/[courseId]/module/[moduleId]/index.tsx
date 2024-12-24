@@ -11,6 +11,7 @@ import { ModuleHeader } from "@/src/features/course/components/module-session/Mo
 import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
 import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProgressInit";
 import { Colors } from "@/constants/Colors";
+import useToast from "@/src/hooks/useToast";
 
 const SECTION_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 50,
@@ -19,8 +20,6 @@ const SECTION_VIEWABILITY_CONFIG = {
 
 const MESSAGES = {
   ERROR: "An error occurred while loading the module",
-  MODULE_COMPLETE: "Module Complete! Moving to next module...",
-  COURSE_COMPLETE: "Congratulations! You've completed the course!",
   COMPLETE_BUTTON: "Complete Module",
 } as const;
 
@@ -28,8 +27,6 @@ interface RouteParams extends Record<string, string | undefined> {
   courseId: string;
   unitId: string;
   moduleId: string;
-  userId: string;
-  hasProgress?: string;
 }
 
 export default function ModuleSession() {
@@ -37,12 +34,12 @@ export default function ModuleSession() {
   const { colors }: { colors: Colors } = useTheme();
   const params = useLocalSearchParams<RouteParams | any>();
   const [isCompleting, setIsCompleting] = useState(false);
+  const { showToast } = useToast();
   const ids = useMemo(
     () => ({
       courseId: Number(params.courseId),
       unitId: Number(params.unitId),
       moduleId: Number(params.moduleId),
-      userId: Number(params.userId),
     }),
     [params]
   );
@@ -74,12 +71,6 @@ export default function ModuleSession() {
       optionId: number | null,
       isCorrect: boolean | null
     ) => {
-      console.log("handleQuestionAnswer called with:", {
-        questionId,
-        optionId,
-        isCorrect,
-      });
-
       setModuleProgress((prev) => {
         const newQuestions = new Map(prev.questions);
         newQuestions.set(questionId, {
@@ -94,20 +85,6 @@ export default function ModuleSession() {
           ...prev,
           questions: newQuestions,
         };
-
-        console.log("New moduleProgress state:", {
-          questions: Array.from(newState.questions.entries()).map(
-            ([id, state]) => ({
-              id,
-              state: {
-                hasAnswered: state.hasAnswered,
-                optionId: state.optionId,
-                isCorrect: state.isCorrect,
-                answeredAt: state.answeredAt,
-              },
-            })
-          ),
-        });
 
         return newState;
       });
@@ -153,6 +130,15 @@ export default function ModuleSession() {
     const { sections, questions } = moduleProgress;
     const totalSections = sortedSections.length;
 
+    console.log(
+      "[Progress Debug] Sections Map:",
+      Array.from(sections.entries())
+    );
+    console.log(
+      "[Progress Debug] Questions Map:",
+      Array.from(questions.entries())
+    );
+
     const completedSections = sortedSections.map((section: any) => {
       const progress = sections.get(section.id);
       const hasSeen = Boolean(progress?.hasSeen);
@@ -160,6 +146,14 @@ export default function ModuleSession() {
       if (section.type === "question") {
         const questionState = questions.get(section.content.id);
         const isComplete = hasSeen && Boolean(questionState?.hasAnswered);
+
+        console.log("[Progress Debug] Question Section:", {
+          sectionId: section.id,
+          questionId: section.content.id,
+          hasSeen,
+          hasAnswered: Boolean(questionState?.hasAnswered),
+          isComplete,
+        });
 
         return {
           sectionId: section.id,
@@ -171,9 +165,17 @@ export default function ModuleSession() {
         };
       }
 
+      const isComplete = Boolean(progress?.hasSeen);
+
+      console.log("[Progress Debug] Regular Section:", {
+        sectionId: section.id,
+        hasSeen,
+        isComplete,
+      });
+
       return {
         sectionId: section.id,
-        isCompleted: Boolean(progress?.completedAt),
+        isCompleted: isComplete,
         requiresQuestion: false,
         hasSeen,
         isAnswered: null,
@@ -184,6 +186,16 @@ export default function ModuleSession() {
     const completedCount = completedSections.filter(
       (s: any) => s.isCompleted
     ).length;
+
+    console.log("[Progress Debug] Completion Stats:", {
+      completedCount,
+      totalSections,
+      completedSections: completedSections.map((s) => ({
+        id: s.sectionId,
+        completed: s.isCompleted,
+      })),
+    });
+
     const totalProgress =
       totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
 
@@ -211,37 +223,55 @@ export default function ModuleSession() {
 
   const handleModuleCompletion = useCallback(async () => {
     if (isCompleting) return;
-    setIsCompleting(true);
 
     try {
       const { questions, sections } = moduleProgress;
-      if (moduleProgress.sections.size !== 0) {
-        // Filter out questions where hasAnswered is false
-        const answeredQuestions = Array.from(questions, ([_, question]) => ({
-          ...question,
-        })).filter((question) => question.hasAnswered);
 
-        await completeModuleMutation.mutateAsync({
-          userId: ids.userId,
-          moduleId: ids.moduleId,
-          sections: Array.from(sections, ([_, section]) => ({ ...section })),
-          questions: answeredQuestions, // Use the filtered questions
-        });
+      if (sortedSections.length > 0) {
+        const unansweredQuestions = Array.from(questions.values()).filter(
+          (question) => !question.hasAnswered
+        );
+        const unseenSections = Array.from(sections.values()).filter(
+          (section) => !section.hasSeen
+        );
+
+        if (unansweredQuestions.length > 0) {
+          showToast(
+            "Please answer all questions before completing the module."
+          );
+          return;
+        }
+
+        if (unseenSections.length > 0) {
+          showToast("Please view all sections before completing the module.");
+          return;
+        }
       }
 
-      // Navigate to next module if available
-      if (hasNextModule) {
-        router.push({
+      setIsCompleting(true);
+
+      const answeredQuestions = Array.from(questions.values()).filter(
+        (question) => question.hasAnswered
+      );
+
+      const completedSections = Array.from(sections.values());
+
+      await completeModuleMutation.mutateAsync({
+        moduleId: ids.moduleId,
+        sections: completedSections,
+        questions: answeredQuestions,
+      });
+
+      if (hasNextModule && modulePayload?.nextModuleId) {
+        router.replace({
           pathname: "/(protected)/course/[courseId]/module/[moduleId]",
           params: {
             courseId: ids.courseId,
             unitId: ids.unitId,
-            moduleId: modulePayload?.nextModuleId ?? "",
-            userId: ids.userId,
+            moduleId: modulePayload.nextModuleId,
           },
         });
       } else {
-        // Handle course completion
         router.replace({
           pathname: "/(protected)/course/[courseId]",
           params: {
@@ -250,29 +280,23 @@ export default function ModuleSession() {
         });
       }
     } catch (error) {
-      console.error("Error completing module:", error);
-      // Handle error (show toast/alert)
+      showToast("Failed to save module progress. Please try again.");
     } finally {
       setIsCompleting(false);
     }
-  }, [moduleProgress, ids, router, completeModuleMutation]);
+  }, [
+    moduleProgress,
+    ids,
+    router,
+    completeModuleMutation,
+    hasNextModule,
+    modulePayload?.nextModuleId,
+    showToast,
+    sortedSections.length,
+  ]);
 
   const renderItem = useCallback(
     ({ item: section }: { item: Section }) => {
-      console.log(
-        "Rendering section:",
-        section.id,
-        "with questions state:",
-        Array.from(moduleProgress.questions.entries()).map(([id, state]) => ({
-          id,
-          state: {
-            hasAnswered: state.hasAnswered,
-            optionId: state.optionId,
-            isCorrect: state.isCorrect,
-          },
-        }))
-      );
-
       // Create a key that changes when the question state changes
       const questionKey = isQuestionSection(section)
         ? JSON.stringify(moduleProgress.questions.get(section.content.id))
@@ -346,6 +370,16 @@ export default function ModuleSession() {
       <ModuleFooter
         moduleName={modulePayload?.module?.name ?? ""}
         onNext={handleModuleCompletion}
+        onTOC={() =>
+          router.push({
+            pathname: "/(protected)/course/[courseId]/module/[moduleId]/toc",
+            params: {
+              courseId: ids.courseId,
+              unitId: ids.unitId,
+              moduleId: ids.moduleId,
+            },
+          })
+        }
         colors={colors}
       />
     </View>

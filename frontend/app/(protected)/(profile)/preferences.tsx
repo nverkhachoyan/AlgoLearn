@@ -39,7 +39,8 @@ interface UpdateUserData {
 }
 
 export default function Preferences() {
-  const { isAuthenticated, user, updateUser } = useUser();
+  const { user, updateUser } = useUser();
+  const { isAuthenticated } = useAuth();
   const { signOut } = useAuth();
   const { colors } = useTheme();
   const { showToast } = useToast();

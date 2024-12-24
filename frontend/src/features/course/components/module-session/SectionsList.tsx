@@ -6,12 +6,14 @@ import {
   isTextSection,
   isVideoSection,
   isCodeSection,
+  isMarkdownSection,
 } from "@/src/features/module/types/sections";
 import { QuestionSection } from "./QuestionSection";
 import { TextSection } from "./TextSection";
 import { CodeSection } from "./CodeSection";
 import { VideoSection } from "./VideoSection";
 import { QuestionProgress } from "@/src/features/module/types/sections";
+import { MarkdownSection } from "./MarkdownSection";
 
 interface SectionRendererProps {
   section: Section;
@@ -42,6 +44,16 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
       if (isTextSection(section)) {
         return (
           <TextSection
+            content={section.content}
+            position={section.position}
+            colors={colors}
+          />
+        );
+      }
+
+      if (isMarkdownSection(section)) {
+        return (
+          <MarkdownSection
             content={section.content}
             position={section.position}
             colors={colors}

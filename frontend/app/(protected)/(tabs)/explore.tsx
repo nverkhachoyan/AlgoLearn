@@ -1,23 +1,89 @@
-import { useState } from "react";
-import { StyleSheet, ScrollView, View } from "react-native";
+import { useState, useRef } from "react";
+import {
+  StyleSheet,
+  ScrollView,
+  View,
+  Animated,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
 import { Searchbar } from "react-native-paper";
 import { router } from "expo-router";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useTheme } from "react-native-paper";
-import { useCourses } from "@/src/features/course/hooks/useCourses";
+import {
+  useCourses,
+  useSearchCourses,
+} from "@/src/features/course/hooks/useCourses";
 import { useUser } from "@/src/features/user/hooks/useUser";
 import { CourseSection } from "@/src/features/course/components/CourseList";
 import { Colors } from "@/constants/Colors";
+import { BlurView } from "expo-blur";
+import { useDebounce } from "@/src/hooks/useDebounce";
 
 export default function Explore() {
   const { user } = useUser();
   const { colors }: { colors: Colors } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const {
+    courses: searchResults,
+    hasNextPage: hasNextSearchPage,
+    fetchNextPage: fetchNextSearchPage,
+    isFetchingNextPage: isFetchingNextSearchPage,
+    isLoading: isSearching,
+  } = useSearchCourses({
+    query: debouncedSearchQuery,
+    pageSize: 5,
+    useFullText: false,
+  });
+
   const { courses, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useCourses({
       pageSize: 5,
       isAuthenticated: false,
     });
+
+  const searchBarTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, -60],
+    extrapolate: "clamp",
+  });
+
+  const searchBarOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const renderContent = () => {
+    if (searchQuery && isSearching) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      );
+    }
+
+    const displayCourses = searchQuery ? searchResults : courses;
+
+    return (
+      <CourseSection
+        title="Explore"
+        courses={displayCourses}
+        hasNextPage={searchQuery ? hasNextSearchPage : hasNextPage}
+        isFetchingNextPage={
+          searchQuery ? isFetchingNextSearchPage : isFetchingNextPage
+        }
+        onLoadMore={() =>
+          searchQuery ? fetchNextSearchPage() : fetchNextPage()
+        }
+        hasProgress={false}
+      />
+    );
+  };
 
   return (
     <View
@@ -28,37 +94,62 @@ export default function Explore() {
         },
       ]}
     >
-      <StickyHeader
-        cpus={user.cpus ?? 0}
-        strikeCount={user.streaks?.length ?? 0}
-        userAvatar={user.profile_picture_url}
-        onAvatarPress={() => router.push("/(protected)/(profile)")}
-      />
+      <View style={styles.headerContainer}>
+        <StickyHeader
+          cpus={user?.cpus ?? 0}
+          strikeCount={user?.streaks?.length ?? 0}
+          userAvatar={user?.profile_picture_url}
+          onAvatarPress={() => router.push("/(protected)/(profile)")}
+        />
+        <Animated.View
+          style={[
+            styles.searchContainer,
+            {
+              transform: [{ translateY: searchBarTranslateY }],
+              opacity: searchBarOpacity,
+            },
+          ]}
+        >
+          {Platform.OS === "ios" ? (
+            <BlurView
+              intensity={30}
+              tint="light"
+              style={styles.searchBarWrapper}
+            >
+              <Searchbar
+                placeholder="Explore"
+                onChangeText={setSearchQuery}
+                value={searchQuery}
+                style={[styles.searchBar, { backgroundColor: "transparent" }]}
+              />
+            </BlurView>
+          ) : (
+            <Searchbar
+              placeholder="Explore"
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              style={[
+                styles.searchBar,
+                { backgroundColor: "rgba(255, 255, 255, 0.8)" },
+              ]}
+            />
+          )}
+        </Animated.View>
+      </View>
 
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           { backgroundColor: colors.background },
         ]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
-        <View>
-          <View style={styles.separator} />
-          <Searchbar
-            placeholder="Explore"
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-          />
-          <CourseSection
-            title="Explore"
-            courses={courses}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            onLoadMore={() => {}}
-            hasProgress={false}
-          />
-        </View>
-      </ScrollView>
+        {renderContent()}
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -68,7 +159,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-
+  headerContainer: {
+    backgroundColor: "transparent",
+    paddingBottom: 8,
+    zIndex: 1,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    position: "absolute",
+    top: 60,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  searchBarWrapper: {
+    borderRadius: 5,
+    overflow: "hidden",
+  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
@@ -82,11 +190,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    marginHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 80,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
     justifyContent: "flex-start",
   },
   searchBar: {
     borderRadius: 5,
+    elevation: Platform.OS === "android" ? 2 : 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 200,
   },
 });

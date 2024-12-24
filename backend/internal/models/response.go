@@ -32,7 +32,7 @@ type PaginatedPayload struct {
 type ModuleWithProgressResponse struct {
 	Module        Module `json:"module"`
 	HasNextModule bool   `json:"hasNextModule"`
-	NextModuleID  int32  `json:"nextModuleID"`
+	NextModuleID  int32  `json:"nextModuleId"`
 }
 
 type StartCourseResponse struct {

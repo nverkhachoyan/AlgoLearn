@@ -429,7 +429,7 @@ VALUES (
 INSERT INTO
     sections (module_id, type, position)
 VALUES (1, 'text', 1),
-    (1, 'video', 2),
+    (1, 'markdown', 2),
     (1, 'question', 3),
     (1, 'text', 4),
     (1, 'question', 5);
@@ -448,10 +448,10 @@ VALUES (
 
 -- 14. Insert Data into 'video_sections' Table
 INSERT INTO
-    video_sections (section_id, url)
+    markdown_sections (section_id, markdown)
 VALUES (
         2,
-        'http://example.com/videos/intro_to_variables.mp4'
+        '### Variables are fundamental in programming.'
     );
 
 -- 15. Insert Data into 'question_sections' Table
@@ -485,7 +485,6 @@ INSERT INTO
         module_id,
         started_at,
         progress,
-        current_section_id,
         status
     )
 VALUES (
@@ -493,7 +492,6 @@ VALUES (
         1,
         NOW() - INTERVAL '2 days',
         40.0,
-        2,
         'in_progress'
     ),
     (
@@ -501,7 +499,6 @@ VALUES (
         2,
         NOW() - INTERVAL '1 day',
         60.0,
-        3,
         'in_progress'
     ),
     (
@@ -509,7 +506,6 @@ VALUES (
         3,
         NOW() - INTERVAL '3 days',
         100.0,
-        NULL,
         'completed'
     ),
     (
@@ -517,7 +513,6 @@ VALUES (
         4,
         NOW() - INTERVAL '4 days',
         100.0,
-        NULL,
         'completed'
     ),
     (
@@ -525,42 +520,17 @@ VALUES (
         5,
         NOW() - INTERVAL '5 days',
         20.0,
-        1,
         'in_progress'
     );
 
 -- 18. Insert Data into 'user_courses' Table
 INSERT INTO
-    user_courses (
-        user_id,
-        course_id,
-        current_unit_id,
-        current_module_id,
-        latest_module_progress_id
-    )
-VALUES (4, 1, 1, 1, 1),
-    (5, 1, 1, 2, 2),
-    (4, 2, 3, 5, 5),
-    (5, 2, 4, 4, 4),
-    (4, 3, NULL, NULL, NULL);
-
--- 19. Insert Data into 'user_section_progress' Table
--- INSERT INTO user_section_progress (user_id, module_id, section_id, started_at, completed_at)
--- VALUES
--- (4, 1, 1, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
--- (4, 1, 2, NOW() - INTERVAL '1 day', NULL),
--- (5, 2, 3, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
--- (5, 2, 4, NOW(), NULL),
--- (4, 3, 5, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days');
-
--- 20. Insert Data into 'user_question_answers' Table
--- INSERT INTO user_question_answers (user_module_progress_id, question_id, option_id, answered_at, is_correct)
--- VALUES
--- (1, 1, 1, NOW() - INTERVAL '2 days', TRUE),
--- (1, 2, 6, NOW() - INTERVAL '1 day', TRUE),
--- (2, 3, 9, NOW() - INTERVAL '1 day', TRUE),
--- (3, 4, 11, NOW() - INTERVAL '3 days', TRUE),
--- (5, 5, 16, NOW() - INTERVAL '5 days', TRUE);
+    user_courses (user_id, course_id)
+VALUES (4, 1),
+    (5, 1),
+    (4, 2),
+    (5, 2),
+    (4, 3);
 
 -- 21. Insert Data into 'achievements' Table
 INSERT INTO

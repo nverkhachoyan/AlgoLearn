@@ -21,12 +21,6 @@ export interface Module extends BaseModel {
   sections?: Section[];
 }
 
-export interface ModuleProgressResponse {
-  module: Module;
-  hasNextModule: boolean;
-  nextModuleId: number;
-}
-
 export interface ModuleProgress {
   sections: Map<number, SectionProgress>;
   questions: Map<number, QuestionProgress>;

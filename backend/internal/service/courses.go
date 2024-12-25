@@ -12,11 +12,15 @@ import (
 
 type CourseService interface {
 	GetCourse(ctx context.Context, courseID int64) (*models.Course, error)
-	SearchCourses(ctx context.Context, query string, page int, pageSize int, useFullText bool) (int64, []models.Course, error)
+	GetCourseByID(ctx context.Context, courseID int32) (*models.Course, error)
+	GetCourseWithProgress(ctx context.Context, userID int64, courseID int64) (*models.Course, error)
 	ListEnrolledCoursesWithProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error)
 	ListAllCoursesWithOptionalProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error)
-	GetCourseWithProgress(ctx context.Context, userID int64, courseID int64) (*models.Course, error)
+	SearchCourses(ctx context.Context, query string, page int, pageSize int, useFullText bool) (int64, []models.Course, error)
 	StartCourse(ctx context.Context, userID int64, courseID int32) (int32, int32, error)
+	CreateCourse(ctx context.Context, course models.Course) (*models.Course, error)
+	UpdateCourse(ctx context.Context, course models.Course) error
+	PublishCourse(ctx context.Context, courseID int64) error
 	DeleteCourse(ctx context.Context, id int64) error
 	ResetCourseProgress(ctx context.Context, userID int64, courseID int64) error
 }
@@ -56,20 +60,25 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 		return 0, nil, fmt.Errorf("failed to get enrolled courses with progress: %w", err)
 	}
 
-	var courses []models.Course
+	var coursesMap = make(map[int64]models.Course)
 	var totalCount int64
 
 	for _, result := range results {
+		var course models.Course
 		totalCount = result.TotalCount
 
-		course := models.Course{
+		if _, exists := coursesMap[int64(result.ID.Int32)]; exists || !result.ID.Valid {
+			continue
+		}
+
+		course = models.Course{
 			BaseModel: models.BaseModel{
-				ID:        int64(result.ID),
-				CreatedAt: result.CreatedAt,
-				UpdatedAt: result.UpdatedAt,
+				ID:        int64(result.ID.Int32),
+				CreatedAt: result.CreatedAt.Time,
+				UpdatedAt: result.UpdatedAt.Time,
 			},
-			Name:            result.Name,
-			Description:     result.Description,
+			Name:            result.Name.String,
+			Description:     result.Description.String,
 			Requirements:    nullStringToString(result.Requirements),
 			WhatYouLearn:    nullStringToString(result.WhatYouLearn),
 			BackgroundColor: nullStringToString(result.BackgroundColor),
@@ -80,7 +89,7 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 		}
 
 		// Get authors for each course
-		authors, err := r.queries.GetCourseAuthors(ctx, result.ID)
+		authors, err := r.queries.GetCourseAuthors(ctx, result.ID.Int32)
 		if err != nil {
 			log.WithError(err).Error("failed to get course authors")
 			return 0, nil, fmt.Errorf("failed to get course authors: %w", err)
@@ -94,7 +103,7 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 		}
 
 		// Get tags for each course
-		tags, err := r.queries.GetCourseTags(ctx, result.ID)
+		tags, err := r.queries.GetCourseTags(ctx, result.ID.Int32)
 		if err != nil {
 			log.WithError(err).Error("failed to get course tags")
 			return 0, nil, fmt.Errorf("failed to get course tags: %w", err)
@@ -133,6 +142,11 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 			}
 		}
 
+		coursesMap[course.ID] = course
+	}
+
+	courses := make([]models.Course, 0, len(coursesMap))
+	for _, course := range coursesMap {
 		courses = append(courses, course)
 	}
 
@@ -161,10 +175,14 @@ func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, 
 		return 0, nil, fmt.Errorf("failed to get all courses with optional progress: %w", err)
 	}
 
-	var courses []models.Course
+	var coursesMap = make(map[int64]models.Course)
 	var totalCount int64
 
 	for _, result := range results {
+		if _, exists := coursesMap[int64(result.ID)]; exists || result.ID == 0 {
+			continue
+		}
+
 		totalCount = result.TotalCount
 
 		course := models.Course{
@@ -238,6 +256,11 @@ func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, 
 			}
 		}
 
+		coursesMap[course.ID] = course
+	}
+
+	courses := make([]models.Course, 0, len(coursesMap))
+	for _, course := range coursesMap {
 		courses = append(courses, course)
 	}
 
@@ -673,6 +696,84 @@ func (r *courseService) StartCourse(ctx context.Context, userID int64, courseID 
 	}
 
 	return firstUnitAndModule.UnitID, firstUnitAndModule.ModuleID, nil
+}
+
+func (r *courseService) CreateCourse(ctx context.Context, course models.Course) (*models.Course, error) {
+	log := r.log.WithBaseFields(logger.Service, "CreateCourse")
+
+	courseID, err := r.queries.CreateCourse(ctx, gen.CreateCourseParams{
+		Name:            course.Name,
+		Description:     course.Description,
+		Requirements:    course.Requirements,
+		WhatYouLearn:    course.WhatYouLearn,
+		BackgroundColor: course.BackgroundColor,
+		IconUrl:         course.IconURL,
+		Duration:        int32(course.Duration),
+		DifficultyLevel: gen.DifficultyLevel(course.DifficultyLevel),
+		Rating:          float64(course.Rating),
+	})
+	if err != nil {
+		log.WithError(err).Error("failed to create course")
+		return nil, fmt.Errorf("failed to create course: %w", err)
+	}
+
+	return r.GetCourseByID(ctx, courseID)
+}
+
+func (r *courseService) GetCourseByID(ctx context.Context, courseID int32) (*models.Course, error) {
+	course, err := r.queries.GetCourseByID(ctx, int32(courseID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get course by id: %w", err)
+	}
+	return &models.Course{
+		BaseModel: models.BaseModel{
+			ID:        int64(course.ID),
+			CreatedAt: course.CreatedAt,
+			UpdatedAt: course.UpdatedAt,
+		},
+		Name:            course.Name,
+		Description:     course.Description,
+		Requirements:    nullStringToString(course.Requirements),
+		WhatYouLearn:    nullStringToString(course.WhatYouLearn),
+		BackgroundColor: nullStringToString(course.BackgroundColor),
+		IconURL:         nullStringToString(course.IconUrl),
+		Duration:        nullInt32ToInt16(course.Duration),
+		DifficultyLevel: models.DifficultyLevel(course.DifficultyLevel.DifficultyLevel),
+		Rating:          course.Rating.Float64,
+	}, nil
+}
+
+func (r *courseService) UpdateCourse(ctx context.Context, course models.Course) error {
+	log := r.log.WithBaseFields(logger.Service, "UpdateCourse")
+
+	if err := r.queries.UpdateCourse(ctx, gen.UpdateCourseParams{
+		CourseID:        int32(course.ID),
+		Name:            course.Name,
+		Description:     course.Description,
+		Requirements:    course.Requirements,
+		WhatYouLearn:    course.WhatYouLearn,
+		BackgroundColor: course.BackgroundColor,
+		IconUrl:         course.IconURL,
+		Duration:        int32(course.Duration),
+		DifficultyLevel: gen.DifficultyLevel(course.DifficultyLevel),
+		Rating:          float64(course.Rating),
+	}); err != nil {
+		log.WithError(err).Error("failed to update course")
+		return fmt.Errorf("failed to update course: %w", err)
+	}
+
+	return nil
+}
+
+func (r *courseService) PublishCourse(ctx context.Context, courseID int64) error {
+	log := r.log.WithBaseFields(logger.Service, "PublishCourse")
+
+	if err := r.queries.PublishCourse(ctx, int32(courseID)); err != nil {
+		log.WithError(err).Error("failed to publish course")
+		return fmt.Errorf("failed to publish course: %w", err)
+	}
+
+	return nil
 }
 
 func (r *courseService) DeleteCourse(ctx context.Context, id int64) error {

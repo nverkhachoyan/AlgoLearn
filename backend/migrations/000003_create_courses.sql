@@ -4,6 +4,7 @@ CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    draft BOOLEAN NOT NULL DEFAULT TRUE,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     requirements TEXT,
@@ -17,6 +18,9 @@ CREATE TABLE courses (
 
 CREATE TABLE authors (
     id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    draft BOOLEAN NOT NULL DEFAULT TRUE,
     name VARCHAR(255) NOT NULL
 );
 

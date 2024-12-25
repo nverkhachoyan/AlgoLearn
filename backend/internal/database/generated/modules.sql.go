@@ -96,7 +96,7 @@ INSERT INTO modules (
     $2::text,
     $3::text
 )
-RETURNING id, created_at, updated_at, module_number, unit_id, name, description
+RETURNING id, created_at, updated_at, draft, module_number, unit_id, name, description
 `
 
 type CreateModuleParams struct {
@@ -112,6 +112,7 @@ func (q *Queries) CreateModule(ctx context.Context, arg CreateModuleParams) (Mod
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,
@@ -146,84 +147,6 @@ func (q *Queries) GetCourseAndUnitIDs(ctx context.Context, id int32) (GetCourseA
 	row := q.db.QueryRowContext(ctx, getCourseAndUnitIDs, id)
 	var i GetCourseAndUnitIDsRow
 	err := row.Scan(&i.CourseID, &i.UnitID)
-	return i, err
-}
-
-const getCurrentUnitAndModule = `-- name: GetCurrentUnitAndModule :one
-WITH latest_module_progress AS (
-    SELECT 
-        ump.module_id,
-        ump.updated_at
-    FROM user_module_progress ump
-    JOIN modules m ON m.id = ump.module_id
-    JOIN units u ON u.id = m.unit_id
-    WHERE ump.user_id = $1 
-    AND u.course_id = $2
-    ORDER BY ump.updated_at DESC NULLS LAST
-    LIMIT 1
-)
-SELECT
-    u.id as unit_id,
-    u.created_at as unit_created_at,
-    u.updated_at as unit_updated_at,
-    u.name as unit_name,
-    u.description as unit_description,
-    u.unit_number as unit_number,
-    m.id as module_id,
-    m.created_at as module_created_at,
-    m.updated_at as module_updated_at,
-    m.name as module_name,
-    m.description as module_description,
-    m.module_number as module_number,
-    COALESCE(ump.progress, 0) as module_progress,
-    COALESCE(ump.status, 'uninitiated'::module_progress_status) as module_status
-FROM latest_module_progress lmp
-JOIN modules m ON m.id = lmp.module_id
-JOIN units u ON u.id = m.unit_id
-LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1
-`
-
-type GetCurrentUnitAndModuleParams struct {
-	UserID   int32 `json:"userId"`
-	CourseID int32 `json:"courseId"`
-}
-
-type GetCurrentUnitAndModuleRow struct {
-	UnitID            int32                `json:"unitId"`
-	UnitCreatedAt     time.Time            `json:"unitCreatedAt"`
-	UnitUpdatedAt     time.Time            `json:"unitUpdatedAt"`
-	UnitName          string               `json:"unitName"`
-	UnitDescription   string               `json:"unitDescription"`
-	UnitNumber        int32                `json:"unitNumber"`
-	ModuleID          int32                `json:"moduleId"`
-	ModuleCreatedAt   time.Time            `json:"moduleCreatedAt"`
-	ModuleUpdatedAt   time.Time            `json:"moduleUpdatedAt"`
-	ModuleName        string               `json:"moduleName"`
-	ModuleDescription string               `json:"moduleDescription"`
-	ModuleNumber      int32                `json:"moduleNumber"`
-	ModuleProgress    float64              `json:"moduleProgress"`
-	ModuleStatus      ModuleProgressStatus `json:"moduleStatus"`
-}
-
-func (q *Queries) GetCurrentUnitAndModule(ctx context.Context, arg GetCurrentUnitAndModuleParams) (GetCurrentUnitAndModuleRow, error) {
-	row := q.db.QueryRowContext(ctx, getCurrentUnitAndModule, arg.UserID, arg.CourseID)
-	var i GetCurrentUnitAndModuleRow
-	err := row.Scan(
-		&i.UnitID,
-		&i.UnitCreatedAt,
-		&i.UnitUpdatedAt,
-		&i.UnitName,
-		&i.UnitDescription,
-		&i.UnitNumber,
-		&i.ModuleID,
-		&i.ModuleCreatedAt,
-		&i.ModuleUpdatedAt,
-		&i.ModuleName,
-		&i.ModuleDescription,
-		&i.ModuleNumber,
-		&i.ModuleProgress,
-		&i.ModuleStatus,
-	)
 	return i, err
 }
 
@@ -285,9 +208,45 @@ func (q *Queries) GetModuleWithProgress(ctx context.Context, arg GetModuleWithPr
 	return module, err
 }
 
+const getModulesByUnitId = `-- name: GetModulesByUnitId :many
+SELECT id, created_at, updated_at, draft, module_number, unit_id, name, description FROM modules WHERE unit_id = $1::int
+`
+
+func (q *Queries) GetModulesByUnitId(ctx context.Context, unitID int32) ([]Module, error) {
+	rows, err := q.db.QueryContext(ctx, getModulesByUnitId, unitID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Module{}
+	for rows.Next() {
+		var i Module
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Draft,
+			&i.ModuleNumber,
+			&i.UnitID,
+			&i.Name,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getModulesList = `-- name: GetModulesList :many
 SELECT 
-    m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description,
+    m.id, m.created_at, m.updated_at, m.draft, m.module_number, m.unit_id, m.name, m.description,
     jsonb_build_object(
         'progress', COALESCE(ump.progress, 0.0),
         'status', COALESCE(ump.status, 'uninitiated'::module_progress_status),
@@ -315,6 +274,7 @@ type GetModulesListRow struct {
 	ID             int32           `json:"id"`
 	CreatedAt      time.Time       `json:"createdAt"`
 	UpdatedAt      time.Time       `json:"updatedAt"`
+	Draft          bool            `json:"draft"`
 	ModuleNumber   int32           `json:"moduleNumber"`
 	UnitID         int32           `json:"unitId"`
 	Name           string          `json:"name"`
@@ -340,6 +300,7 @@ func (q *Queries) GetModulesList(ctx context.Context, arg GetModulesListParams) 
 			&i.ID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Draft,
 			&i.ModuleNumber,
 			&i.UnitID,
 			&i.Name,
@@ -375,6 +336,99 @@ type GetNextModuleIdParams struct {
 
 func (q *Queries) GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams) (int32, error) {
 	row := q.db.QueryRowContext(ctx, getNextModuleId, arg.UnitID, arg.ModuleNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getNextUnitId = `-- name: GetNextUnitId :one
+SELECT id
+FROM units 
+WHERE course_id = $1::int 
+  AND unit_number > $2::int 
+ORDER BY unit_number ASC 
+LIMIT 1
+`
+
+type GetNextUnitIdParams struct {
+	CourseID   int32 `json:"courseId"`
+	UnitNumber int32 `json:"unitNumber"`
+}
+
+func (q *Queries) GetNextUnitId(ctx context.Context, arg GetNextUnitIdParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getNextUnitId, arg.CourseID, arg.UnitNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getNextUnitModuleId = `-- name: GetNextUnitModuleId :one
+SELECT id
+FROM modules
+WHERE unit_id = $1::int
+ORDER BY module_number ASC
+LIMIT 1
+`
+
+func (q *Queries) GetNextUnitModuleId(ctx context.Context, unitID int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getNextUnitModuleId, unitID)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getPrevModuleId = `-- name: GetPrevModuleId :one
+SELECT id
+FROM modules 
+WHERE unit_id = $1::int 
+  AND module_number < $2::int 
+ORDER BY module_number DESC 
+LIMIT 1
+`
+
+type GetPrevModuleIdParams struct {
+	UnitID       int32 `json:"unitId"`
+	ModuleNumber int32 `json:"moduleNumber"`
+}
+
+func (q *Queries) GetPrevModuleId(ctx context.Context, arg GetPrevModuleIdParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getPrevModuleId, arg.UnitID, arg.ModuleNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getPrevUnitId = `-- name: GetPrevUnitId :one
+SELECT id
+FROM units 
+WHERE course_id = $1::int 
+  AND unit_number < $2::int 
+ORDER BY unit_number DESC 
+LIMIT 1
+`
+
+type GetPrevUnitIdParams struct {
+	CourseID   int32 `json:"courseId"`
+	UnitNumber int32 `json:"unitNumber"`
+}
+
+func (q *Queries) GetPrevUnitId(ctx context.Context, arg GetPrevUnitIdParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getPrevUnitId, arg.CourseID, arg.UnitNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getPrevUnitModuleId = `-- name: GetPrevUnitModuleId :one
+SELECT id
+FROM modules
+WHERE unit_id = $1::int
+ORDER BY module_number DESC
+LIMIT 1
+`
+
+func (q *Queries) GetPrevUnitModuleId(ctx context.Context, unitID int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getPrevUnitModuleId, unitID)
 	var id int32
 	err := row.Scan(&id)
 	return id, err
@@ -549,6 +603,19 @@ func (q *Queries) GetSingleModuleSections(ctx context.Context, arg GetSingleModu
 	return items, nil
 }
 
+const getUnitNumber = `-- name: GetUnitNumber :one
+SELECT unit_number
+FROM units 
+WHERE id = $1::int
+`
+
+func (q *Queries) GetUnitNumber(ctx context.Context, unitID int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getUnitNumber, unitID)
+	var unit_number int32
+	err := row.Scan(&unit_number)
+	return unit_number, err
+}
+
 const insertModule = `-- name: InsertModule :one
 INSERT INTO
     modules (
@@ -557,7 +624,7 @@ INSERT INTO
         name,
         description
     )
-VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at, module_number, unit_id, name, description
+VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at, draft, module_number, unit_id, name, description
 `
 
 type InsertModuleParams struct {
@@ -579,6 +646,7 @@ func (q *Queries) InsertModule(ctx context.Context, arg InsertModuleParams) (Mod
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,
@@ -747,7 +815,7 @@ SET
     description = COALESCE(NULLIF($2::text, ''), description),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $3::int
-RETURNING id, created_at, updated_at, module_number, unit_id, name, description
+RETURNING id, created_at, updated_at, draft, module_number, unit_id, name, description
 `
 
 type UpdateModuleParams struct {
@@ -763,6 +831,7 @@ func (q *Queries) UpdateModule(ctx context.Context, arg UpdateModuleParams) (Mod
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,

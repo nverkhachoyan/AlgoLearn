@@ -15,6 +15,7 @@ import (
 )
 
 type ModuleHandler interface {
+	GetModulesByUnitID(c *gin.Context)
 	CreateModule(c *gin.Context)
 	UpdateModule(c *gin.Context)
 	DeleteModule(c *gin.Context)
@@ -39,6 +40,38 @@ func NewModuleHandler(moduleRepo service.ModuleService,
 	}
 }
 
+func (h *moduleHandler) GetModulesByUnitID(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "GetModulesByUnitID")
+	ctx := c.Request.Context()
+
+	unitID, err := strconv.ParseInt(c.Param("unitId"), 10, 64)
+	if err != nil || unitID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid unit ID: must be a positive integer",
+		})
+		return
+	}
+
+	modules, err := h.moduleRepo.GetModulesByUnitID(ctx, unitID)
+	if err != nil {
+		log.WithError(err).Error("error fetching modules by unit id")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving modules",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "modules retrieved successfully",
+		Payload: modules,
+	})
+}
+
 func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "GetModuleWithProgress")
 	ctx := c.Request.Context()
@@ -49,6 +82,16 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 			Success:   false,
 			ErrorCode: httperr.Unauthorized,
 			Message:   "authentication required to access module progress",
+		})
+		return
+	}
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
 		})
 		return
 	}
@@ -73,7 +116,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 		return
 	}
 
-	module, hasNextModule, nextModuleID, err := h.moduleRepo.GetModuleWithProgress(ctx, int64(userID), unitID, moduleID)
+	moduleResponse, err := h.moduleRepo.GetModuleWithProgress(ctx, int64(userID), int64(courseID), unitID, moduleID)
 	if err != nil {
 		if errors.Is(err, httperr.ErrNotFound) {
 			c.JSON(http.StatusNotFound, models.Response{
@@ -95,11 +138,7 @@ func (h *moduleHandler) GetModuleWithProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "module progress retrieved successfully",
-		Payload: models.ModuleWithProgressResponse{
-			Module:        *module,
-			HasNextModule: hasNextModule,
-			NextModuleID:  nextModuleID,
-		},
+		Payload: moduleResponse,
 	})
 }
 
@@ -487,6 +526,7 @@ func (h *moduleHandler) RegisterRoutes(r *gin.RouterGroup) {
 	modules := r.Group(basePath)
 	{
 		modules.GET("", h.GetModules)
+		modules.GET("/bulk", h.GetModulesByUnitID)
 	}
 
 	authorized := modules.Group("", middleware.Auth())

@@ -269,6 +269,13 @@ export default function CourseDetails() {
         >
           <CourseHeader course={course} />
 
+          {!isLargeScreen && course.units && (
+            <TableOfContents
+              courseId={parseInt(courseId as string)}
+              units={course.units}
+            />
+          )}
+
           <View style={isLargeScreen ? styles.webLayout : styles.mobileLayout}>
             <View
               style={
@@ -287,16 +294,16 @@ export default function CourseDetails() {
               <CourseInfo course={course} colors={colors} />
             </View>
 
-            <View
-              style={isLargeScreen ? styles.webSidebar : styles.mobileSidebar}
-            >
-              {course.units && (
-                <TableOfContents
-                  courseId={parseInt(courseId as string)}
-                  units={course.units}
-                />
-              )}
-            </View>
+            {isLargeScreen && (
+              <View style={styles.webSidebar}>
+                {course.units && (
+                  <TableOfContents
+                    courseId={parseInt(courseId as string)}
+                    units={course.units}
+                  />
+                )}
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>

@@ -222,13 +222,3 @@ func (r *userService) DeleteUser(ctx context.Context, id int32) error {
 	}
 	return nil
 }
-
-// func (r *userService) ChangeUserPassword(userID int64, newPasswordHash string) error {
-// 	query := "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2"
-// 	var userParams gen.UpdateUserParams
-// 	_, err := r.db.UpdateUser(ctx context.Context, )
-// 	if err != nil {
-// 		return fmt.Errorf("could not update user password: %v", err)
-// 	}
-// 	return nil
-// }

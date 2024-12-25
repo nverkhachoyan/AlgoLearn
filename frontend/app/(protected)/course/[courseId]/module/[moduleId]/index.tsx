@@ -12,6 +12,7 @@ import { ModuleFooter } from "@/src/features/course/components/module-session/Mo
 import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProgressInit";
 import { Colors } from "@/constants/Colors";
 import useToast from "@/src/hooks/useToast";
+import { UseModuleProgressReturn } from "@/src/features/module/hooks/useModules";
 
 const SECTION_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 50,
@@ -44,25 +45,35 @@ export default function ModuleSession() {
     [params]
   );
   const {
-    currentModule: modulePayload,
+    currentModule,
     hasNextModule,
+    nextModuleId,
+    hasPrevModule,
+    prevModuleId,
+    nextUnitId,
+    hasNextUnit,
+    prevUnitId,
+    hasPrevUnit,
+    nextUnitModuleId,
+    hasNextUnitModule,
+    prevUnitModuleId,
+    hasPrevUnitModule,
     completeModuleMutation,
     isPending,
     error,
-  } = useModuleProgress({
+  }: UseModuleProgressReturn = useModuleProgress({
     courseId: ids.courseId,
     unitId: ids.unitId,
     moduleId: ids.moduleId,
   });
-  const { moduleProgress, setModuleProgress } = useModuleProgressInit(
-    modulePayload?.module
-  );
+  const { moduleProgress, setModuleProgress } =
+    useModuleProgressInit(currentModule);
   const sortedSections: Section[] = useMemo(
     () =>
-      modulePayload?.module?.sections
+      currentModule?.sections
         ?.slice()
         .sort((a: any, b: any) => a.position - b.position) ?? [],
-    [modulePayload?.module?.sections]
+    [currentModule?.sections]
   );
 
   const handleQuestionAnswer = useCallback(
@@ -262,13 +273,27 @@ export default function ModuleSession() {
         questions: answeredQuestions,
       });
 
-      if (hasNextModule && modulePayload?.nextModuleId) {
+      if (hasNextModule && nextModuleId) {
         router.replace({
           pathname: "/(protected)/course/[courseId]/module/[moduleId]",
           params: {
             courseId: ids.courseId,
             unitId: ids.unitId,
-            moduleId: modulePayload.nextModuleId,
+            moduleId: nextModuleId,
+          },
+        });
+      } else if (
+        hasNextUnit &&
+        nextUnitId &&
+        hasNextUnitModule &&
+        nextUnitModuleId
+      ) {
+        router.replace({
+          pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+          params: {
+            courseId: ids.courseId,
+            unitId: nextUnitId,
+            moduleId: nextUnitModuleId,
           },
         });
       } else {
@@ -290,7 +315,11 @@ export default function ModuleSession() {
     router,
     completeModuleMutation,
     hasNextModule,
-    modulePayload?.nextModuleId,
+    nextModuleId,
+    hasNextUnit,
+    nextUnitId,
+    hasNextUnitModule,
+    nextUnitModuleId,
     showToast,
     sortedSections.length,
   ]);
@@ -327,9 +356,9 @@ export default function ModuleSession() {
 
   if (
     isPending ||
-    !modulePayload ||
+    !currentModule ||
     !moduleProgress ||
-    !modulePayload?.module?.sections
+    !currentModule?.sections
   ) {
     return (
       <View style={styles.centerContainer}>
@@ -341,7 +370,7 @@ export default function ModuleSession() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ModuleHeader
-        moduleName={modulePayload?.module?.name ?? ""}
+        moduleName={currentModule?.name ?? ""}
         progress={calculateProgress}
         colors={colors}
       />
@@ -368,7 +397,7 @@ export default function ModuleSession() {
       />
 
       <ModuleFooter
-        moduleName={modulePayload?.module?.name ?? ""}
+        moduleName={currentModule?.name ?? ""}
         onNext={handleModuleCompletion}
         onTOC={() =>
           router.push({

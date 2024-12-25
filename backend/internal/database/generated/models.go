@@ -146,20 +146,25 @@ type Achievement struct {
 	ID          int32     `json:"id"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
+	Draft       bool      `json:"draft"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Points      int32     `json:"points"`
 }
 
 type Author struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID        int32     `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Draft     bool      `json:"draft"`
+	Name      string    `json:"name"`
 }
 
 type Course struct {
 	ID              int32               `json:"id"`
 	CreatedAt       time.Time           `json:"createdAt"`
 	UpdatedAt       time.Time           `json:"updatedAt"`
+	Draft           bool                `json:"draft"`
 	Name            string              `json:"name"`
 	Description     string              `json:"description"`
 	Requirements    sql.NullString      `json:"requirements"`
@@ -190,6 +195,7 @@ type Module struct {
 	ID           int32     `json:"id"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+	Draft        bool      `json:"draft"`
 	ModuleNumber int32     `json:"moduleNumber"`
 	UnitID       int32     `json:"unitId"`
 	Name         string    `json:"name"`
@@ -272,6 +278,7 @@ type Unit struct {
 	ID          int32     `json:"id"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
+	Draft       bool      `json:"draft"`
 	UnitNumber  int32     `json:"unitNumber"`
 	CourseID    int32     `json:"courseId"`
 	Name        string    `json:"name"`

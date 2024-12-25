@@ -3,13 +3,13 @@ package main
 import (
 	"algolearn/internal/config"
 	"algolearn/internal/handlers"
-	"algolearn/internal/service"
 	"algolearn/internal/router"
+	"algolearn/internal/service"
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
 	"context"
 	"database/sql"
-	fallbackLog "log"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,6 +29,9 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	// Initialize router with default middleware
 	r := gin.New()
 
+	// Load HTML templates
+	r.LoadHTMLGlob("templates/admin/*.html")
+
 	// Recovery middleware
 	r.Use(gin.Recovery())
 
@@ -47,6 +50,7 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	userRepo := service.NewUserService(db)
 	notifRepo := service.NewNotificationsService(db)
 	courseRepo := service.NewCourseService(db)
+	unitRepo := service.NewUnitService(db)
 	moduleRepo := service.NewModuleService(db)
 	achievementsRepo := service.NewAchievementsService(db)
 
@@ -55,19 +59,24 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	oauthHandler := handlers.NewOauthHandler(userRepo)
 	notifHandler := handlers.NewNotificationsHandler(notifRepo)
 	courseHandler := handlers.NewCourseHandler(courseRepo, userRepo)
+	unitHandler := handlers.NewUnitHandler(unitRepo)
 	moduleHandler := handlers.NewModuleHandler(moduleRepo, userRepo)
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
-	adminDashboardHandler := handlers.NewAdminDashboardHandler()
+	adminHandler, err := handlers.NewAdminHandler(userRepo, courseRepo)
+	if err != nil {
+		log.Fatalf("Failed to initialize admin handler: %v", err)
+	}
 
 	// Register routes
 	router.RegisterRoutes(r,
 		userHandler,
 		courseHandler,
+		unitHandler,
 		moduleHandler,
 		oauthHandler,
 		notifHandler,
 		achievementsHandler,
-		adminDashboardHandler,
+		adminHandler,
 	)
 
 	return r
@@ -80,7 +89,7 @@ func main() {
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		fallbackLog.Fatalf("failed to load configuration: %v", err)
+		log.Fatalf("failed to load configuration: %v", err)
 	}
 
 	// Initialize components

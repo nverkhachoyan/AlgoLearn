@@ -4,7 +4,6 @@ import (
 	httperr "algolearn/internal/errors"
 )
 
-// TODO: change variable names to match json names
 type Response struct {
 	Success   bool              `json:"success"`
 	Message   string            `json:"message"`
@@ -33,6 +32,12 @@ type ModuleWithProgressResponse struct {
 	Module        Module `json:"module"`
 	HasNextModule bool   `json:"hasNextModule"`
 	NextModuleID  int32  `json:"nextModuleId"`
+	HasPrevModule bool   `json:"hasPrevModule"`
+	PrevModuleID  int32  `json:"prevModuleId"`
+	HasNextUnit   bool   `json:"hasNextUnit"`
+	NextUnitID    int32  `json:"nextUnitId"`
+	HasPrevUnit   bool   `json:"hasPrevUnit"`
+	PrevUnitID    int32  `json:"prevUnitId"`
 }
 
 type StartCourseResponse struct {

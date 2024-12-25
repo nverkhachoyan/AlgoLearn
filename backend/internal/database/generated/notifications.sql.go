@@ -9,41 +9,6 @@ import (
 	"context"
 )
 
-const createNotification = `-- name: CreateNotification :one
-INSERT INTO
-    notifications (user_id, content, read)
-VALUES ($1, $2, $3) RETURNING id, created_at, updated_at, user_id, content, read
-`
-
-type CreateNotificationParams struct {
-	UserID  int32  `json:"userId"`
-	Content string `json:"content"`
-	Read    bool   `json:"read"`
-}
-
-func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) (Notification, error) {
-	row := q.db.QueryRowContext(ctx, createNotification, arg.UserID, arg.Content, arg.Read)
-	var i Notification
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.UserID,
-		&i.Content,
-		&i.Read,
-	)
-	return i, err
-}
-
-const deleteNotification = `-- name: DeleteNotification :exec
-DELETE FROM notifications WHERE id = $1
-`
-
-func (q *Queries) DeleteNotification(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteNotification, id)
-	return err
-}
-
 const getAllNotifications = `-- name: GetAllNotifications :many
 SELECT id, created_at, updated_at, user_id, content, read FROM notifications
 `
@@ -76,59 +41,4 @@ func (q *Queries) GetAllNotifications(ctx context.Context) ([]Notification, erro
 		return nil, err
 	}
 	return items, nil
-}
-
-const getNotificationByID = `-- name: GetNotificationByID :one
-SELECT id, created_at, updated_at, user_id, content, read FROM notifications WHERE id = $1 LIMIT 1
-`
-
-func (q *Queries) GetNotificationByID(ctx context.Context, id int32) (Notification, error) {
-	row := q.db.QueryRowContext(ctx, getNotificationByID, id)
-	var i Notification
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.UserID,
-		&i.Content,
-		&i.Read,
-	)
-	return i, err
-}
-
-const updateNotification = `-- name: UpdateNotification :one
-UPDATE notifications
-SET
-    user_id = $1,
-    content = $2,
-    read = $3,
-    updated_at = CURRENT_TIMESTAMP
-WHERE
-    id = $4 RETURNING id, created_at, updated_at, user_id, content, read
-`
-
-type UpdateNotificationParams struct {
-	UserID  int32  `json:"userId"`
-	Content string `json:"content"`
-	Read    bool   `json:"read"`
-	ID      int32  `json:"id"`
-}
-
-func (q *Queries) UpdateNotification(ctx context.Context, arg UpdateNotificationParams) (Notification, error) {
-	row := q.db.QueryRowContext(ctx, updateNotification,
-		arg.UserID,
-		arg.Content,
-		arg.Read,
-		arg.ID,
-	)
-	var i Notification
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.UserID,
-		&i.Content,
-		&i.Read,
-	)
-	return i, err
 }

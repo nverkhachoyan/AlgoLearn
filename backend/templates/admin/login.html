@@ -1,0 +1,250 @@
+{{ define "login.html" }}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login - AlgoLearn</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/svelte@4.2.8/dist/svelte.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div id="app" class="max-w-md w-full mx-4"></div>
+
+    <script>
+      const App = {
+        template: `
+          <div>
+            {#if !showSignUp}
+              <!-- Sign In Form -->
+              <div class="bg-white p-8 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">
+                  Sign In to Admin Dashboard
+                </h2>
+                <form on:submit|preventDefault={handleSignIn} class="space-y-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      bind:value={signIn.email}
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input
+                      type="password"
+                      bind:value={signIn.password}
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <button
+                      type="submit"
+                      class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                </form>
+                <div class="mt-6 text-center">
+                  <button
+                    on:click={() => showSignUp = true}
+                    class="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    Need an account? Sign up
+                  </button>
+                </div>
+              </div>
+            {:else}
+              <!-- Sign Up Form -->
+              <div class="bg-white p-8 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">
+                  Create Admin Account
+                </h2>
+                <form on:submit|preventDefault={handleSignUp} class="space-y-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Username</label>
+                    <input
+                      type="text"
+                      bind:value={signUp.username}
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      bind:value={signUp.email}
+                      on:blur={checkEmail}
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    {#if emailExists}
+                      <p class="mt-1 text-sm text-red-600">
+                        This email is already registered
+                      </p>
+                    {/if}
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input
+                      type="password"
+                      bind:value={signUp.password}
+                      required
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <button
+                      type="submit"
+                      class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                </form>
+                <div class="mt-6 text-center">
+                  <button
+                    on:click={() => showSignUp = false}
+                    class="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    Already have an account? Sign in
+                  </button>
+                </div>
+              </div>
+            {/if}
+
+            <!-- Error Alert -->
+            {#if error}
+              <div class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            {/if}
+          </div>
+        `,
+        setup() {
+          let showSignUp = false;
+          let emailExists = false;
+          let error = null;
+          let signIn = {
+            email: "",
+            password: "",
+          };
+          let signUp = {
+            username: "",
+            email: "",
+            password: "",
+          };
+
+          async function handleSignIn() {
+            try {
+              const response = await axios.post("/api/v1/users/sign-in", {
+                email: signIn.email,
+                password: signIn.password,
+              });
+
+              if (response.data.success) {
+                // Store the token
+                localStorage.setItem("token", response.data.payload.token);
+                localStorage.setItem(
+                  "refreshToken",
+                  response.data.payload.refreshToken
+                );
+
+                // Store token in cookie for server-side auth
+                document.cookie = `admin_token=${response.data.payload.token}; path=/`;
+
+                // Check if user is admin
+                if (response.data.payload.user.role === "admin") {
+                  // Redirect to admin dashboard
+                  window.location.href = "/admin";
+                } else {
+                  error = "Access denied. Admin privileges required.";
+                }
+              }
+            } catch (err) {
+              error =
+                err.response?.data?.message ||
+                "An error occurred during sign in";
+            }
+          }
+
+          async function handleSignUp() {
+            if (emailExists) {
+              error = "Email already exists";
+              return;
+            }
+
+            try {
+              const response = await axios.post("/api/v1/users/sign-up", {
+                username: signUp.username,
+                email: signUp.email,
+                password: signUp.password,
+              });
+
+              if (response.data.success) {
+                // Store the token
+                localStorage.setItem("token", response.data.payload.token);
+
+                // Store token in cookie for server-side auth
+                document.cookie = `admin_token=${response.data.payload.token}; path=/`;
+
+                // Check if user is admin
+                if (response.data.payload.user.role === "admin") {
+                  // Redirect to admin dashboard
+                  window.location.href = "/admin";
+                } else {
+                  error = "Access denied. Admin privileges required.";
+                }
+              }
+            } catch (err) {
+              error =
+                err.response?.data?.message ||
+                "An error occurred during sign up";
+            }
+          }
+
+          async function checkEmail() {
+            if (!signUp.email) return;
+
+            try {
+              const response = await axios.get(
+                `/api/v1/users/check-email?email=${encodeURIComponent(
+                  signUp.email
+                )}`
+              );
+              emailExists = response.data.payload.exists;
+            } catch (err) {
+              console.error("Error checking email:", err);
+            }
+          }
+
+          return {
+            showSignUp,
+            emailExists,
+            error,
+            signIn,
+            signUp,
+            handleSignIn,
+            handleSignUp,
+            checkEmail,
+          };
+        },
+      };
+
+      new Svelte.default({
+        target: document.getElementById("app"),
+        ...App,
+      });
+    </script>
+  </body>
+</html>
+{{ end }}

@@ -11,10 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type ModuleService interface {
-	GetModuleWithProgress(ctx context.Context, userID, unitID, moduleID int64) (*models.Module, bool, int32, error)
+	GetModulesByUnitID(ctx context.Context, unitID int64) ([]models.Module, error)
+	GetModuleWithProgress(ctx context.Context, userID, courseID, unitID, moduleID int64) (*ModuleWithProgressResponse, error)
 	GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error)
 	GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error)
 	CreateModule(ctx context.Context, unitID int64, name, description string) (*models.Module, error)
@@ -38,10 +41,46 @@ func NewModuleService(db *sql.DB) ModuleService {
 	}
 }
 
-func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitID, moduleID int64) (*models.Module, bool, int32, error) {
-	log := s.log.WithBaseFields(logger.Service, "GetModuleWithProgress")
+func (s *moduleService) GetModulesByUnitID(ctx context.Context, unitID int64) ([]models.Module, error) {
+	log := s.log.WithBaseFields(logger.Service, "GetModulesByUnitID")
 
-	// Get module with progress
+	result, err := s.queries.GetModulesByUnitId(ctx, int32(unitID))
+	if err != nil {
+		log.WithError(err).Error("failed to get modules by unit id")
+		return nil, fmt.Errorf("failed to get modules by unit id: %w", err)
+	}
+
+	modules := make([]models.Module, len(result))
+	for i, m := range result {
+		modules[i] = models.Module{
+			BaseModel: models.BaseModel{
+				ID:        int64(m.ID),
+				CreatedAt: m.CreatedAt,
+				UpdatedAt: m.UpdatedAt,
+			},
+		}
+	}
+
+	return modules, nil
+}
+
+type ModuleWithProgressResponse struct {
+	Module           models.Module `json:"module"`
+	NextModuleID     int32         `json:"nextModuleId"`
+	PrevModuleID     int32         `json:"prevModuleId"`
+	NextUnitID       int32         `json:"nextUnitId"`
+	PrevUnitID       int32         `json:"prevUnitId"`
+	NextUnitModuleID int32         `json:"nextUnitModuleId"`
+	PrevUnitModuleID int32         `json:"prevUnitModuleId"`
+}
+
+func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, courseID, unitID, moduleID int64) (*ModuleWithProgressResponse, error) {
+	log := s.log.WithBaseFields(logger.Service, "GetModuleWithProgress").WithFields(logrus.Fields{
+		"course_id": courseID,
+		"unit_id":   unitID,
+		"module_id": moduleID,
+	})
+
 	moduleData, err := s.queries.GetModuleWithProgress(ctx, gen.GetModuleWithProgressParams{
 		UserID:   int32(userID),
 		UnitID:   int32(unitID),
@@ -49,16 +88,16 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, false, 0, httperr.ErrNotFound
+			return nil, httperr.ErrNotFound
 		}
 		log.WithError(err).Error("failed to get module with progress")
-		return nil, false, 0, fmt.Errorf("failed to get module with progress: %w", err)
+		return nil, fmt.Errorf("failed to get module with progress: %w", err)
 	}
 
 	var module models.Module
 	if err := json.Unmarshal(moduleData, &module); err != nil {
 		log.WithError(err).Error("failed to unmarshal module")
-		return nil, false, 0, fmt.Errorf("failed to unmarshal module: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal module: %w", err)
 	}
 
 	sections, err := s.queries.GetSingleModuleSections(ctx, gen.GetSingleModuleSectionsParams{
@@ -67,7 +106,7 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 	})
 	if err != nil {
 		log.WithError(err).Error("failed to get module sections")
-		return nil, false, 0, fmt.Errorf("failed to get module sections: %w", err)
+		return nil, fmt.Errorf("failed to get module sections: %w", err)
 	}
 
 	progress, err := s.queries.GetSectionProgress(ctx, gen.GetSectionProgressParams{
@@ -76,7 +115,7 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 	})
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithError(err).Error("failed to get section progress")
-		return nil, false, 0, fmt.Errorf("failed to get section progress: %w", err)
+		return nil, fmt.Errorf("failed to get section progress: %w", err)
 	}
 
 	progressMap := make(map[int32]json.RawMessage)
@@ -89,7 +128,7 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 		var section models.Section
 		if err := json.Unmarshal([]byte(s.Content), &section.Content); err != nil {
 			log.WithError(err).Error("failed to unmarshal section content")
-			return nil, false, 0, fmt.Errorf("failed to unmarshal section content: %w", err)
+			return nil, fmt.Errorf("failed to unmarshal section content: %w", err)
 		}
 
 		section.ID = int64(s.ID)
@@ -102,7 +141,7 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 		if progress, ok := progressMap[s.ID]; ok {
 			if err := json.Unmarshal(progress, &section.Progress); err != nil {
 				log.WithError(err).Error("failed to unmarshal section progress")
-				return nil, false, 0, fmt.Errorf("failed to unmarshal section progress: %w", err)
+				return nil, fmt.Errorf("failed to unmarshal section progress: %w", err)
 			}
 		}
 
@@ -113,16 +152,66 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, unitI
 		UnitID:       int32(unitID),
 		ModuleNumber: int32(module.ModuleNumber),
 	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return &module, false, 0, nil
-		}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithError(err).Error("failed to get next module id")
-		return nil, false, 0, fmt.Errorf("failed to get next module id: %w", err)
+		return nil, fmt.Errorf("failed to get next module id: %w", err)
 	}
 
-	hasNextModule := true
-	return &module, hasNextModule, nextModuleID, nil
+	prevModuleID, err := s.queries.GetPrevModuleId(ctx, gen.GetPrevModuleIdParams{
+		UnitID:       int32(unitID),
+		ModuleNumber: int32(module.ModuleNumber),
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Error("failed to get prev module id")
+		return nil, fmt.Errorf("failed to get prev module id: %w", err)
+	}
+
+	unitNumber, err := s.queries.GetUnitNumber(ctx, int32(unitID))
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Error("failed to get unit number")
+		return nil, fmt.Errorf("failed to get unit number: %w", err)
+	}
+
+	nextUnitID, err := s.queries.GetNextUnitId(ctx, gen.GetNextUnitIdParams{
+		CourseID:   int32(courseID),
+		UnitNumber: int32(unitNumber),
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Error("failed to get next unit id")
+		return nil, fmt.Errorf("failed to get next unit id: %w", err)
+	}
+
+	prevUnitID, err := s.queries.GetPrevUnitId(ctx, gen.GetPrevUnitIdParams{
+		CourseID:   int32(courseID),
+		UnitNumber: int32(unitNumber),
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Error("failed to get prev unit id")
+		return nil, fmt.Errorf("failed to get prev unit id: %w", err)
+	}
+
+	nextUnitModuleID, err := s.queries.GetNextUnitModuleId(ctx, int32(nextUnitID))
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Error("failed to get next unit module id")
+		return nil, fmt.Errorf("failed to get next unit module id: %w", err)
+	}
+
+	prevUnitModuleID, err := s.queries.GetPrevUnitModuleId(ctx, int32(prevUnitID))
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Error("failed to get prev unit module id")
+		return nil, fmt.Errorf("failed to get prev unit module id: %w", err)
+	}
+
+	response := &ModuleWithProgressResponse{
+		Module:           module,
+		NextModuleID:     nextModuleID,
+		PrevModuleID:     prevModuleID,
+		NextUnitID:       nextUnitID,
+		PrevUnitID:       prevUnitID,
+		NextUnitModuleID: nextUnitModuleID,
+		PrevUnitModuleID: prevUnitModuleID,
+	}
+	return response, nil
 }
 
 func (s *moduleService) GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error) {

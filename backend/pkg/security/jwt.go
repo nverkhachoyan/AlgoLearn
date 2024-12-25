@@ -66,7 +66,7 @@ func ValidateRefreshToken(tokenString string) (*Claims, error) {
 // validateToken is a helper function to validate tokens
 func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error) {
 	log := logger.Get().WithBaseFields(logger.Security, "ValidateJWT")
-	log.Debug("Attempting to validate token:", tokenString)
+	// log.Debug("Attempting to validate token:", tokenString)
 
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -98,6 +98,6 @@ func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error)
 		return nil, errors.New("token has exceeded maximum lifetime")
 	}
 
-	log.Debug("Successfully validated token for user ID:", claims.UserID)
+	// log.Debug("Successfully validated token for user ID:", claims.UserID)
 	return claims, nil
 }

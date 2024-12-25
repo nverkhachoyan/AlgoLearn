@@ -18,6 +18,9 @@ import (
 type CourseHandler interface {
 	RegisterRoutes(r *gin.RouterGroup)
 	ListCourses(c *gin.Context)
+	CreateCourse(c *gin.Context)
+	UpdateCourse(c *gin.Context)
+	PublishCourse(c *gin.Context)
 	GetCourse(c *gin.Context)
 	SearchCourses(c *gin.Context)
 	ListCoursesProgress(c *gin.Context)
@@ -102,6 +105,142 @@ func (h *courseHandler) ListCourses(c *gin.Context) {
 				TotalPages:  int(totalPages),
 			},
 		},
+	})
+}
+
+func (h *courseHandler) CreateCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "CreateCourse")
+	ctx := c.Request.Context()
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		log.Debug("unauthorized user tried to create a course")
+		c.JSON(http.StatusUnauthorized, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Unauthorized,
+			Message:   "authentication required to create a course",
+		})
+		return
+	}
+
+	user, err := h.userRepo.GetUserByID(ctx, int32(userID))
+	if err != nil {
+		log.WithError(err).Error("error fetching user data")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while verifying user permissions",
+		})
+		return
+	}
+
+	if user.Role != "instructor" && user.Role != "admin" {
+		log.Debug("non-instructor user tried to create a course")
+		c.JSON(http.StatusForbidden, models.Response{
+			Success:   false,
+			ErrorCode: httperr.Forbidden,
+			Message:   "only instructors can create courses",
+		})
+		return
+	}
+
+	course := models.Course{}
+	if err := c.ShouldBindJSON(&course); err != nil {
+		log.WithError(err).Error("error binding course data")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course data",
+		})
+		return
+	}
+
+	createdCourse, err := h.courseRepo.CreateCourse(ctx, course)
+	if err != nil {
+		log.WithError(err).Error("error creating course")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while creating course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, models.Response{
+		Success: true,
+		Message: "course created successfully",
+		Payload: createdCourse,
+	})
+}
+
+func (h *courseHandler) UpdateCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "UpdateCourse")
+	ctx := c.Request.Context()
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
+		})
+		return
+	}
+
+	course := models.Course{}
+	if err := c.ShouldBindJSON(&course); err != nil {
+		log.WithError(err).Error("error binding course data")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course data",
+		})
+		return
+	}
+
+	if err := h.courseRepo.UpdateCourse(ctx, course); err != nil {
+		log.WithError(err).Error("error updating course")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while updating course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course updated successfully",
+	})
+}
+
+func (h *courseHandler) PublishCourse(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "PublishCourse")
+	ctx := c.Request.Context()
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil || courseID <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID: must be a positive integer",
+		})
+		return
+	}
+
+	if err := h.courseRepo.PublishCourse(ctx, courseID); err != nil {
+		log.WithError(err).Error("error publishing course")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while publishing course",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course published successfully",
 	})
 }
 
@@ -507,6 +646,9 @@ func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
 	authorized := courses.Group("", middleware.Auth())
 	{
 		authorized.GET("", h.ListCourses)
+		authorized.POST("/create", h.CreateCourse)
+		authorized.PUT("/:courseId", h.UpdateCourse)
+		authorized.POST("/:courseId/publish", h.PublishCourse)
 		authorized.GET("/:courseId", h.GetCourse)
 		authorized.GET("/search", h.SearchCourses)
 		authorized.GET("/progress", h.ListCoursesProgress)

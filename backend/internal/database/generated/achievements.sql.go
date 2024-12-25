@@ -12,7 +12,7 @@ import (
 const createAchievement = `-- name: CreateAchievement :one
 INSERT INTO
     achievements (name, description, points)
-VALUES ($1, $2, $3) RETURNING id, created_at, updated_at, name, description, points
+VALUES ($1, $2, $3) RETURNING id, created_at, updated_at, draft, name, description, points
 `
 
 type CreateAchievementParams struct {
@@ -28,6 +28,7 @@ func (q *Queries) CreateAchievement(ctx context.Context, arg CreateAchievementPa
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Draft,
 		&i.Name,
 		&i.Description,
 		&i.Points,
@@ -45,7 +46,7 @@ func (q *Queries) DeleteAchievement(ctx context.Context, id int32) error {
 }
 
 const getAchievementByID = `-- name: GetAchievementByID :one
-SELECT id, created_at, updated_at, name, description, points FROM achievements WHERE id = $1 LIMIT 1
+SELECT id, created_at, updated_at, draft, name, description, points FROM achievements WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetAchievementByID(ctx context.Context, id int32) (Achievement, error) {
@@ -55,6 +56,7 @@ func (q *Queries) GetAchievementByID(ctx context.Context, id int32) (Achievement
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Draft,
 		&i.Name,
 		&i.Description,
 		&i.Points,
@@ -63,7 +65,7 @@ func (q *Queries) GetAchievementByID(ctx context.Context, id int32) (Achievement
 }
 
 const getAllAchievements = `-- name: GetAllAchievements :many
-SELECT id, created_at, updated_at, name, description, points FROM achievements
+SELECT id, created_at, updated_at, draft, name, description, points FROM achievements
 `
 
 func (q *Queries) GetAllAchievements(ctx context.Context) ([]Achievement, error) {
@@ -79,6 +81,7 @@ func (q *Queries) GetAllAchievements(ctx context.Context) ([]Achievement, error)
 			&i.ID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Draft,
 			&i.Name,
 			&i.Description,
 			&i.Points,
@@ -104,7 +107,7 @@ SET
     points = $3,
     updated_at = CURRENT_TIMESTAMP
 WHERE
-    id = $4 RETURNING id, created_at, updated_at, name, description, points
+    id = $4 RETURNING id, created_at, updated_at, draft, name, description, points
 `
 
 type UpdateAchievementParams struct {
@@ -126,6 +129,7 @@ func (q *Queries) UpdateAchievement(ctx context.Context, arg UpdateAchievementPa
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Draft,
 		&i.Name,
 		&i.Description,
 		&i.Points,

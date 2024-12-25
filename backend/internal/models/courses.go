@@ -19,6 +19,7 @@ const (
 
 type Course struct {
 	BaseModel
+	Draft           bool            `json:"draft"`
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
 	Requirements    string          `json:"requirements"`

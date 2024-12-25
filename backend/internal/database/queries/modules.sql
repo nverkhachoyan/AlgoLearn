@@ -1,3 +1,6 @@
+-- name: GetModulesByUnitId :many
+SELECT * FROM modules WHERE unit_id = @unit_id::int;
+
 -- name: GetModuleWithProgress :one
 SELECT jsonb_build_object(
     'id', m.id,
@@ -116,6 +119,49 @@ FROM modules
 WHERE unit_id = @unit_id::int 
   AND module_number > @module_number::int 
 ORDER BY module_number ASC 
+LIMIT 1;
+
+-- name: GetPrevModuleId :one
+SELECT id
+FROM modules 
+WHERE unit_id = @unit_id::int 
+  AND module_number < @module_number::int 
+ORDER BY module_number DESC 
+LIMIT 1;
+
+-- name: GetNextUnitId :one
+SELECT id
+FROM units 
+WHERE course_id = @course_id::int 
+  AND unit_number > @unit_number::int 
+ORDER BY unit_number ASC 
+LIMIT 1;
+
+-- name: GetPrevUnitId :one
+SELECT id
+FROM units 
+WHERE course_id = @course_id::int 
+  AND unit_number < @unit_number::int 
+ORDER BY unit_number DESC 
+LIMIT 1;
+
+-- name: GetUnitNumber :one
+SELECT unit_number
+FROM units 
+WHERE id = @unit_id::int;
+
+-- name: GetNextUnitModuleId :one
+SELECT id
+FROM modules
+WHERE unit_id = @unit_id::int
+ORDER BY module_number ASC
+LIMIT 1;
+
+-- name: GetPrevUnitModuleId :one
+SELECT id
+FROM modules
+WHERE unit_id = @unit_id::int
+ORDER BY module_number DESC
 LIMIT 1;
 
 -- name: CreateModule :one
@@ -353,36 +399,3 @@ UPDATE
 SET
     progress = EXCLUDED.progress,
     updated_at = NOW();
-
--- name: GetCurrentUnitAndModule :one
-WITH latest_module_progress AS (
-    SELECT 
-        ump.module_id,
-        ump.updated_at
-    FROM user_module_progress ump
-    JOIN modules m ON m.id = ump.module_id
-    JOIN units u ON u.id = m.unit_id
-    WHERE ump.user_id = $1 
-    AND u.course_id = $2
-    ORDER BY ump.updated_at DESC NULLS LAST
-    LIMIT 1
-)
-SELECT
-    u.id as unit_id,
-    u.created_at as unit_created_at,
-    u.updated_at as unit_updated_at,
-    u.name as unit_name,
-    u.description as unit_description,
-    u.unit_number as unit_number,
-    m.id as module_id,
-    m.created_at as module_created_at,
-    m.updated_at as module_updated_at,
-    m.name as module_name,
-    m.description as module_description,
-    m.module_number as module_number,
-    COALESCE(ump.progress, 0) as module_progress,
-    COALESCE(ump.status, 'uninitiated'::module_progress_status) as module_status
-FROM latest_module_progress lmp
-JOIN modules m ON m.id = lmp.module_id
-JOIN units u ON u.id = m.unit_id
-LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1;

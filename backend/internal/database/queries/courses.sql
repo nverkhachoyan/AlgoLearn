@@ -1,3 +1,47 @@
+-- name: CreateCourse :one
+INSERT INTO courses (
+    name,
+    description,
+    requirements,
+    what_you_learn,
+    background_color,
+    icon_url,
+    duration,
+    difficulty_level,
+    rating
+)
+VALUES (
+    @name::text,
+    @description::text,
+    @requirements::text,
+    @what_you_learn::text,
+    @background_color::text,
+    @icon_url::text,
+    @duration::int,
+    @difficulty_level::difficulty_level,
+    @rating::float
+)
+RETURNING id;
+
+-- name: UpdateCourse :exec
+UPDATE courses
+SET
+    name = COALESCE(@name::text, name),
+    description = COALESCE(@description::text, description),
+    requirements = COALESCE(@requirements::text, requirements),
+    what_you_learn = COALESCE(@what_you_learn::text, what_you_learn),
+    background_color = COALESCE(@background_color::text, background_color),
+    icon_url = COALESCE(@icon_url::text, icon_url),
+    duration = COALESCE(@duration::int, duration),
+    difficulty_level = @difficulty_level::difficulty_level,
+    rating = @rating::float
+WHERE id = @course_id::int;
+
+-- name: PublishCourse :exec
+UPDATE courses
+SET draft = FALSE
+WHERE id = @course_id::int;
+
 -- name: GetCourseByID :one
 SELECT
     id,
@@ -58,19 +102,6 @@ WHERE
     unit_id = @unit_id::int
 ORDER BY module_number;
 
--- name: GetModuleSections :many
-SELECT
-    id,
-    created_at,
-    updated_at,
-    type,
-    position,
-    module_id
-FROM sections
-WHERE
-    module_id = @module_id::int
-ORDER BY position;
-
 -- name: GetTextSection :one
 SELECT text_content
 FROM text_sections
@@ -107,19 +138,6 @@ JOIN questions q ON q.id = qs.question_id
 LEFT JOIN question_options qo ON qo.question_id = q.id
 WHERE qs.section_id = @section_id::int
 GROUP BY q.id, q.question, q.type;
-
--- name: GetQuestionOptions :many
-SELECT id, content, is_correct
-FROM question_options
-WHERE
-    question_id = @question_id::int;
-
--- name: GetModuleProgress :one
-SELECT progress, status
-FROM user_module_progress
-WHERE
-    user_id = @user_id::int
-    AND module_id = @module_id::int;
 
 -- name: DeleteCourse :exec
 DELETE FROM courses WHERE id = @course_id::int;
@@ -189,7 +207,7 @@ ORDER BY m.module_number;
 
 -- name: GetAllCoursesWithOptionalProgress :many
 WITH user_progress AS (
-    SELECT DISTINCT ON (uc.course_id)
+    SELECT
         uc.course_id,
         u.id as unit_id,
         u.created_at as unit_created_at,
@@ -198,20 +216,20 @@ WITH user_progress AS (
         u.name as unit_name,
         u.description as unit_description,
         m.id as module_id,
-        m.created_at as module_created_at,
-        m.updated_at as module_updated_at,
+        ump.created_at as module_created_at,
+        ump.updated_at as module_updated_at,
         m.module_number,
         m.name as module_name,
         m.description as module_description,
         ump.progress as module_progress,
         ump.status as module_status
     FROM user_courses uc
-    JOIN units u ON u.course_id = uc.course_id
-    JOIN modules m ON m.unit_id = u.id
-    LEFT JOIN user_module_progress ump ON ump.module_id = m.id 
+             JOIN units u ON u.course_id = uc.course_id
+             JOIN modules m ON m.unit_id = u.id
+             LEFT JOIN user_module_progress ump ON ump.module_id = m.id
         AND ump.user_id = @user_id::int
     WHERE uc.user_id = @user_id::int
-    ORDER BY uc.course_id, u.unit_number, m.module_number
+    ORDER BY ump.updated_at DESC NULLS LAST
 )
 SELECT
     c.id,
@@ -241,31 +259,21 @@ SELECT
     up.module_description,
     COALESCE(up.module_progress, 0) as module_progress,
     COALESCE(up.module_status, 'uninitiated') as module_status,
-    COUNT(*) OVER() as total_count
-FROM courses c
-LEFT JOIN user_progress up ON up.course_id = c.id
-ORDER BY 
+   (SELECT COUNT(*) FROM courses) as total_count
+FROM (
+    SELECT id
+    FROM courses
+    ORDER BY id
+    LIMIT @page_limit::int
+    OFFSET @page_offset::int
+) paginated_courses
+JOIN courses c ON c.id = paginated_courses.id
+         LEFT JOIN user_progress up ON up.course_id = c.id
+ORDER BY
     CASE WHEN up.course_id IS NOT NULL THEN 0 ELSE 1 END,
-    c.created_at DESC
-LIMIT @page_limit::int
-OFFSET @page_offset::int;
+    up.module_updated_at DESC NULLS LAST;
 
 -- name: GetEnrolledCoursesWithProgress :many
-WITH current_unit_id AS (
-    SELECT COALESCE(u.id, 0) as unit_id
-    FROM units u
-    JOIN user_courses uc ON uc.course_id = u.course_id
-    WHERE uc.user_id = @user_id::int
-    ORDER BY u.updated_at DESC
-    LIMIT 1
-),
-current_module_id AS (
-    SELECT COALESCE(m.id, 0) as module_id
-    FROM modules m
-    WHERE m.unit_id = (SELECT unit_id FROM current_unit_id)
-    ORDER BY m.updated_at DESC
-    LIMIT 1
-)
 SELECT
     c.id,
     c.created_at,
@@ -279,33 +287,29 @@ SELECT
     c.duration,
     c.difficulty_level,
     c.rating,
-    (SELECT unit_id FROM current_unit_id) as current_unit_id,
+    COALESCE(m.unit_id, 0) as current_unit_id,
     COALESCE(u.created_at, NOW()) as unit_created_at,
     COALESCE(u.updated_at, NOW()) as unit_updated_at,
     COALESCE(u.unit_number, 0) as unit_number,
     COALESCE(u.name, '') as unit_name,
     COALESCE(u.description, '') as unit_description,
-    (SELECT module_id FROM current_module_id) as current_module_id,
+    COALESCE(ump.module_id, 0) as current_module_id,
     COALESCE(m.created_at, NOW()) as module_created_at,
     COALESCE(m.updated_at, NOW()) as module_updated_at,
     COALESCE(m.module_number, 0) as module_number,
-    COALESCE(m.unit_id, 0) as module_unit_id,
+    COALESCE(u.id, 0) as module_unit_id,
     COALESCE(m.name, '') as module_name,
     COALESCE(m.description, '') as module_description,
     COALESCE(ump.progress, 0) as module_progress,
     COALESCE(ump.status, 'uninitiated') as module_status,
     uc.progress as course_progress,
-    COUNT(*) OVER() as total_count
-FROM
-    courses c
-    LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = @user_id::int
-    LEFT JOIN units u ON u.id = (SELECT unit_id FROM current_unit_id)
-    LEFT JOIN modules m ON m.id = (SELECT module_id FROM current_module_id)
+    (SELECT COUNT(*) FROM courses) as total_count
+FROM modules m
     LEFT JOIN user_module_progress ump ON ump.module_id = m.id
-        AND ump.user_id = @user_id::int
-WHERE
-    uc.user_id = @user_id::int
-ORDER BY c.id, uc.updated_at DESC NULLS LAST
+    LEFT JOIN units u ON u.id = m.unit_id
+    LEFT JOIN courses c ON c.id = u.course_id
+    JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = @user_id::int
+ORDER BY ump.updated_at DESC NULLS LAST
 LIMIT @page_limit::int
 OFFSET @page_offset::int;
 
@@ -389,44 +393,6 @@ VALUES
     (@user_id::int, @module_id::int, 0, 'uninitiated'::module_progress_status)
 ON CONFLICT (user_id, module_id) DO NOTHING;
 
--- name: ListCourses :many
-SELECT
-    c.id,
-    c.created_at,
-    c.updated_at,
-    c.name,
-    c.description,
-    c.requirements,
-    c.what_you_learn,
-    c.background_color,
-    c.icon_url,
-    c.duration,
-    c.difficulty_level,
-    c.rating,
-    COUNT(*) OVER() as total_count
-FROM courses c
-ORDER BY c.created_at DESC
-LIMIT @page_limit::int
-OFFSET @page_offset::int;
-
--- name: GetCourse :one
-SELECT
-    id,
-    created_at,
-    updated_at,
-    name,
-    description,
-    requirements,
-    what_you_learn,
-    background_color,
-    icon_url,
-    duration,
-    difficulty_level,
-    rating
-FROM courses
-WHERE
-    id = @course_id::int;
-
 -- name: SearchCourses :many
 SELECT
     c.id,
@@ -494,31 +460,6 @@ ORDER BY rank DESC, c.created_at DESC
 LIMIT @page_limit::int
 OFFSET @page_offset::int;
 
--- name: DeleteCourseProgress :exec
-WITH
-    course_modules AS (
-        SELECT m.id as module_id
-        FROM modules m
-            JOIN units u ON u.id = m.unit_id
-        WHERE
-            u.course_id = @course_id::int
-    )
-DELETE FROM user_question_answers
-WHERE
-    user_module_progress_id IN (
-        SELECT ump.id
-        FROM user_module_progress ump
-        WHERE
-            ump.module_id IN (
-                SELECT module_id
-                FROM course_modules
-            )
-            AND (
-                @user_id::int = 0
-                OR ump.user_id = @user_id::int
-            )
-    );
-
 -- name: DeleteSectionProgress :exec
 WITH
     course_modules AS (
@@ -568,3 +509,36 @@ WHERE
 DELETE FROM user_courses
 WHERE user_id = @user_id::int
 AND course_id = @course_id::int;
+
+-- name: GetCurrentUnitAndModule :one
+WITH latest_module_progress AS (
+    SELECT 
+        ump.module_id,
+        ump.updated_at
+    FROM user_module_progress ump
+    JOIN modules m ON m.id = ump.module_id
+    JOIN units u ON u.id = m.unit_id
+    WHERE ump.user_id = $1 
+    AND u.course_id = $2
+    ORDER BY ump.updated_at DESC NULLS LAST
+    LIMIT 1
+)
+SELECT
+    u.id as unit_id,
+    u.created_at as unit_created_at,
+    u.updated_at as unit_updated_at,
+    u.name as unit_name,
+    u.description as unit_description,
+    u.unit_number as unit_number,
+    m.id as module_id,
+    m.created_at as module_created_at,
+    m.updated_at as module_updated_at,
+    m.name as module_name,
+    m.description as module_description,
+    m.module_number as module_number,
+    COALESCE(ump.progress, 0) as module_progress,
+    COALESCE(ump.status, 'uninitiated'::module_progress_status) as module_status
+FROM latest_module_progress lmp
+JOIN modules m ON m.id = lmp.module_id
+JOIN units u ON u.id = m.unit_id
+LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1;

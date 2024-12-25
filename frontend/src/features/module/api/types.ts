@@ -21,3 +21,13 @@ export interface ModuleResponse {
     };
   };
 }
+
+export interface ModuleProgressResponse {
+  module: Module;
+  nextModuleId: number | null;
+  prevModuleId: number | null;
+  nextUnitId: number | null;
+  prevUnitId: number | null;
+  nextUnitModuleId: number | null;
+  prevUnitModuleId: number | null;
+}

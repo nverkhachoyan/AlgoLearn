@@ -41,7 +41,11 @@ const UnitsButton = () => {
 };
 
 export const CourseList = () => (
-  <List filters={filters} sort={{ field: "updatedAt", order: "DESC" }}>
+  <List
+    filters={filters}
+    sort={{ field: "updatedAt", order: "DESC" }}
+    sx={{ padding: 1.5 }}
+  >
     <Datagrid rowClick="edit">
       <TextField source="id" />
       <TextField source="name" />

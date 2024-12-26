@@ -12,6 +12,7 @@ import (
 
 type CourseService interface {
 	GetCourse(ctx context.Context, courseID int64) (*models.Course, error)
+	GetCoursesCount(ctx context.Context) (int64, error)
 	GetCourseByID(ctx context.Context, courseID int32) (*models.Course, error)
 	GetCourseWithProgress(ctx context.Context, userID int64, courseID int64) (*models.Course, error)
 	ListEnrolledCoursesWithProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error)
@@ -37,6 +38,17 @@ func NewCourseService(db *sql.DB) CourseService {
 		db:      db,
 		log:     logger.Get(),
 	}
+}
+
+func (r *courseService) GetCoursesCount(ctx context.Context) (int64, error) {
+	log := r.log.WithBaseFields(logger.Service, "GetCoursesCount")
+
+	count, err := r.queries.GetCoursesCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("failed to get courses count")
+		return 0, fmt.Errorf("failed to get courses count: %w", err)
+	}
+	return count, nil
 }
 
 func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error) {
@@ -67,18 +79,18 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 		var course models.Course
 		totalCount = result.TotalCount
 
-		if _, exists := coursesMap[int64(result.ID.Int32)]; exists || !result.ID.Valid {
+		if _, exists := coursesMap[int64(result.ID)]; exists || result.ID == 0 {
 			continue
 		}
 
 		course = models.Course{
 			BaseModel: models.BaseModel{
-				ID:        int64(result.ID.Int32),
-				CreatedAt: result.CreatedAt.Time,
-				UpdatedAt: result.UpdatedAt.Time,
+				ID:        int64(result.ID),
+				CreatedAt: result.CreatedAt,
+				UpdatedAt: result.UpdatedAt,
 			},
-			Name:            result.Name.String,
-			Description:     result.Description.String,
+			Name:            result.Name,
+			Description:     result.Description,
 			Requirements:    nullStringToString(result.Requirements),
 			WhatYouLearn:    nullStringToString(result.WhatYouLearn),
 			BackgroundColor: nullStringToString(result.BackgroundColor),
@@ -89,7 +101,7 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 		}
 
 		// Get authors for each course
-		authors, err := r.queries.GetCourseAuthors(ctx, result.ID.Int32)
+		authors, err := r.queries.GetCourseAuthors(ctx, result.ID)
 		if err != nil {
 			log.WithError(err).Error("failed to get course authors")
 			return 0, nil, fmt.Errorf("failed to get course authors: %w", err)
@@ -98,12 +110,12 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 		for i, author := range authors {
 			course.Authors[i] = models.Author{
 				ID:   int64(author.ID),
-				Name: author.Name,
+				Name: author.FirstName.String + " " + author.LastName.String,
 			}
 		}
 
 		// Get tags for each course
-		tags, err := r.queries.GetCourseTags(ctx, result.ID.Int32)
+		tags, err := r.queries.GetCourseTags(ctx, result.ID)
 		if err != nil {
 			log.WithError(err).Error("failed to get course tags")
 			return 0, nil, fmt.Errorf("failed to get course tags: %w", err)
@@ -120,8 +132,8 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 			course.CurrentUnit = &models.Unit{
 				BaseModel: models.BaseModel{
 					ID:        int64(result.CurrentUnitID),
-					CreatedAt: result.UnitCreatedAt,
-					UpdatedAt: result.UnitUpdatedAt,
+					CreatedAt: result.UnitCreatedAt.Time,
+					UpdatedAt: result.UnitUpdatedAt.Time,
 				},
 				UnitNumber:  int16(result.UnitNumber),
 				Name:        result.UnitName,
@@ -133,8 +145,8 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 			course.CurrentModule = &models.Module{
 				BaseModel: models.BaseModel{
 					ID:        int64(result.CurrentModuleID),
-					CreatedAt: result.ModuleCreatedAt,
-					UpdatedAt: result.ModuleUpdatedAt,
+					CreatedAt: result.ModuleCreatedAt.Time,
+					UpdatedAt: result.ModuleUpdatedAt.Time,
 				},
 				ModuleNumber: int16(result.ModuleNumber),
 				Name:         result.ModuleName,
@@ -211,7 +223,7 @@ func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, 
 		for i, author := range authors {
 			course.Authors[i] = models.Author{
 				ID:   int64(author.ID),
-				Name: author.Name,
+				Name: author.FirstName.String + " " + author.LastName.String,
 			}
 		}
 
@@ -309,7 +321,7 @@ func (r *courseService) GetCourse(ctx context.Context, courseID int64) (*models.
 	for i, author := range authors {
 		course.Authors[i] = models.Author{
 			ID:   int64(author.ID),
-			Name: author.Name,
+			Name: author.FirstName.String + " " + author.LastName.String,
 		}
 	}
 
@@ -417,7 +429,7 @@ func (r *courseService) GetCourseWithProgress(ctx context.Context, userID int64,
 	for i, author := range authors {
 		course.Authors[i] = models.Author{
 			ID:   int64(author.ID),
-			Name: author.Name,
+			Name: author.FirstName.String + " " + author.LastName.String,
 		}
 	}
 
@@ -963,7 +975,7 @@ func (r *courseService) enrichCourseWithMetadata(ctx context.Context, course *mo
 		for i, author := range authors {
 			course.Authors[i] = models.Author{
 				ID:   int64(author.ID),
-				Name: author.Name,
+				Name: author.FirstName.String + " " + author.LastName.String,
 			}
 		}
 	}

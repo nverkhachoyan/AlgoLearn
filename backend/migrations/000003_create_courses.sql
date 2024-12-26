@@ -16,20 +16,12 @@ CREATE TABLE courses (
     rating FLOAT
 );
 
-CREATE TABLE authors (
-    id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    draft BOOLEAN NOT NULL DEFAULT TRUE,
-    name VARCHAR(255) NOT NULL
-);
-
 CREATE TABLE course_authors (
     course_id INTEGER NOT NULL,
-    author_id INTEGER NOT NULL,
-    PRIMARY KEY (course_id, author_id),
+    user_id INTEGER NOT NULL,
+    PRIMARY KEY (course_id, user_id),
     FOREIGN KEY (course_id) REFERENCES courses (id) ON DELETE CASCADE,
-    FOREIGN KEY (author_id) REFERENCES authors (id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE tags (
@@ -49,7 +41,7 @@ CREATE INDEX idx_courses_name ON courses (name);
 
 CREATE INDEX idx_course_authors_course_id ON course_authors (course_id);
 
-CREATE INDEX idx_course_authors_author_id ON course_authors (author_id);
+CREATE INDEX idx_course_authors_user_id ON course_authors (user_id);
 
 CREATE INDEX idx_course_tags_course_id ON course_tags (course_id);
 
@@ -63,8 +55,6 @@ DROP TABLE IF EXISTS course_tags;
 DROP TABLE IF EXISTS course_authors;
 
 DROP TABLE IF EXISTS tags;
-
-DROP TABLE IF EXISTS authors;
 
 DROP TABLE IF EXISTS courses;
 -- +goose StatementEnd

@@ -1,60 +1,13 @@
-import { RaRecord } from "react-admin";
+import { RaRecord, Identifier } from "react-admin";
 
-export interface Author {
-  id: number;
-  name: string;
-}
-
-export interface Tag {
-  id: number;
-  name: string;
-}
-
-export interface Section {
-  id: number;
-  title: string;
-  content: string;
-  type: "text" | "video" | "quiz";
-  videoUrl?: string;
-  questions?: Question[];
-}
-
-export interface Module extends RaRecord {
-  id: number;
+// Base resource interface
+interface BaseResource extends RaRecord {
   createdAt: string;
   updatedAt: string;
-  moduleNumber: number;
-  name: string;
-  description: string;
-  progress: number;
-  status: string;
-  startedAt: string;
-  completedAt: string;
-  lastAccessed: string;
-  sections: Section[] | null;
 }
 
-export interface Question {
-  id: number;
-  text: string;
-  options: string[];
-  correctOption: number;
-  explanation: string;
-}
-
-export interface Unit extends RaRecord {
-  id: number;
-  createdAt: string;
-  updatedAt: string;
-  unitNumber: number;
-  name: string;
-  description: string;
-  modules: Module[] | null;
-}
-
-export interface Course extends RaRecord {
-  createdAt: string;
-  updatedAt: string;
+// Resource-specific interfaces
+export interface Course extends BaseResource {
   name: string;
   description: string;
   requirements: string;
@@ -63,43 +16,42 @@ export interface Course extends RaRecord {
   iconUrl: string;
   duration: number;
   difficultyLevel: "beginner" | "intermediate" | "advanced" | "expert";
+  rating: number;
   authors: Author[];
   tags: Tag[];
-  rating: number;
-  currentUnit: number | null;
-  currentModule: number | null;
-  progress: number;
-  units: Unit[] | null;
 }
 
-export interface PaginationInfo {
-  totalItems: number;
-  pageSize: number;
-  currentPage: number;
-  totalPages: number;
+export interface Unit extends BaseResource {
+  courseId: Identifier;
+  name: string;
+  description: string;
+  unitNumber: number;
 }
 
-export interface ApiListResponse<T> {
-  success: boolean;
-  message: string;
-  payload: {
-    items: T[];
-    pagination: PaginationInfo;
-  };
+export interface Module extends BaseResource {
+  courseId: Identifier;
+  unitId: Identifier;
+  name: string;
+  description: string;
+  content: string;
+  moduleNumber: number;
+  type: "video" | "text" | "quiz";
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  payload: T;
+export interface Author extends BaseResource {
+  name: string;
 }
 
-export interface ApiBulkResponse<T> {
-  success: boolean;
-  message: string;
-  payload: T[];
+export interface Tag extends BaseResource {
+  name: string;
 }
 
-export type CourseResponse = ApiListResponse<Course>;
-export type UnitResponse = ApiBulkResponse<Unit>;
-export type ModuleResponse = ApiBulkResponse<Module>;
+export interface User extends BaseResource {
+  username: string;
+  email: string;
+  role: "admin" | "user" | "instructor";
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  location?: string;
+}

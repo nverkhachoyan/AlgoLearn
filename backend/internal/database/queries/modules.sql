@@ -1,6 +1,9 @@
 -- name: GetModulesByUnitId :many
 SELECT * FROM modules WHERE unit_id = @unit_id::int;
 
+-- name: GetModulesCount :one
+SELECT COUNT(*) FROM modules;
+
 -- name: GetModuleWithProgress :one
 SELECT jsonb_build_object(
     'id', m.id,
@@ -110,7 +113,7 @@ SELECT
 FROM user_section_progress
 WHERE user_id = @user_id::int AND module_id = @module_id::int;
 
--- name: GetModuleTotalCount :one
+-- name: GetModuleTotalCountByUnitId :one
 SELECT COUNT(*) FROM modules WHERE unit_id = @unit_id::int;
 
 -- name: GetNextModuleId :one

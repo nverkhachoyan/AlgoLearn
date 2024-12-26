@@ -10,9 +10,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type UserService interface {
+	GetUsers(ctx context.Context, params GetUsersParams) ([]models.User, error)
+	GetUsersCount(ctx context.Context) (int64, error)
+	GetReceivedAchievementsCount(ctx context.Context) (int64, error)
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
 	GetUserByID(ctx context.Context, id int32) (*models.User, error)
@@ -28,6 +32,132 @@ type userService struct {
 
 func NewUserService(db *sql.DB) UserService {
 	return &userService{db: database.New(db), log: logger.Get()}
+}
+
+type GetUsersParams struct {
+	Username        string    `json:"username"`
+	Email           string    `json:"email"`
+	Role            string    `json:"role"`
+	FirstName       string    `json:"firstName"`
+	LastName        string    `json:"lastName"`
+	Location        string    `json:"location"`
+	Bio             string    `json:"bio"`
+	MinCpus         int32     `json:"minCpus"`
+	MaxCpus         int32     `json:"maxCpus"`
+	IsActive        *bool     `json:"isActive"`
+	IsEmailVerified *bool     `json:"isEmailVerified"`
+	CreatedAfter    time.Time `json:"createdAfter"`
+	CreatedBefore   time.Time `json:"createdBefore"`
+	UpdatedAfter    time.Time `json:"updatedAfter"`
+	UpdatedBefore   time.Time `json:"updatedBefore"`
+	LastLoginAfter  time.Time `json:"lastLoginAfter"`
+	LastLoginBefore time.Time `json:"lastLoginBefore"`
+	Sort            string    `json:"sort"`
+	Order           string    `json:"order"`
+	PageOffset      int32     `json:"pageOffset"`
+	PageLimit       int32     `json:"pageLimit"`
+}
+
+func (r *userService) GetUsers(ctx context.Context, params GetUsersParams) ([]models.User, error) {
+	log := r.log.WithBaseFields(logger.Service, "GetUsers")
+
+	log.Debugf("Getting users with params: %+v", params)
+
+	// First get total count
+	totalCount, err := r.db.GetUsersCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("failed to get total users count")
+		return nil, fmt.Errorf("could not fetch total users count: %v", err)
+	}
+	log.Debugf("Total users count: %d", totalCount)
+
+	// Set default values for pagination if not provided
+	if params.PageLimit == 0 {
+		params.PageLimit = 10
+	}
+
+	// Prepare query params
+	queryParams := gen.GetUsersParams{
+		Role:            sql.NullString{String: params.Role, Valid: params.Role != ""},
+		Username:        sql.NullString{String: params.Username, Valid: params.Username != ""},
+		Email:           sql.NullString{String: params.Email, Valid: params.Email != ""},
+		FirstName:       sql.NullString{String: params.FirstName, Valid: params.FirstName != ""},
+		LastName:        sql.NullString{String: params.LastName, Valid: params.LastName != ""},
+		Location:        sql.NullString{String: params.Location, Valid: params.Location != ""},
+		Bio:             sql.NullString{String: params.Bio, Valid: params.Bio != ""},
+		MinCpus:         sql.NullInt32{Int32: params.MinCpus, Valid: params.MinCpus != 0},
+		MaxCpus:         sql.NullInt32{Int32: params.MaxCpus, Valid: params.MaxCpus != 0},
+		IsActive:        sql.NullBool{Bool: params.IsActive != nil && *params.IsActive, Valid: params.IsActive != nil},
+		IsEmailVerified: sql.NullBool{Bool: params.IsEmailVerified != nil && *params.IsEmailVerified, Valid: params.IsEmailVerified != nil},
+		CreatedAfter:    sql.NullTime{Time: params.CreatedAfter, Valid: !params.CreatedAfter.IsZero()},
+		CreatedBefore:   sql.NullTime{Time: params.CreatedBefore, Valid: !params.CreatedBefore.IsZero()},
+		UpdatedAfter:    sql.NullTime{Time: params.UpdatedAfter, Valid: !params.UpdatedAfter.IsZero()},
+		UpdatedBefore:   sql.NullTime{Time: params.UpdatedBefore, Valid: !params.UpdatedBefore.IsZero()},
+		LastLoginAfter:  sql.NullTime{Time: params.LastLoginAfter, Valid: !params.LastLoginAfter.IsZero()},
+		LastLoginBefore: sql.NullTime{Time: params.LastLoginBefore, Valid: !params.LastLoginBefore.IsZero()},
+		SortColumn:      sql.NullString{String: params.Sort, Valid: params.Sort != ""},
+		SortDirection:   sql.NullString{String: params.Order, Valid: params.Order != ""},
+		PageOffset:      params.PageOffset,
+		PageLimit:       params.PageLimit,
+	}
+
+	log.Debugf("Query params: %+v", queryParams)
+
+	result, err := r.db.GetUsers(ctx, queryParams)
+	if err != nil {
+		log.WithError(err).Error("failed to get users")
+		return nil, fmt.Errorf("could not fetch users: %v", err)
+	}
+
+	log.Debugf("Found %d users", len(result))
+	if len(result) > 0 {
+		log.Debugf("First user role: %v", result[0].Role)
+	}
+
+	users := make([]models.User, 0)
+	for _, user := range result {
+		users = append(users, models.User{
+			ID:                user.ID,
+			Username:          user.Username,
+			Email:             user.Email,
+			Role:              string(user.Role),
+			FirstName:         user.FirstName.String,
+			LastName:          user.LastName.String,
+			ProfilePictureURL: user.ProfilePictureUrl.String,
+			Bio:               user.Bio.String,
+			Location:          user.Location.String,
+			CreatedAt:         user.CreatedAt,
+			UpdatedAt:         user.UpdatedAt,
+			LastLoginAt:       user.LastLoginAt.Time,
+			IsActive:          user.IsActive,
+			IsEmailVerified:   user.IsEmailVerified,
+			CPUs:              int(user.Cpus),
+		})
+	}
+
+	return users, nil
+}
+
+func (r *userService) GetUsersCount(ctx context.Context) (int64, error) {
+	log := r.log.WithBaseFields(logger.Service, "GetUsersCount")
+
+	count, err := r.db.GetUsersCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("failed to get users count")
+		return 0, fmt.Errorf("could not fetch users count: %v", err)
+	}
+	return count, nil
+}
+
+func (r *userService) GetReceivedAchievementsCount(ctx context.Context) (int64, error) {
+	log := r.log.WithBaseFields(logger.Service, "GetReceivedAchievementsCount")
+
+	count, err := r.db.GetReceivedAchievementsCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("failed to get user achievements count")
+		return 0, fmt.Errorf("could not fetch user achievements count: %v", err)
+	}
+	return count, nil
 }
 
 func (r *userService) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {

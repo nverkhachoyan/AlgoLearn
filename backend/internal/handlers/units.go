@@ -18,6 +18,7 @@ type UnitHandler interface {
 	UpdateUnit(c *gin.Context)
 	UpdateUnitNumber(c *gin.Context)
 	DeleteUnit(c *gin.Context)
+	GetUnitsCount(c *gin.Context)
 	RegisterRoutes(r *gin.RouterGroup)
 }
 
@@ -248,10 +249,21 @@ func (h *unitHandler) DeleteUnit(c *gin.Context) {
 	})
 }
 
-func (h *unitHandler) RegisterRoutes(r *gin.RouterGroup) {
-	basePath := "/courses/:courseId/units"
+func (h *unitHandler) GetUnitsCount(c *gin.Context) {
+	ctx := c.Request.Context()
+	count, err := h.unitRepo.GetUnitsCount(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "failed to get units count"})
+		return
+	}
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "units count retrieved successfully", Payload: count})
+}
 
-	units := r.Group(basePath)
+func (h *unitHandler) RegisterRoutes(r *gin.RouterGroup) {
+
+	units := r.Group("/courses/:courseId/units")
+
+	units.GET("/count", h.GetUnitsCount)
 	{
 		units.POST("", h.CreateUnit)
 		units.GET("/:unitId", h.GetUnitByID)
@@ -259,5 +271,6 @@ func (h *unitHandler) RegisterRoutes(r *gin.RouterGroup) {
 		units.PUT("/:unitId", h.UpdateUnit)
 		units.PUT("/:unitId/number", h.UpdateUnitNumber)
 		units.DELETE("/:unitId", h.DeleteUnit)
+
 	}
 }

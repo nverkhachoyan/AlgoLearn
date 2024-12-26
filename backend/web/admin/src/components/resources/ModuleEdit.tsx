@@ -11,7 +11,7 @@ import {
   useRecordContext,
   RaRecord,
 } from "react-admin";
-import { Module } from "../types";
+import { Module } from "../../types";
 import { useLocation } from "react-router-dom";
 
 const ModuleEditActions = () => {

@@ -21,3 +21,6 @@ WHERE
 
 -- name: DeleteAchievement :exec
 DELETE FROM achievements WHERE id = $1;
+
+-- name: GetAchievementsCount :one
+SELECT COUNT(*) FROM achievements;

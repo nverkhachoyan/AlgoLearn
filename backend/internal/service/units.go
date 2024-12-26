@@ -12,6 +12,7 @@ type UnitService interface {
 	CreateUnit(ctx context.Context, courseID int64, unitNumber int16, name, description string) (*models.Unit, error)
 	GetUnitByID(ctx context.Context, unitID int64) (*models.Unit, error)
 	GetUnitsByCourseID(ctx context.Context, courseID int64) ([]*models.Unit, error)
+	GetUnitsCount(ctx context.Context) (int64, error)
 	UpdateUnit(ctx context.Context, unitID int64, name, description string) (*models.Unit, error)
 	UpdateUnitNumber(ctx context.Context, unitID int64, unitNumber int16) (*models.Unit, error)
 	DeleteUnit(ctx context.Context, unitID int64) error
@@ -76,6 +77,14 @@ func (s *unitService) GetUnitsByCourseID(ctx context.Context, courseID int64) ([
 		})
 	}
 	return unitsModels, nil
+}
+
+func (s *unitService) GetUnitsCount(ctx context.Context) (int64, error) {
+	count, err := s.queries.GetUnitsCount(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (s *unitService) UpdateUnit(ctx context.Context, unitID int64, name, description string) (*models.Unit, error) {

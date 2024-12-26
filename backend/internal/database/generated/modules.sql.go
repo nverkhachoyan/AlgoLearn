@@ -164,12 +164,12 @@ func (q *Queries) GetLastModuleNumber(ctx context.Context, unitID int32) (interf
 	return last_number, err
 }
 
-const getModuleTotalCount = `-- name: GetModuleTotalCount :one
+const getModuleTotalCountByUnitId = `-- name: GetModuleTotalCountByUnitId :one
 SELECT COUNT(*) FROM modules WHERE unit_id = $1::int
 `
 
-func (q *Queries) GetModuleTotalCount(ctx context.Context, unitID int32) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getModuleTotalCount, unitID)
+func (q *Queries) GetModuleTotalCountByUnitId(ctx context.Context, unitID int32) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getModuleTotalCountByUnitId, unitID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -242,6 +242,17 @@ func (q *Queries) GetModulesByUnitId(ctx context.Context, unitID int32) ([]Modul
 		return nil, err
 	}
 	return items, nil
+}
+
+const getModulesCount = `-- name: GetModulesCount :one
+SELECT COUNT(*) FROM modules
+`
+
+func (q *Queries) GetModulesCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getModulesCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getModulesList = `-- name: GetModulesList :many

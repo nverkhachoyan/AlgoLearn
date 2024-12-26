@@ -64,6 +64,17 @@ func (q *Queries) GetAchievementByID(ctx context.Context, id int32) (Achievement
 	return i, err
 }
 
+const getAchievementsCount = `-- name: GetAchievementsCount :one
+SELECT COUNT(*) FROM achievements
+`
+
+func (q *Queries) GetAchievementsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getAchievementsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getAllAchievements = `-- name: GetAllAchievements :many
 SELECT id, created_at, updated_at, draft, name, description, points FROM achievements
 `

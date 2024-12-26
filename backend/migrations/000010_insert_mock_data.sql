@@ -66,15 +66,6 @@ VALUES (
         TRUE
     );
 
--- 2. Insert Data into 'authors' Table
-INSERT INTO
-    authors (name)
-VALUES ('Bob Builder'),
-    ('Carol Creator'),
-    ('Dan Developer'),
-    ('Eve Evans'),
-    ('Frank Farmer');
-
 -- 3. Insert Data into 'tags' Table
 INSERT INTO
     tags (name)
@@ -143,7 +134,7 @@ VALUES (
 
 -- 5. Insert Data into 'course_authors' Table
 INSERT INTO
-    course_authors (course_id, author_id)
+    course_authors (course_id, user_id)
 VALUES (1, 1),
     (2, 2),
     (3, 3),
@@ -713,8 +704,6 @@ TRUNCATE TABLE course_tags CASCADE;
 TRUNCATE TABLE course_authors CASCADE;
 
 TRUNCATE TABLE tags CASCADE;
-
-TRUNCATE TABLE authors CASCADE;
 
 TRUNCATE TABLE courses CASCADE;
 

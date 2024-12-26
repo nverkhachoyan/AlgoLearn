@@ -1,5 +1,5 @@
 import {
-  Edit,
+  Create,
   SimpleForm,
   TextInput,
   NumberInput,
@@ -18,8 +18,8 @@ const difficultyLevels = [
   { id: "expert", name: "Expert" },
 ];
 
-export const CourseEdit = () => (
-  <Edit>
+export const CourseCreate = () => (
+  <Create sx={{ padding: 1.5 }}>
     <SimpleForm>
       <TextInput source="name" validate={[required()]} fullWidth />
       <TextInput source="description" multiline rows={4} fullWidth />
@@ -53,5 +53,5 @@ export const CourseEdit = () => (
         </SimpleFormIterator>
       </ArrayInput>
     </SimpleForm>
-  </Edit>
+  </Create>
 );

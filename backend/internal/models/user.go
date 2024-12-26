@@ -75,3 +75,31 @@ type UserCourse struct {
 	CourseID               int `json:"courseId"`
 	LatestModuleProgressID int `json:"latestModuleSessionId"`
 }
+
+type UserFilters struct {
+	Username        string     `json:"username"`
+	Email           string     `json:"email"`
+	Role            string     `json:"role"`
+	FirstName       string     `json:"first_name"`
+	LastName        string     `json:"last_name"`
+	Location        string     `json:"location"`
+	Bio             string     `json:"bio"`
+	MinCPUs         *int       `json:"min_cpus"`
+	MaxCPUs         *int       `json:"max_cpus"`
+	IsActive        *bool      `json:"is_active"`
+	IsEmailVerified *bool      `json:"is_email_verified"`
+	CreatedAfter    *time.Time `json:"created_after"`
+	CreatedBefore   *time.Time `json:"created_before"`
+	UpdatedAfter    *time.Time `json:"updated_after"`
+	UpdatedBefore   *time.Time `json:"updated_before"`
+	LastLoginAfter  *time.Time `json:"last_login_after"`
+	LastLoginBefore *time.Time `json:"last_login_before"`
+}
+
+type UserQuery struct {
+	Page     int         `json:"page"`
+	PageSize int         `json:"page_size"`
+	Filters  UserFilters `json:"filters"`
+	Sort     string      `json:"sort"`
+	Order    string      `json:"order"`
+}

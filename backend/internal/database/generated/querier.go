@@ -26,6 +26,7 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserCourse(ctx context.Context, arg DeleteUserCourseParams) error
 	GetAchievementByID(ctx context.Context, id int32) (Achievement, error)
+	GetAchievementsCount(ctx context.Context) (int64, error)
 	GetAllAchievements(ctx context.Context) ([]Achievement, error)
 	GetAllCoursesWithOptionalProgress(ctx context.Context, arg GetAllCoursesWithOptionalProgressParams) ([]GetAllCoursesWithOptionalProgressRow, error)
 	GetAllNotifications(ctx context.Context) ([]Notification, error)
@@ -35,6 +36,7 @@ type Querier interface {
 	GetCourseProgressSummaryBase(ctx context.Context, arg GetCourseProgressSummaryBaseParams) (GetCourseProgressSummaryBaseRow, error)
 	GetCourseTags(ctx context.Context, courseID int32) ([]Tag, error)
 	GetCourseUnits(ctx context.Context, courseID int32) ([]GetCourseUnitsRow, error)
+	GetCoursesCount(ctx context.Context) (int64, error)
 	GetCurrentUnitAndModule(ctx context.Context, arg GetCurrentUnitAndModuleParams) (GetCurrentUnitAndModuleRow, error)
 	GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnrolledCoursesWithProgressParams) ([]GetEnrolledCoursesWithProgressRow, error)
 	GetFirstUnitAndModuleInCourse(ctx context.Context, courseID int32) (GetFirstUnitAndModuleInCourseRow, error)
@@ -42,9 +44,10 @@ type Querier interface {
 	GetMarkdownSection(ctx context.Context, sectionID int32) (string, error)
 	GetModuleProgressByUnit(ctx context.Context, arg GetModuleProgressByUnitParams) ([]GetModuleProgressByUnitRow, error)
 	GetModuleSectionsWithProgress(ctx context.Context, arg GetModuleSectionsWithProgressParams) ([]GetModuleSectionsWithProgressRow, error)
-	GetModuleTotalCount(ctx context.Context, unitID int32) (int64, error)
+	GetModuleTotalCountByUnitId(ctx context.Context, unitID int32) (int64, error)
 	GetModuleWithProgress(ctx context.Context, arg GetModuleWithProgressParams) (json.RawMessage, error)
 	GetModulesByUnitId(ctx context.Context, unitID int32) ([]Module, error)
+	GetModulesCount(ctx context.Context) (int64, error)
 	GetModulesList(ctx context.Context, arg GetModulesListParams) ([]GetModulesListRow, error)
 	GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams) (int32, error)
 	GetNextUnitId(ctx context.Context, arg GetNextUnitIdParams) (int32, error)
@@ -53,6 +56,7 @@ type Querier interface {
 	GetPrevUnitId(ctx context.Context, arg GetPrevUnitIdParams) (int32, error)
 	GetPrevUnitModuleId(ctx context.Context, unitID int32) (int32, error)
 	GetQuestionSection(ctx context.Context, sectionID int32) (GetQuestionSectionRow, error)
+	GetReceivedAchievementsCount(ctx context.Context) (int64, error)
 	GetSectionContent(ctx context.Context, sectionID int32) (interface{}, error)
 	GetSectionProgress(ctx context.Context, arg GetSectionProgressParams) ([]GetSectionProgressRow, error)
 	GetSingleModuleSections(ctx context.Context, arg GetSingleModuleSectionsParams) ([]GetSingleModuleSectionsRow, error)
@@ -61,10 +65,14 @@ type Querier interface {
 	GetUnitModules(ctx context.Context, unitID int32) ([]GetUnitModulesRow, error)
 	GetUnitNumber(ctx context.Context, unitID int32) (int32, error)
 	GetUnitsByCourseID(ctx context.Context, courseID int32) ([]Unit, error)
+	GetUnitsCount(ctx context.Context) (int64, error)
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id int32) (GetUserByIDRow, error)
+	GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersRow, error)
+	GetUsersCount(ctx context.Context) (int64, error)
 	GetVideoSection(ctx context.Context, sectionID int32) (string, error)
 	InitializeModuleProgress(ctx context.Context, arg InitializeModuleProgressParams) error
+	InsertCourseAuthor(ctx context.Context, arg InsertCourseAuthorParams) error
 	InsertModule(ctx context.Context, arg InsertModuleParams) (Module, error)
 	InsertQuestion(ctx context.Context, arg InsertQuestionParams) (Question, error)
 	InsertQuestionOption(ctx context.Context, arg InsertQuestionOptionParams) error

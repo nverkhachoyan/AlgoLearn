@@ -10,6 +10,7 @@ import (
 	"algolearn/pkg/security"
 	"context"
 	"errors"
+	"strconv"
 
 	"encoding/json"
 	"fmt"
@@ -32,7 +33,10 @@ type UserHandler interface {
 	LoginUser(c *gin.Context)
 	// UpdateUser(w http.ResponseWriter, r *http.Request)
 	GetUser(c *gin.Context)
+	GetUsers(c *gin.Context)
 	DeleteUser(c *gin.Context)
+	GetUsersCount(c *gin.Context)
+	GetReceivedAchievementsCount(c *gin.Context)
 	RegisterRoutes(r *gin.RouterGroup)
 }
 
@@ -492,6 +496,111 @@ func (h *userHandler) GetUser(c *gin.Context) {
 		})
 }
 
+func (h *userHandler) GetUsers(c *gin.Context) {
+	ctx := c.Request.Context()
+	log := logger.Get()
+
+	// Parse pagination
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(c.Query("pageSize"))
+	if err != nil {
+		pageSize = 10
+	}
+
+	// Calculate the correct offset
+	offset := (page - 1) * pageSize
+
+	userID, err := GetUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
+		return
+	}
+
+	user, err := h.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
+		return
+	}
+
+	if user.Role != "admin" && user.Role != "instructor" {
+		c.JSON(http.StatusUnauthorized, models.Response{Success: false, Message: "Unauthorized"})
+		return
+	}
+
+	filters, err := models.ParseUserFilters(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.Response{Success: false, Message: "Invalid filter format"})
+		return
+	}
+
+	sort := c.Query("sort")
+	order := c.Query("order")
+
+	users, err := h.repo.GetUsers(ctx, service.GetUsersParams{
+		Username:        filters.Username,
+		Email:           filters.Email,
+		Role:            filters.Role,
+		FirstName:       filters.FirstName,
+		LastName:        filters.LastName,
+		Location:        filters.Location,
+		Bio:             filters.Bio,
+		MinCpus:         models.SafeInt32(filters.MinCPUs),
+		MaxCpus:         models.SafeInt32(filters.MaxCPUs),
+		IsActive:        filters.IsActive,
+		IsEmailVerified: filters.IsEmailVerified,
+		CreatedAfter:    models.SafeTime(filters.CreatedAfter),
+		CreatedBefore:   models.SafeTime(filters.CreatedBefore),
+		UpdatedAfter:    models.SafeTime(filters.UpdatedAfter),
+		UpdatedBefore:   models.SafeTime(filters.UpdatedBefore),
+		LastLoginAfter:  models.SafeTime(filters.LastLoginAfter),
+		LastLoginBefore: models.SafeTime(filters.LastLoginBefore),
+		PageOffset:      int32(offset),
+		PageLimit:       int32(pageSize),
+		Sort:            sort,
+		Order:           order,
+	})
+	if err != nil {
+		log.WithError(err).Error("failed to get users")
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to get users"})
+		return
+	}
+
+	// Get total count for pagination
+	totalCount, err := h.repo.GetUsersCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("failed to get total users count")
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to get total users count"})
+		return
+	}
+
+	// Calculate total pages
+	totalPages := (int(totalCount) + pageSize - 1) / pageSize
+
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "Users retrieved successfully", Payload: models.PaginatedPayload{
+		Items: users,
+		Pagination: models.Pagination{
+			CurrentPage: page,
+			PageSize:    pageSize,
+			TotalItems:  totalCount,
+			TotalPages:  totalPages,
+		},
+	}})
+}
+
+func (h *userHandler) GetUsersCount(c *gin.Context) {
+	ctx := c.Request.Context()
+	count, err := h.repo.GetUsersCount(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to get users count"})
+		return
+	}
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "users count retrieved successfully", Payload: count})
+}
+
 func (h *userHandler) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := logger.Get()
@@ -512,20 +621,37 @@ func (h *userHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.Response{Success: true, Message: "User deleted successfully"})
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "user deleted successfully"})
+}
+
+func (h *userHandler) GetReceivedAchievementsCount(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	count, err := h.repo.GetReceivedAchievementsCount(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "Failed to get user achievements count"})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "user achievements count retrieved successfully", Payload: count})
 }
 
 func (h *userHandler) RegisterRoutes(r *gin.RouterGroup) {
-	// Public routes
+	// Route Groups
 	users := r.Group("/users")
+	authorized := users.Group("", middleware.Auth())
+
+	// Public routes
+	users.GET("/achievements/count", h.GetReceivedAchievementsCount)
 	users.POST("/sign-up", h.RegisterUser)
 	users.POST("/sign-in", h.LoginUser)
 	users.GET("/check-email", h.CheckEmailExists)
 	users.POST("/refresh-token", h.RefreshToken)
 
 	// Protected routes (require authentication)
-	authorized := users.Group("", middleware.Auth())
+	authorized.GET("", h.GetUsers)
 	authorized.GET("/me", h.GetUser)
+	authorized.GET("/count", h.GetUsersCount)
 	authorized.PUT("/me", h.UpdateUser)
 	// authorized.PUT("/me/preferences", h.UpdateUserPreferences)
 }

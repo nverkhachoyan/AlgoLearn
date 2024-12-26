@@ -11,7 +11,7 @@ import {
   Button,
   useRecordContext,
 } from "react-admin";
-import { Course } from "../types";
+import { Course } from "../../types";
 import { Box, Typography } from "@mui/material";
 import { useLocation, Link } from "react-router-dom";
 import ArticleIcon from "@mui/icons-material/Article";

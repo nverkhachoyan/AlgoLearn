@@ -1,5 +1,5 @@
 import {
-  Create,
+  Edit,
   SimpleForm,
   TextInput,
   NumberInput,
@@ -9,7 +9,9 @@ import {
   required,
   minValue,
   maxValue,
+  TextField,
 } from "react-admin";
+import { Typography } from "@mui/material";
 
 const difficultyLevels = [
   { id: "beginner", name: "Beginner" },
@@ -18,8 +20,15 @@ const difficultyLevels = [
   { id: "expert", name: "Expert" },
 ];
 
-export const CourseCreate = () => (
-  <Create>
+export const CourseEdit = () => (
+  <Edit
+    sx={{ padding: 1.5, marginTop: 2, marginBottom: 2 }}
+    title={
+      <Typography>
+        <TextField source="name" variant="h6" fontWeight="bold" />
+      </Typography>
+    }
+  >
     <SimpleForm>
       <TextInput source="name" validate={[required()]} fullWidth />
       <TextInput source="description" multiline rows={4} fullWidth />
@@ -53,5 +62,5 @@ export const CourseCreate = () => (
         </SimpleFormIterator>
       </ArrayInput>
     </SimpleForm>
-  </Create>
+  </Edit>
 );

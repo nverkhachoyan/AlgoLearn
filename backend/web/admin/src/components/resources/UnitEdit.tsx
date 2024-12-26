@@ -9,7 +9,7 @@ import {
   useRedirect,
   TopToolbar,
 } from "react-admin";
-import { Unit } from "../types";
+import { Unit } from "../../types";
 import ModuleList from "./ModuleList";
 import { Box } from "@mui/material";
 

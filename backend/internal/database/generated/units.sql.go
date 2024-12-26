@@ -112,6 +112,17 @@ func (q *Queries) GetUnitsByCourseID(ctx context.Context, courseID int32) ([]Uni
 	return items, nil
 }
 
+const getUnitsCount = `-- name: GetUnitsCount :one
+SELECT COUNT(*) FROM units
+`
+
+func (q *Queries) GetUnitsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUnitsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const updateUnit = `-- name: UpdateUnit :exec
 UPDATE units
 SET name = $1::text,

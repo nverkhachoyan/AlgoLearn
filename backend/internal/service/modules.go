@@ -17,6 +17,7 @@ import (
 
 type ModuleService interface {
 	GetModulesByUnitID(ctx context.Context, unitID int64) ([]models.Module, error)
+	GetModulesCount(ctx context.Context) (int64, error)
 	GetModuleWithProgress(ctx context.Context, userID, courseID, unitID, moduleID int64) (*ModuleWithProgressResponse, error)
 	GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error)
 	GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error)
@@ -62,6 +63,17 @@ func (s *moduleService) GetModulesByUnitID(ctx context.Context, unitID int64) ([
 	}
 
 	return modules, nil
+}
+
+func (s *moduleService) GetModulesCount(ctx context.Context) (int64, error) {
+	log := s.log.WithBaseFields(logger.Service, "GetModulesCount")
+
+	count, err := s.queries.GetModulesCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("failed to get module total count")
+		return 0, fmt.Errorf("failed to get module total count: %w", err)
+	}
+	return count, nil
 }
 
 type ModuleWithProgressResponse struct {
@@ -268,7 +280,7 @@ func (s *moduleService) GetModulesWithProgress(ctx context.Context, userID, unit
 func (s *moduleService) GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error) {
 	log := s.log.WithBaseFields(logger.Service, "GetModuleTotalCount")
 
-	count, err := s.queries.GetModuleTotalCount(ctx, int32(unitID))
+	count, err := s.queries.GetModuleTotalCountByUnitId(ctx, int32(unitID))
 	if err != nil {
 		log.WithError(err).Error("failed to get module total count")
 		return 0, fmt.Errorf("failed to get module total count: %w", err)

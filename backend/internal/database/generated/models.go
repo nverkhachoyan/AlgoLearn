@@ -152,14 +152,6 @@ type Achievement struct {
 	Points      int32     `json:"points"`
 }
 
-type Author struct {
-	ID        int32     `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Draft     bool      `json:"draft"`
-	Name      string    `json:"name"`
-}
-
 type Course struct {
 	ID              int32               `json:"id"`
 	CreatedAt       time.Time           `json:"createdAt"`
@@ -178,7 +170,7 @@ type Course struct {
 
 type CourseAuthor struct {
 	CourseID int32 `json:"courseId"`
-	AuthorID int32 `json:"authorId"`
+	UserID   int32 `json:"userId"`
 }
 
 type CourseTag struct {

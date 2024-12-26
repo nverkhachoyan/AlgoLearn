@@ -17,14 +17,15 @@ import (
 
 type CourseHandler interface {
 	RegisterRoutes(r *gin.RouterGroup)
-	ListCourses(c *gin.Context)
+	ListAllCoursesWithOptionalProgress(c *gin.Context)
 	CreateCourse(c *gin.Context)
 	UpdateCourse(c *gin.Context)
 	PublishCourse(c *gin.Context)
 	GetCourse(c *gin.Context)
 	SearchCourses(c *gin.Context)
-	ListCoursesProgress(c *gin.Context)
+	ListEnrolledCoursesWithProgress(c *gin.Context)
 	GetCourseProgress(c *gin.Context)
+	GetCoursesCount(c *gin.Context)
 	StartCourse(c *gin.Context)
 	ResetCourseProgress(c *gin.Context)
 	DeleteCourse(c *gin.Context)
@@ -45,7 +46,7 @@ func NewCourseHandler(courseRepo service.CourseService,
 	}
 }
 
-func (h *courseHandler) ListCourses(c *gin.Context) {
+func (h *courseHandler) ListAllCoursesWithOptionalProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "ListCourses")
 	ctx := c.Request.Context()
 
@@ -90,6 +91,8 @@ func (h *courseHandler) ListCourses(c *gin.Context) {
 		})
 		return
 	}
+
+	SetContentRangeHeader(c, "courses", len(courses), page, pageSize, totalCount)
 
 	totalPages := (totalCount + pageSize - 1) / pageSize
 
@@ -284,7 +287,7 @@ func (h *courseHandler) GetCourse(c *gin.Context) {
 	})
 }
 
-func (h *courseHandler) ListCoursesProgress(c *gin.Context) {
+func (h *courseHandler) ListEnrolledCoursesWithProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "ListCoursesProgress")
 	ctx := c.Request.Context()
 
@@ -329,6 +332,8 @@ func (h *courseHandler) ListCoursesProgress(c *gin.Context) {
 		})
 		return
 	}
+
+	SetContentRangeHeader(c, "courses", len(courses), page, pageSize, totalCount)
 
 	totalPages := (totalCount + pageSize - 1) / pageSize
 
@@ -396,6 +401,16 @@ func (h *courseHandler) GetCourseProgress(c *gin.Context) {
 		Message: "course progress retrieved successfully",
 		Payload: course,
 	})
+}
+
+func (h *courseHandler) GetCoursesCount(c *gin.Context) {
+	ctx := c.Request.Context()
+	count, err := h.courseRepo.GetCoursesCount(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "failed to get courses count"})
+		return
+	}
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "courses count retrieved successfully", Payload: count})
 }
 
 func (h *courseHandler) StartCourse(c *gin.Context) {
@@ -642,16 +657,17 @@ func (h *courseHandler) ResetCourseProgress(c *gin.Context) {
 
 func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
 	courses := r.Group("/courses")
+	courses.GET("/count", h.GetCoursesCount)
 
 	authorized := courses.Group("", middleware.Auth())
 	{
-		authorized.GET("", h.ListCourses)
+		authorized.GET("", h.ListAllCoursesWithOptionalProgress)
 		authorized.POST("/create", h.CreateCourse)
 		authorized.PUT("/:courseId", h.UpdateCourse)
 		authorized.POST("/:courseId/publish", h.PublishCourse)
 		authorized.GET("/:courseId", h.GetCourse)
 		authorized.GET("/search", h.SearchCourses)
-		authorized.GET("/progress", h.ListCoursesProgress)
+		authorized.GET("/progress", h.ListEnrolledCoursesWithProgress)
 		authorized.GET("/:courseId/progress", h.GetCourseProgress)
 		authorized.POST("/:courseId/start", h.StartCourse)
 		authorized.POST("/:courseId/reset", h.ResetCourseProgress)

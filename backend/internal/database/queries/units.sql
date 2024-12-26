@@ -13,6 +13,9 @@ VALUES (
 )
 RETURNING id;
 
+-- name: GetUnitsCount :one
+SELECT COUNT(*) FROM units;
+
 -- name: GetUnitByID :one
 SELECT * FROM units
 WHERE id = @unit_id::int;

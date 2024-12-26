@@ -22,6 +22,7 @@ type ModuleHandler interface {
 	GetModuleWithProgress(c *gin.Context)
 	UpdateModuleProgress(c *gin.Context)
 	GetModules(c *gin.Context)
+	GetModulesCount(c *gin.Context)
 	RegisterRoutes(r *gin.RouterGroup)
 }
 
@@ -520,6 +521,16 @@ func (h *moduleHandler) GetModules(c *gin.Context) {
 	})
 }
 
+func (h *moduleHandler) GetModulesCount(c *gin.Context) {
+	ctx := c.Request.Context()
+	count, err := h.moduleRepo.GetModulesCount(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.Response{Success: false, Message: "failed to get modules count"})
+		return
+	}
+	c.JSON(http.StatusOK, models.Response{Success: true, Message: "modules count retrieved successfully", Payload: count})
+}
+
 func (h *moduleHandler) RegisterRoutes(r *gin.RouterGroup) {
 	basePath := "/courses/:courseId/units/:unitId/modules"
 
@@ -527,6 +538,7 @@ func (h *moduleHandler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		modules.GET("", h.GetModules)
 		modules.GET("/bulk", h.GetModulesByUnitID)
+		modules.GET("/count", h.GetModulesCount)
 	}
 
 	authorized := modules.Group("", middleware.Auth())

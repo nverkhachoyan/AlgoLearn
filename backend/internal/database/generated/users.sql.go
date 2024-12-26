@@ -97,6 +97,17 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 	return err
 }
 
+const getReceivedAchievementsCount = `-- name: GetReceivedAchievementsCount :one
+SELECT COUNT(*) FROM user_achievements
+`
+
+func (q *Queries) GetReceivedAchievementsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getReceivedAchievementsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, user_id, theme, language, timezone
 FROM users
@@ -219,6 +230,184 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (GetUserByIDRow, er
 		&i.Timezone,
 	)
 	return i, err
+}
+
+const getUsers = `-- name: GetUsers :many
+SELECT 
+    id, 
+    username, 
+    email, 
+    role, 
+    first_name, 
+    last_name, 
+    profile_picture_url, 
+    bio, 
+    location, 
+    created_at, 
+    updated_at,
+    last_login_at,
+    is_active,
+    is_email_verified,
+    cpus
+FROM users
+WHERE 1=1
+    AND ($1::text IS NULL OR role = $1::user_role)
+    AND ($2::text IS NULL OR username ILIKE '%' || $2::text || '%')
+    AND ($3::text IS NULL OR email ILIKE '%' || $3::text || '%')
+    AND ($4::text IS NULL OR first_name ILIKE '%' || $4::text || '%')
+    AND ($5::text IS NULL OR last_name ILIKE '%' || $5::text || '%')
+    AND ($6::text IS NULL OR location ILIKE '%' || $6::text || '%')
+    AND ($7::text IS NULL OR bio ILIKE '%' || $7::text || '%')
+    AND ($8::int IS NULL OR cpus >= $8::int)
+    AND ($9::int IS NULL OR cpus <= $9::int)
+    AND ($10::boolean IS NULL OR is_active = $10::boolean)
+    AND ($11::boolean IS NULL OR is_email_verified = $11::boolean)
+    AND ($12::timestamp IS NULL OR created_at >= $12::timestamp)
+    AND ($13::timestamp IS NULL OR created_at <= $13::timestamp)
+    AND ($14::timestamp IS NULL OR updated_at >= $14::timestamp)
+    AND ($15::timestamp IS NULL OR updated_at <= $15::timestamp)
+    AND ($16::timestamp IS NULL OR last_login_at >= $16::timestamp)
+    AND ($17::timestamp IS NULL OR last_login_at <= $17::timestamp)
+ORDER BY 
+    CASE WHEN $18::text = 'id' AND LOWER($19::text) = 'desc' THEN id END DESC,
+    CASE WHEN $18::text = 'id' AND LOWER($19::text) = 'asc' THEN id END ASC,
+    CASE WHEN $18::text = 'username' AND LOWER($19::text) = 'desc' THEN username END DESC,
+    CASE WHEN $18::text = 'username' AND LOWER($19::text) = 'asc' THEN username END ASC,
+    CASE WHEN $18::text = 'email' AND LOWER($19::text) = 'desc' THEN email END DESC,
+    CASE WHEN $18::text = 'email' AND LOWER($19::text) = 'asc' THEN email END ASC,
+    CASE WHEN $18::text = 'role' AND LOWER($19::text) = 'desc' THEN role::text END DESC NULLS LAST,
+    CASE WHEN $18::text = 'role' AND LOWER($19::text) = 'asc' THEN role::text END ASC NULLS LAST,
+    CASE WHEN $18::text = 'first_name' AND LOWER($19::text) = 'desc' THEN first_name END DESC NULLS LAST,
+    CASE WHEN $18::text = 'first_name' AND LOWER($19::text) = 'asc' THEN first_name END ASC NULLS LAST,
+    CASE WHEN $18::text = 'last_name' AND LOWER($19::text) = 'desc' THEN last_name END DESC NULLS LAST,
+    CASE WHEN $18::text = 'last_name' AND LOWER($19::text) = 'asc' THEN last_name END ASC NULLS LAST,
+    CASE WHEN $18::text = 'location' AND LOWER($19::text) = 'desc' THEN location END DESC NULLS LAST,
+    CASE WHEN $18::text = 'location' AND LOWER($19::text) = 'asc' THEN location END ASC NULLS LAST,
+    CASE WHEN $18::text = 'cpus' AND LOWER($19::text) = 'desc' THEN cpus END DESC,
+    CASE WHEN $18::text = 'cpus' AND LOWER($19::text) = 'asc' THEN cpus END ASC,
+    CASE WHEN $18::text = 'created_at' AND LOWER($19::text) = 'desc' THEN created_at END DESC,
+    CASE WHEN $18::text = 'created_at' AND LOWER($19::text) = 'asc' THEN created_at END ASC,
+    CASE WHEN $18::text = 'updated_at' AND LOWER($19::text) = 'desc' THEN updated_at END DESC,
+    CASE WHEN $18::text = 'updated_at' AND LOWER($19::text) = 'asc' THEN updated_at END ASC,
+    CASE WHEN $18::text = 'last_login_at' AND LOWER($19::text) = 'desc' THEN last_login_at END DESC NULLS LAST,
+    CASE WHEN $18::text = 'last_login_at' AND LOWER($19::text) = 'asc' THEN last_login_at END ASC NULLS LAST,
+    created_at DESC
+LIMIT $21::int
+OFFSET $20::int
+`
+
+type GetUsersParams struct {
+	Role            sql.NullString `json:"role"`
+	Username        sql.NullString `json:"username"`
+	Email           sql.NullString `json:"email"`
+	FirstName       sql.NullString `json:"firstName"`
+	LastName        sql.NullString `json:"lastName"`
+	Location        sql.NullString `json:"location"`
+	Bio             sql.NullString `json:"bio"`
+	MinCpus         sql.NullInt32  `json:"minCpus"`
+	MaxCpus         sql.NullInt32  `json:"maxCpus"`
+	IsActive        sql.NullBool   `json:"isActive"`
+	IsEmailVerified sql.NullBool   `json:"isEmailVerified"`
+	CreatedAfter    sql.NullTime   `json:"createdAfter"`
+	CreatedBefore   sql.NullTime   `json:"createdBefore"`
+	UpdatedAfter    sql.NullTime   `json:"updatedAfter"`
+	UpdatedBefore   sql.NullTime   `json:"updatedBefore"`
+	LastLoginAfter  sql.NullTime   `json:"lastLoginAfter"`
+	LastLoginBefore sql.NullTime   `json:"lastLoginBefore"`
+	SortColumn      sql.NullString `json:"sortColumn"`
+	SortDirection   sql.NullString `json:"sortDirection"`
+	PageOffset      int32          `json:"pageOffset"`
+	PageLimit       int32          `json:"pageLimit"`
+}
+
+type GetUsersRow struct {
+	ID                int32          `json:"id"`
+	Username          string         `json:"username"`
+	Email             string         `json:"email"`
+	Role              UserRole       `json:"role"`
+	FirstName         sql.NullString `json:"firstName"`
+	LastName          sql.NullString `json:"lastName"`
+	ProfilePictureUrl sql.NullString `json:"profilePictureUrl"`
+	Bio               sql.NullString `json:"bio"`
+	Location          sql.NullString `json:"location"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
+	LastLoginAt       sql.NullTime   `json:"lastLoginAt"`
+	IsActive          bool           `json:"isActive"`
+	IsEmailVerified   bool           `json:"isEmailVerified"`
+	Cpus              int32          `json:"cpus"`
+}
+
+func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUsers,
+		arg.Role,
+		arg.Username,
+		arg.Email,
+		arg.FirstName,
+		arg.LastName,
+		arg.Location,
+		arg.Bio,
+		arg.MinCpus,
+		arg.MaxCpus,
+		arg.IsActive,
+		arg.IsEmailVerified,
+		arg.CreatedAfter,
+		arg.CreatedBefore,
+		arg.UpdatedAfter,
+		arg.UpdatedBefore,
+		arg.LastLoginAfter,
+		arg.LastLoginBefore,
+		arg.SortColumn,
+		arg.SortDirection,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUsersRow{}
+	for rows.Next() {
+		var i GetUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.Role,
+			&i.FirstName,
+			&i.LastName,
+			&i.ProfilePictureUrl,
+			&i.Bio,
+			&i.Location,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastLoginAt,
+			&i.IsActive,
+			&i.IsEmailVerified,
+			&i.Cpus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersCount = `-- name: GetUsersCount :one
+SELECT COUNT(*) FROM users
+`
+
+func (q *Queries) GetUsersCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUsersCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const insertUserPreferences = `-- name: InsertUserPreferences :one

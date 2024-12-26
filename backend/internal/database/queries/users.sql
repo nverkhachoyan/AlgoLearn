@@ -1,3 +1,69 @@
+-- name: GetUsers :many
+SELECT 
+    id, 
+    username, 
+    email, 
+    role, 
+    first_name, 
+    last_name, 
+    profile_picture_url, 
+    bio, 
+    location, 
+    created_at, 
+    updated_at,
+    last_login_at,
+    is_active,
+    is_email_verified,
+    cpus
+FROM users
+WHERE 1=1
+    AND (sqlc.narg(role)::text IS NULL OR role = sqlc.narg(role)::user_role)
+    AND (sqlc.narg(username)::text IS NULL OR username ILIKE '%' || sqlc.narg(username)::text || '%')
+    AND (sqlc.narg(email)::text IS NULL OR email ILIKE '%' || sqlc.narg(email)::text || '%')
+    AND (sqlc.narg(first_name)::text IS NULL OR first_name ILIKE '%' || sqlc.narg(first_name)::text || '%')
+    AND (sqlc.narg(last_name)::text IS NULL OR last_name ILIKE '%' || sqlc.narg(last_name)::text || '%')
+    AND (sqlc.narg(location)::text IS NULL OR location ILIKE '%' || sqlc.narg(location)::text || '%')
+    AND (sqlc.narg(bio)::text IS NULL OR bio ILIKE '%' || sqlc.narg(bio)::text || '%')
+    AND (sqlc.narg(min_cpus)::int IS NULL OR cpus >= sqlc.narg(min_cpus)::int)
+    AND (sqlc.narg(max_cpus)::int IS NULL OR cpus <= sqlc.narg(max_cpus)::int)
+    AND (sqlc.narg(is_active)::boolean IS NULL OR is_active = sqlc.narg(is_active)::boolean)
+    AND (sqlc.narg(is_email_verified)::boolean IS NULL OR is_email_verified = sqlc.narg(is_email_verified)::boolean)
+    AND (sqlc.narg(created_after)::timestamp IS NULL OR created_at >= sqlc.narg(created_after)::timestamp)
+    AND (sqlc.narg(created_before)::timestamp IS NULL OR created_at <= sqlc.narg(created_before)::timestamp)
+    AND (sqlc.narg(updated_after)::timestamp IS NULL OR updated_at >= sqlc.narg(updated_after)::timestamp)
+    AND (sqlc.narg(updated_before)::timestamp IS NULL OR updated_at <= sqlc.narg(updated_before)::timestamp)
+    AND (sqlc.narg(last_login_after)::timestamp IS NULL OR last_login_at >= sqlc.narg(last_login_after)::timestamp)
+    AND (sqlc.narg(last_login_before)::timestamp IS NULL OR last_login_at <= sqlc.narg(last_login_before)::timestamp)
+ORDER BY 
+    CASE WHEN sqlc.narg(sort_column)::text = 'id' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN id END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'id' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN id END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'username' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN username END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'username' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN username END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'email' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN email END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'email' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN email END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'role' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN role::text END DESC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'role' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN role::text END ASC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'first_name' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN first_name END DESC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'first_name' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN first_name END ASC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'last_name' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN last_name END DESC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'last_name' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN last_name END ASC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'location' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN location END DESC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'location' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN location END ASC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'cpus' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN cpus END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'cpus' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN cpus END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'created_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN created_at END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'created_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN created_at END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'updated_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN updated_at END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'updated_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN updated_at END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'last_login_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN last_login_at END DESC NULLS LAST,
+    CASE WHEN sqlc.narg(sort_column)::text = 'last_login_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN last_login_at END ASC NULLS LAST,
+    created_at DESC
+LIMIT sqlc.arg(page_limit)::int
+OFFSET sqlc.arg(page_offset)::int;
+
+-- name: GetUsersCount :one
+SELECT COUNT(*) FROM users;
+
 -- name: GetUserByID :one
 SELECT *
 FROM users
@@ -76,3 +142,6 @@ RETURNING *;
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = @id;
+
+-- name: GetReceivedAchievementsCount :one
+SELECT COUNT(*) FROM user_achievements;

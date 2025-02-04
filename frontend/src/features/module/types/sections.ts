@@ -1,7 +1,3 @@
-export interface TextContent {
-  text: string;
-}
-
 export interface MarkdownContent {
   markdown: string;
 }
@@ -26,6 +22,18 @@ export interface QuestionContent {
     answeredAt: string;
     isCorrect: boolean;
   };
+}
+
+export interface CodeContent {
+  code: string;
+  language: string;
+}
+
+export interface ImageContent {
+  url: string;
+  headline: string;
+  footer: string;
+  source: string;
 }
 
 export type SectionProgress = {
@@ -55,45 +63,46 @@ export interface Section {
   id: number;
   createdAt: string;
   updatedAt: string;
-  type: "text" | "video" | "question" | "code" | "markdown";
+  type: "markdown" | "video" | "question" | "code" | "image";
   position: number;
-  content: TextContent | VideoContent | QuestionContent | MarkdownContent;
+  content:
+    | VideoContent
+    | QuestionContent
+    | MarkdownContent
+    | CodeContent
+    | ImageContent;
   sectionProgress?: SectionProgress;
 }
 
 export function isQuestionSection(
-  section: Section
+  section: Section,
 ): section is Section & { content: QuestionContent } {
   return section.type === "question";
 }
 
 export function isVideoSection(
-  section: Section
+  section: Section,
 ): section is Section & { content: VideoContent } {
   return section.type === "video";
 }
 
-export function isTextSection(
-  section: Section
-): section is Section & { content: TextContent } {
-  return section.type === "text";
-}
-
 export function isMarkdownSection(
-  section: Section
+  section: Section,
 ): section is Section & { content: MarkdownContent } {
   return section.type === "markdown";
 }
 
 export function isCodeSection(
-  section: Section
+  section: Section,
 ): section is Section & { content: CodeContent } {
   return section.type === "code";
 }
 
-export type CodeContent = {
-  content: string;
-};
+export function isImageSection(
+  section: Section,
+): section is Section & { content: ImageContent } {
+  return section.type === "image";
+}
 
 export interface QuestionOption {
   id: number;

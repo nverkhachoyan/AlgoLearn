@@ -8,8 +8,5 @@ interface CodeSectionProps {
 }
 
 export const CodeSection = memo(({ content, colors }: CodeSectionProps) => (
-  <CodeBlock
-    colors={colors}
-    code={content.content.replace(/```javascript\n|```/g, "")}
-  />
+  <CodeBlock colors={colors} code={content.code} />
 ));

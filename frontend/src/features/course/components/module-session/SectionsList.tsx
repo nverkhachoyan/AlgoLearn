@@ -3,24 +3,22 @@ import { useTheme } from "react-native-paper";
 import {
   Section,
   isQuestionSection,
-  isTextSection,
   isVideoSection,
   isCodeSection,
   isMarkdownSection,
 } from "@/src/features/module/types/sections";
 import { QuestionSection } from "./QuestionSection";
-import { TextSection } from "./TextSection";
+import { MarkdownSection } from "./MarkdownSection";
 import { CodeSection } from "./CodeSection";
 import { VideoSection } from "./VideoSection";
 import { QuestionProgress } from "@/src/features/module/types/sections";
-import { MarkdownSection } from "./MarkdownSection";
 
 interface SectionRendererProps {
   section: Section;
   handleQuestionAnswer: (
     questionId: number,
     selectedOptionId: number | null,
-    isCorrect: boolean | null
+    isCorrect: boolean | null,
   ) => void;
   questionsState: Map<number, QuestionProgress>;
 }
@@ -41,16 +39,6 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
     }, [section.id]);
 
     const renderSection = useCallback(() => {
-      if (isTextSection(section)) {
-        return (
-          <TextSection
-            content={section.content}
-            position={section.position}
-            colors={colors}
-          />
-        );
-      }
-
       if (isMarkdownSection(section)) {
         return (
           <MarkdownSection
@@ -97,16 +85,16 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
       isQuestionSection(nextProps.section)
     ) {
       const prevState = prevProps.questionsState.get(
-        prevProps.section.content.id
+        prevProps.section.content.id,
       );
       const nextState = nextProps.questionsState.get(
-        nextProps.section.content.id
+        nextProps.section.content.id,
       );
       return JSON.stringify(prevState) === JSON.stringify(nextState);
     }
 
     return false;
-  }
+  },
 );
 
 export default SectionsList;

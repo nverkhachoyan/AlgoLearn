@@ -1,25 +1,22 @@
 import { memo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { Text, StyleSheet } from "react-native";
 import useHighlighter from "@/src/features/course/hooks/useHighlighter";
+import { Card } from "react-native-paper";
 
 const CodeBlock = memo(({ code, colors }: { code: string; colors: any }) => {
   const tokens = useHighlighter(code);
 
   return (
-    <View
-      style={[
-        styles.section,
-        styles.codeBlock,
-        { backgroundColor: colors.surface },
-      ]}
-    >
-      {tokens.map((token, index) => (
-        //@ts-ignore
-        <Text key={index} style={[styles.token, styles[token.type]]}>
-          {token.value}
-        </Text>
-      ))}
-    </View>
+    <Card style={[styles.section]}>
+      <Card.Content style={[styles.section, styles.codeBlock]}>
+        {tokens.map((token, index) => (
+          // @ts-ignore
+          <Text key={index} style={[styles.token, styles[token.type]]}>
+            {token.value}
+          </Text>
+        ))}
+      </Card.Content>
+    </Card>
   );
 });
 

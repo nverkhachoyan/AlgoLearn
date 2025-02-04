@@ -53,6 +53,7 @@
     "react-native": "0.76.5",
     "react-native-device-info": "^14.0.2",
     "react-native-error-boundary": "^1.2.5",
+    "react-native-image-viewing": "^0.2.2",
     "react-native-markdown-display": "^7.0.2",
     "react-native-paper": "^5.12.5",
     "react-native-reanimated": "~3.16.1",

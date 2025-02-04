@@ -25,15 +25,10 @@ WHERE m.unit_id = @unit_id::int AND m.id = @module_id::int;
 
 -- name: GetSingleModuleSections :many
 WITH section_content AS (
-    SELECT 
+    SELECT
         s.id as section_id,
-        s.type,
+        s.type::section_type as type,
         CASE s.type
-            WHEN 'text' THEN (
-                SELECT jsonb_build_object('text', text_content)
-                FROM text_sections ts
-                WHERE ts.section_id = s.id
-            )
             WHEN 'markdown' THEN (
                 SELECT jsonb_build_object('markdown', markdown)
                 FROM markdown_sections ms
@@ -61,7 +56,7 @@ WITH section_content AS (
                         WHERE qo.question_id = q.id
                         ), '[]'::jsonb),
                     'userQuestionAnswer', (
-                        SELECT CASE 
+                        SELECT CASE
                             WHEN uqa.id IS NOT NULL THEN
                                 jsonb_build_object(
                                     'optionId', uqa.option_id,
@@ -73,7 +68,7 @@ WITH section_content AS (
                         END
                         FROM question_sections qs2
                         LEFT JOIN user_module_progress ump ON ump.module_id = @module_id::int AND ump.user_id = @user_id::int
-                        LEFT JOIN user_question_answers uqa ON uqa.user_module_progress_id = ump.id 
+                        LEFT JOIN user_question_answers uqa ON uqa.user_module_progress_id = ump.id
                             AND uqa.question_id = q.id
                         WHERE qs2.section_id = s.id
                         LIMIT 1
@@ -92,7 +87,7 @@ WITH section_content AS (
     FROM sections s
     WHERE s.module_id = @module_id::int
 )
-SELECT 
+SELECT
     s.id,
     s.created_at,
     s.updated_at,
@@ -105,7 +100,7 @@ WHERE s.module_id = @module_id::int
 ORDER BY s.position;
 
 -- name: GetSectionProgress :many
-SELECT 
+SELECT
     section_id,
     jsonb_build_object(
         'sectionId', section_id,
@@ -123,39 +118,39 @@ SELECT COUNT(*) FROM modules WHERE unit_id = @unit_id::int;
 
 -- name: GetNextModuleId :one
 SELECT id
-FROM modules 
-WHERE unit_id = @unit_id::int 
-  AND module_number > @module_number::int 
-ORDER BY module_number ASC 
+FROM modules
+WHERE unit_id = @unit_id::int
+  AND module_number > @module_number::int
+ORDER BY module_number ASC
 LIMIT 1;
 
 -- name: GetPrevModuleId :one
 SELECT id
-FROM modules 
-WHERE unit_id = @unit_id::int 
-  AND module_number < @module_number::int 
-ORDER BY module_number DESC 
+FROM modules
+WHERE unit_id = @unit_id::int
+  AND module_number < @module_number::int
+ORDER BY module_number DESC
 LIMIT 1;
 
 -- name: GetNextUnitId :one
 SELECT id
-FROM units 
-WHERE course_id = @course_id::int 
-  AND unit_number > @unit_number::int 
-ORDER BY unit_number ASC 
+FROM units
+WHERE course_id = @course_id::int
+  AND unit_number > @unit_number::int
+ORDER BY unit_number ASC
 LIMIT 1;
 
 -- name: GetPrevUnitId :one
 SELECT id
-FROM units 
-WHERE course_id = @course_id::int 
-  AND unit_number < @unit_number::int 
-ORDER BY unit_number DESC 
+FROM units
+WHERE course_id = @course_id::int
+  AND unit_number < @unit_number::int
+ORDER BY unit_number DESC
 LIMIT 1;
 
 -- name: GetUnitNumber :one
 SELECT unit_number
-FROM units 
+FROM units
 WHERE id = @unit_id::int;
 
 -- name: GetNextUnitModuleId :one
@@ -204,7 +199,7 @@ RETURNING *;
 DELETE FROM modules WHERE id = @module_id::int;
 
 -- name: GetModulesList :many
-SELECT 
+SELECT
     m.*,
     jsonb_build_object(
         'progress', COALESCE(ump.progress, 0.0),
@@ -240,11 +235,11 @@ VALUES ($1, $2, $3, $4) RETURNING *;
 -- name: InsertSection :one
 INSERT INTO
     sections (module_id, type, position)
-VALUES ($1, $2, $3) RETURNING *;
+VALUES (sqlc.arg(module_id), sqlc.arg(section_type)::section_type, sqlc.arg(position)) RETURNING *;
 
--- name: InsertTextSection :exec
+-- name: InsertMarkdownSection :exec
 INSERT INTO
-    text_sections (section_id, text_content)
+    markdown_sections (section_id, markdown)
 VALUES ($1, $2);
 
 -- name: InsertVideoSection :exec

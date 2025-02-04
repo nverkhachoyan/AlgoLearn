@@ -256,7 +256,7 @@ func (q *Queries) GetModulesCount(ctx context.Context) (int64, error) {
 }
 
 const getModulesList = `-- name: GetModulesList :many
-SELECT 
+SELECT
     m.id, m.created_at, m.updated_at, m.draft, m.module_number, m.unit_id, m.name, m.description,
     jsonb_build_object(
         'progress', COALESCE(ump.progress, 0.0),
@@ -333,10 +333,10 @@ func (q *Queries) GetModulesList(ctx context.Context, arg GetModulesListParams) 
 
 const getNextModuleId = `-- name: GetNextModuleId :one
 SELECT id
-FROM modules 
-WHERE unit_id = $1::int 
-  AND module_number > $2::int 
-ORDER BY module_number ASC 
+FROM modules
+WHERE unit_id = $1::int
+  AND module_number > $2::int
+ORDER BY module_number ASC
 LIMIT 1
 `
 
@@ -354,10 +354,10 @@ func (q *Queries) GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams
 
 const getNextUnitId = `-- name: GetNextUnitId :one
 SELECT id
-FROM units 
-WHERE course_id = $1::int 
-  AND unit_number > $2::int 
-ORDER BY unit_number ASC 
+FROM units
+WHERE course_id = $1::int
+  AND unit_number > $2::int
+ORDER BY unit_number ASC
 LIMIT 1
 `
 
@@ -390,10 +390,10 @@ func (q *Queries) GetNextUnitModuleId(ctx context.Context, unitID int32) (int32,
 
 const getPrevModuleId = `-- name: GetPrevModuleId :one
 SELECT id
-FROM modules 
-WHERE unit_id = $1::int 
-  AND module_number < $2::int 
-ORDER BY module_number DESC 
+FROM modules
+WHERE unit_id = $1::int
+  AND module_number < $2::int
+ORDER BY module_number DESC
 LIMIT 1
 `
 
@@ -411,10 +411,10 @@ func (q *Queries) GetPrevModuleId(ctx context.Context, arg GetPrevModuleIdParams
 
 const getPrevUnitId = `-- name: GetPrevUnitId :one
 SELECT id
-FROM units 
-WHERE course_id = $1::int 
-  AND unit_number < $2::int 
-ORDER BY unit_number DESC 
+FROM units
+WHERE course_id = $1::int
+  AND unit_number < $2::int
+ORDER BY unit_number DESC
 LIMIT 1
 `
 
@@ -446,7 +446,7 @@ func (q *Queries) GetPrevUnitModuleId(ctx context.Context, unitID int32) (int32,
 }
 
 const getSectionProgress = `-- name: GetSectionProgress :many
-SELECT 
+SELECT
     section_id,
     jsonb_build_object(
         'sectionId', section_id,
@@ -495,15 +495,10 @@ func (q *Queries) GetSectionProgress(ctx context.Context, arg GetSectionProgress
 
 const getSingleModuleSections = `-- name: GetSingleModuleSections :many
 WITH section_content AS (
-    SELECT 
+    SELECT
         s.id as section_id,
-        s.type,
+        s.type::section_type as type,
         CASE s.type
-            WHEN 'text' THEN (
-                SELECT jsonb_build_object('text', text_content)
-                FROM text_sections ts
-                WHERE ts.section_id = s.id
-            )
             WHEN 'markdown' THEN (
                 SELECT jsonb_build_object('markdown', markdown)
                 FROM markdown_sections ms
@@ -531,7 +526,7 @@ WITH section_content AS (
                         WHERE qo.question_id = q.id
                         ), '[]'::jsonb),
                     'userQuestionAnswer', (
-                        SELECT CASE 
+                        SELECT CASE
                             WHEN uqa.id IS NOT NULL THEN
                                 jsonb_build_object(
                                     'optionId', uqa.option_id,
@@ -543,7 +538,7 @@ WITH section_content AS (
                         END
                         FROM question_sections qs2
                         LEFT JOIN user_module_progress ump ON ump.module_id = $1::int AND ump.user_id = $2::int
-                        LEFT JOIN user_question_answers uqa ON uqa.user_module_progress_id = ump.id 
+                        LEFT JOIN user_question_answers uqa ON uqa.user_module_progress_id = ump.id
                             AND uqa.question_id = q.id
                         WHERE qs2.section_id = s.id
                         LIMIT 1
@@ -562,7 +557,7 @@ WITH section_content AS (
     FROM sections s
     WHERE s.module_id = $1::int
 )
-SELECT 
+SELECT
     s.id,
     s.created_at,
     s.updated_at,
@@ -584,7 +579,7 @@ type GetSingleModuleSectionsRow struct {
 	ID        int32           `json:"id"`
 	CreatedAt time.Time       `json:"createdAt"`
 	UpdatedAt time.Time       `json:"updatedAt"`
-	Type      string          `json:"type"`
+	Type      SectionType     `json:"type"`
 	Position  int32           `json:"position"`
 	Content   json.RawMessage `json:"content"`
 }
@@ -621,7 +616,7 @@ func (q *Queries) GetSingleModuleSections(ctx context.Context, arg GetSingleModu
 
 const getUnitNumber = `-- name: GetUnitNumber :one
 SELECT unit_number
-FROM units 
+FROM units
 WHERE id = $1::int
 `
 
@@ -646,6 +641,22 @@ type InsertCodeSectionParams struct {
 
 func (q *Queries) InsertCodeSection(ctx context.Context, arg InsertCodeSectionParams) error {
 	_, err := q.db.ExecContext(ctx, insertCodeSection, arg.SectionID, arg.Code, arg.Language)
+	return err
+}
+
+const insertMarkdownSection = `-- name: InsertMarkdownSection :exec
+INSERT INTO
+    markdown_sections (section_id, markdown)
+VALUES ($1, $2)
+`
+
+type InsertMarkdownSectionParams struct {
+	SectionID int32  `json:"sectionId"`
+	Markdown  string `json:"markdown"`
+}
+
+func (q *Queries) InsertMarkdownSection(ctx context.Context, arg InsertMarkdownSectionParams) error {
+	_, err := q.db.ExecContext(ctx, insertMarkdownSection, arg.SectionID, arg.Markdown)
 	return err
 }
 
@@ -772,17 +783,17 @@ func (q *Queries) InsertQuestionTag(ctx context.Context, arg InsertQuestionTagPa
 const insertSection = `-- name: InsertSection :one
 INSERT INTO
     sections (module_id, type, position)
-VALUES ($1, $2, $3) RETURNING id, created_at, updated_at, module_id, type, position
+VALUES ($1, $2::section_type, $3) RETURNING id, created_at, updated_at, module_id, type, position
 `
 
 type InsertSectionParams struct {
-	ModuleID int32  `json:"moduleId"`
-	Type     string `json:"type"`
-	Position int32  `json:"position"`
+	ModuleID    int32       `json:"moduleId"`
+	SectionType SectionType `json:"sectionType"`
+	Position    int32       `json:"position"`
 }
 
 func (q *Queries) InsertSection(ctx context.Context, arg InsertSectionParams) (Section, error) {
-	row := q.db.QueryRowContext(ctx, insertSection, arg.ModuleID, arg.Type, arg.Position)
+	row := q.db.QueryRowContext(ctx, insertSection, arg.ModuleID, arg.SectionType, arg.Position)
 	var i Section
 	err := row.Scan(
 		&i.ID,
@@ -809,22 +820,6 @@ func (q *Queries) InsertTag(ctx context.Context, name string) (int32, error) {
 	var id int32
 	err := row.Scan(&id)
 	return id, err
-}
-
-const insertTextSection = `-- name: InsertTextSection :exec
-INSERT INTO
-    text_sections (section_id, text_content)
-VALUES ($1, $2)
-`
-
-type InsertTextSectionParams struct {
-	SectionID   int32  `json:"sectionId"`
-	TextContent string `json:"textContent"`
-}
-
-func (q *Queries) InsertTextSection(ctx context.Context, arg InsertTextSectionParams) error {
-	_, err := q.db.ExecContext(ctx, insertTextSection, arg.SectionID, arg.TextContent)
-	return err
 }
 
 const insertVideoSection = `-- name: InsertVideoSection :exec

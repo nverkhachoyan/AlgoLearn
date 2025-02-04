@@ -1,9 +1,11 @@
 -- +goose Up
 -- +goose StatementBegin
+CREATE TYPE section_type AS ENUM ('markdown', 'code', 'question', 'video');
+
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     type VARCHAR(50) NOT NULL,
     question TEXT NOT NULL,
     difficulty_level difficulty_level
@@ -27,10 +29,10 @@ CREATE TABLE question_options (
 
 CREATE TABLE sections (
     id SERIAL PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW (),
     module_id INTEGER NOT NULL,
-    type VARCHAR(50) NOT NULL,
+    type section_type NOT NULL,
     position INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE
 );
@@ -82,13 +84,11 @@ CREATE INDEX idx_question_tags_tag_id ON question_tags (tag_id);
 
 CREATE INDEX idx_sections_module_id ON sections (module_id);
 
-ALTER TABLE sections
-ADD CONSTRAINT unique_section_position_per_module UNIQUE (module_id, position);
+ALTER TABLE sections ADD CONSTRAINT unique_section_position_per_module UNIQUE (module_id, position);
 
-ALTER TABLE question_sections
-ADD CONSTRAINT unique_question_section UNIQUE (question_id);
+ALTER TABLE question_sections ADD CONSTRAINT unique_question_section UNIQUE (question_id);
+
 -- +goose StatementEnd
-
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS module_questions;
@@ -108,4 +108,7 @@ DROP TABLE IF EXISTS question_options;
 DROP TABLE IF EXISTS question_tags;
 
 DROP TABLE IF EXISTS questions;
+
+DROP TYPE IF EXISTS section_type;
+
 -- +goose StatementEnd

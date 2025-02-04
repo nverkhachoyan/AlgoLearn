@@ -1069,7 +1069,7 @@ type GetModuleSectionsWithProgressRow struct {
 	ID          int32        `json:"id"`
 	CreatedAt   time.Time    `json:"createdAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
-	Type        string       `json:"type"`
+	Type        SectionType  `json:"type"`
 	Position    int32        `json:"position"`
 	ModuleID    int32        `json:"moduleId"`
 	SeenAt      sql.NullTime `json:"seenAt"`

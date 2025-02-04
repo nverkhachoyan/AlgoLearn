@@ -146,7 +146,7 @@ func (s *moduleService) GetModuleWithProgress(ctx context.Context, userID, cours
 		section.ID = int64(s.ID)
 		section.CreatedAt = s.CreatedAt
 		section.UpdatedAt = s.UpdatedAt
-		section.Type = s.Type
+		section.Type = models.SectionType(s.Type)
 
 		section.Position = int16(s.Position)
 
@@ -516,9 +516,9 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 
 	for _, section := range sections {
 		createdSection, err := qtx.InsertSection(ctx, gen.InsertSectionParams{
-			ModuleID: module.ID,
-			Type:     section.Type,
-			Position: int32(section.Position),
+			ModuleID:    module.ID,
+			SectionType: gen.SectionType(section.Type),
+			Position:    int32(section.Position),
 		})
 		if err != nil {
 			log.WithError(err).Error("failed to insert section")
@@ -526,32 +526,39 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 		}
 
 		switch section.Type {
-		case "text":
-			var content models.TextContent
+		case "markdown":
+			var content models.MarkdownContent
 			if err := json.Unmarshal(section.Content, &content); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal text content: %w", err)
 			}
-			err = qtx.InsertTextSection(ctx, gen.InsertTextSectionParams{
-				SectionID:   createdSection.ID,
-				TextContent: content.Text,
+			err = qtx.InsertMarkdownSection(ctx, gen.InsertMarkdownSectionParams{
+				SectionID: createdSection.ID,
+				Markdown:  content.Markdown,
 			})
 			if err != nil {
 				log.WithError(err).Error("failed to insert text section")
 				return nil, fmt.Errorf("failed to insert text section: %w", err)
 			}
 
-		case "video":
-			var content models.VideoContent
+		case "code":
+			var content models.CodeContent
 			if err := json.Unmarshal(section.Content, &content); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal video content: %w", err)
+				return nil, fmt.Errorf("failed to unmarshal code content: %w", err)
 			}
-			err = qtx.InsertVideoSection(ctx, gen.InsertVideoSectionParams{
+
+			sectionParams := gen.InsertCodeSectionParams{
 				SectionID: createdSection.ID,
-				Url:       content.URL,
-			})
+				Code:      content.Code,
+			}
+
+			if content.Language != "" {
+				sectionParams.Language = sql.NullString{String: content.Language, Valid: true}
+			}
+
+			err = qtx.InsertCodeSection(ctx, sectionParams)
 			if err != nil {
-				log.WithError(err).Error("failed to insert video section")
-				return nil, fmt.Errorf("failed to insert video section: %w", err)
+				log.WithError(err).Error("failed to insert code section")
+				return nil, fmt.Errorf("failed to insert code section: %w", err)
 			}
 
 		case "question":
@@ -608,25 +615,18 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 				}
 			}
 
-		case "code":
-			var content models.CodeContent
+		case "video":
+			var content models.VideoContent
 			if err := json.Unmarshal(section.Content, &content); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal code content: %w", err)
+				return nil, fmt.Errorf("failed to unmarshal video content: %w", err)
 			}
-
-			sectionParams := gen.InsertCodeSectionParams{
+			err = qtx.InsertVideoSection(ctx, gen.InsertVideoSectionParams{
 				SectionID: createdSection.ID,
-				Code:      content.Code,
-			}
-
-			if content.Language != "" {
-				sectionParams.Language = sql.NullString{String: content.Language, Valid: true}
-			}
-
-			err = qtx.InsertCodeSection(ctx, sectionParams)
+				Url:       content.URL,
+			})
 			if err != nil {
-				log.WithError(err).Error("failed to insert code section")
-				return nil, fmt.Errorf("failed to insert code section: %w", err)
+				log.WithError(err).Error("failed to insert video section")
+				return nil, fmt.Errorf("failed to insert video section: %w", err)
 			}
 		}
 

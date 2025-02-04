@@ -99,6 +99,50 @@ func (ns NullModuleProgressStatus) Value() (driver.Value, error) {
 	return string(ns.ModuleProgressStatus), nil
 }
 
+type SectionType string
+
+const (
+	SectionTypeMarkdown SectionType = "markdown"
+	SectionTypeCode     SectionType = "code"
+	SectionTypeQuestion SectionType = "question"
+	SectionTypeVideo    SectionType = "video"
+)
+
+func (e *SectionType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SectionType(s)
+	case string:
+		*e = SectionType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SectionType: %T", src)
+	}
+	return nil
+}
+
+type NullSectionType struct {
+	SectionType SectionType `json:"sectionType"`
+	Valid       bool        `json:"valid"` // Valid is true if SectionType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSectionType) Scan(value interface{}) error {
+	if value == nil {
+		ns.SectionType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SectionType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSectionType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SectionType), nil
+}
+
 type UserRole string
 
 const (
@@ -243,12 +287,12 @@ type QuestionTag struct {
 }
 
 type Section struct {
-	ID        int32     `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	ModuleID  int32     `json:"moduleId"`
-	Type      string    `json:"type"`
-	Position  int32     `json:"position"`
+	ID        int32       `json:"id"`
+	CreatedAt time.Time   `json:"createdAt"`
+	UpdatedAt time.Time   `json:"updatedAt"`
+	ModuleID  int32       `json:"moduleId"`
+	Type      SectionType `json:"type"`
+	Position  int32       `json:"position"`
 }
 
 type Streak struct {

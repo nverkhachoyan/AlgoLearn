@@ -73,24 +73,6 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 
 		var section SectionInterface
 		switch baseSection.Type {
-		case "text":
-			var s TextSection
-			if err := json.Unmarshal(rawSection, &s); err != nil {
-				return fmt.Errorf("failed to unmarshal text section: %w", err)
-			}
-			section = &s
-		case "video":
-			var s VideoSection
-			if err := json.Unmarshal(rawSection, &s); err != nil {
-				return fmt.Errorf("failed to unmarshal video section: %w", err)
-			}
-			section = &s
-		case "question":
-			var s QuestionSection
-			if err := json.Unmarshal(rawSection, &s); err != nil {
-				return fmt.Errorf("failed to unmarshal question section: %w", err)
-			}
-			section = &s
 		case "markdown":
 			var s MarkdownSection
 			if err := json.Unmarshal(rawSection, &s); err != nil {
@@ -101,6 +83,18 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 			var s CodeSection
 			if err := json.Unmarshal(rawSection, &s); err != nil {
 				return fmt.Errorf("failed to unmarshal code section: %w", err)
+			}
+			section = &s
+		case "question":
+			var s QuestionSection
+			if err := json.Unmarshal(rawSection, &s); err != nil {
+				return fmt.Errorf("failed to unmarshal question section: %w", err)
+			}
+			section = &s
+		case "video":
+			var s VideoSection
+			if err := json.Unmarshal(rawSection, &s); err != nil {
+				return fmt.Errorf("failed to unmarshal video section: %w", err)
 			}
 			section = &s
 		default:
@@ -130,8 +124,18 @@ func (m *Module) Validate() error {
 	return nil
 }
 
+type SectionType string
+
+const (
+	SectionTypeMarkdown SectionType = "markdown"
+	SectionTypeCode     SectionType = "code"
+	SectionTypeQuestion SectionType = "question"
+	SectionTypeVideo    SectionType = "video"
+	SectionTypeImage    SectionType = "image"
+)
+
 type SectionInterface interface {
-	GetType() string
+	GetType() SectionType
 	GetPosition() int16
 }
 
@@ -158,10 +162,6 @@ type BatchModuleProgress struct {
 	ModuleID  int64              `json:"moduleId"`
 	Sections  []SectionProgress  `json:"sections"`
 	Questions []QuestionProgress `json:"questions"`
-}
-
-type TextContent struct {
-	Text string `json:"text"`
 }
 
 type MarkdownContent struct {
@@ -203,7 +203,7 @@ type Section struct {
 	ID              int64            `json:"id"`
 	CreatedAt       time.Time        `json:"createdAt"`
 	UpdatedAt       time.Time        `json:"updatedAt"`
-	Type            string           `json:"type"`
+	Type            SectionType      `json:"type"`
 	Position        int16            `json:"position"`
 	Content         json.RawMessage  `json:"content"`
 	SectionProgress *SectionProgress `json:"sectionProgress,omitempty"`
@@ -215,7 +215,7 @@ func (s *Section) UnmarshalJSON(data []byte) error {
 		ID              int64            `json:"id"`
 		CreatedAt       time.Time        `json:"createdAt"`
 		UpdatedAt       time.Time        `json:"updatedAt"`
-		Type            string           `json:"type"`
+		Type            SectionType      `json:"type"`
 		Position        int16            `json:"position"`
 		Content         json.RawMessage  `json:"content"`
 		SectionProgress *SectionProgress `json:"sectionProgress"`
@@ -255,58 +255,60 @@ func (s *Section) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (s *Section) GetType() string    { return s.Type }
-func (s *Section) GetPosition() int16 { return s.Position }
-
-type TextSection struct {
-	BaseModel
-	Type            string           `json:"type"`
-	Position        int16            `json:"position"`
-	Content         TextContent      `json:"content"`
-	SectionProgress *SectionProgress `json:"sectionProgress,omitempty"`
-}
+func (s *Section) GetType() SectionType { return s.Type }
+func (s *Section) GetPosition() int16   { return s.Position }
 
 type VideoSection struct {
 	BaseModel
-	Type            string           `json:"type"`
+	Type            SectionType      `json:"type"`
 	Position        int16            `json:"position"`
 	Content         VideoContent     `json:"content"`
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
+func (vs *VideoSection) GetType() SectionType { return vs.Type }
+func (vs *VideoSection) GetPosition() int16   { return vs.Position }
+
 type QuestionSection struct {
 	BaseModel
-	Type            string           `json:"type"`
+	Type            SectionType      `json:"type"`
 	Position        int16            `json:"position"`
 	Content         QuestionContent  `json:"content"`
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
+func (qs *QuestionSection) GetType() SectionType { return qs.Type }
+func (qs *QuestionSection) GetPosition() int16   { return qs.Position }
+
 type MarkdownSection struct {
 	BaseModel
-	Type            string           `json:"type"`
+	Type            SectionType      `json:"type"`
 	Position        int16            `json:"position"`
 	Content         MarkdownContent  `json:"content"`
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
+func (ms *MarkdownSection) GetType() SectionType { return ms.Type }
+func (ms *MarkdownSection) GetPosition() int16   { return ms.Position }
+
 type CodeSection struct {
 	BaseModel
-	Type            string           `json:"type"`
+	Type            SectionType      `json:"type"`
 	Position        int16            `json:"position"`
-	Language        string           `json:"language"`
 	Content         CodeContent      `json:"content"`
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
-func (ts *TextSection) GetType() string     { return ts.Type }
-func (vs *VideoSection) GetType() string    { return vs.Type }
-func (qs *QuestionSection) GetType() string { return qs.Type }
-func (ms *MarkdownSection) GetType() string { return ms.Type }
-func (cs *CodeSection) GetType() string     { return cs.Type }
+func (cs *CodeSection) GetType() SectionType { return cs.Type }
+func (cs *CodeSection) GetPosition() int16   { return cs.Position }
 
-func (ts *TextSection) GetPosition() int16     { return ts.Position }
-func (vs *VideoSection) GetPosition() int16    { return vs.Position }
-func (qs *QuestionSection) GetPosition() int16 { return qs.Position }
-func (ms *MarkdownSection) GetPosition() int16 { return ms.Position }
-func (cs *CodeSection) GetPosition() int16     { return cs.Position }
+type ImageSection struct {
+	BaseModel
+	Type            SectionType      `json:"type"`
+	Position        int16            `json:"position"`
+	Content         string           `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress"`
+}
+
+func (is *ImageSection) GetType() SectionType { return is.Type }
+func (is *ImageSection) GetPosition() int16   { return is.Position }

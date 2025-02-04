@@ -77,6 +77,7 @@ type Querier interface {
 	InsertCodeSection(ctx context.Context, arg InsertCodeSectionParams) error
 	InsertCourseAuthor(ctx context.Context, arg InsertCourseAuthorParams) error
 	InsertCourseTag(ctx context.Context, arg InsertCourseTagParams) error
+	InsertMarkdownSection(ctx context.Context, arg InsertMarkdownSectionParams) error
 	InsertModule(ctx context.Context, arg InsertModuleParams) (Module, error)
 	InsertQuestion(ctx context.Context, arg InsertQuestionParams) (Question, error)
 	InsertQuestionOption(ctx context.Context, arg InsertQuestionOptionParams) error
@@ -84,7 +85,6 @@ type Querier interface {
 	InsertQuestionTag(ctx context.Context, arg InsertQuestionTagParams) error
 	InsertSection(ctx context.Context, arg InsertSectionParams) (Section, error)
 	InsertTag(ctx context.Context, name string) (int32, error)
-	InsertTextSection(ctx context.Context, arg InsertTextSectionParams) error
 	InsertUserPreferences(ctx context.Context, arg InsertUserPreferencesParams) (UserPreference, error)
 	InsertVideoSection(ctx context.Context, arg InsertVideoSectionParams) error
 	PublishCourse(ctx context.Context, courseID int32) error

@@ -550,33 +550,6 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 	var result models.SectionInterface
 
 	switch section.Type {
-	case "text":
-		textContent, err := r.queries.GetTextSection(ctx, section.ID)
-		if err != nil {
-			log.WithError(err).Error("failed to get text section content")
-			return nil, fmt.Errorf("failed to get text section content: %w", err)
-		}
-
-		result = &models.TextSection{
-			BaseModel: models.BaseModel{
-				ID:        int64(section.ID),
-				CreatedAt: section.CreatedAt,
-				UpdatedAt: section.UpdatedAt,
-			},
-			Type:     section.Type,
-			Position: int16(section.Position),
-			Content: models.TextContent{
-				Text: textContent,
-			},
-			SectionProgress: &models.SectionProgress{
-				SectionID:   int64(section.ID),
-				SeenAt:      section.SeenAt.Time,
-				HasSeen:     section.HasSeen.Bool,
-				StartedAt:   section.StartedAt.Time,
-				CompletedAt: section.CompletedAt.Time,
-			},
-		}
-
 	case "markdown":
 		markdownContent, err := r.queries.GetMarkdownSection(ctx, section.ID)
 		if err != nil {
@@ -589,10 +562,17 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			Type:     section.Type,
+			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.MarkdownContent{
 				Markdown: markdownContent,
+			},
+			SectionProgress: &models.SectionProgress{
+				SectionID:   int64(section.ID),
+				SeenAt:      section.SeenAt.Time,
+				HasSeen:     section.HasSeen.Bool,
+				StartedAt:   section.StartedAt.Time,
+				CompletedAt: section.CompletedAt.Time,
 			},
 		}
 
@@ -608,7 +588,7 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			Type:     section.Type,
+			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.VideoContent{
 				URL: url,
@@ -638,7 +618,7 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			Type:     section.Type,
+			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.QuestionContent{
 				ID:       int64(questionContent.ID),
@@ -668,7 +648,7 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CreatedAt: section.CreatedAt,
 				UpdatedAt: section.UpdatedAt,
 			},
-			Type:     section.Type,
+			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.CodeContent{
 				Code: codeContent.Code,

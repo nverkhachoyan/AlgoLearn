@@ -41,8 +41,6 @@ export default function UserDetails() {
       quality: 1,
     });
 
-    console.log(result);
-
     if (!result.canceled) {
       const { uri, type, fileSize } = result.assets[0];
       const fileType = type || "image/jpeg"; // default to image/jpeg if type is not available

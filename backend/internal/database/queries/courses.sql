@@ -11,15 +11,15 @@ INSERT INTO courses (
     rating
 )
 VALUES (
-    @name::text,
-    @description::text,
-    @requirements::text,
-    @what_you_learn::text,
-    @background_color::text,
-    @icon_url::text,
-    @duration::int,
-    @difficulty_level::difficulty_level,
-    @rating::float
+    COALESCE(@name::text, ''),
+    COALESCE(@description::text, ''),
+    COALESCE(@requirements::text, ''),
+    COALESCE(@what_you_learn::text, ''),
+    COALESCE(@background_color::text, ''),
+    COALESCE(@icon_url::text, ''),
+    COALESCE(@duration::int, 0),
+    COALESCE(@difficulty_level::difficulty_level, 'beginner'),
+    COALESCE(@rating::float, 0.0)
 )
 RETURNING id;
 
@@ -33,15 +33,42 @@ SELECT COUNT(*) FROM courses;
 -- name: UpdateCourse :exec
 UPDATE courses
 SET
-    name = COALESCE(@name::text, name),
-    description = COALESCE(@description::text, description),
-    requirements = COALESCE(@requirements::text, requirements),
-    what_you_learn = COALESCE(@what_you_learn::text, what_you_learn),
-    background_color = COALESCE(@background_color::text, background_color),
-    icon_url = COALESCE(@icon_url::text, icon_url),
-    duration = COALESCE(@duration::int, duration),
-    difficulty_level = @difficulty_level::difficulty_level,
-    rating = @rating::float
+    name = CASE 
+        WHEN @name::text = '' THEN name 
+        ELSE @name::text 
+    END,
+    description = CASE 
+        WHEN @description::text = '' THEN description 
+        ELSE @description::text 
+    END,
+    requirements = CASE 
+        WHEN @requirements::text = '' THEN requirements 
+        ELSE @requirements::text 
+    END,
+    what_you_learn = CASE 
+        WHEN @what_you_learn::text = '' THEN what_you_learn 
+        ELSE @what_you_learn::text 
+    END,
+    background_color = CASE 
+        WHEN @background_color::text = '' THEN background_color 
+        ELSE @background_color::text 
+    END,
+    icon_url = CASE 
+        WHEN @icon_url::text = '' THEN icon_url 
+        ELSE @icon_url::text 
+    END,
+    duration = CASE 
+        WHEN @duration::int = 0 THEN duration 
+        ELSE @duration::int 
+    END,
+    difficulty_level = CASE 
+        WHEN @difficulty_level::text = '' THEN difficulty_level 
+        ELSE @difficulty_level::difficulty_level 
+    END,
+    rating = CASE 
+        WHEN @rating::float < 0 THEN rating 
+        ELSE @rating::float 
+    END
 WHERE id = @course_id::int;
 
 -- name: PublishCourse :exec
@@ -80,6 +107,31 @@ FROM tags t
     JOIN course_tags ct ON ct.tag_id = t.id
 WHERE
     ct.course_id = @course_id::int;
+
+-- name: SearchCourseTags :many
+SELECT t.id, t.name, COUNT(*) OVER() as total_count
+FROM tags t
+    JOIN course_tags ct ON ct.tag_id = t.id
+WHERE
+    t.name ILIKE '%' || @search_query::text || '%'
+ORDER BY t.name ASC
+LIMIT @page_limit::int
+OFFSET @page_offset::int;
+
+-- name: CreateCourseTag :one
+INSERT INTO tags (name)
+VALUES (@name::text)
+ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+RETURNING id;
+
+-- name: InsertCourseTag :exec
+INSERT INTO course_tags (course_id, tag_id)
+VALUES (@course_id::int, @tag_id::int);
+
+-- name: RemoveCourseTag :exec
+DELETE FROM course_tags
+WHERE course_id = @course_id::int
+AND tag_id = @tag_id::int;
 
 -- name: GetCourseUnits :many
 SELECT
@@ -146,19 +198,26 @@ LEFT JOIN question_options qo ON qo.question_id = q.id
 WHERE qs.section_id = @section_id::int
 GROUP BY q.id, q.question, q.type;
 
+-- name: GetCodeSection :one
+SELECT 
+    code,
+    language
+FROM code_sections
+WHERE section_id = @section_id::int;
+
 -- name: DeleteCourse :exec
 DELETE FROM courses WHERE id = @course_id::int;
 
 -- name: GetCourseProgressSummaryBase :one
 WITH current_unit_id AS (
-    SELECT COALESCE(u.id, 0) as id
+    SELECT u.id
     FROM units u
     WHERE u.course_id = @course_id::int
-    ORDER BY u.updated_at DESC    
+    ORDER BY u.updated_at DESC
     LIMIT 1
 ),
 current_module_id AS (
-    SELECT COALESCE(m.id, 0) as id
+    SELECT m.id
     FROM modules m
     WHERE m.unit_id = (SELECT id FROM current_unit_id)
     ORDER BY m.updated_at DESC
@@ -177,13 +236,13 @@ SELECT
     c.difficulty_level,
     c.duration,
     c.rating,
-    (SELECT id FROM current_unit_id),
+    u.id as unit_id,
     u.created_at as unit_created_at,
     u.updated_at as unit_updated_at,
     u.unit_number,
     u.name as unit_name,
     u.description as unit_description,
-    (SELECT id FROM current_module_id),
+    m.id as module_id,
     m.created_at as module_created_at,
     m.updated_at as module_updated_at,
     m.module_number,
@@ -191,16 +250,14 @@ SELECT
     m.description as module_description,
     ump.progress as module_progress,
     ump.status as module_status
-FROM
-    courses c
-    LEFT JOIN user_courses uc ON uc.course_id = c.id
-    AND uc.user_id = @user_id::int
-    LEFT JOIN units u ON u.id = (SELECT id FROM current_unit_id)
-    LEFT JOIN modules m ON m.id = (SELECT id FROM current_module_id)
-    LEFT JOIN user_module_progress ump ON ump.module_id = (SELECT id FROM current_module_id)
-    AND ump.user_id = @user_id::int
-WHERE
-    c.id = @course_id::int;
+FROM courses c
+         INNER JOIN current_unit_id cui ON 1=1
+         INNER JOIN current_module_id cmi ON 1=1
+         INNER JOIN units u ON u.id = cui.id
+         INNER JOIN modules m ON m.id = cmi.id
+         LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = @user_id::int
+         LEFT JOIN user_module_progress ump ON ump.module_id = cmi.id AND ump.user_id = @user_id::int
+WHERE c.id = @course_id::int;
 
 -- name: GetModuleProgressByUnit :many
 SELECT m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description, ump.progress, ump.status
@@ -277,8 +334,27 @@ FROM (
 JOIN courses c ON c.id = paginated_courses.id
          LEFT JOIN user_progress up ON up.course_id = c.id
 ORDER BY
-    CASE WHEN up.course_id IS NOT NULL THEN 0 ELSE 1 END,
-    up.module_updated_at DESC NULLS LAST;
+    CASE WHEN sqlc.narg(sort_column)::text = 'id' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.id END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'id' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.id END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'created_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.created_at END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'created_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.created_at END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'updated_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.updated_at END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'updated_at' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.updated_at END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'name' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.name END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'name' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.name END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'description' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.description END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'description' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.description END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'rating' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.rating END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'rating' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.rating END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'duration' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.duration END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'duration' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.duration END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'difficulty_level' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.difficulty_level END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'difficulty_level' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.difficulty_level END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'draft' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN c.draft END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'draft' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN c.draft END ASC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'user_progress' AND LOWER(sqlc.narg(sort_direction)::text) = 'desc' THEN up.course_id END DESC,
+    CASE WHEN sqlc.narg(sort_column)::text = 'user_progress' AND LOWER(sqlc.narg(sort_direction)::text) = 'asc' THEN up.course_id END ASC,
+    CASE WHEN up.module_updated_at IS NOT NULL THEN up.module_updated_at ELSE c.created_at END DESC NULLS LAST;
 
 -- name: GetEnrolledCoursesWithProgress :many
 WITH enrolled_count AS (
@@ -417,6 +493,14 @@ SELECT
             FROM question_sections qs
             JOIN questions q ON q.id = qs.question_id
             WHERE qs.section_id = s.id
+        )
+        WHEN 'code' THEN (
+            SELECT jsonb_build_object(
+                'code', code, 
+                'language', language
+            )
+            FROM code_sections
+            WHERE section_id = s.id
         )
     END as content
 FROM sections s

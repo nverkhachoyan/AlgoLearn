@@ -24,15 +24,15 @@ INSERT INTO courses (
     rating
 )
 VALUES (
-    $1::text,
-    $2::text,
-    $3::text,
-    $4::text,
-    $5::text,
-    $6::text,
-    $7::int,
-    $8::difficulty_level,
-    $9::float
+    COALESCE($1::text, ''),
+    COALESCE($2::text, ''),
+    COALESCE($3::text, ''),
+    COALESCE($4::text, ''),
+    COALESCE($5::text, ''),
+    COALESCE($6::text, ''),
+    COALESCE($7::int, 0),
+    COALESCE($8::difficulty_level, 'beginner'),
+    COALESCE($9::float, 0.0)
 )
 RETURNING id
 `
@@ -61,6 +61,20 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int
 		arg.DifficultyLevel,
 		arg.Rating,
 	)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createCourseTag = `-- name: CreateCourseTag :one
+INSERT INTO tags (name)
+VALUES ($1::text)
+ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+RETURNING id
+`
+
+func (q *Queries) CreateCourseTag(ctx context.Context, name string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, createCourseTag, name)
 	var id int32
 	err := row.Scan(&id)
 	return id, err
@@ -180,8 +194,8 @@ WITH user_progress AS (
              JOIN units u ON u.course_id = uc.course_id
              JOIN modules m ON m.unit_id = u.id
              LEFT JOIN user_module_progress ump ON ump.module_id = m.id
-        AND ump.user_id = $3::int
-    WHERE uc.user_id = $3::int
+        AND ump.user_id = $5::int
+    WHERE uc.user_id = $5::int
     ORDER BY ump.updated_at DESC NULLS LAST
 )
 SELECT
@@ -223,14 +237,35 @@ FROM (
 JOIN courses c ON c.id = paginated_courses.id
          LEFT JOIN user_progress up ON up.course_id = c.id
 ORDER BY
-    CASE WHEN up.course_id IS NOT NULL THEN 0 ELSE 1 END,
-    up.module_updated_at DESC NULLS LAST
+    CASE WHEN $3::text = 'id' AND LOWER($4::text) = 'desc' THEN c.id END DESC,
+    CASE WHEN $3::text = 'id' AND LOWER($4::text) = 'asc' THEN c.id END ASC,
+    CASE WHEN $3::text = 'created_at' AND LOWER($4::text) = 'desc' THEN c.created_at END DESC,
+    CASE WHEN $3::text = 'created_at' AND LOWER($4::text) = 'asc' THEN c.created_at END ASC,
+    CASE WHEN $3::text = 'updated_at' AND LOWER($4::text) = 'desc' THEN c.updated_at END DESC,
+    CASE WHEN $3::text = 'updated_at' AND LOWER($4::text) = 'asc' THEN c.updated_at END ASC,
+    CASE WHEN $3::text = 'name' AND LOWER($4::text) = 'desc' THEN c.name END DESC,
+    CASE WHEN $3::text = 'name' AND LOWER($4::text) = 'asc' THEN c.name END ASC,
+    CASE WHEN $3::text = 'description' AND LOWER($4::text) = 'desc' THEN c.description END DESC,
+    CASE WHEN $3::text = 'description' AND LOWER($4::text) = 'asc' THEN c.description END ASC,
+    CASE WHEN $3::text = 'rating' AND LOWER($4::text) = 'desc' THEN c.rating END DESC,
+    CASE WHEN $3::text = 'rating' AND LOWER($4::text) = 'asc' THEN c.rating END ASC,
+    CASE WHEN $3::text = 'duration' AND LOWER($4::text) = 'desc' THEN c.duration END DESC,
+    CASE WHEN $3::text = 'duration' AND LOWER($4::text) = 'asc' THEN c.duration END ASC,
+    CASE WHEN $3::text = 'difficulty_level' AND LOWER($4::text) = 'desc' THEN c.difficulty_level END DESC,
+    CASE WHEN $3::text = 'difficulty_level' AND LOWER($4::text) = 'asc' THEN c.difficulty_level END ASC,
+    CASE WHEN $3::text = 'draft' AND LOWER($4::text) = 'desc' THEN c.draft END DESC,
+    CASE WHEN $3::text = 'draft' AND LOWER($4::text) = 'asc' THEN c.draft END ASC,
+    CASE WHEN $3::text = 'user_progress' AND LOWER($4::text) = 'desc' THEN up.course_id END DESC,
+    CASE WHEN $3::text = 'user_progress' AND LOWER($4::text) = 'asc' THEN up.course_id END ASC,
+    CASE WHEN up.module_updated_at IS NOT NULL THEN up.module_updated_at ELSE c.created_at END DESC NULLS LAST
 `
 
 type GetAllCoursesWithOptionalProgressParams struct {
-	PageOffset int32 `json:"pageOffset"`
-	PageLimit  int32 `json:"pageLimit"`
-	UserID     int32 `json:"userId"`
+	PageOffset    int32          `json:"pageOffset"`
+	PageLimit     int32          `json:"pageLimit"`
+	SortColumn    sql.NullString `json:"sortColumn"`
+	SortDirection sql.NullString `json:"sortDirection"`
+	UserID        int32          `json:"userId"`
 }
 
 type GetAllCoursesWithOptionalProgressRow struct {
@@ -265,7 +300,13 @@ type GetAllCoursesWithOptionalProgressRow struct {
 }
 
 func (q *Queries) GetAllCoursesWithOptionalProgress(ctx context.Context, arg GetAllCoursesWithOptionalProgressParams) ([]GetAllCoursesWithOptionalProgressRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllCoursesWithOptionalProgress, arg.PageOffset, arg.PageLimit, arg.UserID)
+	rows, err := q.db.QueryContext(ctx, getAllCoursesWithOptionalProgress,
+		arg.PageOffset,
+		arg.PageLimit,
+		arg.SortColumn,
+		arg.SortDirection,
+		arg.UserID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -314,6 +355,26 @@ func (q *Queries) GetAllCoursesWithOptionalProgress(ctx context.Context, arg Get
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCodeSection = `-- name: GetCodeSection :one
+SELECT 
+    code,
+    language
+FROM code_sections
+WHERE section_id = $1::int
+`
+
+type GetCodeSectionRow struct {
+	Code     string         `json:"code"`
+	Language sql.NullString `json:"language"`
+}
+
+func (q *Queries) GetCodeSection(ctx context.Context, sectionID int32) (GetCodeSectionRow, error) {
+	row := q.db.QueryRowContext(ctx, getCodeSection, sectionID)
+	var i GetCodeSectionRow
+	err := row.Scan(&i.Code, &i.Language)
+	return i, err
 }
 
 const getCourseAuthors = `-- name: GetCourseAuthors :many
@@ -409,14 +470,14 @@ func (q *Queries) GetCourseByID(ctx context.Context, courseID int32) (GetCourseB
 
 const getCourseProgressSummaryBase = `-- name: GetCourseProgressSummaryBase :one
 WITH current_unit_id AS (
-    SELECT COALESCE(u.id, 0) as id
+    SELECT u.id
     FROM units u
     WHERE u.course_id = $2::int
-    ORDER BY u.updated_at DESC    
+    ORDER BY u.updated_at DESC
     LIMIT 1
 ),
 current_module_id AS (
-    SELECT COALESCE(m.id, 0) as id
+    SELECT m.id
     FROM modules m
     WHERE m.unit_id = (SELECT id FROM current_unit_id)
     ORDER BY m.updated_at DESC
@@ -435,13 +496,13 @@ SELECT
     c.difficulty_level,
     c.duration,
     c.rating,
-    (SELECT id FROM current_unit_id),
+    u.id as unit_id,
     u.created_at as unit_created_at,
     u.updated_at as unit_updated_at,
     u.unit_number,
     u.name as unit_name,
     u.description as unit_description,
-    (SELECT id FROM current_module_id),
+    m.id as module_id,
     m.created_at as module_created_at,
     m.updated_at as module_updated_at,
     m.module_number,
@@ -449,16 +510,14 @@ SELECT
     m.description as module_description,
     ump.progress as module_progress,
     ump.status as module_status
-FROM
-    courses c
-    LEFT JOIN user_courses uc ON uc.course_id = c.id
-    AND uc.user_id = $1::int
-    LEFT JOIN units u ON u.id = (SELECT id FROM current_unit_id)
-    LEFT JOIN modules m ON m.id = (SELECT id FROM current_module_id)
-    LEFT JOIN user_module_progress ump ON ump.module_id = (SELECT id FROM current_module_id)
-    AND ump.user_id = $1::int
-WHERE
-    c.id = $2::int
+FROM courses c
+         INNER JOIN current_unit_id cui ON 1=1
+         INNER JOIN current_module_id cmi ON 1=1
+         INNER JOIN units u ON u.id = cui.id
+         INNER JOIN modules m ON m.id = cmi.id
+         LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1::int
+         LEFT JOIN user_module_progress ump ON ump.module_id = cmi.id AND ump.user_id = $1::int
+WHERE c.id = $2::int
 `
 
 type GetCourseProgressSummaryBaseParams struct {
@@ -479,18 +538,18 @@ type GetCourseProgressSummaryBaseRow struct {
 	DifficultyLevel   NullDifficultyLevel      `json:"difficultyLevel"`
 	Duration          sql.NullInt32            `json:"duration"`
 	Rating            sql.NullFloat64          `json:"rating"`
-	ID_2              int32                    `json:"id2"`
-	UnitCreatedAt     sql.NullTime             `json:"unitCreatedAt"`
-	UnitUpdatedAt     sql.NullTime             `json:"unitUpdatedAt"`
-	UnitNumber        sql.NullInt32            `json:"unitNumber"`
-	UnitName          sql.NullString           `json:"unitName"`
-	UnitDescription   sql.NullString           `json:"unitDescription"`
-	ID_3              int32                    `json:"id3"`
-	ModuleCreatedAt   sql.NullTime             `json:"moduleCreatedAt"`
-	ModuleUpdatedAt   sql.NullTime             `json:"moduleUpdatedAt"`
-	ModuleNumber      sql.NullInt32            `json:"moduleNumber"`
-	ModuleName        sql.NullString           `json:"moduleName"`
-	ModuleDescription sql.NullString           `json:"moduleDescription"`
+	UnitID            int32                    `json:"unitId"`
+	UnitCreatedAt     time.Time                `json:"unitCreatedAt"`
+	UnitUpdatedAt     time.Time                `json:"unitUpdatedAt"`
+	UnitNumber        int32                    `json:"unitNumber"`
+	UnitName          string                   `json:"unitName"`
+	UnitDescription   string                   `json:"unitDescription"`
+	ModuleID          int32                    `json:"moduleId"`
+	ModuleCreatedAt   time.Time                `json:"moduleCreatedAt"`
+	ModuleUpdatedAt   time.Time                `json:"moduleUpdatedAt"`
+	ModuleNumber      int32                    `json:"moduleNumber"`
+	ModuleName        string                   `json:"moduleName"`
+	ModuleDescription string                   `json:"moduleDescription"`
 	ModuleProgress    sql.NullFloat64          `json:"moduleProgress"`
 	ModuleStatus      NullModuleProgressStatus `json:"moduleStatus"`
 }
@@ -511,13 +570,13 @@ func (q *Queries) GetCourseProgressSummaryBase(ctx context.Context, arg GetCours
 		&i.DifficultyLevel,
 		&i.Duration,
 		&i.Rating,
-		&i.ID_2,
+		&i.UnitID,
 		&i.UnitCreatedAt,
 		&i.UnitUpdatedAt,
 		&i.UnitNumber,
 		&i.UnitName,
 		&i.UnitDescription,
-		&i.ID_3,
+		&i.ModuleID,
 		&i.ModuleCreatedAt,
 		&i.ModuleUpdatedAt,
 		&i.ModuleNumber,
@@ -1126,6 +1185,14 @@ SELECT
             JOIN questions q ON q.id = qs.question_id
             WHERE qs.section_id = s.id
         )
+        WHEN 'code' THEN (
+            SELECT jsonb_build_object(
+                'code', code, 
+                'language', language
+            )
+            FROM code_sections
+            WHERE section_id = s.id
+        )
     END as content
 FROM sections s
 WHERE s.id = $1::int
@@ -1254,6 +1321,21 @@ func (q *Queries) InsertCourseAuthor(ctx context.Context, arg InsertCourseAuthor
 	return err
 }
 
+const insertCourseTag = `-- name: InsertCourseTag :exec
+INSERT INTO course_tags (course_id, tag_id)
+VALUES ($1::int, $2::int)
+`
+
+type InsertCourseTagParams struct {
+	CourseID int32 `json:"courseId"`
+	TagID    int32 `json:"tagId"`
+}
+
+func (q *Queries) InsertCourseTag(ctx context.Context, arg InsertCourseTagParams) error {
+	_, err := q.db.ExecContext(ctx, insertCourseTag, arg.CourseID, arg.TagID)
+	return err
+}
+
 const publishCourse = `-- name: PublishCourse :exec
 UPDATE courses
 SET draft = FALSE
@@ -1263,6 +1345,68 @@ WHERE id = $1::int
 func (q *Queries) PublishCourse(ctx context.Context, courseID int32) error {
 	_, err := q.db.ExecContext(ctx, publishCourse, courseID)
 	return err
+}
+
+const removeCourseTag = `-- name: RemoveCourseTag :exec
+DELETE FROM course_tags
+WHERE course_id = $1::int
+AND tag_id = $2::int
+`
+
+type RemoveCourseTagParams struct {
+	CourseID int32 `json:"courseId"`
+	TagID    int32 `json:"tagId"`
+}
+
+func (q *Queries) RemoveCourseTag(ctx context.Context, arg RemoveCourseTagParams) error {
+	_, err := q.db.ExecContext(ctx, removeCourseTag, arg.CourseID, arg.TagID)
+	return err
+}
+
+const searchCourseTags = `-- name: SearchCourseTags :many
+SELECT t.id, t.name, COUNT(*) OVER() as total_count
+FROM tags t
+    JOIN course_tags ct ON ct.tag_id = t.id
+WHERE
+    t.name ILIKE '%' || $1::text || '%'
+ORDER BY t.name ASC
+LIMIT $3::int
+OFFSET $2::int
+`
+
+type SearchCourseTagsParams struct {
+	SearchQuery string `json:"searchQuery"`
+	PageOffset  int32  `json:"pageOffset"`
+	PageLimit   int32  `json:"pageLimit"`
+}
+
+type SearchCourseTagsRow struct {
+	ID         int32  `json:"id"`
+	Name       string `json:"name"`
+	TotalCount int64  `json:"totalCount"`
+}
+
+func (q *Queries) SearchCourseTags(ctx context.Context, arg SearchCourseTagsParams) ([]SearchCourseTagsRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchCourseTags, arg.SearchQuery, arg.PageOffset, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchCourseTagsRow{}
+	for rows.Next() {
+		var i SearchCourseTagsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.TotalCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const searchCourses = `-- name: SearchCourses :many
@@ -1475,29 +1619,56 @@ func (q *Queries) StartCourseUserCourses(ctx context.Context, arg StartCourseUse
 const updateCourse = `-- name: UpdateCourse :exec
 UPDATE courses
 SET
-    name = COALESCE($1::text, name),
-    description = COALESCE($2::text, description),
-    requirements = COALESCE($3::text, requirements),
-    what_you_learn = COALESCE($4::text, what_you_learn),
-    background_color = COALESCE($5::text, background_color),
-    icon_url = COALESCE($6::text, icon_url),
-    duration = COALESCE($7::int, duration),
-    difficulty_level = $8::difficulty_level,
-    rating = $9::float
+    name = CASE 
+        WHEN $1::text = '' THEN name 
+        ELSE $1::text 
+    END,
+    description = CASE 
+        WHEN $2::text = '' THEN description 
+        ELSE $2::text 
+    END,
+    requirements = CASE 
+        WHEN $3::text = '' THEN requirements 
+        ELSE $3::text 
+    END,
+    what_you_learn = CASE 
+        WHEN $4::text = '' THEN what_you_learn 
+        ELSE $4::text 
+    END,
+    background_color = CASE 
+        WHEN $5::text = '' THEN background_color 
+        ELSE $5::text 
+    END,
+    icon_url = CASE 
+        WHEN $6::text = '' THEN icon_url 
+        ELSE $6::text 
+    END,
+    duration = CASE 
+        WHEN $7::int = 0 THEN duration 
+        ELSE $7::int 
+    END,
+    difficulty_level = CASE 
+        WHEN $8::text = '' THEN difficulty_level 
+        ELSE $8::difficulty_level 
+    END,
+    rating = CASE 
+        WHEN $9::float < 0 THEN rating 
+        ELSE $9::float 
+    END
 WHERE id = $10::int
 `
 
 type UpdateCourseParams struct {
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	Requirements    string          `json:"requirements"`
-	WhatYouLearn    string          `json:"whatYouLearn"`
-	BackgroundColor string          `json:"backgroundColor"`
-	IconUrl         string          `json:"iconUrl"`
-	Duration        int32           `json:"duration"`
-	DifficultyLevel DifficultyLevel `json:"difficultyLevel"`
-	Rating          float64         `json:"rating"`
-	CourseID        int32           `json:"courseId"`
+	Name            string  `json:"name"`
+	Description     string  `json:"description"`
+	Requirements    string  `json:"requirements"`
+	WhatYouLearn    string  `json:"whatYouLearn"`
+	BackgroundColor string  `json:"backgroundColor"`
+	IconUrl         string  `json:"iconUrl"`
+	Duration        int32   `json:"duration"`
+	DifficultyLevel string  `json:"difficultyLevel"`
+	Rating          float64 `json:"rating"`
+	CourseID        int32   `json:"courseId"`
 }
 
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) error {

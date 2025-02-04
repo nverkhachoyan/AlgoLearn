@@ -1,20 +1,47 @@
-import { DataProvider, fetchUtils, GetManyReferenceParams } from "react-admin";
+import { DataProvider, fetchUtils, RaRecord, Identifier } from "react-admin";
+import { Course } from '../types';
+
+interface HttpClientOptions extends RequestInit {
+  headers?: Headers | Record<string, string>;
+}
+
+interface BaseRecord extends RaRecord {
+  id: Identifier;
+}
 
 const API_URL = "/api/v1";
+const S3_BASE_URL = "https://algolearn.sfo3.cdn.digitaloceanspaces.com";
+
+// Utility function to get full S3 URL
+const getFullS3Url = (key: string | null | undefined) => {
+  if (!key) return null;
+  return `${S3_BASE_URL}/${key}`;
+};
+
+// Transform function for courses to add full URLs
+const transformCourseData = (course: Course | null) => {
+  if (!course) return course;
+  return {
+    ...course,
+    iconUrl: getFullS3Url(course.iconUrl),
+  };
+};
 
 // Simple function to add auth header to all requests
-const httpClient = (url: string, options: any = {}) => {
+const httpClient = (url: string, options: HttpClientOptions = {}) => {
   const token = localStorage.getItem("token");
   if (!token) {
     throw new Error("No auth token found");
   }
 
-  options.headers = new Headers({
+  const headers = {
     Accept: "application/json",
     Authorization: `Bearer ${token}`,
     ...(options.body ? { "Content-Type": "application/json" } : {}),
-    ...options.headers,
-  });
+    ...(options.headers || {}),
+  };
+
+  options.headers = new Headers(headers);
 
   return fetchUtils.fetchJson(url, options);
 };
@@ -40,10 +67,26 @@ export const dataProvider: DataProvider = {
       }));
     }
 
-    return httpClient(url).then(({ json }) => ({
-      data: json.payload.items,
-      total: json.payload.pagination.totalItems,
-    }));
+    // Special case for tags search
+    if (resource === 'tags' && params.filter?.q) {
+      return httpClient(`${API_URL}/courses/tags/search?page=${params.pagination.page}&pageSize=${params.pagination.perPage}&q=${params.filter.q}`).then(({ json }) => ({
+        data: json.payload.items,
+        total: json.payload.pagination.totalItems,
+      }));
+    }
+
+    return httpClient(url).then(({ json }) => {
+      if (resource === "courses") {
+        return {
+          data: json.payload.items.map(transformCourseData),
+          total: json.payload.pagination.totalItems,
+        };
+      }
+      return {
+        data: json.payload.items,
+        total: json.payload.pagination.totalItems,
+      };
+    });
   },
 
   // Get a single record
@@ -82,7 +125,7 @@ export const dataProvider: DataProvider = {
 
     return httpClient(`${API_URL}/${resource}/${params.id}`).then(
       ({ json }) => ({
-        data: json.payload,
+        data: resource === "courses" ? transformCourseData(json.payload) : json.payload,
       })
     );
   },
@@ -90,6 +133,17 @@ export const dataProvider: DataProvider = {
   // Create a record
   create: (resource, params) => {
     let url = `${API_URL}/${resource}`;
+
+    // Special case for tags
+    if (resource === 'tags') {
+      url = `${API_URL}/courses/tags?name=${encodeURIComponent(params.data.name)}`;
+    }
+
+    // Special case for adding tag to course
+    if (resource.match(/^courses\/\d+\/tags$/)) {
+      const courseId = resource.split('/')[1];
+      url = `${API_URL}/courses/${courseId}/tags/${params.data.tagId}`;
+    }
 
     // Handle nested resources
     if (resource === "units" && params.data.courseId) {
@@ -100,6 +154,31 @@ export const dataProvider: DataProvider = {
       params.data.unitId
     ) {
       url = `${API_URL}/courses/${params.data.courseId}/units/${params.data.unitId}/modules`;
+    }
+
+    // Special case for tags - don't send body
+    if (resource === 'tags' || resource.match(/^courses\/\d+\/tags$/)) {
+      return httpClient(url, {
+        method: "POST",
+      }).then(({ json }) => {
+        // For tag creation, return the payload directly
+        if (resource === 'tags') {
+          return {
+            data: {
+              id: json.payload.id,
+              name: json.payload.name,
+            },
+          };
+        }
+        // For tag association, return a response with an id to satisfy react-admin
+        const tagId = url.split('/').pop(); // Get the tag ID from the URL
+        return {
+          data: {
+            id: parseInt(tagId!),
+            success: true,
+          },
+        };
+      });
     }
 
     return httpClient(url, {
@@ -134,7 +213,7 @@ export const dataProvider: DataProvider = {
   },
 
   // Delete a record
-  delete: (resource, params) => {
+  delete: <RecordType extends BaseRecord>(resource: string, params: { id: Identifier; meta?: { courseId?: string; unitId?: string } }) => {
     let url = `${API_URL}/${resource}/${params.id}`;
 
     // Handle nested resources
@@ -150,10 +229,9 @@ export const dataProvider: DataProvider = {
 
     return httpClient(url, {
       method: "DELETE",
-    }).then(() => {
-      // For React Admin, we need to return a record with at least an id
-      return { data: { id: params.id } as any };
-    });
+    }).then(() => ({
+      data: { id: params.id } as RecordType,
+    }));
   },
 
   // Update multiple records
@@ -208,5 +286,39 @@ export const dataProvider: DataProvider = {
       data: json.payload.items,
       total: json.payload.pagination.totalItems,
     }));
+  },
+
+  // Add file upload method
+  upload: async (resource: string, params: { file: File }) => {
+    try {
+      // Get presigned URL
+      const presignResponse = await httpClient(`${API_URL}/upload/presign`, {
+        method: "POST",
+        body: JSON.stringify({
+          filename: params.file.name,
+          contentType: params.file.type,
+        }),
+      });
+
+      const { url, key } = presignResponse.json.payload;
+
+      // Upload to S3
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": params.file.type,
+          "x-amz-acl": "public-read",
+        },
+        body: params.file,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      return { data: { key } };
+    } catch (error) {
+      throw new Error(`Upload error: ${error}`);
+    }
   },
 };

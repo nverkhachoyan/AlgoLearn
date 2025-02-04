@@ -9,6 +9,7 @@ import (
 	"algolearn/pkg/middleware"
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -53,6 +54,17 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	unitRepo := service.NewUnitService(db)
 	moduleRepo := service.NewModuleService(db)
 	achievementsRepo := service.NewAchievementsService(db)
+	storageService, err := service.NewStorageService(
+		cfg.Storage.SpacesAccessKey,
+		cfg.Storage.SpacesSecretKey,
+		cfg.Storage.SpacesRegion,
+		cfg.Storage.SpacesEndpoint,
+		cfg.Storage.SpacesBucketName,
+		cfg.Storage.SpacesCDNUrl,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize storage service: %v", err)
+	}
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userRepo)
@@ -63,6 +75,7 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	moduleHandler := handlers.NewModuleHandler(moduleRepo, userRepo)
 	achievementsHandler := handlers.NewAchievementsHandler(achievementsRepo)
 	adminHandler, err := handlers.NewAdminHandler(userRepo, courseRepo)
+	uploadHandler := handlers.NewUploadHandler(storageService)
 	if err != nil {
 		log.Fatalf("Failed to initialize admin handler: %v", err)
 	}
@@ -77,6 +90,7 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 		notifHandler,
 		achievementsHandler,
 		adminHandler,
+		uploadHandler,
 	)
 
 	return r
@@ -87,7 +101,7 @@ func main() {
 	log.Info("Starting application...")
 
 	// Load configuration
-	cfg, err := config.LoadConfig()
+	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
@@ -95,7 +109,7 @@ func main() {
 	// Initialize components
 	config.InitLogger(cfg.App)
 	config.InitDB(cfg.Database)
-	config.InitOAuth(cfg.Auth.OAuth)
+	config.InitOAuth(cfg.OAuth)
 	config.InitS3(cfg.Storage)
 	defer func() {
 		if err := config.GetDB().Close(); err != nil {
@@ -111,8 +125,9 @@ func main() {
 	r := setupRouter(cfg, config.GetDB())
 
 	// Create server with timeouts
+	addr := fmt.Sprintf(":%s", cfg.Port)
 	srv := &http.Server{
-		Addr:         cfg.App.GetAddress(),
+		Addr:         addr,
 		Handler:      r,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
@@ -121,7 +136,7 @@ func main() {
 
 	// Graceful shutdown setup
 	go func() {
-		log.Infof("Server is running on port %d", cfg.App.Port)
+		log.Infof("Server is running on port %s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
 		}

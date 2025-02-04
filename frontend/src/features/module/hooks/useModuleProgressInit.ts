@@ -22,8 +22,6 @@ export const useModuleProgressInit = (module: Module | undefined) => {
   // Use a ref to track if we've already initialized this module
   const initializedModuleId = useRef<number | null>(null);
 
-  console.log("[useModuleProgressInit] Current progress:", moduleProgress);
-
   useEffect(() => {
     if (!module?.sections) return;
 
@@ -34,7 +32,6 @@ export const useModuleProgressInit = (module: Module | undefined) => {
       return;
     }
 
-    console.log("[useModuleProgressInit] Initializing module:", module.id);
     initializedModuleId.current = module.id;
 
     const sectionsMap = new Map<number, SectionProgress>();

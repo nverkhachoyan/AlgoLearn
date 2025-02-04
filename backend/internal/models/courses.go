@@ -44,3 +44,11 @@ type Unit struct {
 	Description string   `json:"description"`
 	Modules     []Module `json:"modules"`
 }
+
+type CourseQuery struct {
+	Page     int         `json:"page"`
+	PageSize int         `json:"page_size"`
+	Filters  interface{} `json:"filters"`
+	Sort     string      `json:"sort"`
+	Order    string      `json:"order"`
+}

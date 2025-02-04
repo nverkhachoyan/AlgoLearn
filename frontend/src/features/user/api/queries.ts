@@ -34,12 +34,9 @@ export const updateUser = async (
   token: string,
   data: any
 ): Promise<AxiosResponse> => {
-  console.log("updateUser function called");
-
   const formData = new FormData();
   formData.append("data", JSON.stringify(data));
   if (data.avatar) {
-    console.log("Avatar is present");
     formData.append("avatar", data.avatar);
   }
 

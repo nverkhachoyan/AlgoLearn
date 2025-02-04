@@ -83,6 +83,11 @@ WITH section_content AS (
                 JOIN questions q ON q.id = qs.question_id
                 WHERE qs.section_id = s.id
             )
+            WHEN 'code' THEN (
+                SELECT jsonb_build_object('code', code, 'language', language)
+                FROM code_sections cs
+                WHERE cs.section_id = s.id
+            )
         END as content
     FROM sections s
     WHERE s.module_id = @module_id::int
@@ -266,6 +271,11 @@ INSERT INTO
         content,
         is_correct
     )
+VALUES ($1, $2, $3);
+
+-- name: InsertCodeSection :exec
+INSERT INTO
+    code_sections (section_id, code, language)
 VALUES ($1, $2, $3);
 
 -- name: InsertTag :one

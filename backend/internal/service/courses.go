@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -15,8 +16,8 @@ type CourseService interface {
 	GetCoursesCount(ctx context.Context) (int64, error)
 	GetCourseByID(ctx context.Context, courseID int32) (*models.Course, error)
 	GetCourseWithProgress(ctx context.Context, userID int64, courseID int64) (*models.Course, error)
-	ListEnrolledCoursesWithProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error)
-	ListAllCoursesWithOptionalProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error)
+	ListEnrolledCoursesWithProgress(ctx context.Context, userID int64, req models.CourseQuery) (int64, []models.Course, error)
+	ListAllCoursesWithOptionalProgress(ctx context.Context, userID int64, query models.CourseQuery) (int64, []models.Course, error)
 	SearchCourses(ctx context.Context, query string, page int, pageSize int, useFullText bool) (int64, []models.Course, error)
 	StartCourse(ctx context.Context, userID int64, courseID int32) (int32, int32, error)
 	CreateCourse(ctx context.Context, course models.Course) (*models.Course, error)
@@ -24,6 +25,11 @@ type CourseService interface {
 	PublishCourse(ctx context.Context, courseID int64) error
 	DeleteCourse(ctx context.Context, id int64) error
 	ResetCourseProgress(ctx context.Context, userID int64, courseID int64) error
+	GetCourseTags(ctx context.Context, courseID int32) ([]models.Tag, error)
+	SearchCourseTags(ctx context.Context, query string, offset int, limit int) ([]*models.Tag, int64, error)
+	CreateCourseTag(ctx context.Context, name string) (int64, error)
+	InsertCourseTag(ctx context.Context, courseID int32, tagID int32) error
+	RemoveCourseTag(ctx context.Context, courseID int32, tagID int32) error
 }
 
 type courseService struct {
@@ -51,21 +57,13 @@ func (r *courseService) GetCoursesCount(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error) {
+func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, userID int64, req models.CourseQuery) (int64, []models.Course, error) {
 	log := r.log.WithBaseFields(logger.Service, "ListEnrolledCoursesWithProgress")
 
-	if page <= 0 {
-		return 0, nil, fmt.Errorf("invalid page number: %d", page)
-	}
-	if pageSize <= 0 {
-		return 0, nil, fmt.Errorf("invalid page size: %d", pageSize)
-	}
-
-	offset := (page - 1) * pageSize
 	results, err := r.queries.GetEnrolledCoursesWithProgress(ctx, gen.GetEnrolledCoursesWithProgressParams{
 		UserID:     int32(userID),
-		PageLimit:  int32(pageSize),
-		PageOffset: int32(offset),
+		PageLimit:  int32(req.PageSize),
+		PageOffset: int32(req.Page),
 	})
 	if err != nil {
 		log.WithError(err).Error("failed to get enrolled courses with progress")
@@ -165,22 +163,15 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, pag
 	return totalCount, courses, nil
 }
 
-func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, page int, pageSize int, userID int64) (int64, []models.Course, error) {
+func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, userID int64, query models.CourseQuery) (int64, []models.Course, error) {
 	log := r.log.WithBaseFields(logger.Service, "ListAllCoursesWithOptionalProgress")
 
-	if page <= 0 {
-		return 0, nil, fmt.Errorf("invalid page number: %d", page)
-	}
-	if pageSize <= 0 {
-		return 0, nil, fmt.Errorf("invalid page size: %d", pageSize)
-	}
-
-	offset := (page - 1) * pageSize
-
 	results, err := r.queries.GetAllCoursesWithOptionalProgress(ctx, gen.GetAllCoursesWithOptionalProgressParams{
-		UserID:     int32(userID),
-		PageLimit:  int32(pageSize),
-		PageOffset: int32(offset),
+		UserID:        int32(userID),
+		PageLimit:     int32(query.PageSize),
+		PageOffset:    int32(query.Page),
+		SortColumn:    sql.NullString{String: query.Sort, Valid: query.Sort != ""},
+		SortDirection: sql.NullString{String: query.Order, Valid: query.Order != ""},
 	})
 	if err != nil {
 		log.WithError(err).Error("failed to get all courses with optional progress")
@@ -391,12 +382,15 @@ func (r *courseService) GetCourseWithProgress(ctx context.Context, userID int64,
 		return nil, fmt.Errorf("invalid course ID: %d", courseID)
 	}
 
+	fmt.Println("courseID", courseID, "userID", userID)
+
 	courseData, err := r.queries.GetCourseProgressSummaryBase(ctx, gen.GetCourseProgressSummaryBaseParams{
 		UserID:   int32(userID),
 		CourseID: int32(courseID),
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.WithError(err).Error("course does not exist")
 			return nil, sql.ErrNoRows
 		}
 		log.WithError(err).Error("failed to get course progress")
@@ -619,13 +613,6 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			Content: models.VideoContent{
 				URL: url,
 			},
-			SectionProgress: &models.SectionProgress{
-				SectionID:   int64(section.ID),
-				SeenAt:      section.SeenAt.Time,
-				HasSeen:     section.HasSeen.Bool,
-				StartedAt:   section.StartedAt.Time,
-				CompletedAt: section.CompletedAt.Time,
-			},
 		}
 
 	case "question":
@@ -658,6 +645,33 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				Question: questionContent.Question,
 				Type:     questionContent.Type,
 				Options:  options,
+			},
+			SectionProgress: &models.SectionProgress{
+				SectionID:   int64(section.ID),
+				SeenAt:      section.SeenAt.Time,
+				HasSeen:     section.HasSeen.Bool,
+				StartedAt:   section.StartedAt.Time,
+				CompletedAt: section.CompletedAt.Time,
+			},
+		}
+
+	case "code":
+		codeContent, err := r.queries.GetCodeSection(ctx, section.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get code section content")
+			return nil, fmt.Errorf("failed to get code section content: %w", err)
+		}
+
+		result = &models.CodeSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			Type:     section.Type,
+			Position: int16(section.Position),
+			Content: models.CodeContent{
+				Code: codeContent.Code,
 			},
 			SectionProgress: &models.SectionProgress{
 				SectionID:   int64(section.ID),
@@ -758,7 +772,7 @@ func (r *courseService) GetCourseByID(ctx context.Context, courseID int32) (*mod
 func (r *courseService) UpdateCourse(ctx context.Context, course models.Course) error {
 	log := r.log.WithBaseFields(logger.Service, "UpdateCourse")
 
-	if err := r.queries.UpdateCourse(ctx, gen.UpdateCourseParams{
+	params := gen.UpdateCourseParams{
 		CourseID:        int32(course.ID),
 		Name:            course.Name,
 		Description:     course.Description,
@@ -767,9 +781,15 @@ func (r *courseService) UpdateCourse(ctx context.Context, course models.Course) 
 		BackgroundColor: course.BackgroundColor,
 		IconUrl:         course.IconURL,
 		Duration:        int32(course.Duration),
-		DifficultyLevel: gen.DifficultyLevel(course.DifficultyLevel),
-		Rating:          float64(course.Rating),
-	}); err != nil {
+		DifficultyLevel: string(course.DifficultyLevel),
+		Rating:          -1, // Default to -1 to keep existing value
+	}
+
+	if course.Rating >= 0 {
+		params.Rating = float64(course.Rating)
+	}
+
+	if err := r.queries.UpdateCourse(ctx, params); err != nil {
 		log.WithError(err).Error("failed to update course")
 		return fmt.Errorf("failed to update course: %w", err)
 	}
@@ -989,4 +1009,82 @@ func (r *courseService) enrichCourseWithMetadata(ctx context.Context, course *mo
 			}
 		}
 	}
+}
+
+func (r *courseService) GetCourseTags(ctx context.Context, courseID int32) ([]models.Tag, error) {
+	tags, err := r.queries.GetCourseTags(ctx, courseID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get course tags: %w", err)
+	}
+
+	courseTags := make([]models.Tag, len(tags))
+	for i, tag := range tags {
+		courseTags[i] = models.Tag{
+			ID:   int64(tag.ID),
+			Name: tag.Name,
+		}
+	}
+	return courseTags, nil
+}
+
+func (r *courseService) SearchCourseTags(ctx context.Context, query string, offset, limit int) ([]*models.Tag, int64, error) {
+	log := logger.Get().WithBaseFields(logger.Service, "SearchCourseTags")
+
+	if query == "" {
+		return []*models.Tag{}, 0, nil
+	}
+
+	tags, err := r.queries.SearchCourseTags(ctx, gen.SearchCourseTagsParams{
+		SearchQuery: query,
+		PageOffset:  int32(offset),
+		PageLimit:   int32(limit),
+	})
+	if err != nil {
+		log.WithError(err).Error("failed to search tags")
+		return nil, 0, fmt.Errorf("failed to search tags: %w", err)
+	}
+
+	if len(tags) == 0 {
+		return []*models.Tag{}, 0, nil
+	}
+
+	result := make([]*models.Tag, len(tags))
+	for i, tag := range tags {
+		result[i] = &models.Tag{
+			ID:   int64(tag.ID),
+			Name: tag.Name,
+		}
+	}
+
+	return result, int64(tags[0].TotalCount), nil
+}
+
+func (r *courseService) CreateCourseTag(ctx context.Context, name string) (int64, error) {
+	tagID, err := r.queries.CreateCourseTag(ctx, name)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create course tag: %w", err)
+	}
+	return int64(tagID), nil
+}
+
+func (r *courseService) InsertCourseTag(ctx context.Context, courseID int32, tagID int32) error {
+	err := r.queries.InsertCourseTag(ctx, gen.InsertCourseTagParams{
+		CourseID: courseID,
+		TagID:    tagID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to insert course tag: %w", err)
+	}
+	return nil
+}
+
+func (r *courseService) RemoveCourseTag(ctx context.Context, courseID int32, tagID int32) error {
+	err := r.queries.RemoveCourseTag(ctx, gen.RemoveCourseTagParams{
+		CourseID: courseID,
+		TagID:    tagID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to remove course tag: %w", err)
+	}
+	return nil
 }

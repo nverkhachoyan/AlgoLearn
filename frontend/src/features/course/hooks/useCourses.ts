@@ -82,22 +82,27 @@ export const useCourses = ({
 interface CourseParams {
   courseId: number;
   isAuthenticated?: boolean;
+  hasProgress?: boolean;
 }
 
 // Hook for getting a single course (public or with progress)
-export const useCourse = ({ courseId, isAuthenticated }: CourseParams) => {
+export const useCourse = ({
+  courseId,
+  isAuthenticated,
+  hasProgress,
+}: CourseParams) => {
   const queryKey = isAuthenticated
     ? ["course", courseId, "progress"]
     : ["course", courseId];
 
-  console.log("isAuthenticated", isAuthenticated);
   const queryResult = useQuery<Course>({
     queryKey,
     queryFn: async () => {
       try {
-        const { data } = isAuthenticated
-          ? await getCourseProgress(courseId)
-          : await getCourse(courseId);
+        const { data } =
+          isAuthenticated && hasProgress
+            ? await getCourseProgress(courseId)
+            : await getCourse(courseId);
         return handleResponse(data);
       } catch (error) {
         throw new Error(handleApiError(error));

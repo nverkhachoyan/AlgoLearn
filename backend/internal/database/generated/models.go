@@ -152,6 +152,12 @@ type Achievement struct {
 	Points      int32     `json:"points"`
 }
 
+type CodeSection struct {
+	SectionID int32          `json:"sectionId"`
+	Code      string         `json:"code"`
+	Language  sql.NullString `json:"language"`
+}
+
 type Course struct {
 	ID              int32               `json:"id"`
 	CreatedAt       time.Time           `json:"createdAt"`

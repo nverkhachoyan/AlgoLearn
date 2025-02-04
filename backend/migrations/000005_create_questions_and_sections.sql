@@ -60,6 +60,13 @@ CREATE TABLE markdown_sections (
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
+CREATE TABLE code_sections (
+    section_id INTEGER PRIMARY KEY,
+    code TEXT NOT NULL,
+    language VARCHAR(50),
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
+);
+
 CREATE TABLE module_questions (
     id SERIAL PRIMARY KEY,
     module_id INTEGER NOT NULL,
@@ -91,6 +98,8 @@ DROP TABLE IF EXISTS question_sections;
 DROP TABLE IF EXISTS video_sections;
 
 DROP TABLE IF EXISTS text_sections;
+
+DROP TABLE IF EXISTS code_sections;
 
 DROP TABLE IF EXISTS sections;
 

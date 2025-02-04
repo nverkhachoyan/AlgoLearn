@@ -3,10 +3,10 @@ package handlers
 import (
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,9 +34,9 @@ func GetUserID(c *gin.Context) (int32, error) {
 	return userID, nil
 }
 
-func SetContentRangeHeader(c *gin.Context, resource string, resourceLen int, page, pageSize, totalCount int64) {
+func SetContentRangeHeader(c *gin.Context, resource string, resourceLen, page, pageSize, totalCount int) {
 	start := (page - 1) * pageSize
-	end := start + int64(resourceLen)
+	end := start + resourceLen
 	if end > 0 {
 		end = end - 1
 	}
@@ -53,15 +53,24 @@ func SetContentRangeHeader(c *gin.Context, resource string, resourceLen int, pag
 	c.Header("Content-Range", fmt.Sprintf("%s %d-%d/%d", resource, start, end, totalCount))
 }
 
-func parseSort(c *gin.Context) (string, string) {
-	var sortColumn, sortDirection string
-	if sortParam := c.Query("sort"); sortParam != "" {
-		// Expecting format: sort=["column","direction"]
-		var sortArray []string
-		if err := json.Unmarshal([]byte(sortParam), &sortArray); err == nil && len(sortArray) == 2 {
-			sortColumn = sortArray[0]
-			sortDirection = sortArray[1]
-		}
-	}
+func ParseSort(c *gin.Context) (string, string) {
+	sortColumn := c.Query("sort")
+	sortDirection := c.Query("order")
 	return sortColumn, sortDirection
+}
+
+func ParsePagination(c *gin.Context) (int, int, int, error) {
+	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
+	if err != nil || page < 1 {
+		return 0, 0, 0, errors.New("invalid page number: must be a positive integer")
+	}
+
+	pageSize, err := strconv.ParseInt(c.Query("pageSize"), 10, 64)
+	if err != nil || pageSize < 1 {
+		return 0, 0, 0, errors.New("invalid page size: must be a positive integer")
+	}
+
+	offset := (page - 1) * pageSize
+
+	return int(page), int(pageSize), int(offset), nil
 }

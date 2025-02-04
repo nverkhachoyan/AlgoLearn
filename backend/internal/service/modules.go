@@ -607,7 +607,29 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 					return nil, fmt.Errorf("failed to insert question tag: %w", err)
 				}
 			}
+
+		case "code":
+			var content models.CodeContent
+			if err := json.Unmarshal(section.Content, &content); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal code content: %w", err)
+			}
+
+			sectionParams := gen.InsertCodeSectionParams{
+				SectionID: createdSection.ID,
+				Code:      content.Code,
+			}
+
+			if content.Language != "" {
+				sectionParams.Language = sql.NullString{String: content.Language, Valid: true}
+			}
+
+			err = qtx.InsertCodeSection(ctx, sectionParams)
+			if err != nil {
+				log.WithError(err).Error("failed to insert code section")
+				return nil, fmt.Errorf("failed to insert code section: %w", err)
+			}
 		}
+
 	}
 
 	if err = tx.Commit(); err != nil {

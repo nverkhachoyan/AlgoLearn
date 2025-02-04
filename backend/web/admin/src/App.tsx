@@ -1,4 +1,10 @@
-import { Admin, Resource, CustomRoutes, Layout } from "react-admin";
+import {
+  Admin,
+  Resource,
+  CustomRoutes,
+  Layout,
+  LayoutProps,
+} from "react-admin";
 import { Route } from "react-router-dom";
 import { dataProvider } from "./services/dataProvider";
 import { authProvider } from "./services/authProvider";
@@ -20,7 +26,7 @@ import { themeOptions, darkThemeOptions } from "./theme";
 import { AppBar } from "./components/common/AppBar";
 import { Sidebar } from "./components/common/Sidebar";
 
-const CustomLayout = (props: any) => (
+const CustomLayout = (props: LayoutProps) => (
   <Layout {...props} appBar={AppBar} sidebar={Sidebar} />
 );
 
@@ -32,6 +38,8 @@ export const App = () => (
     theme={createTheme(themeOptions)}
     darkTheme={createTheme(darkThemeOptions)}
     layout={CustomLayout}
+    dashboard={Dashboard}
+    requireAuth
   >
     <Resource
       name="courses"
@@ -42,7 +50,6 @@ export const App = () => (
     />
     <Resource name="users" list={UserList} icon={PeopleIcon} />
     <CustomRoutes>
-      <Route path="/" element={<Dashboard />} />
       <Route path="/units" element={<UnitList />} />
       <Route path="/units/create" element={<UnitCreate />} />
       <Route path="/units/:id" element={<UnitEdit />} />

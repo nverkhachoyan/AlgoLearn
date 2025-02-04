@@ -36,7 +36,7 @@ import { Alert } from "react-native";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
 
 export default function CourseDetails() {
-  const { courseId } = useLocalSearchParams();
+  const { courseId, hasProgress } = useLocalSearchParams();
   const { colors }: { colors: Colors } = useTheme();
   const { user } = useUser();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
@@ -46,6 +46,7 @@ export default function CourseDetails() {
   const { course, isLoading, error } = useCourse({
     courseId: parseInt(courseId as string),
     isAuthenticated: true,
+    hasProgress: hasProgress === "true",
   });
   const { startCourse, isLoading: isStartCourseLoading } = useStartCourse(
     parseInt(courseId as string)

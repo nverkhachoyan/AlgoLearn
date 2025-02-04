@@ -334,21 +334,26 @@ func (h *userHandler) RefreshToken(c *gin.Context) {
 }
 
 func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int32) (string, error) {
-	objectKey := "users/" + string(userID) + "/public/avatars/" + uuid.New().String()
+	cfg, err := config.Load()
+	if err != nil {
+		return "", fmt.Errorf("error loading config: %v", err)
+	}
+
+	objectKey := fmt.Sprintf("users/%d/public/avatars/%s", userID, uuid.New().String())
 
 	putObjectInput := &s3.PutObjectInput{
-		Bucket: aws.String("algolearn"),
+		Bucket: aws.String(cfg.Storage.SpacesBucketName),
 		Key:    aws.String(objectKey),
 		Body:   file,
 		ACL:    aws.String("public-read"),
 	}
 
-	_, err := s3Session.PutObject(putObjectInput)
+	_, err = s3Session.PutObject(putObjectInput)
 	if err != nil {
 		return "", fmt.Errorf("error uploading to S3: %v", err)
 	}
 
-	avatarURL := fmt.Sprintf("https://%s/%s", "algolearn.sfo3.cdn.digitaloceanspaces.com", objectKey)
+	avatarURL := fmt.Sprintf("%s/%s", cfg.Storage.SpacesCDNUrl, objectKey)
 	return avatarURL, nil
 }
 
@@ -366,8 +371,8 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Parse multipart form
-	if err := c.Request.ParseMultipartForm(10 << 20); err != nil { // 10 MB
+	// Parse multipart form with a 10MB limit
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
 		log.WithError(err).Error("failed to parse multipart form")
 		c.JSON(http.StatusBadRequest,
 			models.Response{
@@ -380,6 +385,16 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 
 	var user models.User
 	jsonData := c.Request.FormValue("data")
+	if jsonData == "" {
+		c.JSON(http.StatusBadRequest,
+			models.Response{
+				Success:   false,
+				ErrorCode: httperr.InvalidFormData,
+				Message:   "missing user data in form",
+			})
+		return
+	}
+
 	if err := json.Unmarshal([]byte(jsonData), &user); err != nil {
 		log.WithError(err).Error("invalid JSON was sent in the request")
 		c.JSON(http.StatusBadRequest,
@@ -397,7 +412,18 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 	file, _, err := c.Request.FormFile("avatar")
 	if err == nil {
 		defer file.Close()
-		s3Session := config.GetS3Sesssion()
+		s3Session := config.GetS3Session()
+		if s3Session == nil {
+			log.Error("S3 session is not initialized")
+			c.JSON(http.StatusInternalServerError,
+				models.Response{
+					Success:   false,
+					ErrorCode: httperr.InternalError,
+					Message:   "storage service is not initialized",
+				})
+			return
+		}
+
 		avatarURL, err := uploadUserAvatarToS3(s3Session, file, user.ID)
 		if err != nil {
 			log.WithError(err).Error("failed to upload user avatar to S3")
@@ -411,16 +437,15 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 		}
 		user.ProfilePictureURL = avatarURL
 	} else if err != http.ErrMissingFile {
+		log.WithError(err).Error("error processing file upload")
 		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: httperr.FileUploadFailed,
-				Message:   "error while processing avatar upload, but file is not missing, it's likely something else",
+				Message:   "error processing file upload",
 			})
 		return
 	}
-
-	log.Printf("Updating user data: %+v\n", user)
 
 	if err := h.repo.UpdateUser(ctx, &user); err != nil {
 		log.WithError(err).Error("failed to update user")
@@ -428,19 +453,19 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 			models.Response{
 				Success:   false,
 				ErrorCode: httperr.DatabaseFail,
-				Message:   fmt.Sprintf("failed to update user: %s", err.Error()),
+				Message:   "failed to update user in database",
 			})
 		return
 	}
 
-	newUserData, err := h.repo.GetUserByID(ctx, user.ID)
+	updatedUser, err := h.repo.GetUserByID(ctx, user.ID)
 	if err != nil {
-		log.WithError(err).Error("failed to fetch the user that was updated")
+		log.WithError(err).Error("failed to fetch updated user")
 		c.JSON(http.StatusInternalServerError,
 			models.Response{
 				Success:   false,
 				ErrorCode: httperr.InternalError,
-				Message:   "failed to fetch the user that was updated",
+				Message:   "failed to fetch updated user data",
 			})
 		return
 	}
@@ -449,7 +474,7 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 		models.Response{
 			Success: true,
 			Message: "user updated successfully",
-			Payload: newUserData,
+			Payload: updatedUser,
 		})
 }
 
@@ -500,7 +525,6 @@ func (h *userHandler) GetUsers(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := logger.Get()
 
-	// Parse pagination
 	page, err := strconv.Atoi(c.Query("page"))
 	if err != nil {
 		page = 1
@@ -511,7 +535,6 @@ func (h *userHandler) GetUsers(c *gin.Context) {
 		pageSize = 10
 	}
 
-	// Calculate the correct offset
 	offset := (page - 1) * pageSize
 
 	userID, err := GetUserID(c)
@@ -577,7 +600,6 @@ func (h *userHandler) GetUsers(c *gin.Context) {
 		return
 	}
 
-	// Calculate total pages
 	totalPages := (int(totalCount) + pageSize - 1) / pageSize
 
 	c.JSON(http.StatusOK, models.Response{Success: true, Message: "Users retrieved successfully", Payload: models.PaginatedPayload{

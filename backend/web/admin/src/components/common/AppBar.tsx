@@ -1,16 +1,22 @@
-import { AppBar as MuiAppBar, Toolbar } from "@mui/material";
-import { TitlePortal, RefreshIconButton } from "react-admin";
+import {
+  AppBar as RaAppBar,
+  ToggleThemeButton,
+  Logout,
+  UserMenu,
+  useAuthenticated,
+} from "react-admin";
 
-export const AppBar = () => (
-  <MuiAppBar color="primary">
-    <Toolbar
-      sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}
-      color="primary"
-      style={{ backgroundColor: "inherit" }}
-    >
-      <TitlePortal />
+export const AppBar = () => {
+  useAuthenticated();
 
-      <RefreshIconButton />
-    </Toolbar>
-  </MuiAppBar>
-);
+  return (
+    <RaAppBar
+      userMenu={
+        <UserMenu>
+          <ToggleThemeButton />
+          <Logout />
+        </UserMenu>
+      }
+    />
+  );
+};

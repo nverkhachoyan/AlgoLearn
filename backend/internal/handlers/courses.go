@@ -29,6 +29,11 @@ type CourseHandler interface {
 	StartCourse(c *gin.Context)
 	ResetCourseProgress(c *gin.Context)
 	DeleteCourse(c *gin.Context)
+	GetCourseTags(c *gin.Context)
+	SearchCourseTags(c *gin.Context)
+	CreateCourseTag(c *gin.Context)
+	InsertCourseTag(c *gin.Context)
+	RemoveCourseTag(c *gin.Context)
 }
 
 type courseHandler struct {
@@ -50,22 +55,13 @@ func (h *courseHandler) ListAllCoursesWithOptionalProgress(c *gin.Context) {
 	log := h.log.WithBaseFields(logger.Handler, "ListCourses")
 	ctx := c.Request.Context()
 
-	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
-	if err != nil || page < 1 {
+	sort, order := ParseSort(c)
+	page, pageSize, offset, err := ParsePagination(c)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
 			ErrorCode: httperr.InvalidInput,
-			Message:   "invalid page number: must be a positive integer",
-		})
-		return
-	}
-
-	pageSize, err := strconv.ParseInt(c.Query("pageSize"), 10, 64)
-	if err != nil || pageSize < 1 {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InvalidInput,
-			Message:   "invalid page size: must be a positive integer",
+			Message:   err.Error(),
 		})
 		return
 	}
@@ -81,7 +77,12 @@ func (h *courseHandler) ListAllCoursesWithOptionalProgress(c *gin.Context) {
 		return
 	}
 
-	totalCount, courses, err := h.courseRepo.ListAllCoursesWithOptionalProgress(ctx, int(page), int(pageSize), int64(userID))
+	_, courses, err := h.courseRepo.ListAllCoursesWithOptionalProgress(ctx, int64(userID), models.CourseQuery{
+		Page:     int(offset),
+		PageSize: int(pageSize),
+		Sort:     sort,
+		Order:    order,
+	})
 	if err != nil {
 		log.WithError(err).Error("error fetching courses")
 		c.JSON(http.StatusInternalServerError, models.Response{
@@ -92,10 +93,20 @@ func (h *courseHandler) ListAllCoursesWithOptionalProgress(c *gin.Context) {
 		return
 	}
 
-	SetContentRangeHeader(c, "courses", len(courses), page, pageSize, totalCount)
+	totalCount, err := h.courseRepo.GetCoursesCount(ctx)
+	if err != nil {
+		log.WithError(err).Error("error fetching courses count")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while retrieving courses count",
+		})
+		return
+	}
 
-	totalPages := (totalCount + pageSize - 1) / pageSize
+	SetContentRangeHeader(c, "courses", len(courses), page, pageSize, int(totalCount))
 
+	totalPages := (int(totalCount) + pageSize - 1) / pageSize
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
 		Message: "courses retrieved successfully",
@@ -201,6 +212,7 @@ func (h *courseHandler) UpdateCourse(c *gin.Context) {
 		return
 	}
 
+	course.ID = courseID
 	if err := h.courseRepo.UpdateCourse(ctx, course); err != nil {
 		log.WithError(err).Error("error updating course")
 		c.JSON(http.StatusInternalServerError, models.Response{
@@ -302,27 +314,21 @@ func (h *courseHandler) ListEnrolledCoursesWithProgress(c *gin.Context) {
 		return
 	}
 
-	page, err := strconv.ParseInt(c.Query("page"), 10, 64)
-	if err != nil || page < 1 {
+	page, pageSize, offset, err := ParsePagination(c)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, models.Response{
 			Success:   false,
 			ErrorCode: httperr.InvalidInput,
-			Message:   "invalid page number: must be a positive integer",
+			Message:   err.Error(),
 		})
 		return
 	}
 
-	pageSize, err := strconv.ParseInt(c.Query("pageSize"), 10, 64)
-	if err != nil || pageSize < 1 {
-		c.JSON(http.StatusBadRequest, models.Response{
-			Success:   false,
-			ErrorCode: httperr.InvalidInput,
-			Message:   "invalid page size: must be a positive integer",
+	totalCount, courses, err := h.courseRepo.ListEnrolledCoursesWithProgress(ctx, int64(userID),
+		models.CourseQuery{
+			Page:     offset,
+			PageSize: pageSize,
 		})
-		return
-	}
-
-	totalCount, courses, err := h.courseRepo.ListEnrolledCoursesWithProgress(ctx, int(page), int(pageSize), int64(userID))
 	if err != nil {
 		log.WithError(err).Error("error fetching courses progress")
 		c.JSON(http.StatusInternalServerError, models.Response{
@@ -333,9 +339,9 @@ func (h *courseHandler) ListEnrolledCoursesWithProgress(c *gin.Context) {
 		return
 	}
 
-	SetContentRangeHeader(c, "courses", len(courses), page, pageSize, totalCount)
+	SetContentRangeHeader(c, "courses", len(courses), int(page), int(pageSize), int(totalCount))
 
-	totalPages := (totalCount + pageSize - 1) / pageSize
+	totalPages := (int(totalCount) + int(pageSize) - 1) / int(pageSize)
 
 	c.JSON(http.StatusOK, models.Response{
 		Success: true,
@@ -655,6 +661,207 @@ func (h *courseHandler) ResetCourseProgress(c *gin.Context) {
 	})
 }
 
+func (h *courseHandler) GetCourseTags(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "GetCourseTags")
+	ctx := c.Request.Context()
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil {
+		log.Debug("invalid course ID")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid course ID",
+		})
+		return
+	}
+
+	tags, err := h.courseRepo.GetCourseTags(ctx, int32(courseID))
+	if err != nil {
+		log.WithError(err).Error("error fetching course tags")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while fetching course tags",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course tags retrieved successfully",
+		Payload: tags,
+	})
+}
+
+func (h *courseHandler) SearchCourseTags(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "SearchCourseTags")
+	ctx := c.Request.Context()
+
+	page, pageSize, offset, err := ParsePagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid pagination parameters",
+		})
+		return
+	}
+
+	query := c.Query("q")
+
+	tags, totalCount, err := h.courseRepo.SearchCourseTags(ctx, query, int(offset), int(pageSize))
+	if err != nil {
+		log.WithError(err).Error("error searching course tags")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while searching course tags",
+		})
+		return
+	}
+
+	SetContentRangeHeader(c, "tags", len(tags), int(page), int(pageSize), int(totalCount))
+
+	totalPages := (int(totalCount) + int(pageSize) - 1) / int(pageSize)
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course tags found successfully",
+		Payload: models.PaginatedPayload{
+			Items: tags,
+			Pagination: models.Pagination{
+				TotalItems:  totalCount,
+				PageSize:    int(pageSize),
+				CurrentPage: int(page),
+				TotalPages:  int(totalPages),
+			},
+		},
+	})
+}
+
+func (h *courseHandler) CreateCourseTag(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "CreateCourseTag")
+	ctx := c.Request.Context()
+
+	name := c.Query("name")
+
+	if name == "" {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "tag name is required",
+		})
+		return
+	}
+
+	tagID, err := h.courseRepo.CreateCourseTag(ctx, name)
+	if err != nil {
+		log.WithError(err).Error("error creating course tag")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while creating course tag",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, models.Response{
+		Success: true,
+		Message: "course tag created/queried successfully",
+		Payload: models.Tag{
+			ID:   tagID,
+			Name: name,
+		},
+	})
+}
+
+func (h *courseHandler) InsertCourseTag(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "InsertCourseTag")
+	ctx := c.Request.Context()
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil {
+		log.Debug("invalid course ID")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidCourseID,
+			Message:   "invalid course ID",
+		})
+		return
+	}
+
+	tagID, err := strconv.ParseInt(c.Param("tagId"), 10, 64)
+	if err != nil {
+		log.Debug("invalid tag ID")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid tag ID",
+		})
+		return
+	}
+
+	err = h.courseRepo.InsertCourseTag(ctx, int32(courseID), int32(tagID))
+	if err != nil {
+		log.WithError(err).Error("error inserting course tag")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while inserting course tag",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course tag inserted successfully",
+	})
+}
+
+func (h *courseHandler) RemoveCourseTag(c *gin.Context) {
+	log := h.log.WithBaseFields(logger.Handler, "RemoveCourseTag")
+	ctx := c.Request.Context()
+
+	courseID, err := strconv.ParseInt(c.Param("courseId"), 10, 64)
+	if err != nil {
+		log.Debug("invalid course ID")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidCourseID,
+			Message:   "invalid course ID",
+		})
+		return
+	}
+
+	tagID, err := strconv.ParseInt(c.Param("tagId"), 10, 64)
+	if err != nil {
+		log.Debug("invalid tag ID")
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "invalid tag ID",
+		})
+		return
+	}
+
+	err = h.courseRepo.RemoveCourseTag(ctx, int32(courseID), int32(tagID))
+	if err != nil {
+		log.WithError(err).Error("error removing course tag")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "internal server error while removing course tag",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.Response{
+		Success: true,
+		Message: "course tag removed successfully",
+	})
+}
+
 func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
 	courses := r.Group("/courses")
 	courses.GET("/count", h.GetCoursesCount)
@@ -662,7 +869,7 @@ func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
 	authorized := courses.Group("", middleware.Auth())
 	{
 		authorized.GET("", h.ListAllCoursesWithOptionalProgress)
-		authorized.POST("/create", h.CreateCourse)
+		authorized.POST("", h.CreateCourse)
 		authorized.PUT("/:courseId", h.UpdateCourse)
 		authorized.POST("/:courseId/publish", h.PublishCourse)
 		authorized.GET("/:courseId", h.GetCourse)
@@ -672,5 +879,10 @@ func (h *courseHandler) RegisterRoutes(r *gin.RouterGroup) {
 		authorized.POST("/:courseId/start", h.StartCourse)
 		authorized.POST("/:courseId/reset", h.ResetCourseProgress)
 		authorized.DELETE("/:courseId", h.DeleteCourse)
+		authorized.GET("/:courseId/tags", h.GetCourseTags)
+		authorized.GET("/tags/search", h.SearchCourseTags)
+		authorized.POST("/:courseId/tags/:tagId", h.InsertCourseTag)
+		authorized.DELETE("/:courseId/tags/:tagId", h.RemoveCourseTag)
+		authorized.POST("/tags", h.CreateCourseTag)
 	}
 }

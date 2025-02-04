@@ -97,6 +97,12 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to unmarshal markdown section: %w", err)
 			}
 			section = &s
+		case "code":
+			var s CodeSection
+			if err := json.Unmarshal(rawSection, &s); err != nil {
+				return fmt.Errorf("failed to unmarshal code section: %w", err)
+			}
+			section = &s
 		default:
 			return fmt.Errorf("unknown section type: %s", baseSection.Type)
 		}
@@ -179,6 +185,11 @@ type Option struct {
 	ID        int64  `json:"id"`
 	Content   string `json:"content"`
 	IsCorrect bool   `json:"isCorrect"`
+}
+
+type CodeContent struct {
+	Code     string `json:"code"`
+	Language string `json:"language"`
 }
 
 type UserAnswer struct {
@@ -279,12 +290,23 @@ type MarkdownSection struct {
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 
+type CodeSection struct {
+	BaseModel
+	Type            string           `json:"type"`
+	Position        int16            `json:"position"`
+	Language        string           `json:"language"`
+	Content         CodeContent      `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress"`
+}
+
 func (ts *TextSection) GetType() string     { return ts.Type }
 func (vs *VideoSection) GetType() string    { return vs.Type }
 func (qs *QuestionSection) GetType() string { return qs.Type }
 func (ms *MarkdownSection) GetType() string { return ms.Type }
+func (cs *CodeSection) GetType() string     { return cs.Type }
 
 func (ts *TextSection) GetPosition() int16     { return ts.Position }
 func (vs *VideoSection) GetPosition() int16    { return vs.Position }
 func (qs *QuestionSection) GetPosition() int16 { return qs.Position }
 func (ms *MarkdownSection) GetPosition() int16 { return ms.Position }
+func (cs *CodeSection) GetPosition() int16     { return cs.Position }

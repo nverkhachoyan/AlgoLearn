@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import {
   StyleSheet,
   ActivityIndicator,
@@ -7,13 +7,15 @@ import {
   Platform,
   ViewStyle,
 } from "react-native";
-import { Text } from "react-native-paper";
+import { Text, Menu } from "react-native-paper";
 import CourseCard from "@/src/features/course/components/CourseCard";
 import Button from "@/src/components/common/Button";
 import { Course } from "@/src/features/course/types";
 import { useTheme } from "react-native-paper";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
+
+type SortOption = "name" | "rating" | "duration" | "difficultyLevel";
 
 interface CourseSectionProps {
   title: string;
@@ -49,6 +51,39 @@ export const CourseSection = memo<CourseSectionProps>(
   }) => {
     const { colors } = useTheme();
     const { width } = useWindowDimensions();
+    const [sortBy, setSortBy] = useState<SortOption>("name");
+    const [menuVisible, setMenuVisible] = useState(false);
+
+    const sortedCourses = useMemo(() => {
+      if (!courses.length) return courses;
+
+      return [...courses].sort((a, b) => {
+        switch (sortBy) {
+          case "name":
+            return a.name.localeCompare(b.name);
+          case "rating":
+            return (b.rating || 0) - (a.rating || 0);
+          case "duration":
+            return (a.duration || 0) - (b.duration || 0);
+          case "difficultyLevel":
+            const difficultyOrder = {
+              beginner: 0,
+              intermediate: 1,
+              advanced: 2,
+            };
+            return (
+              (difficultyOrder[
+                a.difficultyLevel as keyof typeof difficultyOrder
+              ] || 0) -
+              (difficultyOrder[
+                b.difficultyLevel as keyof typeof difficultyOrder
+              ] || 0)
+            );
+          default:
+            return 0;
+        }
+      });
+    }, [courses, sortBy]);
 
     // Calculate number of columns based on screen width
     const numColumns = useMemo(() => {
@@ -150,12 +185,70 @@ export const CourseSection = memo<CourseSectionProps>(
     const ListHeaderComponent = useCallback(
       () => (
         <>
-          <View style={styles.separator} />
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>{title}</Text>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <Button
+                  title="Sort by"
+                  onPress={() => setMenuVisible(true)}
+                  style={{
+                    backgroundColor: colors.secondaryContainer,
+                    paddingHorizontal: 16,
+                  }}
+                  textStyle={{
+                    color: colors.onSecondaryContainer,
+                    fontSize: 14,
+                  }}
+                  icon={{
+                    type: "ionicons",
+                    name: "filter-outline",
+                    position: "left",
+                    color: colors.onSecondaryContainer,
+                  }}
+                />
+              }
+            >
+              <Menu.Item
+                onPress={() => {
+                  setSortBy("name");
+                  setMenuVisible(false);
+                }}
+                title="Name"
+                leadingIcon={sortBy === "name" ? "check" : undefined}
+              />
+              <Menu.Item
+                onPress={() => {
+                  setSortBy("rating");
+                  setMenuVisible(false);
+                }}
+                title="Rating"
+                leadingIcon={sortBy === "rating" ? "check" : undefined}
+              />
+              <Menu.Item
+                onPress={() => {
+                  setSortBy("duration");
+                  setMenuVisible(false);
+                }}
+                title="Duration"
+                leadingIcon={sortBy === "duration" ? "check" : undefined}
+              />
+              <Menu.Item
+                onPress={() => {
+                  setSortBy("difficultyLevel");
+                  setMenuVisible(false);
+                }}
+                title="Difficulty"
+                leadingIcon={sortBy === "difficultyLevel" ? "check" : undefined}
+              />
+            </Menu>
+          </View>
           <View style={styles.separator} />
         </>
       ),
-      [title]
+      [title, menuVisible, sortBy, colors]
     );
 
     const ListEmptyComponent = useCallback(() => renderEmptyState(), []);
@@ -189,7 +282,7 @@ export const CourseSection = memo<CourseSectionProps>(
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FlashList
           key={`course-list-${numColumns}`}
-          data={courses}
+          data={sortedCourses}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           estimatedItemSize={200}
@@ -266,5 +359,12 @@ const styles = StyleSheet.create({
   },
   courseCardContainer: {
     flex: 1,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
 });

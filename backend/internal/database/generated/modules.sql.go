@@ -553,6 +553,11 @@ WITH section_content AS (
                 JOIN questions q ON q.id = qs.question_id
                 WHERE qs.section_id = s.id
             )
+            WHEN 'code' THEN (
+                SELECT jsonb_build_object('code', code, 'language', language)
+                FROM code_sections cs
+                WHERE cs.section_id = s.id
+            )
         END as content
     FROM sections s
     WHERE s.module_id = $1::int
@@ -625,6 +630,23 @@ func (q *Queries) GetUnitNumber(ctx context.Context, unitID int32) (int32, error
 	var unit_number int32
 	err := row.Scan(&unit_number)
 	return unit_number, err
+}
+
+const insertCodeSection = `-- name: InsertCodeSection :exec
+INSERT INTO
+    code_sections (section_id, code, language)
+VALUES ($1, $2, $3)
+`
+
+type InsertCodeSectionParams struct {
+	SectionID int32          `json:"sectionId"`
+	Code      string         `json:"code"`
+	Language  sql.NullString `json:"language"`
+}
+
+func (q *Queries) InsertCodeSection(ctx context.Context, arg InsertCodeSectionParams) error {
+	_, err := q.db.ExecContext(ctx, insertCodeSection, arg.SectionID, arg.Code, arg.Language)
+	return err
 }
 
 const insertModule = `-- name: InsertModule :one

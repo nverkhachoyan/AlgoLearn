@@ -17,7 +17,7 @@ const (
 
 // GetJWTKey returns the JWT secret key from config
 func GetJWTKey() []byte {
-	cfg, err := config.LoadConfig()
+	cfg, err := config.Load()
 	if err != nil {
 		return nil
 	}

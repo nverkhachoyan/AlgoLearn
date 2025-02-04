@@ -14,6 +14,7 @@ type Querier interface {
 	CalculateModuleProgress(ctx context.Context, arg CalculateModuleProgressParams) (interface{}, error)
 	CreateAchievement(ctx context.Context, arg CreateAchievementParams) (Achievement, error)
 	CreateCourse(ctx context.Context, arg CreateCourseParams) (int32, error)
+	CreateCourseTag(ctx context.Context, name string) (int32, error)
 	CreateModule(ctx context.Context, arg CreateModuleParams) (Module, error)
 	CreateUnit(ctx context.Context, arg CreateUnitParams) (int32, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -30,6 +31,7 @@ type Querier interface {
 	GetAllAchievements(ctx context.Context) ([]Achievement, error)
 	GetAllCoursesWithOptionalProgress(ctx context.Context, arg GetAllCoursesWithOptionalProgressParams) ([]GetAllCoursesWithOptionalProgressRow, error)
 	GetAllNotifications(ctx context.Context) ([]Notification, error)
+	GetCodeSection(ctx context.Context, sectionID int32) (GetCodeSectionRow, error)
 	GetCourseAndUnitIDs(ctx context.Context, id int32) (GetCourseAndUnitIDsRow, error)
 	GetCourseAuthors(ctx context.Context, courseID int32) ([]GetCourseAuthorsRow, error)
 	GetCourseByID(ctx context.Context, courseID int32) (GetCourseByIDRow, error)
@@ -72,7 +74,9 @@ type Querier interface {
 	GetUsersCount(ctx context.Context) (int64, error)
 	GetVideoSection(ctx context.Context, sectionID int32) (string, error)
 	InitializeModuleProgress(ctx context.Context, arg InitializeModuleProgressParams) error
+	InsertCodeSection(ctx context.Context, arg InsertCodeSectionParams) error
 	InsertCourseAuthor(ctx context.Context, arg InsertCourseAuthorParams) error
+	InsertCourseTag(ctx context.Context, arg InsertCourseTagParams) error
 	InsertModule(ctx context.Context, arg InsertModuleParams) (Module, error)
 	InsertQuestion(ctx context.Context, arg InsertQuestionParams) (Question, error)
 	InsertQuestionOption(ctx context.Context, arg InsertQuestionOptionParams) error
@@ -84,6 +88,8 @@ type Querier interface {
 	InsertUserPreferences(ctx context.Context, arg InsertUserPreferencesParams) (UserPreference, error)
 	InsertVideoSection(ctx context.Context, arg InsertVideoSectionParams) error
 	PublishCourse(ctx context.Context, courseID int32) error
+	RemoveCourseTag(ctx context.Context, arg RemoveCourseTagParams) error
+	SearchCourseTags(ctx context.Context, arg SearchCourseTagsParams) ([]SearchCourseTagsRow, error)
 	SearchCourses(ctx context.Context, arg SearchCoursesParams) ([]SearchCoursesRow, error)
 	SearchCoursesFullText(ctx context.Context, arg SearchCoursesFullTextParams) ([]SearchCoursesFullTextRow, error)
 	StartCourseUserCourses(ctx context.Context, arg StartCourseUserCoursesParams) error

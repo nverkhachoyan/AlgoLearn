@@ -141,15 +141,6 @@ export default function ModuleSession() {
     const { sections, questions } = moduleProgress;
     const totalSections = sortedSections.length;
 
-    console.log(
-      "[Progress Debug] Sections Map:",
-      Array.from(sections.entries())
-    );
-    console.log(
-      "[Progress Debug] Questions Map:",
-      Array.from(questions.entries())
-    );
-
     const completedSections = sortedSections.map((section: any) => {
       const progress = sections.get(section.id);
       const hasSeen = Boolean(progress?.hasSeen);
@@ -157,14 +148,6 @@ export default function ModuleSession() {
       if (section.type === "question") {
         const questionState = questions.get(section.content.id);
         const isComplete = hasSeen && Boolean(questionState?.hasAnswered);
-
-        console.log("[Progress Debug] Question Section:", {
-          sectionId: section.id,
-          questionId: section.content.id,
-          hasSeen,
-          hasAnswered: Boolean(questionState?.hasAnswered),
-          isComplete,
-        });
 
         return {
           sectionId: section.id,
@@ -177,12 +160,6 @@ export default function ModuleSession() {
       }
 
       const isComplete = Boolean(progress?.hasSeen);
-
-      console.log("[Progress Debug] Regular Section:", {
-        sectionId: section.id,
-        hasSeen,
-        isComplete,
-      });
 
       return {
         sectionId: section.id,
@@ -197,15 +174,6 @@ export default function ModuleSession() {
     const completedCount = completedSections.filter(
       (s: any) => s.isCompleted
     ).length;
-
-    console.log("[Progress Debug] Completion Stats:", {
-      completedCount,
-      totalSections,
-      completedSections: completedSections.map((s) => ({
-        id: s.sectionId,
-        completed: s.isCompleted,
-      })),
-    });
 
     const totalProgress =
       totalSections > 0 ? (completedCount / totalSections) * 100 : 0;

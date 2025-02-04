@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { AuthGuard } from "@/src/features/auth/components/AuthGuard";
 import { AuthProvider } from "@/src/features/auth/context/AuthContext";
 import { queryClient } from "@/src/lib/react-query/queryClient";
+import { PostHogProvider } from "posthog-react-native";
 
 focusManager.setEventListener((handleFocus) => {
   const subscription = AppState.addEventListener("change", (state) => {
@@ -81,14 +82,21 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AuthGuard />
-          <AppContent />
-        </AuthProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <PostHogProvider
+      apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
+      options={{
+        host: process.env.EXPO_PUBLIC_POSTHOG_HOST,
+      }}
+    >
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <AuthGuard />
+            <AppContent />
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </PostHogProvider>
   );
 }
 

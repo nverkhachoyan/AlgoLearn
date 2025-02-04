@@ -77,8 +77,6 @@ export const useModuleProgress = (
     },
   });
 
-  console.log("currentModule.data", currentModule.data);
-
   if (currentModule.data?.nextModuleId) {
     queryClient.prefetchQuery({
       queryKey: ["module", courseId, unitId, currentModule.data?.nextModuleId],

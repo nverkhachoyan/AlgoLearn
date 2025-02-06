@@ -30,15 +30,12 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	// Initialize router with default middleware
 	r := gin.New()
 
-	// Load HTML templates
-	r.LoadHTMLGlob("templates/admin/*.html")
-
 	// Recovery middleware
 	r.Use(gin.Recovery())
 
 	// CORS middleware
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"*"} // Configure based on your needs
+	corsConfig.AllowOrigins = []string{"*"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 	r.Use(cors.New(corsConfig))

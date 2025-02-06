@@ -128,29 +128,29 @@
 --         4.8
 --     );
 -- -- 5. Insert Data into 'course_authors' Table
--- INSERT INTO
---     course_authors (course_id, user_id)
--- VALUES (1, 1),
---     (2, 2),
---     (3, 3),
---     (4, 2),
---     (5, 1),
---     (5, 3);
+-- -- INSERT INTO
+-- --     course_authors (course_id, user_id)
+-- -- VALUES (1, 1),
+-- --     (2, 2),
+-- --     (3, 3),
+-- --     (4, 2),
+-- --     (5, 1),
+-- --     (5, 3);
 -- -- 6. Insert Data into 'course_tags' Table
--- INSERT INTO
---     course_tags (course_id, tag_id)
--- VALUES (1, 1),
---     (1, 5),
---     (2, 2),
---     (2, 5),
---     (3, 3),
---     (3, 5),
---     (4, 4),
---     (4, 5),
---     (5, 1),
---     (5, 2),
---     (5, 3),
---     (5, 5);
+-- -- INSERT INTO
+-- --     course_tags (course_id, tag_id)
+-- -- VALUES (1, 1),
+-- --     (1, 5),
+-- --     (2, 2),
+-- --     (2, 5),
+-- --     (3, 3),
+-- --     (3, 5),
+-- --     (4, 4),
+-- --     (4, 5),
+-- --     (5, 1),
+-- --     (5, 2),
+-- --     (5, 3),
+-- --     (5, 5);
 -- -- 7. Insert Data into 'units' Table
 -- INSERT INTO
 --     units (
@@ -407,23 +407,23 @@
 -- -- 12. Insert Data into 'sections' Table
 -- INSERT INTO
 --     sections (module_id, type, position)
--- VALUES (1, 'text', 1),
+-- VALUES (1, 'markdown', 1),
 --     (1, 'markdown', 2),
 --     (1, 'question', 3),
---     (1, 'text', 4),
+--     (1, 'markdown', 4),
 --     (1, 'question', 5);
--- -- 13. Insert Data into 'text_sections' Table
+-- -- 13. Insert Data into 'markdown_sections' Table
 -- INSERT INTO
---     text_sections (section_id, text_content)
+--     markdown_sections (section_id, markdown)
 -- VALUES (
 --         1,
---         'Variables are used to store data in a program.'
+--         '# Variables are used to store data in a program.'
 --     ),
 --     (
 --         4,
---         'Summary: Variables are fundamental in programming.'
+--         '## Summary: Variables are fundamental in programming.'
 --     );
--- -- 14. Insert Data into 'video_sections' Table
+-- -- 14. Insert Data into 'markdown_sections' Table
 -- INSERT INTO
 --     markdown_sections (section_id, markdown)
 -- VALUES (
@@ -650,7 +650,6 @@
 -- TRUNCATE TABLE module_questions CASCADE;
 -- TRUNCATE TABLE question_sections CASCADE;
 -- TRUNCATE TABLE video_sections CASCADE;
--- TRUNCATE TABLE text_sections CASCADE;
 -- TRUNCATE TABLE sections CASCADE;
 -- TRUNCATE TABLE modules CASCADE;
 -- TRUNCATE TABLE question_options CASCADE;

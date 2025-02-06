@@ -37,12 +37,6 @@ CREATE TABLE sections (
     FOREIGN KEY (module_id) REFERENCES modules (id) ON DELETE CASCADE
 );
 
-CREATE TABLE text_sections (
-    section_id INTEGER PRIMARY KEY,
-    text_content TEXT NOT NULL,
-    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
-);
-
 CREATE TABLE video_sections (
     section_id INTEGER PRIMARY KEY,
     url TEXT NOT NULL,
@@ -66,6 +60,14 @@ CREATE TABLE code_sections (
     section_id INTEGER PRIMARY KEY,
     code TEXT NOT NULL,
     language VARCHAR(50),
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
+);
+
+CREATE TABLE image_sections (
+    section_id INTEGER PRIMARY KEY,
+    url TEXT NOT NULL,
+    headline TEXT NOT NULL,
+    caption TEXT NOT NULL,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
@@ -96,8 +98,6 @@ DROP TABLE IF EXISTS module_questions;
 DROP TABLE IF EXISTS question_sections;
 
 DROP TABLE IF EXISTS video_sections;
-
-DROP TABLE IF EXISTS text_sections;
 
 DROP TABLE IF EXISTS code_sections;
 

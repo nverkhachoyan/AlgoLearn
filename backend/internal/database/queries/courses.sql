@@ -161,11 +161,6 @@ WHERE
     unit_id = @unit_id::int
 ORDER BY module_number;
 
--- name: GetTextSection :one
-SELECT text_content
-FROM text_sections
-WHERE section_id = @section_id::int;
-
 -- name: GetVideoSection :one
 SELECT 
     url as url
@@ -251,10 +246,10 @@ SELECT
     ump.progress as module_progress,
     ump.status as module_status
 FROM courses c
-         INNER JOIN current_unit_id cui ON 1=1
-         INNER JOIN current_module_id cmi ON 1=1
-         INNER JOIN units u ON u.id = cui.id
-         INNER JOIN modules m ON m.id = cmi.id
+         LEFT JOIN current_unit_id cui ON 1=1
+         LEFT JOIN current_module_id cmi ON 1=1
+         LEFT JOIN units u ON u.id = cui.id
+         LEFT JOIN modules m ON m.id = cmi.id
          LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = @user_id::int
          LEFT JOIN user_module_progress ump ON ump.module_id = cmi.id AND ump.user_id = @user_id::int
 WHERE c.id = @course_id::int;
@@ -465,9 +460,9 @@ ORDER BY s.position;
 -- name: GetSectionContent :one
 SELECT 
     CASE s.type
-        WHEN 'text' THEN (
-            SELECT jsonb_build_object('text', text_content)
-            FROM text_sections
+        WHEN 'markdown' THEN (
+            SELECT jsonb_build_object('markdown', markdown)
+            FROM markdown_sections
             WHERE section_id = s.id
         )
         WHEN 'video' THEN (

@@ -8,12 +8,14 @@ type AppConfig struct {
 
 // DatabaseConfig holds database connection settings
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
+	Host          string
+	Port          int
+	User          string
+	Password      string
+	Name          string
+	SSLMode       string
+	RunMigrations string
+	MigrationsDir string
 }
 
 // OAuthProviderConfig holds configuration for an OAuth provider

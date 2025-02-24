@@ -34,17 +34,12 @@ var (
 	}
 )
 
-// Load loads the application configuration from environment variables
 func Load() (*Config, error) {
-	log := logger.Get()
-
-	// Required environment variables
 	port := os.Getenv("PORT")
 	if port == "" {
 		return nil, fmt.Errorf("PORT environment variable is required")
 	}
 
-	// Database config
 	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
 		return nil, fmt.Errorf("DB_HOST environment variable is required")
@@ -70,7 +65,22 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DB_NAME environment variable is required")
 	}
 
-	// Storage config
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		return nil, fmt.Errorf("DB_SSLMODE environment variable is required")
+
+	}
+
+	runMigrations := os.Getenv("RUN_MIGRATIONS")
+	if runMigrations == "" {
+		return nil, fmt.Errorf("RUN_MIGRATIONS environment variable is required")
+	}
+
+	migrationsDir := os.Getenv("MIGRATIONS_DIR")
+	if migrationsDir == "" {
+		return nil, fmt.Errorf("MIGRATIONS_DIR environment variable is required")
+	}
+
 	spacesRegion := os.Getenv("SPACES_REGION")
 	if spacesRegion == "" {
 		return nil, fmt.Errorf("SPACES_REGION environment variable is required")
@@ -101,7 +111,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("SPACES_CDN_URL environment variable is required")
 	}
 
-	// JWT config
 	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
 	if jwtSecretKey == "" {
 		return nil, fmt.Errorf("JWT_SECRET_KEY environment variable is required")
@@ -114,12 +123,14 @@ func Load() (*Config, error) {
 			LogLevel:    os.Getenv("LOG_LEVEL"),
 		},
 		Database: DatabaseConfig{
-			Host:     dbHost,
-			Port:     dbPort,
-			User:     dbUser,
-			Password: dbPassword,
-			Name:     dbName,
-			SSLMode:  os.Getenv("DB_SSLMODE"),
+			Host:          dbHost,
+			Port:          dbPort,
+			User:          dbUser,
+			Password:      dbPassword,
+			Name:          dbName,
+			SSLMode:       sslMode,
+			RunMigrations: runMigrations,
+			MigrationsDir: migrationsDir,
 		},
 		OAuth: OAuthConfig{
 			Google: OAuthProviderConfig{
@@ -146,11 +157,9 @@ func Load() (*Config, error) {
 		},
 	}
 
-	log.Info("Configuration loaded successfully")
 	return cfg, nil
 }
 
-// InitDB initializes the database connection
 func InitDB(cfg DatabaseConfig) {
 	log := logger.Get()
 	var err error
@@ -167,14 +176,9 @@ func InitDB(cfg DatabaseConfig) {
 	if err = db.Ping(); err != nil {
 		log.Fatalf("Error connecting to the database: %v\n", err)
 	}
-
-	log.Info("Connected to the database successfully")
 }
 
-// InitOAuth initializes OAuth configurations
 func InitOAuth(cfg OAuthConfig) {
-	log := logger.Get()
-
 	googleOauthConfig = &oauth2.Config{
 		ClientID:     cfg.Google.ClientID,
 		ClientSecret: cfg.Google.ClientSecret,
@@ -190,11 +194,8 @@ func InitOAuth(cfg OAuthConfig) {
 		Endpoint:     appleEndpoint,
 		Scopes:       []string{"name", "email"},
 	}
-
-	log.Info("OAuth configurations initialized successfully")
 }
 
-// InitS3 initializes the S3 client
 func InitS3(cfg StorageConfig) {
 	log := logger.Get()
 
@@ -211,7 +212,6 @@ func InitS3(cfg StorageConfig) {
 	s3Session = s3.New(sess)
 	s3BucketName = cfg.SpacesBucketName
 
-	// Configure CORS
 	corsRule := &s3.CORSConfiguration{
 		CORSRules: []*s3.CORSRule{
 			{
@@ -235,34 +235,25 @@ func InitS3(cfg StorageConfig) {
 	})
 	if err != nil {
 		log.Errorf("Failed to set bucket CORS: %v", err)
-	} else {
-		log.Info("S3 bucket CORS configured successfully")
 	}
-
-	log.Info("S3 session initialized successfully")
 }
 
-// GetDB returns the database connection
 func GetDB() *sql.DB {
 	return db
 }
 
-// GetGoogleOAuthConfig returns the Google OAuth configuration
 func GetGoogleOAuthConfig() *oauth2.Config {
 	return googleOauthConfig
 }
 
-// GetAppleOAuthConfig returns the Apple OAuth configuration
 func GetAppleOAuthConfig() *oauth2.Config {
 	return appleOauthConfig
 }
 
-// GetS3Session returns the S3 client
 func GetS3Session() *s3.S3 {
 	return s3Session
 }
 
-// GetS3BucketName returns the S3 bucket name
 func GetS3BucketName() string {
 	return s3BucketName
 }

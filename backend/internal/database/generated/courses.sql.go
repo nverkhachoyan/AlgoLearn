@@ -511,10 +511,10 @@ SELECT
     ump.progress as module_progress,
     ump.status as module_status
 FROM courses c
-         INNER JOIN current_unit_id cui ON 1=1
-         INNER JOIN current_module_id cmi ON 1=1
-         INNER JOIN units u ON u.id = cui.id
-         INNER JOIN modules m ON m.id = cmi.id
+         LEFT JOIN current_unit_id cui ON 1=1
+         LEFT JOIN current_module_id cmi ON 1=1
+         LEFT JOIN units u ON u.id = cui.id
+         LEFT JOIN modules m ON m.id = cmi.id
          LEFT JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1::int
          LEFT JOIN user_module_progress ump ON ump.module_id = cmi.id AND ump.user_id = $1::int
 WHERE c.id = $2::int
@@ -538,18 +538,18 @@ type GetCourseProgressSummaryBaseRow struct {
 	DifficultyLevel   NullDifficultyLevel      `json:"difficultyLevel"`
 	Duration          sql.NullInt32            `json:"duration"`
 	Rating            sql.NullFloat64          `json:"rating"`
-	UnitID            int32                    `json:"unitId"`
-	UnitCreatedAt     time.Time                `json:"unitCreatedAt"`
-	UnitUpdatedAt     time.Time                `json:"unitUpdatedAt"`
-	UnitNumber        int32                    `json:"unitNumber"`
-	UnitName          string                   `json:"unitName"`
-	UnitDescription   string                   `json:"unitDescription"`
-	ModuleID          int32                    `json:"moduleId"`
-	ModuleCreatedAt   time.Time                `json:"moduleCreatedAt"`
-	ModuleUpdatedAt   time.Time                `json:"moduleUpdatedAt"`
-	ModuleNumber      int32                    `json:"moduleNumber"`
-	ModuleName        string                   `json:"moduleName"`
-	ModuleDescription string                   `json:"moduleDescription"`
+	UnitID            sql.NullInt32            `json:"unitId"`
+	UnitCreatedAt     sql.NullTime             `json:"unitCreatedAt"`
+	UnitUpdatedAt     sql.NullTime             `json:"unitUpdatedAt"`
+	UnitNumber        sql.NullInt32            `json:"unitNumber"`
+	UnitName          sql.NullString           `json:"unitName"`
+	UnitDescription   sql.NullString           `json:"unitDescription"`
+	ModuleID          sql.NullInt32            `json:"moduleId"`
+	ModuleCreatedAt   sql.NullTime             `json:"moduleCreatedAt"`
+	ModuleUpdatedAt   sql.NullTime             `json:"moduleUpdatedAt"`
+	ModuleNumber      sql.NullInt32            `json:"moduleNumber"`
+	ModuleName        sql.NullString           `json:"moduleName"`
+	ModuleDescription sql.NullString           `json:"moduleDescription"`
 	ModuleProgress    sql.NullFloat64          `json:"moduleProgress"`
 	ModuleStatus      NullModuleProgressStatus `json:"moduleStatus"`
 }
@@ -1156,9 +1156,9 @@ func (q *Queries) GetQuestionSection(ctx context.Context, sectionID int32) (GetQ
 const getSectionContent = `-- name: GetSectionContent :one
 SELECT 
     CASE s.type
-        WHEN 'text' THEN (
-            SELECT jsonb_build_object('text', text_content)
-            FROM text_sections
+        WHEN 'markdown' THEN (
+            SELECT jsonb_build_object('markdown', markdown)
+            FROM markdown_sections
             WHERE section_id = s.id
         )
         WHEN 'video' THEN (
@@ -1203,19 +1203,6 @@ func (q *Queries) GetSectionContent(ctx context.Context, sectionID int32) (inter
 	var content interface{}
 	err := row.Scan(&content)
 	return content, err
-}
-
-const getTextSection = `-- name: GetTextSection :one
-SELECT text_content
-FROM text_sections
-WHERE section_id = $1::int
-`
-
-func (q *Queries) GetTextSection(ctx context.Context, sectionID int32) (string, error) {
-	row := q.db.QueryRowContext(ctx, getTextSection, sectionID)
-	var text_content string
-	err := row.Scan(&text_content)
-	return text_content, err
 }
 
 const getUnitModules = `-- name: GetUnitModules :many

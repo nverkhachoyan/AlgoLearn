@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"algolearn/internal/config"
 	httperr "algolearn/internal/errors"
 	"algolearn/internal/models"
 	"algolearn/internal/service"
@@ -13,25 +12,21 @@ import (
 	"strconv"
 
 	"encoding/json"
-	"fmt"
-	"mime/multipart"
 	"net/http"
 	"regexp"
 	"time"
 
 	"database/sql"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type UserHandler interface {
 	CheckEmailExists(c *gin.Context)
 	RegisterUser(c *gin.Context)
 	LoginUser(c *gin.Context)
-	// UpdateUser(w http.ResponseWriter, r *http.Request)
+	RefreshToken(c *gin.Context)
+	UpdateUser(c *gin.Context)
 	GetUser(c *gin.Context)
 	GetUsers(c *gin.Context)
 	DeleteUser(c *gin.Context)
@@ -49,14 +44,12 @@ func NewUserHandler(repo service.UserService) UserHandler {
 	return &userHandler{repo: repo, log: logger.Get()}
 }
 
-// ValidateEmail validates the email format
 func (h *userHandler) ValidateEmail(email string) bool {
 	const emailRegex = `^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`
 	re := regexp.MustCompile(emailRegex)
 	return re.MatchString(email)
 }
 
-// validateRegistrationInput performs input validation for registration
 func (h *userHandler) validateRegistrationInput(req models.RegistrationRequest) (bool, string) {
 	if len(req.Username) < 5 || len(req.Username) > 20 {
 		return false, "username must be between 5 and 20 characters long"
@@ -103,7 +96,7 @@ func (h *userHandler) CheckEmailExists(c *gin.Context) {
 }
 
 func (h *userHandler) RegisterUser(c *gin.Context) {
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	log := h.log.WithBaseFields(logger.Handler, "RegisterUser")
 	var req models.RegistrationRequest
 	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
@@ -124,7 +117,16 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 	}
 
 	// Check if user with email already exists
-	emailExists, _ := h.repo.CheckEmailExists(ctx, req.Email)
+	emailExists, err := h.repo.CheckEmailExists(ctx, req.Email)
+	if err != nil {
+		log.WithError(err).Error("failed to check if email exists")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DatabaseFail,
+			Message:   "failed to check if email exists",
+		})
+		return
+	}
 
 	if emailExists {
 		c.JSON(http.StatusAccepted, models.Response{
@@ -169,7 +171,7 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	token, err := security.GenerateJWT(user.ID)
+	token, err := security.GenerateJWT(newUser.ID)
 	if err != nil {
 		log.WithError(err).Error("failed to generate JWT")
 		c.JSON(http.StatusInternalServerError,
@@ -184,7 +186,7 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 	response := models.Response{
 		Success: true,
 		Message: "user created successfully",
-		Payload: map[string]interface{}{"token": token, "user": newUser},
+		Payload: map[string]any{"token": token, "user": newUser},
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -333,30 +335,6 @@ func (h *userHandler) RefreshToken(c *gin.Context) {
 	})
 }
 
-func uploadUserAvatarToS3(s3Session *s3.S3, file multipart.File, userID int32) (string, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return "", fmt.Errorf("error loading config: %v", err)
-	}
-
-	objectKey := fmt.Sprintf("users/%d/public/avatars/%s", userID, uuid.New().String())
-
-	putObjectInput := &s3.PutObjectInput{
-		Bucket: aws.String(cfg.Storage.SpacesBucketName),
-		Key:    aws.String(objectKey),
-		Body:   file,
-		ACL:    aws.String("public-read"),
-	}
-
-	_, err = s3Session.PutObject(putObjectInput)
-	if err != nil {
-		return "", fmt.Errorf("error uploading to S3: %v", err)
-	}
-
-	avatarURL := fmt.Sprintf("%s/%s", cfg.Storage.SpacesCDNUrl, objectKey)
-	return avatarURL, nil
-}
-
 func (h *userHandler) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := h.log.WithBaseFields(logger.Handler, "UpdateUser")
@@ -371,31 +349,8 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Parse multipart form with a 10MB limit
-	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
-		log.WithError(err).Error("failed to parse multipart form")
-		c.JSON(http.StatusBadRequest,
-			models.Response{
-				Success:   false,
-				ErrorCode: httperr.InvalidFormData,
-				Message:   "invalid form data was sent in the request",
-			})
-		return
-	}
-
 	var user models.User
-	jsonData := c.Request.FormValue("data")
-	if jsonData == "" {
-		c.JSON(http.StatusBadRequest,
-			models.Response{
-				Success:   false,
-				ErrorCode: httperr.InvalidFormData,
-				Message:   "missing user data in form",
-			})
-		return
-	}
-
-	if err := json.Unmarshal([]byte(jsonData), &user); err != nil {
+	if err := c.ShouldBindJSON(&user); err != nil {
 		log.WithError(err).Error("invalid JSON was sent in the request")
 		c.JSON(http.StatusBadRequest,
 			models.Response{
@@ -407,45 +362,6 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 	}
 
 	user.ID = userID
-	user.UpdatedAt = time.Now()
-
-	file, _, err := c.Request.FormFile("avatar")
-	if err == nil {
-		defer file.Close()
-		s3Session := config.GetS3Session()
-		if s3Session == nil {
-			log.Error("S3 session is not initialized")
-			c.JSON(http.StatusInternalServerError,
-				models.Response{
-					Success:   false,
-					ErrorCode: httperr.InternalError,
-					Message:   "storage service is not initialized",
-				})
-			return
-		}
-
-		avatarURL, err := uploadUserAvatarToS3(s3Session, file, user.ID)
-		if err != nil {
-			log.WithError(err).Error("failed to upload user avatar to S3")
-			c.JSON(http.StatusInternalServerError,
-				models.Response{
-					Success:   false,
-					ErrorCode: httperr.FileUploadFailed,
-					Message:   "file upload to S3 object storage has failed",
-				})
-			return
-		}
-		user.ProfilePictureURL = avatarURL
-	} else if err != http.ErrMissingFile {
-		log.WithError(err).Error("error processing file upload")
-		c.JSON(http.StatusInternalServerError,
-			models.Response{
-				Success:   false,
-				ErrorCode: httperr.FileUploadFailed,
-				Message:   "error processing file upload",
-			})
-		return
-	}
 
 	if err := h.repo.UpdateUser(ctx, &user); err != nil {
 		log.WithError(err).Error("failed to update user")
@@ -480,7 +396,7 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 
 func (h *userHandler) GetUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	log := logger.Get()
+	log := h.log.WithBaseFields(logger.Handler, "GetUser")
 	userID, err := GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, models.Response{
@@ -523,7 +439,7 @@ func (h *userHandler) GetUser(c *gin.Context) {
 
 func (h *userHandler) GetUsers(c *gin.Context) {
 	ctx := c.Request.Context()
-	log := logger.Get()
+	log := h.log.WithBaseFields(logger.Handler, "GetUsers")
 
 	page, err := strconv.Atoi(c.Query("page"))
 	if err != nil {
@@ -625,7 +541,7 @@ func (h *userHandler) GetUsersCount(c *gin.Context) {
 
 func (h *userHandler) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
-	log := logger.Get()
+	log := h.log.WithBaseFields(logger.Handler, "DeleteUser")
 	userID, err := GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized,

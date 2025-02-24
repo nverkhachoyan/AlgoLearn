@@ -62,7 +62,6 @@ type Querier interface {
 	GetSectionContent(ctx context.Context, sectionID int32) (interface{}, error)
 	GetSectionProgress(ctx context.Context, arg GetSectionProgressParams) ([]GetSectionProgressRow, error)
 	GetSingleModuleSections(ctx context.Context, arg GetSingleModuleSectionsParams) ([]GetSingleModuleSectionsRow, error)
-	GetTextSection(ctx context.Context, sectionID int32) (string, error)
 	GetUnitByID(ctx context.Context, unitID int32) (Unit, error)
 	GetUnitModules(ctx context.Context, unitID int32) ([]GetUnitModulesRow, error)
 	GetUnitNumber(ctx context.Context, unitID int32) (int32, error)

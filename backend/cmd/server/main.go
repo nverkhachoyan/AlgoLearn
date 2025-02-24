@@ -22,12 +22,8 @@ import (
 )
 
 func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
-	// Set Gin mode
-	if cfg.App.Environment == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	gin.SetMode(gin.ReleaseMode)
 
-	// Initialize router with default middleware
 	r := gin.New()
 
 	// Recovery middleware
@@ -51,6 +47,7 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 	unitRepo := service.NewUnitService(db)
 	moduleRepo := service.NewModuleService(db)
 	achievementsRepo := service.NewAchievementsService(db)
+
 	storageService, err := service.NewStorageService(
 		cfg.Storage.SpacesAccessKey,
 		cfg.Storage.SpacesSecretKey,
@@ -77,7 +74,6 @@ func setupRouter(cfg *config.Config, db *sql.DB) *gin.Engine {
 		log.Fatalf("Failed to initialize admin handler: %v", err)
 	}
 
-	// Register routes
 	router.RegisterRoutes(r,
 		userHandler,
 		courseHandler,
@@ -97,24 +93,28 @@ func main() {
 	log := logger.Get().WithBaseFields(logger.Main, "main")
 	log.Info("Starting application...")
 
-	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
 
-	// Initialize components
 	config.InitLogger(cfg.App)
+
 	config.InitDB(cfg.Database)
-	config.InitOAuth(cfg.OAuth)
-	config.InitS3(cfg.Storage)
 	defer func() {
 		if err := config.GetDB().Close(); err != nil {
 			log.Printf("error closing database: %v\n", err)
 		}
 	}()
 
-	if err := config.ApplyMigrations(); err != nil {
+	config.InitOAuth(cfg.OAuth)
+	config.InitS3(cfg.Storage)
+	migrator, err := config.NewMigrator(&cfg.Database)
+	if err != nil {
+		log.Fatalf("failed to create migrator: %v", err)
+	}
+
+	if err := migrator.ApplyMigrations(); err != nil {
 		log.Fatalf("Failed to apply migrations: %v", err)
 	}
 
@@ -131,7 +131,7 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Graceful shutdown setup
+	// Start server and graceful shutdown setup
 	go func() {
 		log.Infof("Server is running on port %s", cfg.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -145,7 +145,6 @@ func main() {
 	<-quit
 	log.Info("Shutting down server...")
 
-	// Graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

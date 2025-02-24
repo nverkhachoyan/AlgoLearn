@@ -228,6 +228,13 @@ type CourseTag struct {
 	TagID    int32 `json:"tagId"`
 }
 
+type ImageSection struct {
+	SectionID int32  `json:"sectionId"`
+	Url       string `json:"url"`
+	Headline  string `json:"headline"`
+	Caption   string `json:"caption"`
+}
+
 type MarkdownSection struct {
 	SectionID int32  `json:"sectionId"`
 	Markdown  string `json:"markdown"`
@@ -309,11 +316,6 @@ type Streak struct {
 type Tag struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
-}
-
-type TextSection struct {
-	SectionID   int32  `json:"sectionId"`
-	TextContent string `json:"textContent"`
 }
 
 type Unit struct {

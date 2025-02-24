@@ -74,6 +74,9 @@ func (s *unitService) GetUnitsByCourseID(ctx context.Context, courseID int64) ([
 				CreatedAt: unit.CreatedAt,
 				UpdatedAt: unit.UpdatedAt,
 			},
+			UnitNumber:  int16(unit.UnitNumber),
+			Name:        unit.Name,
+			Description: unit.Description,
 		})
 	}
 	return unitsModels, nil

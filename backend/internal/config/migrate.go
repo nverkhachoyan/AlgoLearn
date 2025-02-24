@@ -7,28 +7,31 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
-	_ "github.com/lib/pq" // Import postgres driver
+	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 )
 
 type Migrator struct {
 	db            *sql.DB
 	migrationsDir string
+	cfg           *DatabaseConfig
 }
 
-func NewMigrator() (*Migrator, error) {
+func NewMigrator(cfg *DatabaseConfig) (*Migrator, error) {
 	workDir, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	dbURL := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
+	dbURL := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		cfg.User,
+		cfg.Password,
+		cfg.Host,
+		strconv.Itoa(cfg.Port),
+		cfg.Name,
+		cfg.SSLMode,
 	)
 
 	db, err := sql.Open("postgres", dbURL)
@@ -42,7 +45,8 @@ func NewMigrator() (*Migrator, error) {
 
 	return &Migrator{
 		db:            db,
-		migrationsDir: filepath.Join(workDir, "migrations"),
+		migrationsDir: filepath.Join(workDir, cfg.MigrationsDir),
+		cfg:           cfg,
 	}, nil
 }
 
@@ -50,21 +54,10 @@ func (m *Migrator) Up(ctx context.Context) error {
 	log := logger.Get()
 
 	if err := goose.Up(m.db, m.migrationsDir); err != nil {
+		log.Errorf("failed to run migrations: %v", err)
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	log.Info("Migrations applied successfully")
-	return nil
-}
-
-func (m *Migrator) Down(ctx context.Context) error {
-	log := logger.Get()
-
-	if err := goose.Down(m.db, m.migrationsDir); err != nil {
-		return fmt.Errorf("failed to revert migrations: %w", err)
-	}
-
-	log.Info("Migrations reverted successfully")
 	return nil
 }
 
@@ -72,26 +65,19 @@ func (m *Migrator) Close() error {
 	return m.db.Close()
 }
 
-// ApplyMigrations handles migration based on environment variables
-func ApplyMigrations() error {
+func (m *Migrator) ApplyMigrations() error {
 	log := logger.Get()
 
-	migrator, err := NewMigrator()
-	if err != nil {
-		return fmt.Errorf("failed to create migrator: %w", err)
-	}
 	defer func() {
-		if err := migrator.Close(); err != nil {
-			log.Errorf("Error closing database: %v", err)
+		if err := m.Close(); err != nil {
+			log.Errorf("Error closing database migrator: %v", err)
 		}
 	}()
 
 	ctx := context.Background()
 
-	if os.Getenv("RUN_MIGRATIONS") == "true" {
-		return migrator.Up(ctx)
-	} else if os.Getenv("RUN_DOWN_MIGRATIONS") == "true" {
-		return migrator.Down(ctx)
+	if m.cfg.RunMigrations == "true" {
+		return m.Up(ctx)
 	}
 
 	return nil

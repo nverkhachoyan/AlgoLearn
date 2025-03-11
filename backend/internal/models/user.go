@@ -5,32 +5,33 @@ import (
 )
 
 type User struct {
-	ID                int32             `json:"id"`
-	CreatedAt         time.Time         `json:"createdAt"`
-	UpdatedAt         time.Time         `json:"updatedAt"`
-	Username          string            `json:"username"`
-	Email             string            `json:"email"`
+	ID                int32             `json:"id,omitempty"`
+	CreatedAt         time.Time         `json:"createdAt,omitempty"`
+	UpdatedAt         time.Time         `json:"updatedAt,omitempty"`
+	Username          string            `json:"username,omitempty"`
+	Email             string            `json:"email,omitempty"`
 	OAuthID           string            `json:"oauthId,omitempty"`
-	Role              string            `json:"role"`
+	Role              string            `json:"role,omitempty"`
 	PasswordHash      string            `json:"-"`
 	FirstName         string            `json:"firstName,omitempty"`
 	LastName          string            `json:"lastName,omitempty"`
 	ProfilePictureURL string            `json:"profilePictureUrl,omitempty"`
 	LastLoginAt       time.Time         `json:"lastLoginAt,omitempty"`
-	IsActive          bool              `json:"isActive"`
-	IsEmailVerified   bool              `json:"isEmailVerified"`
+	IsActive          bool              `json:"isActive,omitempty"`
+	IsEmailVerified   bool              `json:"isEmailVerified,omitempty"`
 	Bio               string            `json:"bio,omitempty"`
 	Location          string            `json:"location,omitempty"`
-	CPUs              int               `json:"cpus"`
+	CPUs              int               `json:"cpus,omitempty"`
 	Preferences       Preferences       `json:"preferences,omitempty"`
-	Streaks           []Streak          `json:"streaks,omitempty"`
+	Streak            int32             `json:"streak"`
+	LastStreakDate    time.Time         `json:"lastStreakDate,omitempty"`
 	Achievements      []UserAchievement `json:"achievements,omitempty"`
 }
 
 type Preferences struct {
-	Theme    string `json:"theme"`
-	Language string `json:"lang"`
-	Timezone string `json:"timezone"`
+	Theme    string `json:"theme,omitempty"`
+	Language string `json:"lang,omitempty"`
+	Timezone string `json:"timezone,omitempty"`
 }
 
 // User Progress and Answers

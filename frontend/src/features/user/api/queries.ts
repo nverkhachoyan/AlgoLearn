@@ -33,22 +33,17 @@ export const fetchUser = async (token: string): Promise<AxiosResponse> => {
 export const updateUser = async (
   token: string,
   data: any
-): Promise<AxiosResponse> => {
-  const formData = new FormData();
-  formData.append("data", JSON.stringify(data));
-  if (data.avatar) {
-    formData.append("avatar", data.avatar);
-  }
-
+): Promise<any> => {
   try {
-    const response: any = await fetch(
+    const response: Response = await fetch(
       process.env.EXPO_PUBLIC_BACKEND_URL + "/users/me",
       {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         method: "PUT",
-        body: formData,
+        body: JSON.stringify(data),
       }
     );
 
@@ -63,7 +58,7 @@ export const updateUser = async (
   } catch (error: any) {
     throw error;
   }
-};
+}
 
 export const deleteAccount = async (token: string): Promise<AxiosResponse> => {
   const response = await api.delete("/users/me", {

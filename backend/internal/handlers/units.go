@@ -5,10 +5,11 @@ import (
 	"algolearn/internal/models"
 	"algolearn/internal/service"
 	"algolearn/pkg/logger"
+	"database/sql"
+	"errors"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
 type UnitHandler interface {
@@ -58,7 +59,15 @@ func (h *unitHandler) CreateUnit(c *gin.Context) {
 	}
 
 	createdUnit, err := h.unitRepo.CreateUnit(ctx, courseID, unit.UnitNumber, unit.Name, unit.Description)
-	if err != nil {
+	if err != nil && IsDuplicateError(err, []string{"unique_unit_number_per_course"}) {
+		h.log.WithError(err).Error("unit number already exists")
+		c.JSON(http.StatusConflict, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidRequest,
+			Message:   "unit number already exists",
+		})
+		return
+	} else if err != nil {
 		h.log.WithError(err).Error("failed to create unit")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
@@ -89,7 +98,15 @@ func (h *unitHandler) GetUnitByID(c *gin.Context) {
 	}
 
 	unit, err := h.unitRepo.GetUnitByID(ctx, unitID)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		h.log.WithError(err).Warn("unit not found")
+		c.JSON(http.StatusOK, models.Response{
+			Success: true,
+			Message: "unit not found",
+			Payload: unit,
+		})
+		return
+	} else if err != nil {
 		h.log.WithError(err).Error("failed to get unit by ID")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,
@@ -120,7 +137,7 @@ func (h *unitHandler) GetUnitsByCourseID(c *gin.Context) {
 	}
 
 	units, err := h.unitRepo.GetUnitsByCourseID(ctx, courseID)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		h.log.WithError(err).Error("failed to get units by course ID")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,

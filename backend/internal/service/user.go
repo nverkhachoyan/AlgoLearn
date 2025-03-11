@@ -230,7 +230,6 @@ func (r *userService) CreateUser(ctx context.Context, user *models.User) (*model
 
 func (r *userService) GetUserByID(ctx context.Context, id int32) (*models.User, error) {
 	log := r.log.WithBaseFields(logger.Service, "GetUserByID")
-
 	user, err := r.db.GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -258,9 +257,11 @@ func (r *userService) GetUserByID(ctx context.Context, id int32) (*models.User, 
 			Language: user.Language.String,
 			Timezone: user.Timezone.String,
 		},
-		CPUs:      int(user.Cpus),
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		Streak:         user.Streak,
+		CPUs:           int(user.Cpus),
+		LastStreakDate: user.LastStreakDate.Time,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      user.UpdatedAt,
 	}, nil
 }
 
@@ -295,9 +296,11 @@ func (r *userService) GetUserByEmail(ctx context.Context, email string) (*models
 			Language: user.Language.String,
 			Timezone: user.Timezone.String,
 		},
-		CPUs:      int(user.Cpus),
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		CPUs:           int(user.Cpus),
+		Streak:         user.Streak,
+		LastStreakDate: user.LastStreakDate.Time,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      user.UpdatedAt,
 	}, nil
 }
 
@@ -328,6 +331,8 @@ func (r *userService) UpdateUser(ctx context.Context, user *models.User) error {
 		ProfilePictureUrl: user.ProfilePictureURL,
 		Bio:               user.Bio,
 		Location:          user.Location,
+		Streak:            user.Streak,
+		LastStreakDate:    user.LastStreakDate,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

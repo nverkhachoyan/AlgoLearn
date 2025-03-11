@@ -17,7 +17,7 @@ const HEADER_HEIGHT = Platform.select({ web: 64, default: 50 });
 
 export function StickyHeader(props: {
   cpus: number;
-  strikeCount: number;
+  streak: number;
   userAvatar: string | null;
   onAvatarPress: () => void;
 }) {
@@ -61,7 +61,7 @@ export function StickyHeader(props: {
         <View style={styles.headerItem}>
           <Feather name="zap" size={24} color="#1CC0CB" />
           <Text style={{ color: colors.onBackground }}>
-            {props.strikeCount}
+            {props.streak}
           </Text>
         </View>
 

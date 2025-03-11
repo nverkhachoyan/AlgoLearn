@@ -15,7 +15,6 @@ const (
 	refreshTokenExpiry = time.Hour * 24 * 7 // 7 days
 )
 
-// GetJWTKey returns the JWT secret key from config
 func GetJWTKey() []byte {
 	cfg, err := config.Load()
 	if err != nil {
@@ -29,17 +28,14 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-// GenerateJWT generates a new JWT access token
 func GenerateJWT(userID int32) (string, error) {
 	return generateToken(userID, accessTokenExpiry)
 }
 
-// GenerateRefreshToken generates a new refresh token
 func GenerateRefreshToken(userID int32) (string, error) {
 	return generateToken(userID, refreshTokenExpiry)
 }
 
-// generateToken is a helper function to generate tokens with different expiry times
 func generateToken(userID int32, expiry time.Duration) (string, error) {
 	claims := &Claims{
 		UserID: userID,
@@ -53,23 +49,19 @@ func generateToken(userID int32, expiry time.Duration) (string, error) {
 	return token.SignedString([]byte(GetJWTKey()))
 }
 
-// ValidateJWT validates an access token
 func ValidateJWT(tokenString string) (*Claims, error) {
 	return validateToken(tokenString, accessTokenExpiry)
 }
 
-// ValidateRefreshToken validates a refresh token
 func ValidateRefreshToken(tokenString string) (*Claims, error) {
 	return validateToken(tokenString, refreshTokenExpiry)
 }
 
-// validateToken is a helper function to validate tokens
 func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error) {
 	log := logger.Get().WithBaseFields(logger.Security, "ValidateJWT")
-	// log.Debug("Attempting to validate token:", tokenString)
 
 	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -92,12 +84,10 @@ func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error)
 		return nil, errors.New("invalid token")
 	}
 
-	// Check if token is too old (prevent refresh token reuse)
 	if time.Unix(claims.IssuedAt, 0).Add(maxExpiry).Before(time.Now()) {
 		log.Error("Token has exceeded maximum lifetime")
 		return nil, errors.New("token has exceeded maximum lifetime")
 	}
 
-	// log.Debug("Successfully validated token for user ID:", claims.UserID)
 	return claims, nil
 }

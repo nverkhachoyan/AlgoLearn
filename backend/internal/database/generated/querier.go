@@ -62,6 +62,7 @@ type Querier interface {
 	GetSectionContent(ctx context.Context, sectionID int32) (interface{}, error)
 	GetSectionProgress(ctx context.Context, arg GetSectionProgressParams) ([]GetSectionProgressRow, error)
 	GetSingleModuleSections(ctx context.Context, arg GetSingleModuleSectionsParams) ([]GetSingleModuleSectionsRow, error)
+	GetTopUsersByStreak(ctx context.Context, limit int32) ([]GetTopUsersByStreakRow, error)
 	GetUnitByID(ctx context.Context, unitID int32) (Unit, error)
 	GetUnitModules(ctx context.Context, unitID int32) ([]GetUnitModulesRow, error)
 	GetUnitNumber(ctx context.Context, unitID int32) (int32, error)
@@ -88,6 +89,7 @@ type Querier interface {
 	InsertVideoSection(ctx context.Context, arg InsertVideoSectionParams) error
 	PublishCourse(ctx context.Context, courseID int32) error
 	RemoveCourseTag(ctx context.Context, arg RemoveCourseTagParams) error
+	ResetUserStreaks(ctx context.Context) error
 	SearchCourseTags(ctx context.Context, arg SearchCourseTagsParams) ([]SearchCourseTagsRow, error)
 	SearchCourses(ctx context.Context, arg SearchCoursesParams) ([]SearchCoursesRow, error)
 	SearchCoursesFullText(ctx context.Context, arg SearchCoursesFullTextParams) ([]SearchCoursesFullTextRow, error)
@@ -99,6 +101,7 @@ type Querier interface {
 	UpdateUnitNumber(ctx context.Context, arg UpdateUnitNumberParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error)
+	UpdateUserStreak(ctx context.Context, arg UpdateUserStreakParams) (User, error)
 	UpsertQuestionAnswer(ctx context.Context, arg UpsertQuestionAnswerParams) error
 	UpsertSectionProgress(ctx context.Context, arg UpsertSectionProgressParams) error
 	UpsertUserCourse(ctx context.Context, arg UpsertUserCourseParams) error

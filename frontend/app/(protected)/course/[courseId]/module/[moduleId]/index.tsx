@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from "react";
-import { StyleSheet, ViewToken, View } from "react-native";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { StyleSheet, ViewToken, View, Animated } from "react-native";
 import { ActivityIndicator, Text, useTheme } from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
@@ -13,11 +13,91 @@ import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProg
 import { Colors } from "@/constants/Colors";
 import useToast from "@/src/hooks/useToast";
 import { UseModuleProgressReturn } from "@/src/features/module/hooks/useModules";
+import { usePoints } from "@/src/features/user/hooks/usePoints";
 
 const SECTION_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 50,
   minimumViewTime: 500,
 } as const;
+
+// Create a component for the animated section
+const AnimatedSection = ({
+  children,
+  index,
+  isQuestionUpdate = false,
+}: {
+  children: React.ReactNode;
+  index: number;
+  isQuestionUpdate?: boolean;
+}) => {
+  // Create a ref to track if this component has already been animated
+  const hasAnimated = useRef(false);
+  const fadeAnim = useRef(new Animated.Value(isQuestionUpdate ? 1 : 0)).current;
+  const translateY = useRef(
+    new Animated.Value(isQuestionUpdate ? 0 : 20)
+  ).current;
+  const [isInitialRender, setIsInitialRender] = useState(true);
+
+  useEffect(() => {
+    // Skip animation if this is a question update or if we've already animated
+    if (isQuestionUpdate || hasAnimated.current) {
+      // For question updates, ensure values are set to their final state
+      fadeAnim.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    // Mark as animated to prevent future animations for this instance
+    hasAnimated.current = true;
+
+    // For initial viewport items (first few sections), show them immediately
+    const initialViewportThreshold = 3; // First 3 items appear immediately
+    const shouldAnimateImmediately = index < initialViewportThreshold;
+
+    const duration = 400; // Reduced from 600ms to 400ms
+    const baseDelay = 50; // Reduced from 150ms to 50ms
+
+    if (shouldAnimateImmediately && isInitialRender) {
+      // Items in the initial viewport get no animation or very minimal animation
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsInitialRender(false);
+      });
+    } else {
+      // Other items get staggered animations
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: duration,
+          delay: index * baseDelay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: duration,
+          delay: index * baseDelay,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [fadeAnim, translateY, index, isInitialRender, isQuestionUpdate]);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+};
 
 const MESSAGES = {
   ERROR: "An error occurred while loading the module",
@@ -36,6 +116,7 @@ export default function ModuleSession() {
   const params = useLocalSearchParams<RouteParams | any>();
   const [isCompleting, setIsCompleting] = useState(false);
   const { showToast } = useToast();
+  const { addPoints, pointsValues } = usePoints();
   const ids = useMemo(
     () => ({
       courseId: Number(params.courseId),
@@ -200,7 +281,7 @@ export default function ModuleSession() {
     };
   }, [moduleProgress, sortedSections]);
 
-  const handleModuleCompletion = useCallback(async () => {
+  const handleModuleCompletion = async () => {
     if (isCompleting) return;
 
     try {
@@ -241,72 +322,60 @@ export default function ModuleSession() {
         questions: answeredQuestions,
       });
 
-      if (hasNextModule && nextModuleId) {
-        router.replace({
-          pathname: "/(protected)/course/[courseId]/module/[moduleId]",
-          params: {
-            courseId: ids.courseId,
-            unitId: ids.unitId,
-            moduleId: nextModuleId,
-          },
-        });
-      } else if (
-        hasNextUnit &&
-        nextUnitId &&
-        hasNextUnitModule &&
-        nextUnitModuleId
-      ) {
-        router.replace({
-          pathname: "/(protected)/course/[courseId]/module/[moduleId]",
-          params: {
-            courseId: ids.courseId,
-            unitId: nextUnitId,
-            moduleId: nextUnitModuleId,
-          },
-        });
-      } else {
-        router.replace({
-          pathname: "/(protected)/course/[courseId]",
-          params: {
-            courseId: ids.courseId,
-          },
-        });
-      }
+      const hasNextRoute = Boolean(
+        (hasNextModule && nextModuleId) ||
+          (hasNextUnit && nextUnitId && hasNextUnitModule && nextUnitModuleId)
+      );
+
+      router.push({
+        pathname: "/course/[courseId]/module/[moduleId]/congratulations",
+        params: {
+          courseId: ids.courseId.toString(),
+          unitId: ids.unitId.toString(),
+          moduleId: ids.moduleId.toString(),
+          nextModuleId:
+            hasNextModule && nextModuleId ? nextModuleId.toString() : undefined,
+          nextUnitId:
+            hasNextUnit && nextUnitId ? nextUnitId.toString() : undefined,
+          nextUnitModuleId:
+            hasNextUnitModule && nextUnitModuleId
+              ? nextUnitModuleId.toString()
+              : undefined,
+          hasNext: hasNextRoute.toString(),
+        },
+      });
     } catch (error) {
       showToast("Failed to save module progress. Please try again.");
     } finally {
       setIsCompleting(false);
     }
-  }, [
-    moduleProgress,
-    ids,
-    router,
-    completeModuleMutation,
-    hasNextModule,
-    nextModuleId,
-    hasNextUnit,
-    nextUnitId,
-    hasNextUnitModule,
-    nextUnitModuleId,
-    showToast,
-    sortedSections.length,
-  ]);
+  };
 
   const renderItem = useCallback(
-    ({ item: section }: { item: Section }) => {
+    ({ item: section, index }: { item: Section; index: number }) => {
       // Create a key that changes when the question state changes
       const questionKey = isQuestionSection(section)
         ? JSON.stringify(moduleProgress.questions.get(section.content.id))
         : undefined;
 
+      // Determine if this is just a question update
+      const isQuestionUpdate =
+        isQuestionSection(section) && questionKey !== undefined;
+
       return (
-        <View key={`${section.id}-${questionKey}`}>
-          <SectionsList
-            section={section}
-            handleQuestionAnswer={handleQuestionAnswer}
-            questionsState={moduleProgress.questions}
-          />
-        </View>
+        <AnimatedSection
+          index={index}
+          key={`${section.id}-${questionKey}`}
+          isQuestionUpdate={isQuestionUpdate}
+        >
+          <View>
+            <SectionsList
+              section={section}
+              handleQuestionAnswer={handleQuestionAnswer}
+              questionsState={moduleProgress.questions}
+            />
+          </View>
+        </AnimatedSection>
       );
     },
     [handleQuestionAnswer, moduleProgress]

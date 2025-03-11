@@ -13,9 +13,7 @@ import { useCourses } from "@/src/features/course/hooks/useCourses";
 import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { router } from "expo-router";
 import { useTheme } from "react-native-paper";
-import { User } from "@/src/features/user/types";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
-import Button from "@/src/components/common/Button";
 import ErrorBoundary from "@/src/components/ErrorBoundary";
 
 export default function HomeWrapper() {
@@ -106,7 +104,7 @@ function Home() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StickyHeader
           cpus={user?.cpus ?? 0}
-          strikeCount={0}
+          streak={user?.streak || 0}
           userAvatar={user?.profilePictureURL ?? ""}
           onAvatarPress={() => router.push("/(protected)/(profile)")}
         />

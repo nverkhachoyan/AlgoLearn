@@ -36,7 +36,7 @@ VALUES (
         $8,
         $9,
         $10
-    ) RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus
+    ) RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date
 `
 
 type CreateUserParams struct {
@@ -84,6 +84,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Bio,
 		&i.Location,
 		&i.Cpus,
+		&i.Streak,
+		&i.LastStreakDate,
 	)
 	return i, err
 }
@@ -108,8 +110,61 @@ func (q *Queries) GetReceivedAchievementsCount(ctx context.Context) (int64, erro
 	return count, err
 }
 
+const getTopUsersByStreak = `-- name: GetTopUsersByStreak :many
+SELECT 
+    id, 
+    username, 
+    profile_picture_url, 
+    streak,
+    last_streak_date,
+    cpus
+FROM users
+WHERE is_active = true
+ORDER BY streak DESC, cpus DESC
+LIMIT $1
+`
+
+type GetTopUsersByStreakRow struct {
+	ID                int32          `json:"id"`
+	Username          string         `json:"username"`
+	ProfilePictureUrl sql.NullString `json:"profilePictureUrl"`
+	Streak            int32          `json:"streak"`
+	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
+	Cpus              int32          `json:"cpus"`
+}
+
+func (q *Queries) GetTopUsersByStreak(ctx context.Context, limit int32) ([]GetTopUsersByStreakRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTopUsersByStreak, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetTopUsersByStreakRow{}
+	for rows.Next() {
+		var i GetTopUsersByStreakRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.ProfilePictureUrl,
+			&i.Streak,
+			&i.LastStreakDate,
+			&i.Cpus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, user_id, theme, language, timezone
+SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, user_id, theme, language, timezone
 FROM users
     LEFT JOIN user_preferences ON users.id = user_preferences.user_id
 WHERE
@@ -135,6 +190,8 @@ type GetUserByEmailRow struct {
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 	Cpus              int32          `json:"cpus"`
+	Streak            int32          `json:"streak"`
+	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 	UserID            sql.NullInt32  `json:"userId"`
 	Theme             sql.NullString `json:"theme"`
 	Language          sql.NullString `json:"language"`
@@ -162,6 +219,8 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Bio,
 		&i.Location,
 		&i.Cpus,
+		&i.Streak,
+		&i.LastStreakDate,
 		&i.UserID,
 		&i.Theme,
 		&i.Language,
@@ -171,7 +230,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, user_id, theme, language, timezone
+SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, user_id, theme, language, timezone
 FROM users
     LEFT JOIN user_preferences ON users.id = user_preferences.user_id
 WHERE
@@ -197,6 +256,8 @@ type GetUserByIDRow struct {
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 	Cpus              int32          `json:"cpus"`
+	Streak            int32          `json:"streak"`
+	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 	UserID            sql.NullInt32  `json:"userId"`
 	Theme             sql.NullString `json:"theme"`
 	Language          sql.NullString `json:"language"`
@@ -224,6 +285,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (GetUserByIDRow, er
 		&i.Bio,
 		&i.Location,
 		&i.Cpus,
+		&i.Streak,
+		&i.LastStreakDate,
 		&i.UserID,
 		&i.Theme,
 		&i.Language,
@@ -248,7 +311,9 @@ SELECT
     last_login_at,
     is_active,
     is_email_verified,
-    cpus
+    cpus,
+    streak,
+    last_streak_date
 FROM users
 WHERE 1=1
     AND ($1::text IS NULL OR role = $1::user_role)
@@ -260,64 +325,76 @@ WHERE 1=1
     AND ($7::text IS NULL OR bio ILIKE '%' || $7::text || '%')
     AND ($8::int IS NULL OR cpus >= $8::int)
     AND ($9::int IS NULL OR cpus <= $9::int)
-    AND ($10::boolean IS NULL OR is_active = $10::boolean)
-    AND ($11::boolean IS NULL OR is_email_verified = $11::boolean)
-    AND ($12::timestamp IS NULL OR created_at >= $12::timestamp)
-    AND ($13::timestamp IS NULL OR created_at <= $13::timestamp)
-    AND ($14::timestamp IS NULL OR updated_at >= $14::timestamp)
-    AND ($15::timestamp IS NULL OR updated_at <= $15::timestamp)
-    AND ($16::timestamp IS NULL OR last_login_at >= $16::timestamp)
-    AND ($17::timestamp IS NULL OR last_login_at <= $17::timestamp)
+    AND ($10::int IS NULL OR streak >= $10::int)
+    AND ($11::int IS NULL OR streak <= $11::int)
+    AND ($12::boolean IS NULL OR is_active = $12::boolean)
+    AND ($13::boolean IS NULL OR is_email_verified = $13::boolean)
+    AND ($14::timestamp IS NULL OR created_at >= $14::timestamp)
+    AND ($15::timestamp IS NULL OR created_at <= $15::timestamp)
+    AND ($16::timestamp IS NULL OR updated_at >= $16::timestamp)
+    AND ($17::timestamp IS NULL OR updated_at <= $17::timestamp)
+    AND ($18::timestamp IS NULL OR last_login_at >= $18::timestamp)
+    AND ($19::timestamp IS NULL OR last_login_at <= $19::timestamp)
+    AND ($20::timestamp IS NULL OR last_streak_date >= $20::timestamp)
+    AND ($21::timestamp IS NULL OR last_streak_date <= $21::timestamp)
 ORDER BY 
-    CASE WHEN $18::text = 'id' AND LOWER($19::text) = 'desc' THEN id END DESC,
-    CASE WHEN $18::text = 'id' AND LOWER($19::text) = 'asc' THEN id END ASC,
-    CASE WHEN $18::text = 'username' AND LOWER($19::text) = 'desc' THEN username END DESC,
-    CASE WHEN $18::text = 'username' AND LOWER($19::text) = 'asc' THEN username END ASC,
-    CASE WHEN $18::text = 'email' AND LOWER($19::text) = 'desc' THEN email END DESC,
-    CASE WHEN $18::text = 'email' AND LOWER($19::text) = 'asc' THEN email END ASC,
-    CASE WHEN $18::text = 'role' AND LOWER($19::text) = 'desc' THEN role::text END DESC NULLS LAST,
-    CASE WHEN $18::text = 'role' AND LOWER($19::text) = 'asc' THEN role::text END ASC NULLS LAST,
-    CASE WHEN $18::text = 'first_name' AND LOWER($19::text) = 'desc' THEN first_name END DESC NULLS LAST,
-    CASE WHEN $18::text = 'first_name' AND LOWER($19::text) = 'asc' THEN first_name END ASC NULLS LAST,
-    CASE WHEN $18::text = 'last_name' AND LOWER($19::text) = 'desc' THEN last_name END DESC NULLS LAST,
-    CASE WHEN $18::text = 'last_name' AND LOWER($19::text) = 'asc' THEN last_name END ASC NULLS LAST,
-    CASE WHEN $18::text = 'location' AND LOWER($19::text) = 'desc' THEN location END DESC NULLS LAST,
-    CASE WHEN $18::text = 'location' AND LOWER($19::text) = 'asc' THEN location END ASC NULLS LAST,
-    CASE WHEN $18::text = 'cpus' AND LOWER($19::text) = 'desc' THEN cpus END DESC,
-    CASE WHEN $18::text = 'cpus' AND LOWER($19::text) = 'asc' THEN cpus END ASC,
-    CASE WHEN $18::text = 'created_at' AND LOWER($19::text) = 'desc' THEN created_at END DESC,
-    CASE WHEN $18::text = 'created_at' AND LOWER($19::text) = 'asc' THEN created_at END ASC,
-    CASE WHEN $18::text = 'updated_at' AND LOWER($19::text) = 'desc' THEN updated_at END DESC,
-    CASE WHEN $18::text = 'updated_at' AND LOWER($19::text) = 'asc' THEN updated_at END ASC,
-    CASE WHEN $18::text = 'last_login_at' AND LOWER($19::text) = 'desc' THEN last_login_at END DESC NULLS LAST,
-    CASE WHEN $18::text = 'last_login_at' AND LOWER($19::text) = 'asc' THEN last_login_at END ASC NULLS LAST,
+    CASE WHEN $22::text = 'id' AND LOWER($23::text) = 'desc' THEN id END DESC,
+    CASE WHEN $22::text = 'id' AND LOWER($23::text) = 'asc' THEN id END ASC,
+    CASE WHEN $22::text = 'username' AND LOWER($23::text) = 'desc' THEN username END DESC,
+    CASE WHEN $22::text = 'username' AND LOWER($23::text) = 'asc' THEN username END ASC,
+    CASE WHEN $22::text = 'email' AND LOWER($23::text) = 'desc' THEN email END DESC,
+    CASE WHEN $22::text = 'email' AND LOWER($23::text) = 'asc' THEN email END ASC,
+    CASE WHEN $22::text = 'role' AND LOWER($23::text) = 'desc' THEN role::text END DESC NULLS LAST,
+    CASE WHEN $22::text = 'role' AND LOWER($23::text) = 'asc' THEN role::text END ASC NULLS LAST,
+    CASE WHEN $22::text = 'first_name' AND LOWER($23::text) = 'desc' THEN first_name END DESC NULLS LAST,
+    CASE WHEN $22::text = 'first_name' AND LOWER($23::text) = 'asc' THEN first_name END ASC NULLS LAST,
+    CASE WHEN $22::text = 'last_name' AND LOWER($23::text) = 'desc' THEN last_name END DESC NULLS LAST,
+    CASE WHEN $22::text = 'last_name' AND LOWER($23::text) = 'asc' THEN last_name END ASC NULLS LAST,
+    CASE WHEN $22::text = 'location' AND LOWER($23::text) = 'desc' THEN location END DESC NULLS LAST,
+    CASE WHEN $22::text = 'location' AND LOWER($23::text) = 'asc' THEN location END ASC NULLS LAST,
+    CASE WHEN $22::text = 'cpus' AND LOWER($23::text) = 'desc' THEN cpus END DESC,
+    CASE WHEN $22::text = 'cpus' AND LOWER($23::text) = 'asc' THEN cpus END ASC,
+    CASE WHEN $22::text = 'streak' AND LOWER($23::text) = 'desc' THEN streak END DESC,
+    CASE WHEN $22::text = 'streak' AND LOWER($23::text) = 'asc' THEN streak END ASC,
+    CASE WHEN $22::text = 'created_at' AND LOWER($23::text) = 'desc' THEN created_at END DESC,
+    CASE WHEN $22::text = 'created_at' AND LOWER($23::text) = 'asc' THEN created_at END ASC,
+    CASE WHEN $22::text = 'updated_at' AND LOWER($23::text) = 'desc' THEN updated_at END DESC,
+    CASE WHEN $22::text = 'updated_at' AND LOWER($23::text) = 'asc' THEN updated_at END ASC,
+    CASE WHEN $22::text = 'last_login_at' AND LOWER($23::text) = 'desc' THEN last_login_at END DESC NULLS LAST,
+    CASE WHEN $22::text = 'last_login_at' AND LOWER($23::text) = 'asc' THEN last_login_at END ASC NULLS LAST,
+    CASE WHEN $22::text = 'last_streak_date' AND LOWER($23::text) = 'desc' THEN last_streak_date END DESC NULLS LAST,
+    CASE WHEN $22::text = 'last_streak_date' AND LOWER($23::text) = 'asc' THEN last_streak_date END ASC NULLS LAST,
     created_at DESC
-LIMIT $21::int
-OFFSET $20::int
+LIMIT $25::int
+OFFSET $24::int
 `
 
 type GetUsersParams struct {
-	Role            sql.NullString `json:"role"`
-	Username        sql.NullString `json:"username"`
-	Email           sql.NullString `json:"email"`
-	FirstName       sql.NullString `json:"firstName"`
-	LastName        sql.NullString `json:"lastName"`
-	Location        sql.NullString `json:"location"`
-	Bio             sql.NullString `json:"bio"`
-	MinCpus         sql.NullInt32  `json:"minCpus"`
-	MaxCpus         sql.NullInt32  `json:"maxCpus"`
-	IsActive        sql.NullBool   `json:"isActive"`
-	IsEmailVerified sql.NullBool   `json:"isEmailVerified"`
-	CreatedAfter    sql.NullTime   `json:"createdAfter"`
-	CreatedBefore   sql.NullTime   `json:"createdBefore"`
-	UpdatedAfter    sql.NullTime   `json:"updatedAfter"`
-	UpdatedBefore   sql.NullTime   `json:"updatedBefore"`
-	LastLoginAfter  sql.NullTime   `json:"lastLoginAfter"`
-	LastLoginBefore sql.NullTime   `json:"lastLoginBefore"`
-	SortColumn      sql.NullString `json:"sortColumn"`
-	SortDirection   sql.NullString `json:"sortDirection"`
-	PageOffset      int32          `json:"pageOffset"`
-	PageLimit       int32          `json:"pageLimit"`
+	Role             sql.NullString `json:"role"`
+	Username         sql.NullString `json:"username"`
+	Email            sql.NullString `json:"email"`
+	FirstName        sql.NullString `json:"firstName"`
+	LastName         sql.NullString `json:"lastName"`
+	Location         sql.NullString `json:"location"`
+	Bio              sql.NullString `json:"bio"`
+	MinCpus          sql.NullInt32  `json:"minCpus"`
+	MaxCpus          sql.NullInt32  `json:"maxCpus"`
+	MinStreak        sql.NullInt32  `json:"minStreak"`
+	MaxStreak        sql.NullInt32  `json:"maxStreak"`
+	IsActive         sql.NullBool   `json:"isActive"`
+	IsEmailVerified  sql.NullBool   `json:"isEmailVerified"`
+	CreatedAfter     sql.NullTime   `json:"createdAfter"`
+	CreatedBefore    sql.NullTime   `json:"createdBefore"`
+	UpdatedAfter     sql.NullTime   `json:"updatedAfter"`
+	UpdatedBefore    sql.NullTime   `json:"updatedBefore"`
+	LastLoginAfter   sql.NullTime   `json:"lastLoginAfter"`
+	LastLoginBefore  sql.NullTime   `json:"lastLoginBefore"`
+	LastStreakAfter  sql.NullTime   `json:"lastStreakAfter"`
+	LastStreakBefore sql.NullTime   `json:"lastStreakBefore"`
+	SortColumn       sql.NullString `json:"sortColumn"`
+	SortDirection    sql.NullString `json:"sortDirection"`
+	PageOffset       int32          `json:"pageOffset"`
+	PageLimit        int32          `json:"pageLimit"`
 }
 
 type GetUsersRow struct {
@@ -336,6 +413,8 @@ type GetUsersRow struct {
 	IsActive          bool           `json:"isActive"`
 	IsEmailVerified   bool           `json:"isEmailVerified"`
 	Cpus              int32          `json:"cpus"`
+	Streak            int32          `json:"streak"`
+	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 }
 
 func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersRow, error) {
@@ -349,6 +428,8 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersR
 		arg.Bio,
 		arg.MinCpus,
 		arg.MaxCpus,
+		arg.MinStreak,
+		arg.MaxStreak,
 		arg.IsActive,
 		arg.IsEmailVerified,
 		arg.CreatedAfter,
@@ -357,6 +438,8 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersR
 		arg.UpdatedBefore,
 		arg.LastLoginAfter,
 		arg.LastLoginBefore,
+		arg.LastStreakAfter,
+		arg.LastStreakBefore,
 		arg.SortColumn,
 		arg.SortDirection,
 		arg.PageOffset,
@@ -385,6 +468,8 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersR
 			&i.IsActive,
 			&i.IsEmailVerified,
 			&i.Cpus,
+			&i.Streak,
+			&i.LastStreakDate,
 		); err != nil {
 			return nil, err
 		}
@@ -445,6 +530,17 @@ func (q *Queries) InsertUserPreferences(ctx context.Context, arg InsertUserPrefe
 	return i, err
 }
 
+const resetUserStreaks = `-- name: ResetUserStreaks :exec
+UPDATE users
+SET streak = 0
+WHERE last_streak_date < NOW() - INTERVAL '2 days'
+`
+
+func (q *Queries) ResetUserStreaks(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, resetUserStreaks)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET
@@ -455,20 +551,24 @@ SET
     profile_picture_url = COALESCE(NULLIF($5::text, ''), profile_picture_url),
     bio = COALESCE(NULLIF($6::text, ''), bio),
     location = COALESCE(NULLIF($7::text, ''), location),
+    streak = COALESCE($8::int, streak),
+    last_streak_date = COALESCE($9::timestamptz, last_streak_date),
     updated_at = NOW()
-WHERE id = $8
-RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus
+WHERE id = $10
+RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date
 `
 
 type UpdateUserParams struct {
-	Username          string `json:"username"`
-	Email             string `json:"email"`
-	FirstName         string `json:"firstName"`
-	LastName          string `json:"lastName"`
-	ProfilePictureUrl string `json:"profilePictureUrl"`
-	Bio               string `json:"bio"`
-	Location          string `json:"location"`
-	ID                int32  `json:"id"`
+	Username          string    `json:"username"`
+	Email             string    `json:"email"`
+	FirstName         string    `json:"firstName"`
+	LastName          string    `json:"lastName"`
+	ProfilePictureUrl string    `json:"profilePictureUrl"`
+	Bio               string    `json:"bio"`
+	Location          string    `json:"location"`
+	Streak            int32     `json:"streak"`
+	LastStreakDate    time.Time `json:"lastStreakDate"`
+	ID                int32     `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
@@ -480,6 +580,8 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.ProfilePictureUrl,
 		arg.Bio,
 		arg.Location,
+		arg.Streak,
+		arg.LastStreakDate,
 		arg.ID,
 	)
 	var i User
@@ -501,6 +603,8 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Bio,
 		&i.Location,
 		&i.Cpus,
+		&i.Streak,
+		&i.LastStreakDate,
 	)
 	return i, err
 }
@@ -535,6 +639,48 @@ func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPrefe
 		&i.Theme,
 		&i.Language,
 		&i.Timezone,
+	)
+	return i, err
+}
+
+const updateUserStreak = `-- name: UpdateUserStreak :one
+UPDATE users
+SET
+    streak = $1::int,
+    last_streak_date = $2::timestamptz
+WHERE id = $3
+RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date
+`
+
+type UpdateUserStreakParams struct {
+	Streak         int32     `json:"streak"`
+	LastStreakDate time.Time `json:"lastStreakDate"`
+	ID             int32     `json:"id"`
+}
+
+func (q *Queries) UpdateUserStreak(ctx context.Context, arg UpdateUserStreakParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserStreak, arg.Streak, arg.LastStreakDate, arg.ID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Email,
+		&i.OauthID,
+		&i.Role,
+		&i.PasswordHash,
+		&i.FirstName,
+		&i.LastName,
+		&i.ProfilePictureUrl,
+		&i.LastLoginAt,
+		&i.IsActive,
+		&i.IsEmailVerified,
+		&i.Bio,
+		&i.Location,
+		&i.Cpus,
+		&i.Streak,
+		&i.LastStreakDate,
 	)
 	return i, err
 }

@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView } from "react-native";
 import { Text, useTheme } from "react-native-paper";
 import { Seperator } from "@/src/components/common/Seperator";
 import React from "react";
@@ -76,7 +76,7 @@ export default function Leaderboard() {
     >
       <StickyHeader
         cpus={user.cpus}
-        strikeCount={user.streaks?.length ?? 0}
+        streak={user.streak || 0}
         userAvatar={null}
         onAvatarPress={() => router.push("/(protected)/(profile)")}
       />

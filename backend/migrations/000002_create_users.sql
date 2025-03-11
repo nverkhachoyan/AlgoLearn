@@ -17,7 +17,10 @@ CREATE TABLE users (
     is_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     bio TEXT,
     location VARCHAR(255),
-    cpus INTEGER NOT NULL DEFAULT 1
+    cpus INTEGER NOT NULL DEFAULT 1,
+    streak INTEGER NOT NULL DEFAULT 0,
+    last_streak_date TIMESTAMPTZ DEFAULT NULL
+
 );
 
 CREATE TABLE user_preferences (

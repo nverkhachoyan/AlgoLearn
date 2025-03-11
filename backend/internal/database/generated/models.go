@@ -347,6 +347,8 @@ type User struct {
 	Bio               sql.NullString `json:"bio"`
 	Location          sql.NullString `json:"location"`
 	Cpus              int32          `json:"cpus"`
+	Streak            int32          `json:"streak"`
+	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 }
 
 type UserAchievement struct {

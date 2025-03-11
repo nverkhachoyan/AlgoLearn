@@ -6,10 +6,25 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 )
+
+func IsDuplicateError(err error, constraints []string) bool {
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		if pqErr.Code == "23505" {
+			if itDoContain := slices.Contains(constraints, pqErr.Constraint); itDoContain {
+				return true
+			}
+		}
+	}
+
+	return false
+}
 
 func GetUserID(c *gin.Context) (int32, error) {
 	log := logger.Get().WithBaseFields(logger.Handler, "GetUserID")

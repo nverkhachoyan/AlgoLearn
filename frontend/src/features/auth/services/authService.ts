@@ -1,6 +1,6 @@
 import { AxiosResponse } from "axios";
 import { createApiClient } from "@/src/lib/api/config";
-import { User } from "../../user/types";
+import { User } from "../../user/types/index";
 
 const api = createApiClient();
 

@@ -7,8 +7,8 @@ import (
 	"algolearn/pkg/logger"
 	"algolearn/pkg/middleware"
 	"algolearn/pkg/security"
-	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"encoding/json"
@@ -356,13 +356,14 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 			models.Response{
 				Success:   false,
 				ErrorCode: httperr.InvalidJson,
-				Message:   "invalid JSON was sent in the request",
+				Message:   fmt.Sprintf("invalid JSON was sent in the request: %s", err.Error()),
 			})
 		return
 	}
 
-	user.ID = userID
+	fmt.Printf("USEEER: %v", user)
 
+	user.ID = userID
 	if err := h.repo.UpdateUser(ctx, &user); err != nil {
 		log.WithError(err).Error("failed to update user")
 		c.JSON(http.StatusInternalServerError,

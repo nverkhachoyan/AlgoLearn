@@ -4,17 +4,13 @@ import {
   View,
   ScrollView,
   Animated,
-  Button,
   Platform,
   useWindowDimensions,
 } from "react-native";
 import {
   Text,
-  ActivityIndicator,
   Menu,
   IconButton,
-  Portal,
-  RadioButton,
 } from "react-native-paper";
 import { useEffect, useState, useRef } from "react";
 import { useTheme } from "react-native-paper";
@@ -245,7 +241,7 @@ export default function CourseDetails() {
       <View style={[styles.headerContainer, isLargeScreen && styles.webHeader]}>
         <StickyHeader
           cpus={user?.cpus || 0}
-          strikeCount={user?.strikeCount || 0}
+          streak={user?.streak || 0}
           userAvatar={user?.avatar}
           onAvatarPress={() => user && router.push("/(protected)/(profile)")}
         />

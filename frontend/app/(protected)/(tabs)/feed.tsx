@@ -2,7 +2,6 @@ import { StyleSheet, View, ScrollView } from "react-native";
 import { Text } from "react-native-paper";
 import { Seperator } from "@/src/components/common/Seperator";
 import React from "react";
-import moment from "moment";
 import { router } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
@@ -10,6 +9,7 @@ import { StickyHeader } from "@/src/components/common/StickyHeader";
 import { useUser } from "@/src/features/user/hooks/useUser";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { humanReadableDate } from "@/src/lib/utils/date";
 
 export default function Feed() {
   const { user } = useUser();
@@ -69,7 +69,7 @@ export default function Feed() {
     >
       <StickyHeader
         cpus={user.cpus}
-        strikeCount={user.streaks?.length ?? 0}
+        streak={user?.streak || 0}
         userAvatar={user.profile_picture_url}
         onAvatarPress={() => router.push("/(protected)/(profile)")}
       />
@@ -102,7 +102,7 @@ export default function Feed() {
                     {item.description}
                   </Text>
                   <Text style={styles.feedItemDate}>
-                    {moment(item.date).format("MMMM Do YYYY")}
+                    {humanReadableDate(item.date)}
                   </Text>
                 </View>
               </View>

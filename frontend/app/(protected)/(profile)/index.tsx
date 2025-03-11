@@ -4,27 +4,20 @@ import { Text } from "react-native-paper";
 import { useUser } from "@/src/features/user/hooks/useUser";
 import Button from "@/src/components/common/Button";
 import { router } from "expo-router";
-import moment from "moment";
 import { Feather } from "@expo/vector-icons";
 import { useEffect } from "react";
 import { useTheme } from "react-native-paper";
 import { HeaderGoBack } from "@/src/components/common/StickyHeader";
 import { ScrollView } from "react-native";
-import { EmptyFooter } from "@/src/components/common/Footer";
 import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { humanReadableDate } from "@/src/lib/utils/date";
 
 type IconType = React.ComponentProps<typeof Feather>["name"];
 
 export default function Profile() {
   const { user, error } = useUser();
   const { isAuthenticated } = useAuth();
-  const { signOut } = useAuth();
   const { colors } = useTheme();
-
-  const handleSignOut = () => {
-    signOut();
-    router.replace("/");
-  };
 
   useEffect(() => {
     if (error) {
@@ -45,8 +38,8 @@ export default function Profile() {
             source={
               user.profilePictureUrl
                 ? {
-                    uri: user.profilePictureUrl,
-                  }
+                  uri: user.profilePictureUrl,
+                }
                 : require("@/assets/images/defaultAvatar.png")
             }
             style={styles.profilePicture}
@@ -90,15 +83,12 @@ export default function Profile() {
           <UserInfoRow
             icon="calendar"
             label="Created"
-            value={moment(user.createdAt).format("MMMM Do YYYY")}
+            value={humanReadableDate(user.createdAt)}
           />
           <UserInfoRow
             icon="clock"
             label="Last Login"
-            value={
-              user.lastLoginAt === "0001-01-01T00:00:00Z"
-                ? "Never"
-                : moment(user.lastLoginAt).format("MMMM Do YYYY, h:mm:ss a")
+            value={humanReadableDate(user.lastLoginAt)
             }
           />
           <UserInfoRow

@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import {
   StyleSheet,
-  ScrollView,
   View,
   Animated,
   Platform,
@@ -97,7 +96,7 @@ export default function Explore() {
       <View style={styles.headerContainer}>
         <StickyHeader
           cpus={user?.cpus ?? 0}
-          strikeCount={user?.streaks?.length ?? 0}
+          streak={user?.streak}
           userAvatar={user?.profile_picture_url}
           onAvatarPress={() => router.push("/(protected)/(profile)")}
         />

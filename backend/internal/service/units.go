@@ -6,6 +6,7 @@ import (
 	"algolearn/pkg/logger"
 	"context"
 	"database/sql"
+	"errors"
 )
 
 type UnitService interface {
@@ -35,6 +36,7 @@ func (s *unitService) GetUnitByID(ctx context.Context, unitID int64) (*models.Un
 	if err != nil {
 		return nil, err
 	}
+
 	return &models.Unit{
 		BaseModel: models.BaseModel{
 			ID:        int64(unit.ID),
@@ -57,12 +59,13 @@ func (s *unitService) CreateUnit(ctx context.Context, courseID int64, unitNumber
 	if err != nil {
 		return nil, err
 	}
+
 	return s.GetUnitByID(ctx, int64(unitID))
 }
 
 func (s *unitService) GetUnitsByCourseID(ctx context.Context, courseID int64) ([]*models.Unit, error) {
 	units, err := s.queries.GetUnitsByCourseID(ctx, int32(courseID))
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
@@ -79,6 +82,7 @@ func (s *unitService) GetUnitsByCourseID(ctx context.Context, courseID int64) ([
 			Description: unit.Description,
 		})
 	}
+
 	return unitsModels, nil
 }
 

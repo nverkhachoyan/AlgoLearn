@@ -7,26 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Logger returns a gin.HandlerFunc (middleware) that logs requests using logrus
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Start timer
 		start := time.Now()
-
-		// Process request
 		c.Next()
 
-		// Get request path and method
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
 		if raw != "" {
 			path = path + "?" + raw
 		}
 
-		// Get response status
 		statusCode := c.Writer.Status()
 
-		// Log request details
 		log := logger.Get().WithFields(logger.Fields{
 			"status":     statusCode,
 			"method":     c.Request.Method,
@@ -37,7 +30,6 @@ func Logger() gin.HandlerFunc {
 		})
 
 		if len(c.Errors) > 0 {
-			// Append error field if this is an erroneous request
 			log.Error(c.Errors.String())
 		} else {
 			if statusCode >= 500 {

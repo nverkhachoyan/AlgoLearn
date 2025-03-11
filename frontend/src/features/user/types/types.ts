@@ -17,7 +17,8 @@ export interface User {
   location?: string;
   cpus: number;
   preferences?: string; // JSON string
-  streaks?: Streak[];
+  streak?: number;
+  lastStreakDate: string;
   achievements?: UserAchievement[];
 }
 

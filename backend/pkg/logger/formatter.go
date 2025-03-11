@@ -23,20 +23,16 @@ func (f *ColoredFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		b = &bytes.Buffer{}
 	}
 
-	// Timestamp
 	timestamp := entry.Time.Format(f.TimestampFormat)
 
-	// Level
 	levelText := strings.ToUpper(entry.Level.String())
 	levelColor := getLevelColor(entry.Level)
 
-	// Caller info
 	var fileInfo string
 	if entry.HasCaller() {
 		fileInfo = fmt.Sprintf("%s:%d", filepath.Base(entry.Caller.File), entry.Caller.Line)
 	}
 
-	// Write colored output
 	_, _ = fmt.Fprintf(b, "%s%s%s %s%5s%s",
 		colors.Yellow, timestamp, colors.Reset,
 		levelColor, levelText, colors.Reset)
@@ -45,10 +41,8 @@ func (f *ColoredFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		fmt.Fprintf(b, " %s%s%s", colors.Cyan, fileInfo, colors.Reset)
 	}
 
-	// Message
 	fmt.Fprintf(b, " %s", entry.Message)
 
-	// Fields
 	if len(entry.Data) > 0 {
 		fmt.Fprintf(b, " %sfields:%s", colors.Blue, colors.Reset)
 		for k, v := range entry.Data {

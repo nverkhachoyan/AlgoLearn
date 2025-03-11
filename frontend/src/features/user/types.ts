@@ -15,6 +15,8 @@ export interface User {
   isActive: boolean;
   isEmailVerified: boolean;
   cpus: number;
+  streak: number;
+  lastStreakDate?: String;
   preferences: UserPreferences;
   profilePictureURL?: string;
 }

@@ -167,6 +167,32 @@ WHERE unit_id = @unit_id::int
 ORDER BY module_number DESC
 LIMIT 1;
 
+-- name: GetNextModuleIdInUnitOrNextUnit :one
+SELECT id
+FROM modules
+WHERE unit_id = @unit_id::int
+    OR unit_id = (
+        SELECT id
+        FROM units
+        WHERE course_id = @course_id::int
+            AND unit_number > @unit_number::int
+        ORDER BY unit_number ASC
+        LIMIT 1
+    )
+ORDER BY module_number ASC
+LIMIT 1;
+
+-- name: GetNextModuleNumber :one
+SELECT module_number
+FROM modules
+WHERE unit_id = @unit_id::int
+    AND module_number > @module_number::int
+ORDER BY module_number ASC
+LIMIT 1;
+
+-- name: GetModuleByID :one
+SELECT * FROM modules WHERE id = @id::int;
+
 -- name: CreateModule :one
 WITH new_module AS (
     SELECT COALESCE(MAX(module_number), 0) + 1 as next_number
@@ -407,3 +433,30 @@ UPDATE
 SET
     progress = EXCLUDED.progress,
     updated_at = NOW();
+
+-- name: GetFurthestModuleID :one
+SELECT furthest_module_id
+FROM user_courses
+WHERE user_id = @user_id::int
+  AND course_id = @course_id::int;
+
+-- name: IsModuleFurtherThan :one
+SELECT EXISTS (
+  SELECT 1
+  FROM modules m1
+  JOIN units u1 ON m1.unit_id = u1.id
+  JOIN modules m2 ON m2.id = @furthest_module_id::int
+  JOIN units u2 ON m2.unit_id = u2.id
+  WHERE m1.id = @module_id::int
+    AND (
+      u1.unit_number > u2.unit_number
+      OR (u1.unit_number = u2.unit_number AND m1.module_number > m2.module_number)
+    )
+) as is_further;
+
+-- name: GetFirstModuleIdInUnit :one
+SELECT id
+FROM modules
+WHERE unit_id = @unit_id::int
+ORDER BY module_number ASC
+LIMIT 1;

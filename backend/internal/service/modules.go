@@ -384,14 +384,21 @@ func (s *moduleService) SaveModuleProgress(ctx context.Context, userID, moduleID
 
 	qtx := s.queries.WithTx(tx)
 
-	ids, err := qtx.GetCourseAndUnitIDs(ctx, int32(moduleID))
+	// Step 1: Get necessary IDs and prepare module data
+	ids, module, err := s.getModuleData(ctx, qtx, moduleID)
 	if err != nil {
-		log.WithError(err).Error("failed to get course and unit IDs")
-		return fmt.Errorf("failed to get course and unit IDs: %w", err)
+		log.WithError(err).Error(err.Error())
+		return err
 	}
 
-	var progress float32
-	progressID, err := qtx.UpsertUserModuleProgress(ctx, gen.UpsertUserModuleProgressParams{
+	// Step 2: Handle next module progression
+	if err := s.handleNextModuleProgression(ctx, qtx, userID, ids, module); err != nil {
+		log.WithError(err).Error(err.Error())
+		return err
+	}
+
+	// Step 3: Update current module progress
+	progressIDInt32, err := qtx.UpsertUserModuleProgress(ctx, gen.UpsertUserModuleProgressParams{
 		UserID:   int32(userID),
 		ModuleID: int32(moduleID),
 	})
@@ -400,8 +407,161 @@ func (s *moduleService) SaveModuleProgress(ctx context.Context, userID, moduleID
 		return fmt.Errorf("failed to upsert module progress: %w", err)
 	}
 
+	progressID := int64(progressIDInt32)
+
+	// Step 4: Save section and question progress
+	if err := s.saveSectionAndQuestionProgress(ctx, qtx, userID, moduleID, progressID, sections, questions); err != nil {
+		log.WithError(err).Error(err.Error())
+		return err
+	}
+
+	// Step 5: Calculate and update progress
+	if err := s.calculateAndUpdateProgress(ctx, qtx, userID, moduleID, progressID, ids); err != nil {
+		log.WithError(err).Error(err.Error())
+		return err
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.WithError(err).Error("failed to commit transaction")
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// getModuleData retrieves the necessary IDs and module information
+func (s *moduleService) getModuleData(ctx context.Context, qtx *gen.Queries, moduleID int64) (*gen.GetCourseAndUnitIDsRow, gen.Module, error) {
+	ids, err := qtx.GetCourseAndUnitIDs(ctx, int32(moduleID))
+	if err != nil {
+		return nil, gen.Module{}, fmt.Errorf("failed to get course and unit IDs: %w", err)
+	}
+
+	module, err := qtx.GetModuleByID(ctx, int32(moduleID))
+	if err != nil {
+		return nil, gen.Module{}, fmt.Errorf("failed to get module by ID: %w", err)
+	}
+
+	return &ids, module, nil
+}
+
+// handleNextModuleProgression handles the progression to the next module or unit
+func (s *moduleService) handleNextModuleProgression(ctx context.Context, qtx *gen.Queries, userID int64, ids *gen.GetCourseAndUnitIDsRow, module gen.Module) error {
+	// First, check if this module is the user's furthest progress or not
+	isCurrentModuleFurthest, err := s.isCurrentModuleFurthest(ctx, qtx, userID, ids.CourseID, int64(module.ID))
+	if err != nil {
+		return fmt.Errorf("failed to check if module is furthest: %w", err)
+	}
+
+	// Only advance to next module if this is the furthest module
+	// This prevents overriding progression when revisiting past modules
+	if !isCurrentModuleFurthest {
+		return nil
+	}
+
+	// The rest of the function remains the same - advance to next module
+	nextModuleID, err := qtx.GetNextModuleId(ctx, gen.GetNextModuleIdParams{
+		UnitID:       int32(ids.UnitID),
+		ModuleNumber: int32(module.ModuleNumber),
+	})
+	fmt.Println("nextModuleID", nextModuleID)
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return s.handleNextUnitProgression(ctx, qtx, userID, ids)
+	} else if err == nil {
+		return s.upsertNextModuleProgress(ctx, qtx, userID, nextModuleID)
+	} else {
+		return fmt.Errorf("failed to get next module ID: %w", err)
+	}
+}
+
+// isCurrentModuleFurthest checks if the given module is the furthest one the user has progressed to
+func (s *moduleService) isCurrentModuleFurthest(ctx context.Context, qtx *gen.Queries, userID int64, courseID int32, moduleID int64) (bool, error) {
+	// Query the furthest_module_id from user_courses
+	furthestModuleID, err := qtx.GetFurthestModuleID(ctx, gen.GetFurthestModuleIDParams{
+		UserID:   int32(userID),
+		CourseID: courseID,
+	})
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// If there's no record, this is the first module
+			return true, nil
+		}
+		return false, fmt.Errorf("failed to get furthest module ID: %w", err)
+	}
+
+	// If furthestModuleID is NULL, this is the furthest module
+	if !furthestModuleID.Valid {
+		return true, nil
+	}
+
+	// If the current module is the furthest module, it's considered furthest
+	if int32(moduleID) == furthestModuleID.Int32 {
+		return true, nil
+	}
+
+	// Compare the current module with the furthest module
+	isFurther, err := qtx.IsModuleFurtherThan(ctx, gen.IsModuleFurtherThanParams{
+		ModuleID:         int32(moduleID),
+		FurthestModuleID: furthestModuleID.Int32,
+	})
+
+	if err != nil {
+		return false, fmt.Errorf("failed to check if module is further: %w", err)
+	}
+
+	return isFurther, nil
+}
+
+// handleNextUnitProgression handles progression to the next unit
+func (s *moduleService) handleNextUnitProgression(ctx context.Context, qtx *gen.Queries, userID int64, ids *gen.GetCourseAndUnitIDsRow) error {
+	unitNumber, err := qtx.GetUnitNumber(ctx, int32(ids.UnitID))
+	if err != nil {
+		return fmt.Errorf("failed to get unit number: %w", err)
+	}
+
+	nextUnitID, err := qtx.GetNextUnitId(ctx, gen.GetNextUnitIdParams{
+		CourseID:   int32(ids.CourseID),
+		UnitNumber: int32(unitNumber),
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("failed to get next unit ID: %w", err)
+	} else if err == nil {
+		return s.setupNextUnitModuleProgress(ctx, qtx, userID, int64(nextUnitID))
+	}
+
+	return nil
+}
+
+// setupNextUnitModuleProgress sets up progress for the first module of the next unit
+func (s *moduleService) setupNextUnitModuleProgress(ctx context.Context, qtx *gen.Queries, userID, nextUnitID int64) error {
+	// Get the first module in the next unit
+	firstModuleID, err := qtx.GetFirstModuleIdInUnit(ctx, int32(nextUnitID))
+	if err != nil {
+		return fmt.Errorf("failed to get first module in next unit: %w", err)
+	}
+
+	// Create progress entry for this first module
+	return s.upsertNextModuleProgress(ctx, qtx, userID, firstModuleID)
+}
+
+// upsertNextModuleProgress creates or updates the progress entry for the next module
+func (s *moduleService) upsertNextModuleProgress(ctx context.Context, qtx *gen.Queries, userID int64, nextModuleID int32) error {
+	_, err := qtx.UpsertUserModuleProgress(ctx, gen.UpsertUserModuleProgressParams{
+		UserID:   int32(userID),
+		ModuleID: nextModuleID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert user module progress: %w", err)
+	}
+	return nil
+}
+
+// saveSectionAndQuestionProgress saves the progress of sections and questions
+func (s *moduleService) saveSectionAndQuestionProgress(ctx context.Context, qtx *gen.Queries, userID, moduleID int64, progressID int64, sections []models.SectionProgress, questions []models.QuestionProgress) error {
+	// Save section progress
 	for _, section := range sections {
-		err = qtx.UpsertSectionProgress(ctx, gen.UpsertSectionProgressParams{
+		err := qtx.UpsertSectionProgress(ctx, gen.UpsertSectionProgressParams{
 			UserID:    int32(userID),
 			ModuleID:  int32(moduleID),
 			SectionID: int32(section.SectionID),
@@ -409,75 +569,83 @@ func (s *moduleService) SaveModuleProgress(ctx context.Context, userID, moduleID
 			SeenAt:    sql.NullTime{Time: section.SeenAt, Valid: !section.SeenAt.IsZero()},
 		})
 		if err != nil {
-			log.WithError(err).Error("failed to upsert section progress")
 			return fmt.Errorf("failed to upsert section progress: %w", err)
 		}
 	}
 
+	// Save question progress
 	for _, question := range questions {
 		var optionID int32
 		if question.OptionID != nil {
 			optionID = int32(*question.OptionID)
 		}
-		err = qtx.UpsertQuestionAnswer(ctx, gen.UpsertQuestionAnswerParams{
-			UserModuleProgressID: progressID,
+		err := qtx.UpsertQuestionAnswer(ctx, gen.UpsertQuestionAnswerParams{
+			UserModuleProgressID: int32(progressID),
 			QuestionID:           int32(question.QuestionID),
 			OptionID:             optionID,
 			IsCorrect:            question.IsCorrect != nil && *question.IsCorrect,
 		})
 		if err != nil {
-			log.WithError(err).Error("failed to upsert question answer")
 			return fmt.Errorf("failed to upsert question answer: %w", err)
 		}
 	}
 
+	return nil
+}
+
+// calculateAndUpdateProgress calculates and updates the progress for the module and course
+func (s *moduleService) calculateAndUpdateProgress(ctx context.Context, qtx *gen.Queries, userID, moduleID, progressID int64, ids *gen.GetCourseAndUnitIDsRow) error {
+	// Calculate module progress
 	moduleProgressResult, err := qtx.CalculateModuleProgress(ctx, gen.CalculateModuleProgressParams{
 		UserID:               int32(userID),
-		UserModuleProgressID: progressID,
+		UserModuleProgressID: int32(progressID),
 		ModuleID:             int32(moduleID),
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to calculate module progress")
 		return fmt.Errorf("failed to calculate module progress: %w", err)
 	}
 
-	progress = float32(moduleProgressResult.(float64))
+	progress := float32(moduleProgressResult.(float64))
 
+	// Update module progress
 	_, err = qtx.UpsertUserModuleProgress(ctx, gen.UpsertUserModuleProgressParams{
 		UserID:   int32(userID),
 		ModuleID: int32(moduleID),
+		Column3:  progress,
 	})
 	if err != nil {
-		log.WithError(err).Error("failed to update module progress")
 		return fmt.Errorf("failed to update module progress: %w", err)
 	}
 
+	// If module is completed, update course progress
 	if progress >= 100 {
-		courseProgressResult, err := qtx.CalculateCourseProgress(ctx, gen.CalculateCourseProgressParams{
-			UserID:   int32(userID),
-			CourseID: ids.CourseID,
-		})
-		if err != nil {
-			log.WithError(err).Error("failed to calculate course progress")
-			return fmt.Errorf("failed to calculate course progress: %w", err)
-		}
-
-		courseProgress := float64(courseProgressResult.(float64))
-
-		err = qtx.UpsertUserCourse(ctx, gen.UpsertUserCourseParams{
-			UserID:   int32(userID),
-			CourseID: ids.CourseID,
-			Progress: courseProgress,
-		})
-		if err != nil {
-			log.WithError(err).Error("failed to upsert user course")
-			return fmt.Errorf("failed to upsert user course: %w", err)
+		if err := s.updateCourseProgress(ctx, qtx, userID, ids.CourseID); err != nil {
+			return err
 		}
 	}
 
-	if err = tx.Commit(); err != nil {
-		log.WithError(err).Error("failed to commit transaction")
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	return nil
+}
+
+// updateCourseProgress updates the course progress if a module is completed
+func (s *moduleService) updateCourseProgress(ctx context.Context, qtx *gen.Queries, userID int64, courseID int32) error {
+	courseProgressResult, err := qtx.CalculateCourseProgress(ctx, gen.CalculateCourseProgressParams{
+		UserID:   int32(userID),
+		CourseID: courseID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to calculate course progress: %w", err)
+	}
+
+	courseProgress := float64(courseProgressResult.(float64))
+
+	err = qtx.UpsertUserCourse(ctx, gen.UpsertUserCourseParams{
+		UserID:   int32(userID),
+		CourseID: courseID,
+		Progress: courseProgress,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert user course: %w", err)
 	}
 
 	return nil

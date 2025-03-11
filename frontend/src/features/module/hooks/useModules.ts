@@ -74,6 +74,14 @@ export const useModuleProgress = (
       queryClient.invalidateQueries({
         queryKey: ["module", courseId, unitId, moduleId],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["course", courseId, "progress"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["courses", "progress"],
+      });
     },
   });
 

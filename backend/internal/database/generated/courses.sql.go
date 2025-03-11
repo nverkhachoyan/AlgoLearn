@@ -771,7 +771,7 @@ WITH enrolled_count AS (
     JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1::int
 ),
 latest_progress AS (
-    SELECT DISTINCT ON (m.unit_id)
+    SELECT
         u.course_id,
         u.id as unit_id,
         u.created_at as unit_created_at,
@@ -788,9 +788,11 @@ latest_progress AS (
         ump.progress as module_progress,
         ump.status as module_status
     FROM units u
-    LEFT JOIN modules m ON m.unit_id = u.id
-    LEFT JOIN user_module_progress ump ON ump.module_id = m.id AND ump.user_id = $1::int
-    ORDER BY m.unit_id, ump.updated_at DESC NULLS LAST
+    JOIN modules m ON m.unit_id = u.id
+    JOIN user_module_progress ump ON ump.module_id = m.id
+        AND ump.user_id = $1::int
+        AND (ump.status = 'uninitiated' OR ump.status = 'in_progress')
+    ORDER BY ump.updated_at DESC NULLS LAST
 ),
 enrolled_courses AS (
     SELECT 
@@ -812,7 +814,8 @@ enrolled_courses AS (
         lp.module_progress,
         lp.module_status
     FROM courses c
-    JOIN user_courses uc ON uc.course_id = c.id AND uc.user_id = $1::int
+    JOIN user_courses uc ON uc.course_id = c.id 
+        AND uc.user_id = $1::int
     LEFT JOIN latest_progress lp ON lp.course_id = c.id
     ORDER BY c.created_at DESC
     LIMIT $3::int

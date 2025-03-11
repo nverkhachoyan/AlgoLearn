@@ -187,7 +187,7 @@ export const CourseSection = memo<CourseSectionProps>(
         <>
           <View style={styles.headerContainer}>
             <Text style={styles.title}>{title}</Text>
-            <Menu
+            {/* <Menu
               visible={menuVisible}
               onDismiss={() => setMenuVisible(false)}
               anchor={
@@ -243,7 +243,7 @@ export const CourseSection = memo<CourseSectionProps>(
                 title="Difficulty"
                 leadingIcon={sortBy === "difficultyLevel" ? "check" : undefined}
               />
-            </Menu>
+            </Menu> */}
           </View>
           <View style={styles.separator} />
         </>
@@ -315,7 +315,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     fontFamily: "OpenSauceOne-Regular",
-    alignSelf: "center",
   },
   separator: {
     marginVertical: 10,
@@ -361,10 +360,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    flexDirection: "row",
+    flexDirection: "column",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginVertical: 8,
+    marginTop: 20,
   },
 });

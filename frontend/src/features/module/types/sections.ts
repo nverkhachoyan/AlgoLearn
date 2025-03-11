@@ -72,34 +72,35 @@ export interface Section {
     | CodeContent
     | ImageContent;
   sectionProgress?: SectionProgress;
+  progress?: SectionProgress;
 }
 
 export function isQuestionSection(
-  section: Section,
+  section: Section
 ): section is Section & { content: QuestionContent } {
   return section.type === "question";
 }
 
 export function isVideoSection(
-  section: Section,
+  section: Section
 ): section is Section & { content: VideoContent } {
   return section.type === "video";
 }
 
 export function isMarkdownSection(
-  section: Section,
+  section: Section
 ): section is Section & { content: MarkdownContent } {
   return section.type === "markdown";
 }
 
 export function isCodeSection(
-  section: Section,
+  section: Section
 ): section is Section & { content: CodeContent } {
   return section.type === "code";
 }
 
 export function isImageSection(
-  section: Section,
+  section: Section
 ): section is Section & { content: ImageContent } {
   return section.type === "image";
 }

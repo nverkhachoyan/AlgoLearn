@@ -6,6 +6,7 @@ package gen
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
@@ -41,9 +42,12 @@ type Querier interface {
 	GetCoursesCount(ctx context.Context) (int64, error)
 	GetCurrentUnitAndModule(ctx context.Context, arg GetCurrentUnitAndModuleParams) (GetCurrentUnitAndModuleRow, error)
 	GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnrolledCoursesWithProgressParams) ([]GetEnrolledCoursesWithProgressRow, error)
+	GetFirstModuleIdInUnit(ctx context.Context, unitID int32) (int32, error)
 	GetFirstUnitAndModuleInCourse(ctx context.Context, courseID int32) (GetFirstUnitAndModuleInCourseRow, error)
+	GetFurthestModuleID(ctx context.Context, arg GetFurthestModuleIDParams) (sql.NullInt32, error)
 	GetLastModuleNumber(ctx context.Context, unitID int32) (interface{}, error)
 	GetMarkdownSection(ctx context.Context, sectionID int32) (string, error)
+	GetModuleByID(ctx context.Context, id int32) (Module, error)
 	GetModuleProgressByUnit(ctx context.Context, arg GetModuleProgressByUnitParams) ([]GetModuleProgressByUnitRow, error)
 	GetModuleSectionsWithProgress(ctx context.Context, arg GetModuleSectionsWithProgressParams) ([]GetModuleSectionsWithProgressRow, error)
 	GetModuleTotalCountByUnitId(ctx context.Context, unitID int32) (int64, error)
@@ -52,6 +56,8 @@ type Querier interface {
 	GetModulesCount(ctx context.Context) (int64, error)
 	GetModulesList(ctx context.Context, arg GetModulesListParams) ([]GetModulesListRow, error)
 	GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams) (int32, error)
+	GetNextModuleIdInUnitOrNextUnit(ctx context.Context, arg GetNextModuleIdInUnitOrNextUnitParams) (int32, error)
+	GetNextModuleNumber(ctx context.Context, arg GetNextModuleNumberParams) (int32, error)
 	GetNextUnitId(ctx context.Context, arg GetNextUnitIdParams) (int32, error)
 	GetNextUnitModuleId(ctx context.Context, unitID int32) (int32, error)
 	GetPrevModuleId(ctx context.Context, arg GetPrevModuleIdParams) (int32, error)
@@ -87,6 +93,7 @@ type Querier interface {
 	InsertTag(ctx context.Context, name string) (int32, error)
 	InsertUserPreferences(ctx context.Context, arg InsertUserPreferencesParams) (UserPreference, error)
 	InsertVideoSection(ctx context.Context, arg InsertVideoSectionParams) error
+	IsModuleFurtherThan(ctx context.Context, arg IsModuleFurtherThanParams) (bool, error)
 	PublishCourse(ctx context.Context, courseID int32) error
 	RemoveCourseTag(ctx context.Context, arg RemoveCourseTagParams) error
 	ResetUserStreaks(ctx context.Context) error

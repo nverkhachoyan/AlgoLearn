@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 
@@ -37,34 +37,71 @@ const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
 
 export const ModuleHeader = memo(
   ({ moduleName, progress, colors }: ModuleHeaderProps) => {
-    const progressPercentage = progress.total;
-    const progressAnim = useRef(new Animated.Value(0)).current;
-    const strokeDashoffset = progressAnim.interpolate({
-      inputRange: [0, 100],
-      outputRange: [CIRCLE_CIRCUMFERENCE, 0],
-    });
+    // Current displayed percentage (this will be animated)
+    const [displayPercentage, setDisplayPercentage] = useState(0);
 
-    const progressColor = progressAnim.interpolate({
-      inputRange: [0, 25, 50, 75, 100],
-      outputRange: [
-        "#FF9F1C", // Dark orange
-        "#FFBF69", // Light orange
-        "#9DDFD3", // Light turquoise
-        "#31B389", // Light green
-        "#25A879", // Success green
-      ],
-    });
+    // Target percentage from props
+    const targetPercentage = Math.round(progress.total);
 
+    // Animation frame ID for cleanup
+    const animationRef = useRef<number | null>(null);
+
+    // For the animated circle calculation
+    const circleDashoffset =
+      CIRCLE_CIRCUMFERENCE * (1 - displayPercentage / 100);
+
+    // Determine progress color based on the current percentage
+    const getProgressColor = (percent: number) => {
+      if (percent < 25) return "#FF9F1C"; // Dark orange
+      if (percent < 50) return "#FFBF69"; // Light orange
+      if (percent < 75) return "#9DDFD3"; // Light turquoise
+      if (percent < 100) return "#31B389"; // Light green
+      return "#25A879"; // Success green
+    };
+
+    // Current progress color
+    const progressColor = getProgressColor(displayPercentage);
+
+    // Handle animation using requestAnimationFrame for smoother performance
     useEffect(() => {
-      Animated.spring(progressAnim, {
-        toValue: progressPercentage,
-        useNativeDriver: false,
-        tension: 20,
-        friction: 7,
-      }).start();
-    }, [progressPercentage]);
+      // Don't animate if already at the target
+      if (displayPercentage === targetPercentage) return;
 
-    const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+      const startTime = Date.now();
+      const startValue = displayPercentage;
+      const changeInValue = targetPercentage - startValue;
+      const duration = 300; // milliseconds
+
+      // Cancel any existing animation
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+
+      // Animation function using requestAnimationFrame
+      const animate = () => {
+        const currentTime = Date.now() - startTime;
+        const progress = Math.min(currentTime / duration, 1);
+
+        // Simple linear easing
+        const newValue = Math.round(startValue + changeInValue * progress);
+        setDisplayPercentage(newValue);
+
+        // Continue animation if not complete
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        }
+      };
+
+      // Start animation
+      animationRef.current = requestAnimationFrame(animate);
+
+      // Cleanup
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      };
+    }, [targetPercentage, displayPercentage]);
 
     return (
       <View
@@ -95,6 +132,7 @@ export const ModuleHeader = memo(
 
           <View style={styles.progressContainer}>
             <Svg height={CIRCLE_SIZE} width={CIRCLE_SIZE}>
+              {/* Background circle */}
               <Circle
                 cx={CIRCLE_RADIUS}
                 cy={CIRCLE_RADIUS}
@@ -103,7 +141,8 @@ export const ModuleHeader = memo(
                 strokeWidth="4"
                 fill="none"
               />
-              <AnimatedCircle
+              {/* Progress circle */}
+              <Circle
                 cx={CIRCLE_RADIUS}
                 cy={CIRCLE_RADIUS}
                 r={CIRCLE_RADIUS - 2}
@@ -111,13 +150,13 @@ export const ModuleHeader = memo(
                 strokeWidth="4"
                 fill="none"
                 strokeDasharray={CIRCLE_CIRCUMFERENCE}
-                strokeDashoffset={strokeDashoffset}
+                strokeDashoffset={circleDashoffset}
                 strokeLinecap="round"
                 transform={`rotate(-90 ${CIRCLE_RADIUS} ${CIRCLE_RADIUS})`}
               />
             </Svg>
             <Text style={[styles.progressText, { color: colors.onSurface }]}>
-              {Math.round(progressPercentage)}%
+              {displayPercentage}%
             </Text>
           </View>
         </View>

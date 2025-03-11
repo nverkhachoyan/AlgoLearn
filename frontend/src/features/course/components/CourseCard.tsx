@@ -6,7 +6,7 @@ import { Author, Unit } from "@/src/features/course/types";
 import { useTheme } from "react-native-paper";
 import { Card, Divider, Text } from "react-native-paper";
 import { useState } from "react";
-import { Module } from "@/src/features/module/types/types";
+import { Module } from "@/src/features/module/types";
 
 export default function CourseCard(props: {
   courseID: string;

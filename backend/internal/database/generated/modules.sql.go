@@ -150,6 +150,40 @@ func (q *Queries) GetCourseAndUnitIDs(ctx context.Context, id int32) (GetCourseA
 	return i, err
 }
 
+const getFirstModuleIdInUnit = `-- name: GetFirstModuleIdInUnit :one
+SELECT id
+FROM modules
+WHERE unit_id = $1::int
+ORDER BY module_number ASC
+LIMIT 1
+`
+
+func (q *Queries) GetFirstModuleIdInUnit(ctx context.Context, unitID int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getFirstModuleIdInUnit, unitID)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getFurthestModuleID = `-- name: GetFurthestModuleID :one
+SELECT furthest_module_id
+FROM user_courses
+WHERE user_id = $1::int
+  AND course_id = $2::int
+`
+
+type GetFurthestModuleIDParams struct {
+	UserID   int32 `json:"userId"`
+	CourseID int32 `json:"courseId"`
+}
+
+func (q *Queries) GetFurthestModuleID(ctx context.Context, arg GetFurthestModuleIDParams) (sql.NullInt32, error) {
+	row := q.db.QueryRowContext(ctx, getFurthestModuleID, arg.UserID, arg.CourseID)
+	var furthest_module_id sql.NullInt32
+	err := row.Scan(&furthest_module_id)
+	return furthest_module_id, err
+}
+
 const getLastModuleNumber = `-- name: GetLastModuleNumber :one
 SELECT COALESCE(MAX(module_number), 0) as last_number
 FROM modules
@@ -162,6 +196,26 @@ func (q *Queries) GetLastModuleNumber(ctx context.Context, unitID int32) (interf
 	var last_number interface{}
 	err := row.Scan(&last_number)
 	return last_number, err
+}
+
+const getModuleByID = `-- name: GetModuleByID :one
+SELECT id, created_at, updated_at, draft, module_number, unit_id, name, description FROM modules WHERE id = $1::int
+`
+
+func (q *Queries) GetModuleByID(ctx context.Context, id int32) (Module, error) {
+	row := q.db.QueryRowContext(ctx, getModuleByID, id)
+	var i Module
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Draft,
+		&i.ModuleNumber,
+		&i.UnitID,
+		&i.Name,
+		&i.Description,
+	)
+	return i, err
 }
 
 const getModuleTotalCountByUnitId = `-- name: GetModuleTotalCountByUnitId :one
@@ -350,6 +404,56 @@ func (q *Queries) GetNextModuleId(ctx context.Context, arg GetNextModuleIdParams
 	var id int32
 	err := row.Scan(&id)
 	return id, err
+}
+
+const getNextModuleIdInUnitOrNextUnit = `-- name: GetNextModuleIdInUnitOrNextUnit :one
+SELECT id
+FROM modules
+WHERE unit_id = $1::int
+    OR unit_id = (
+        SELECT id
+        FROM units
+        WHERE course_id = $2::int
+            AND unit_number > $3::int
+        ORDER BY unit_number ASC
+        LIMIT 1
+    )
+ORDER BY module_number ASC
+LIMIT 1
+`
+
+type GetNextModuleIdInUnitOrNextUnitParams struct {
+	UnitID     int32 `json:"unitId"`
+	CourseID   int32 `json:"courseId"`
+	UnitNumber int32 `json:"unitNumber"`
+}
+
+func (q *Queries) GetNextModuleIdInUnitOrNextUnit(ctx context.Context, arg GetNextModuleIdInUnitOrNextUnitParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getNextModuleIdInUnitOrNextUnit, arg.UnitID, arg.CourseID, arg.UnitNumber)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getNextModuleNumber = `-- name: GetNextModuleNumber :one
+SELECT module_number
+FROM modules
+WHERE unit_id = $1::int
+    AND module_number > $2::int
+ORDER BY module_number ASC
+LIMIT 1
+`
+
+type GetNextModuleNumberParams struct {
+	UnitID       int32 `json:"unitId"`
+	ModuleNumber int32 `json:"moduleNumber"`
+}
+
+func (q *Queries) GetNextModuleNumber(ctx context.Context, arg GetNextModuleNumberParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getNextModuleNumber, arg.UnitID, arg.ModuleNumber)
+	var module_number int32
+	err := row.Scan(&module_number)
+	return module_number, err
 }
 
 const getNextUnitId = `-- name: GetNextUnitId :one
@@ -834,6 +938,33 @@ type InsertVideoSectionParams struct {
 func (q *Queries) InsertVideoSection(ctx context.Context, arg InsertVideoSectionParams) error {
 	_, err := q.db.ExecContext(ctx, insertVideoSection, arg.SectionID, arg.Url)
 	return err
+}
+
+const isModuleFurtherThan = `-- name: IsModuleFurtherThan :one
+SELECT EXISTS (
+  SELECT 1
+  FROM modules m1
+  JOIN units u1 ON m1.unit_id = u1.id
+  JOIN modules m2 ON m2.id = $1::int
+  JOIN units u2 ON m2.unit_id = u2.id
+  WHERE m1.id = $2::int
+    AND (
+      u1.unit_number > u2.unit_number
+      OR (u1.unit_number = u2.unit_number AND m1.module_number > m2.module_number)
+    )
+) as is_further
+`
+
+type IsModuleFurtherThanParams struct {
+	FurthestModuleID int32 `json:"furthestModuleId"`
+	ModuleID         int32 `json:"moduleId"`
+}
+
+func (q *Queries) IsModuleFurtherThan(ctx context.Context, arg IsModuleFurtherThanParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isModuleFurtherThan, arg.FurthestModuleID, arg.ModuleID)
+	var is_further bool
+	err := row.Scan(&is_further)
+	return is_further, err
 }
 
 const updateModule = `-- name: UpdateModule :one

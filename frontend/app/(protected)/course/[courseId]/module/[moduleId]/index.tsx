@@ -7,6 +7,7 @@ import SectionsList from "@/src/features/course/components/module-session/Sectio
 import Button from "@/src/components/common/Button";
 import { useModuleProgress } from "@/src/features/module/hooks/useModules";
 import { isQuestionSection, Section } from "@/src/features/module/types";
+import { QuestionContent } from "@/src/features/module/types/sections";
 import { ModuleHeader } from "@/src/features/course/components/module-session/ModuleHeader";
 import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
 import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProgressInit";
@@ -16,8 +17,8 @@ import { UseModuleProgressReturn } from "@/src/features/module/hooks/useModules"
 import { usePoints } from "@/src/features/user/hooks/usePoints";
 
 const SECTION_VIEWABILITY_CONFIG = {
-  itemVisiblePercentThreshold: 50,
-  minimumViewTime: 500,
+  itemVisiblePercentThreshold: 30,
+  minimumViewTime: 300,
 } as const;
 
 // Create a component for the animated section
@@ -149,6 +150,65 @@ export default function ModuleSession() {
   });
   const { moduleProgress, setModuleProgress } =
     useModuleProgressInit(currentModule);
+
+  // Special effect to force update the moduleProgress when the module data changes
+  // This ensures that sections from the backend are properly marked as seen
+  useEffect(() => {
+    if (currentModule?.sections && currentModule.sections.length > 0) {
+      // Log the full module data to see the actual structure
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "Current module structure:",
+          JSON.stringify(
+            currentModule.sections.map((s) => ({
+              id: s.id,
+              hasProgress: !!(s as any).progress,
+              hasSeen: (s as any).progress?.hasSeen,
+            })),
+            null,
+            2
+          )
+        );
+      }
+
+      setModuleProgress((prev) => {
+        const newSections = new Map(prev.sections);
+        let hasChanges = false;
+
+        // Process all sections from the module data
+        currentModule.sections?.forEach((section) => {
+          // IMPORTANT: In the API response, the field is called 'progress' not 'sectionProgress'
+          const sectionProgress = (section as any).progress;
+
+          if (sectionProgress && sectionProgress.hasSeen) {
+            const existingSection = prev.sections.get(section.id);
+
+            // If server shows section was seen, force hasSeen to true
+            if (!existingSection || !existingSection.hasSeen) {
+              newSections.set(section.id, {
+                sectionId: section.id,
+                hasSeen: true, // Force hasSeen to true for server-tracked sections
+                seenAt: sectionProgress.seenAt || new Date().toISOString(),
+                startedAt:
+                  sectionProgress.startedAt || new Date().toISOString(),
+                completedAt: sectionProgress.completedAt || null,
+              });
+              hasChanges = true;
+
+              if (process.env.NODE_ENV === "development") {
+                console.log(
+                  `[FORCE UPDATE] Section ${section.id} marked as seen from server data`
+                );
+              }
+            }
+          }
+        });
+
+        return hasChanges ? { ...prev, sections: newSections } : prev;
+      });
+    }
+  }, [currentModule?.sections, setModuleProgress]);
+
   const sortedSections: Section[] = useMemo(
     () =>
       currentModule?.sections
@@ -194,11 +254,17 @@ export default function ModuleSession() {
 
       setModuleProgress((prev) => {
         const newSections = new Map(prev.sections);
+        let hasChanges = false;
 
         viewableItems.forEach((viewableItem) => {
           if (viewableItem.isViewable) {
             const section = viewableItem.item;
-            if (!prev.sections.has(section.id)) {
+
+            // Check if this section exists in our tracking map
+            const existingSection = prev.sections.get(section.id);
+
+            if (!existingSection) {
+              // If section doesn't exist in our map, add it
               newSections.set(section.id, {
                 sectionId: section.id,
                 hasSeen: true,
@@ -206,13 +272,29 @@ export default function ModuleSession() {
                 startedAt: now,
                 completedAt: section.type !== "question" ? now : null,
               });
+              hasChanges = true;
+              if (process.env.NODE_ENV === "development") {
+                console.log(`Section ${section.id} newly marked as seen`);
+              }
+            } else if (!existingSection.hasSeen) {
+              // If section exists but hasn't been seen yet, mark it as seen
+              newSections.set(section.id, {
+                ...existingSection,
+                hasSeen: true,
+                seenAt: existingSection.seenAt || now,
+                completedAt:
+                  existingSection.completedAt ||
+                  (section.type !== "question" ? now : null),
+              });
+              hasChanges = true;
+              if (process.env.NODE_ENV === "development") {
+                console.log(`Section ${section.id} updated to seen`);
+              }
             }
           }
         });
 
-        return newSections.size !== prev.sections.size
-          ? { ...prev, sections: newSections }
-          : prev;
+        return hasChanges ? { ...prev, sections: newSections } : prev;
       });
     },
     [setModuleProgress]
@@ -222,12 +304,72 @@ export default function ModuleSession() {
     const { sections, questions } = moduleProgress;
     const totalSections = sortedSections.length;
 
-    const completedSections = sortedSections.map((section: any) => {
+    // Get the module status from the backend and log it for debugging
+    const moduleStatus = currentModule?.status;
+    const moduleProgressValue = currentModule?.progress;
+
+    // If the module is marked as completed in the backend, we should show 100% progress
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `Backend module status: ${moduleStatus}, progress: ${moduleProgressValue}%`
+      );
+      console.log(
+        `Module completed according to backend: ${moduleStatus === "completed"}`
+      );
+
+      // Check if all sections have progress in the backend
+      const backendSections = currentModule?.sections || [];
+      const sectionsWithProgress = backendSections.filter(
+        (section: any) => !!section.progress?.hasSeen
+      ).length;
+      console.log(
+        `Sections with progress in backend: ${sectionsWithProgress}/${backendSections.length}`
+      );
+    }
+
+    // Log section progress data for debugging
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "ModuleProgress - Sections:",
+        Array.from(sections.entries()).map(([id, section]: [number, any]) => ({
+          id,
+          hasSeen: section.hasSeen,
+          seenAt: section.seenAt
+            ? new Date(section.seenAt).toLocaleTimeString()
+            : null,
+        }))
+      );
+
+      // Log the total number of sections that have been seen
+      const seenSections = Array.from(sections.values()).filter(
+        (s: any) => s.hasSeen
+      );
+      console.log(
+        `Total sections seen: ${seenSections.length}/${totalSections}`
+      );
+    }
+
+    const completedSections = sortedSections.map((section: Section) => {
+      // Get the section's progress from our tracking Map
       const progress = sections.get(section.id);
+
+      // A section has been seen if it's in our progress map and hasSeen is true
       const hasSeen = Boolean(progress?.hasSeen);
 
+      if (process.env.NODE_ENV === "development") {
+        // Log the state of each section for debugging
+        console.log(
+          `Section ${section.id} (${section.type}): hasSeen=${hasSeen}`
+        );
+      }
+
       if (section.type === "question") {
-        const questionState = questions.get(section.content.id);
+        // For question sections, get the question's progress
+        // Use type assertion to safely access questionContent.id
+        const questionContent = section.content as QuestionContent;
+        const questionState = questions.get(questionContent.id);
+
+        // A question section is complete if it's been seen AND answered
         const isComplete = hasSeen && Boolean(questionState?.hasAnswered);
 
         return {
@@ -240,7 +382,8 @@ export default function ModuleSession() {
         };
       }
 
-      const isComplete = Boolean(progress?.hasSeen);
+      // For non-question sections, they're complete if they've been seen
+      const isComplete = hasSeen;
 
       return {
         sectionId: section.id,
@@ -252,6 +395,7 @@ export default function ModuleSession() {
       };
     });
 
+    // Count all sections that are marked as completed
     const completedCount = completedSections.filter(
       (s: any) => s.isCompleted
     ).length;
@@ -259,8 +403,21 @@ export default function ModuleSession() {
     const totalProgress =
       totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
 
+    // If we're in development, log the progress stats
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `Progress: ${completedCount}/${totalSections} = ${totalProgress.toFixed(1)}%`
+      );
+      console.log(
+        "Completed sections:",
+        completedSections
+          .filter((s: any) => s.isCompleted)
+          .map((s: any) => s.sectionId)
+      );
+    }
+
     const answeredQuestions = Array.from(questions.values()).filter(
-      (q) => q.hasAnswered
+      (q: any) => q.hasAnswered
     ).length;
     const questionProgress =
       questions.size > 0 ? (answeredQuestions / questions.size) * 100 : 0;
@@ -421,6 +578,7 @@ export default function ModuleSession() {
         onViewableItemsChanged={handleViewableItemsChanged}
         viewabilityConfig={SECTION_VIEWABILITY_CONFIG}
         extraData={moduleProgress.questions}
+        drawDistance={1000}
         ListFooterComponent={() => (
           <View style={styles.endOfModule}>
             <Button

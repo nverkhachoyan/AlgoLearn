@@ -361,12 +361,13 @@ type UserAchievement struct {
 }
 
 type UserCourse struct {
-	ID        int32     `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	UserID    int32     `json:"userId"`
-	CourseID  int32     `json:"courseId"`
-	Progress  float64   `json:"progress"`
+	ID               int32         `json:"id"`
+	CreatedAt        time.Time     `json:"createdAt"`
+	UpdatedAt        time.Time     `json:"updatedAt"`
+	UserID           int32         `json:"userId"`
+	CourseID         int32         `json:"courseId"`
+	Progress         float64       `json:"progress"`
+	FurthestModuleID sql.NullInt32 `json:"furthestModuleId"`
 }
 
 type UserModuleProgress struct {

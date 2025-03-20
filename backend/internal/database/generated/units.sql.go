@@ -7,6 +7,8 @@ package gen
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUnit = `-- name: CreateUnit :one
@@ -14,22 +16,31 @@ INSERT INTO units (
     course_id,
     unit_number,
     name,
-    description
+    description,
+    folder_object_key,
+    img_key,
+    media_ext
 )
 VALUES (
     $1::int,
     $2::int,
     $3::text,
-    $4::text
+    $4::text,
+    COALESCE($5::UUID, NULL),
+    COALESCE($6::UUID, NULL),
+    COALESCE($7::text, '')
 )
 RETURNING id
 `
 
 type CreateUnitParams struct {
-	CourseID    int32  `json:"courseId"`
-	UnitNumber  int32  `json:"unitNumber"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	CourseID        int32     `json:"courseId"`
+	UnitNumber      int32     `json:"unitNumber"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	FolderObjectKey uuid.UUID `json:"folderObjectKey"`
+	ImgKey          uuid.UUID `json:"imgKey"`
+	MediaExt        string    `json:"mediaExt"`
 }
 
 func (q *Queries) CreateUnit(ctx context.Context, arg CreateUnitParams) (int32, error) {
@@ -38,6 +49,9 @@ func (q *Queries) CreateUnit(ctx context.Context, arg CreateUnitParams) (int32, 
 		arg.UnitNumber,
 		arg.Name,
 		arg.Description,
+		arg.FolderObjectKey,
+		arg.ImgKey,
+		arg.MediaExt,
 	)
 	var id int32
 	err := row.Scan(&id)
@@ -55,7 +69,7 @@ func (q *Queries) DeleteUnit(ctx context.Context, unitID int32) error {
 }
 
 const getUnitByID = `-- name: GetUnitByID :one
-SELECT id, created_at, updated_at, draft, unit_number, course_id, name, description FROM units
+SELECT id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, unit_number, course_id, name, description FROM units
 WHERE id = $1::int
 `
 
@@ -64,8 +78,11 @@ func (q *Queries) GetUnitByID(ctx context.Context, unitID int32) (Unit, error) {
 	var i Unit
 	err := row.Scan(
 		&i.ID,
+		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImgKey,
+		&i.MediaExt,
 		&i.Draft,
 		&i.UnitNumber,
 		&i.CourseID,
@@ -76,7 +93,7 @@ func (q *Queries) GetUnitByID(ctx context.Context, unitID int32) (Unit, error) {
 }
 
 const getUnitsByCourseID = `-- name: GetUnitsByCourseID :many
-SELECT id, created_at, updated_at, draft, unit_number, course_id, name, description FROM units
+SELECT id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, unit_number, course_id, name, description FROM units
 WHERE course_id = $1::int
 `
 
@@ -91,8 +108,11 @@ func (q *Queries) GetUnitsByCourseID(ctx context.Context, courseID int32) ([]Uni
 		var i Unit
 		if err := rows.Scan(
 			&i.ID,
+			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ImgKey,
+			&i.MediaExt,
 			&i.Draft,
 			&i.UnitNumber,
 			&i.CourseID,

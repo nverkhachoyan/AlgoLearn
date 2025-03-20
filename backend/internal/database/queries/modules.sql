@@ -9,6 +9,9 @@ SELECT jsonb_build_object(
     'id', m.id,
     'createdAt', m.created_at,
     'updatedAt', m.updated_at,
+    'folderObjectKey', m.folder_object_key,
+    'imgKey', m.img_key,
+    'mediaExt', m.media_ext,
     'moduleNumber', m.module_number,
     'unitId', m.unit_id,
     'name', m.name,
@@ -30,18 +33,37 @@ WITH section_content AS (
         s.type::section_type as type,
         CASE s.type
             WHEN 'markdown' THEN (
-                SELECT jsonb_build_object('markdown', markdown)
+                SELECT jsonb_build_object('markdown', markdown, 'objectKey', ms.object_key, 'media_ext', ms.media_ext)
                 FROM markdown_sections ms
                 WHERE ms.section_id = s.id
             )
+            WHEN 'lottie' THEN (
+                SELECT jsonb_build_object(
+                    'caption', ls.caption,
+                    'description', ls.description,
+                    'objectKey', ls.object_key,
+                    'width', ls.width,
+                    'height', ls.height,
+                    'alt_text', ls.alt_text,
+                    'fallback_url', ls.fallback_url,
+                    'autoplay', ls.autoplay,
+                    'loop', ls.loop,
+                    'speed', ls.speed,
+                    'media_ext', ls.media_ext
+                )
+                FROM lottie_sections ls
+                WHERE ls.section_id = s.id
+            )
             WHEN 'video' THEN (
-                SELECT jsonb_build_object('url', url)
+                SELECT jsonb_build_object('url', url, 'objectKey', vs.object_key, 'media_ext', vs.media_ext)
                 FROM video_sections vs
                 WHERE vs.section_id = s.id
             )
             WHEN 'question' THEN (
                 SELECT jsonb_build_object(
                     'id', q.id,
+                    'objectKey', qs.object_key,
+                    'media_ext', qs.media_ext,
                     'question', q.question,
                     'type', q.type,
                     'options', COALESCE(
@@ -79,7 +101,7 @@ WITH section_content AS (
                 WHERE qs.section_id = s.id
             )
             WHEN 'code' THEN (
-                SELECT jsonb_build_object('code', code, 'language', language)
+                SELECT jsonb_build_object('code', code, 'language', language, 'objectKey', cs.object_key, 'media_ext', cs.media_ext)
                 FROM code_sections cs
                 WHERE cs.section_id = s.id
             )
@@ -203,12 +225,18 @@ INSERT INTO modules (
     module_number,
     unit_id,
     name,
-    description
+    description,
+    folder_object_key,
+    img_key,
+    media_ext
 ) VALUES (
     (SELECT next_number FROM new_module),
     @unit_id::int,
     @name::text,
-    @description::text
+    COALESCE(@description::text, ''),
+    COALESCE(@folder_object_key::UUID, NULL),
+    COALESCE(@img_key::UUID, NULL),
+    COALESCE(@media_ext::text, '')
 )
 RETURNING *;
 
@@ -228,6 +256,9 @@ DELETE FROM modules WHERE id = @module_id::int;
 SELECT
     m.*,
     jsonb_build_object(
+        'folderObjectKey', m.folder_object_key,
+        'imgKey', m.img_key,
+        'mediaExt', m.media_ext,
         'progress', COALESCE(ump.progress, 0.0),
         'status', COALESCE(ump.status, 'uninitiated'::module_progress_status),
         'startedAt', ump.started_at,
@@ -251,12 +282,15 @@ WHERE
 -- name: InsertModule :one
 INSERT INTO
     modules (
+        folder_object_key,
+        img_key,
+        media_ext,
         module_number,
         unit_id,
         name,
         description
     )
-VALUES ($1, $2, $3, $4) RETURNING *;
+VALUES (COALESCE(@folder_object_key::UUID, NULL), COALESCE(@img_key::UUID, NULL), COALESCE(@media_ext::text, ''), @module_number, @unit_id, @name, @description) RETURNING *;
 
 -- name: InsertSection :one
 INSERT INTO
@@ -265,11 +299,42 @@ VALUES (sqlc.arg(module_id), sqlc.arg(section_type)::section_type, sqlc.arg(posi
 
 -- name: InsertMarkdownSection :exec
 INSERT INTO
-    markdown_sections (section_id, markdown)
-VALUES ($1, $2);
+    markdown_sections (section_id, markdown, object_key, media_ext)
+VALUES ($1, $2, $3, $4);
+
+-- name: InsertLottieSection :exec
+INSERT INTO
+    lottie_sections (
+    section_id, 
+    caption, 
+    description, 
+    width, 
+    height, 
+    object_key,
+    media_ext,
+    alt_text, 
+    fallback_url, 
+    autoplay, 
+    loop, 
+    speed
+)
+VALUES (
+    @section_id,
+    @caption, 
+    @description, 
+    @width, 
+    @height, 
+    @object_key, 
+    @media_ext,
+    @alt_text, 
+    @fallback_url,
+    @autoplay, 
+    @loop, 
+    @speed
+);
 
 -- name: InsertVideoSection :exec
-INSERT INTO video_sections (section_id, url) VALUES ($1, $2);
+INSERT INTO video_sections (section_id, url, object_key, media_ext) VALUES ($1, $2, $3, $4);
 
 -- name: InsertQuestion :one
 INSERT INTO
@@ -282,8 +347,8 @@ VALUES ($1, $2, $3) RETURNING *;
 
 -- name: InsertQuestionSection :exec
 INSERT INTO
-    question_sections (section_id, question_id)
-VALUES ($1, $2);
+    question_sections (section_id, question_id, object_key, media_ext)
+VALUES ($1, $2, $3, $4);
 
 -- name: InsertQuestionOption :exec
 INSERT INTO
@@ -296,8 +361,8 @@ VALUES ($1, $2, $3);
 
 -- name: InsertCodeSection :exec
 INSERT INTO
-    code_sections (section_id, code, language)
-VALUES ($1, $2, $3);
+    code_sections (section_id, code, language, object_key, media_ext)
+VALUES ($1, $2, $3, $4, $5);
 
 -- name: InsertTag :one
 INSERT INTO

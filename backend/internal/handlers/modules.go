@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ModuleHandler interface {
@@ -178,9 +179,11 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	}
 
 	var moduleRequest struct {
-		Name        string           `json:"name"`
-		Description string           `json:"description"`
-		Sections    []models.Section `json:"sections"`
+		Name            string           `json:"name"`
+		Description     string           `json:"description"`
+		FolderObjectKey uuid.NullUUID    `json:"folderObjectKey"`
+		ImgKey          uuid.NullUUID    `json:"imgKey"`
+		Sections        []models.Section `json:"sections"`
 	}
 
 	if err := json.NewDecoder(c.Request.Body).Decode(&moduleRequest); err != nil {
@@ -215,7 +218,7 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 			positions[section.Position] = true
 		}
 
-		createdModule, err := h.moduleRepo.CreateModuleWithContent(ctx, unitID, moduleRequest.Name, moduleRequest.Description, moduleRequest.Sections)
+		createdModule, err := h.moduleRepo.CreateModuleWithContent(ctx, unitID, moduleRequest.Name, moduleRequest.Description, moduleRequest.FolderObjectKey, moduleRequest.ImgKey, moduleRequest.Sections)
 		if err != nil {
 			log.WithError(err).Error("error creating module with content")
 			c.JSON(http.StatusInternalServerError, models.Response{
@@ -235,7 +238,7 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	}
 
 	// Create module without sections
-	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, moduleRequest.Name, moduleRequest.Description)
+	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, moduleRequest.Name, moduleRequest.Description, moduleRequest.FolderObjectKey, moduleRequest.ImgKey)
 	if err != nil {
 		log.WithError(err).Error("error creating module")
 		c.JSON(http.StatusInternalServerError, models.Response{

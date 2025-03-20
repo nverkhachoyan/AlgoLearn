@@ -6,4 +6,7 @@ export interface Unit extends BaseModel {
   name: string;
   description: string;
   modules: Module[];
+  folderObjectKey: string;
+  imgKey: string;
+  mediaExt: string;
 }

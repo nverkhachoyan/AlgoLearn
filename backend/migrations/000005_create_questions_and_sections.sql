@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TYPE section_type AS ENUM ('markdown', 'code', 'question', 'video');
+CREATE TYPE section_type AS ENUM ('markdown', 'code', 'question', 'video', 'lottie');
 
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
@@ -39,6 +39,8 @@ CREATE TABLE sections (
 
 CREATE TABLE video_sections (
     section_id INTEGER PRIMARY KEY,
+    object_key UUID UNIQUE,
+    media_ext VARCHAR(10), 
     url TEXT NOT NULL,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
@@ -46,26 +48,50 @@ CREATE TABLE video_sections (
 CREATE TABLE question_sections (
     section_id INTEGER PRIMARY KEY,
     question_id INTEGER NOT NULL,
+    object_key UUID UNIQUE,
+    media_ext VARCHAR(10),
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
 );
 
 CREATE TABLE markdown_sections (
     section_id INTEGER PRIMARY KEY,
+    object_key UUID UNIQUE,
+    media_ext VARCHAR(10),
     markdown TEXT NOT NULL,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
 CREATE TABLE code_sections (
     section_id INTEGER PRIMARY KEY,
+    object_key UUID UNIQUE,
+    media_ext VARCHAR(10),
     code TEXT NOT NULL,
     language VARCHAR(50),
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 
+CREATE TABLE lottie_sections (
+    section_id INTEGER PRIMARY KEY,
+    object_key UUID UNIQUE,
+    media_ext VARCHAR(10),
+    caption TEXT,
+    description TEXT,
+    width INTEGER,
+    height INTEGER,
+    alt_text TEXT,
+    fallback_url TEXT,
+    autoplay BOOLEAN NOT NULL DEFAULT false,
+    loop BOOLEAN NOT NULL DEFAULT true,
+    speed FLOAT NOT NULL DEFAULT 1.0,
+    FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
+);
+
 CREATE TABLE image_sections (
     section_id INTEGER PRIMARY KEY,
-    url TEXT NOT NULL,
+    object_key UUID UNIQUE,
+    media_ext VARCHAR(10),
+    url TEXT,
     headline TEXT NOT NULL,
     caption TEXT NOT NULL,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
@@ -110,5 +136,7 @@ DROP TABLE IF EXISTS question_tags;
 DROP TABLE IF EXISTS questions;
 
 DROP TYPE IF EXISTS section_type;
+
+DROP TYPE IF EXISTS lottie_sections;
 
 -- +goose StatementEnd

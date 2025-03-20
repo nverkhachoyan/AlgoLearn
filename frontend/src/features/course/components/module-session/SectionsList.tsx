@@ -6,19 +6,21 @@ import {
   isVideoSection,
   isCodeSection,
   isMarkdownSection,
+  isLotteSection,
 } from "@/src/features/module/types/sections";
 import { QuestionSection } from "./QuestionSection";
 import { MarkdownSection } from "./MarkdownSection";
 import { CodeSection } from "./CodeSection";
 import { VideoSection } from "./VideoSection";
 import { QuestionProgress } from "@/src/features/module/types/sections";
+import { LottieSection } from "./LottieSection";
 
 interface SectionRendererProps {
   section: Section;
   handleQuestionAnswer: (
     questionId: number,
     selectedOptionId: number | null,
-    isCorrect: boolean | null,
+    isCorrect: boolean | null
   ) => void;
   questionsState: Map<number, QuestionProgress>;
 }
@@ -39,6 +41,16 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
     }, [section.id]);
 
     const renderSection = useCallback(() => {
+      if (isLotteSection(section)) {
+        return (
+          <LottieSection
+            content={section.content}
+            position={section.position}
+            colors={colors}
+          />
+        );
+      }
+
       if (isMarkdownSection(section)) {
         return (
           <MarkdownSection
@@ -85,16 +97,16 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
       isQuestionSection(nextProps.section)
     ) {
       const prevState = prevProps.questionsState.get(
-        prevProps.section.content.id,
+        prevProps.section.content.id
       );
       const nextState = nextProps.questionsState.get(
-        nextProps.section.content.id,
+        nextProps.section.content.id
       );
       return JSON.stringify(prevState) === JSON.stringify(nextState);
     }
 
     return false;
-  },
+  }
 );
 
 export default SectionsList;

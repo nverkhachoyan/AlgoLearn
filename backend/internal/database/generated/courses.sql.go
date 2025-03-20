@@ -9,41 +9,49 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createCourse = `-- name: CreateCourse :one
 INSERT INTO courses (
+    folder_object_key,
     name,
     description,
     requirements,
     what_you_learn,
     background_color,
-    icon_url,
+    img_key,
+    media_ext,
     duration,
     difficulty_level,
     rating
 )
 VALUES (
-    COALESCE($1::text, ''),
+    COALESCE($1::UUID, NULL),
     COALESCE($2::text, ''),
     COALESCE($3::text, ''),
     COALESCE($4::text, ''),
     COALESCE($5::text, ''),
     COALESCE($6::text, ''),
-    COALESCE($7::int, 0),
-    COALESCE($8::difficulty_level, 'beginner'),
-    COALESCE($9::float, 0.0)
+    COALESCE($7::UUID, NULL),
+    COALESCE($8::text, ''),
+    COALESCE($9::int, 0),
+    COALESCE($10::difficulty_level, 'beginner'),
+    COALESCE($11::float, 0.0)
 )
 RETURNING id
 `
 
 type CreateCourseParams struct {
+	FolderObjectKey uuid.UUID       `json:"folderObjectKey"`
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
 	Requirements    string          `json:"requirements"`
 	WhatYouLearn    string          `json:"whatYouLearn"`
 	BackgroundColor string          `json:"backgroundColor"`
-	IconUrl         string          `json:"iconUrl"`
+	ImgKey          uuid.UUID       `json:"imgKey"`
+	MediaExt        string          `json:"mediaExt"`
 	Duration        int32           `json:"duration"`
 	DifficultyLevel DifficultyLevel `json:"difficultyLevel"`
 	Rating          float64         `json:"rating"`
@@ -51,12 +59,14 @@ type CreateCourseParams struct {
 
 func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int32, error) {
 	row := q.db.QueryRowContext(ctx, createCourse,
+		arg.FolderObjectKey,
 		arg.Name,
 		arg.Description,
 		arg.Requirements,
 		arg.WhatYouLearn,
 		arg.BackgroundColor,
-		arg.IconUrl,
+		arg.ImgKey,
+		arg.MediaExt,
 		arg.Duration,
 		arg.DifficultyLevel,
 		arg.Rating,
@@ -182,12 +192,18 @@ WITH user_progress AS (
         u.unit_number,
         u.name as unit_name,
         u.description as unit_description,
+        u.folder_object_key as unit_folder_object_key,
+        u.img_key as unit_img_key,
+        u.media_ext as unit_media_ext,
         m.id as module_id,
         ump.created_at as module_created_at,
         ump.updated_at as module_updated_at,
         m.module_number,
         m.name as module_name,
         m.description as module_description,
+        m.folder_object_key as module_folder_object_key,
+        m.img_key as module_img_key,
+        m.media_ext as module_media_ext,
         ump.progress as module_progress,
         ump.status as module_status
     FROM user_courses uc
@@ -207,7 +223,9 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.folder_object_key,
+    c.img_key,
+    c.media_ext,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -277,7 +295,9 @@ type GetAllCoursesWithOptionalProgressRow struct {
 	Requirements      sql.NullString       `json:"requirements"`
 	WhatYouLearn      sql.NullString       `json:"whatYouLearn"`
 	BackgroundColor   sql.NullString       `json:"backgroundColor"`
-	IconUrl           sql.NullString       `json:"iconUrl"`
+	FolderObjectKey   uuid.NullUUID        `json:"folderObjectKey"`
+	ImgKey            uuid.NullUUID        `json:"imgKey"`
+	MediaExt          sql.NullString       `json:"mediaExt"`
 	Duration          sql.NullInt32        `json:"duration"`
 	DifficultyLevel   NullDifficultyLevel  `json:"difficultyLevel"`
 	Rating            sql.NullFloat64      `json:"rating"`
@@ -323,7 +343,9 @@ func (q *Queries) GetAllCoursesWithOptionalProgress(ctx context.Context, arg Get
 			&i.Requirements,
 			&i.WhatYouLearn,
 			&i.BackgroundColor,
-			&i.IconUrl,
+			&i.FolderObjectKey,
+			&i.ImgKey,
+			&i.MediaExt,
 			&i.Duration,
 			&i.DifficultyLevel,
 			&i.Rating,
@@ -360,20 +382,29 @@ func (q *Queries) GetAllCoursesWithOptionalProgress(ctx context.Context, arg Get
 const getCodeSection = `-- name: GetCodeSection :one
 SELECT 
     code,
-    language
+    language,
+    object_key as object_key,
+    media_ext as media_ext
 FROM code_sections
 WHERE section_id = $1::int
 `
 
 type GetCodeSectionRow struct {
-	Code     string         `json:"code"`
-	Language sql.NullString `json:"language"`
+	Code      string         `json:"code"`
+	Language  sql.NullString `json:"language"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
 }
 
 func (q *Queries) GetCodeSection(ctx context.Context, sectionID int32) (GetCodeSectionRow, error) {
 	row := q.db.QueryRowContext(ctx, getCodeSection, sectionID)
 	var i GetCodeSectionRow
-	err := row.Scan(&i.Code, &i.Language)
+	err := row.Scan(
+		&i.Code,
+		&i.Language,
+		&i.ObjectKey,
+		&i.MediaExt,
+	)
 	return i, err
 }
 
@@ -419,12 +450,14 @@ SELECT
     id,
     created_at,
     updated_at,
+    folder_object_key,
+    img_key,
+    media_ext,
     name,
     description,
     requirements,
     what_you_learn,
     background_color,
-    icon_url,
     duration,
     difficulty_level,
     rating
@@ -437,12 +470,14 @@ type GetCourseByIDRow struct {
 	ID              int32               `json:"id"`
 	CreatedAt       time.Time           `json:"createdAt"`
 	UpdatedAt       time.Time           `json:"updatedAt"`
+	FolderObjectKey uuid.NullUUID       `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID       `json:"imgKey"`
+	MediaExt        sql.NullString      `json:"mediaExt"`
 	Name            string              `json:"name"`
 	Description     string              `json:"description"`
 	Requirements    sql.NullString      `json:"requirements"`
 	WhatYouLearn    sql.NullString      `json:"whatYouLearn"`
 	BackgroundColor sql.NullString      `json:"backgroundColor"`
-	IconUrl         sql.NullString      `json:"iconUrl"`
 	Duration        sql.NullInt32       `json:"duration"`
 	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
 	Rating          sql.NullFloat64     `json:"rating"`
@@ -455,12 +490,14 @@ func (q *Queries) GetCourseByID(ctx context.Context, courseID int32) (GetCourseB
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.FolderObjectKey,
+		&i.ImgKey,
+		&i.MediaExt,
 		&i.Name,
 		&i.Description,
 		&i.Requirements,
 		&i.WhatYouLearn,
 		&i.BackgroundColor,
-		&i.IconUrl,
 		&i.Duration,
 		&i.DifficultyLevel,
 		&i.Rating,
@@ -485,6 +522,7 @@ current_module_id AS (
 )
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -492,17 +530,24 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
+    c.media_ext,
     c.difficulty_level,
     c.duration,
     c.rating,
     u.id as unit_id,
+    u.folder_object_key as unit_folder_object_key,
+    u.img_key as unit_img_key,
+    u.media_ext as unit_media_ext,
     u.created_at as unit_created_at,
     u.updated_at as unit_updated_at,
     u.unit_number,
     u.name as unit_name,
     u.description as unit_description,
     m.id as module_id,
+    m.folder_object_key as module_folder_object_key,
+    m.img_key as module_img_key,
+    m.media_ext as module_media_ext,
     m.created_at as module_created_at,
     m.updated_at as module_updated_at,
     m.module_number,
@@ -526,32 +571,40 @@ type GetCourseProgressSummaryBaseParams struct {
 }
 
 type GetCourseProgressSummaryBaseRow struct {
-	ID                int32                    `json:"id"`
-	CreatedAt         time.Time                `json:"createdAt"`
-	UpdatedAt         time.Time                `json:"updatedAt"`
-	Name              string                   `json:"name"`
-	Description       string                   `json:"description"`
-	Requirements      sql.NullString           `json:"requirements"`
-	WhatYouLearn      sql.NullString           `json:"whatYouLearn"`
-	BackgroundColor   sql.NullString           `json:"backgroundColor"`
-	IconUrl           sql.NullString           `json:"iconUrl"`
-	DifficultyLevel   NullDifficultyLevel      `json:"difficultyLevel"`
-	Duration          sql.NullInt32            `json:"duration"`
-	Rating            sql.NullFloat64          `json:"rating"`
-	UnitID            sql.NullInt32            `json:"unitId"`
-	UnitCreatedAt     sql.NullTime             `json:"unitCreatedAt"`
-	UnitUpdatedAt     sql.NullTime             `json:"unitUpdatedAt"`
-	UnitNumber        sql.NullInt32            `json:"unitNumber"`
-	UnitName          sql.NullString           `json:"unitName"`
-	UnitDescription   sql.NullString           `json:"unitDescription"`
-	ModuleID          sql.NullInt32            `json:"moduleId"`
-	ModuleCreatedAt   sql.NullTime             `json:"moduleCreatedAt"`
-	ModuleUpdatedAt   sql.NullTime             `json:"moduleUpdatedAt"`
-	ModuleNumber      sql.NullInt32            `json:"moduleNumber"`
-	ModuleName        sql.NullString           `json:"moduleName"`
-	ModuleDescription sql.NullString           `json:"moduleDescription"`
-	ModuleProgress    sql.NullFloat64          `json:"moduleProgress"`
-	ModuleStatus      NullModuleProgressStatus `json:"moduleStatus"`
+	ID                    int32                    `json:"id"`
+	FolderObjectKey       uuid.NullUUID            `json:"folderObjectKey"`
+	CreatedAt             time.Time                `json:"createdAt"`
+	UpdatedAt             time.Time                `json:"updatedAt"`
+	Name                  string                   `json:"name"`
+	Description           string                   `json:"description"`
+	Requirements          sql.NullString           `json:"requirements"`
+	WhatYouLearn          sql.NullString           `json:"whatYouLearn"`
+	BackgroundColor       sql.NullString           `json:"backgroundColor"`
+	ImgKey                uuid.NullUUID            `json:"imgKey"`
+	MediaExt              sql.NullString           `json:"mediaExt"`
+	DifficultyLevel       NullDifficultyLevel      `json:"difficultyLevel"`
+	Duration              sql.NullInt32            `json:"duration"`
+	Rating                sql.NullFloat64          `json:"rating"`
+	UnitID                sql.NullInt32            `json:"unitId"`
+	UnitFolderObjectKey   uuid.NullUUID            `json:"unitFolderObjectKey"`
+	UnitImgKey            uuid.NullUUID            `json:"unitImgKey"`
+	UnitMediaExt          sql.NullString           `json:"unitMediaExt"`
+	UnitCreatedAt         sql.NullTime             `json:"unitCreatedAt"`
+	UnitUpdatedAt         sql.NullTime             `json:"unitUpdatedAt"`
+	UnitNumber            sql.NullInt32            `json:"unitNumber"`
+	UnitName              sql.NullString           `json:"unitName"`
+	UnitDescription       sql.NullString           `json:"unitDescription"`
+	ModuleID              sql.NullInt32            `json:"moduleId"`
+	ModuleFolderObjectKey uuid.NullUUID            `json:"moduleFolderObjectKey"`
+	ModuleImgKey          uuid.NullUUID            `json:"moduleImgKey"`
+	ModuleMediaExt        sql.NullString           `json:"moduleMediaExt"`
+	ModuleCreatedAt       sql.NullTime             `json:"moduleCreatedAt"`
+	ModuleUpdatedAt       sql.NullTime             `json:"moduleUpdatedAt"`
+	ModuleNumber          sql.NullInt32            `json:"moduleNumber"`
+	ModuleName            sql.NullString           `json:"moduleName"`
+	ModuleDescription     sql.NullString           `json:"moduleDescription"`
+	ModuleProgress        sql.NullFloat64          `json:"moduleProgress"`
+	ModuleStatus          NullModuleProgressStatus `json:"moduleStatus"`
 }
 
 func (q *Queries) GetCourseProgressSummaryBase(ctx context.Context, arg GetCourseProgressSummaryBaseParams) (GetCourseProgressSummaryBaseRow, error) {
@@ -559,6 +612,7 @@ func (q *Queries) GetCourseProgressSummaryBase(ctx context.Context, arg GetCours
 	var i GetCourseProgressSummaryBaseRow
 	err := row.Scan(
 		&i.ID,
+		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Name,
@@ -566,17 +620,24 @@ func (q *Queries) GetCourseProgressSummaryBase(ctx context.Context, arg GetCours
 		&i.Requirements,
 		&i.WhatYouLearn,
 		&i.BackgroundColor,
-		&i.IconUrl,
+		&i.ImgKey,
+		&i.MediaExt,
 		&i.DifficultyLevel,
 		&i.Duration,
 		&i.Rating,
 		&i.UnitID,
+		&i.UnitFolderObjectKey,
+		&i.UnitImgKey,
+		&i.UnitMediaExt,
 		&i.UnitCreatedAt,
 		&i.UnitUpdatedAt,
 		&i.UnitNumber,
 		&i.UnitName,
 		&i.UnitDescription,
 		&i.ModuleID,
+		&i.ModuleFolderObjectKey,
+		&i.ModuleImgKey,
+		&i.ModuleMediaExt,
 		&i.ModuleCreatedAt,
 		&i.ModuleUpdatedAt,
 		&i.ModuleNumber,
@@ -622,6 +683,9 @@ func (q *Queries) GetCourseTags(ctx context.Context, courseID int32) ([]Tag, err
 const getCourseUnits = `-- name: GetCourseUnits :many
 SELECT
     id,
+    folder_object_key,
+    img_key,
+    media_ext,
     created_at,
     updated_at,
     unit_number,
@@ -635,13 +699,16 @@ ORDER BY unit_number
 `
 
 type GetCourseUnitsRow struct {
-	ID          int32     `json:"id"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	UnitNumber  int32     `json:"unitNumber"`
-	CourseID    int32     `json:"courseId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	ID              int32          `json:"id"`
+	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID  `json:"imgKey"`
+	MediaExt        sql.NullString `json:"mediaExt"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	UpdatedAt       time.Time      `json:"updatedAt"`
+	UnitNumber      int32          `json:"unitNumber"`
+	CourseID        int32          `json:"courseId"`
+	Name            string         `json:"name"`
+	Description     string         `json:"description"`
 }
 
 func (q *Queries) GetCourseUnits(ctx context.Context, courseID int32) ([]GetCourseUnitsRow, error) {
@@ -655,6 +722,9 @@ func (q *Queries) GetCourseUnits(ctx context.Context, courseID int32) ([]GetCour
 		var i GetCourseUnitsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.FolderObjectKey,
+			&i.ImgKey,
+			&i.MediaExt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.UnitNumber,
@@ -701,12 +771,18 @@ WITH latest_module_progress AS (
 )
 SELECT
     u.id as unit_id,
+    u.folder_object_key as unit_folder_object_key,
+    u.img_key as unit_img_key,
+    u.media_ext as unit_media_ext,
     u.created_at as unit_created_at,
     u.updated_at as unit_updated_at,
     u.name as unit_name,
     u.description as unit_description,
     u.unit_number as unit_number,
     m.id as module_id,
+    m.folder_object_key as module_folder_object_key,
+    m.img_key as module_img_key,
+    m.media_ext as module_media_ext,
     m.created_at as module_created_at,
     m.updated_at as module_updated_at,
     m.name as module_name,
@@ -726,20 +802,26 @@ type GetCurrentUnitAndModuleParams struct {
 }
 
 type GetCurrentUnitAndModuleRow struct {
-	UnitID            int32                `json:"unitId"`
-	UnitCreatedAt     time.Time            `json:"unitCreatedAt"`
-	UnitUpdatedAt     time.Time            `json:"unitUpdatedAt"`
-	UnitName          string               `json:"unitName"`
-	UnitDescription   string               `json:"unitDescription"`
-	UnitNumber        int32                `json:"unitNumber"`
-	ModuleID          int32                `json:"moduleId"`
-	ModuleCreatedAt   time.Time            `json:"moduleCreatedAt"`
-	ModuleUpdatedAt   time.Time            `json:"moduleUpdatedAt"`
-	ModuleName        string               `json:"moduleName"`
-	ModuleDescription string               `json:"moduleDescription"`
-	ModuleNumber      int32                `json:"moduleNumber"`
-	ModuleProgress    float64              `json:"moduleProgress"`
-	ModuleStatus      ModuleProgressStatus `json:"moduleStatus"`
+	UnitID                int32                `json:"unitId"`
+	UnitFolderObjectKey   uuid.NullUUID        `json:"unitFolderObjectKey"`
+	UnitImgKey            uuid.NullUUID        `json:"unitImgKey"`
+	UnitMediaExt          sql.NullString       `json:"unitMediaExt"`
+	UnitCreatedAt         time.Time            `json:"unitCreatedAt"`
+	UnitUpdatedAt         time.Time            `json:"unitUpdatedAt"`
+	UnitName              string               `json:"unitName"`
+	UnitDescription       string               `json:"unitDescription"`
+	UnitNumber            int32                `json:"unitNumber"`
+	ModuleID              int32                `json:"moduleId"`
+	ModuleFolderObjectKey uuid.NullUUID        `json:"moduleFolderObjectKey"`
+	ModuleImgKey          uuid.NullUUID        `json:"moduleImgKey"`
+	ModuleMediaExt        sql.NullString       `json:"moduleMediaExt"`
+	ModuleCreatedAt       time.Time            `json:"moduleCreatedAt"`
+	ModuleUpdatedAt       time.Time            `json:"moduleUpdatedAt"`
+	ModuleName            string               `json:"moduleName"`
+	ModuleDescription     string               `json:"moduleDescription"`
+	ModuleNumber          int32                `json:"moduleNumber"`
+	ModuleProgress        float64              `json:"moduleProgress"`
+	ModuleStatus          ModuleProgressStatus `json:"moduleStatus"`
 }
 
 func (q *Queries) GetCurrentUnitAndModule(ctx context.Context, arg GetCurrentUnitAndModuleParams) (GetCurrentUnitAndModuleRow, error) {
@@ -747,12 +829,18 @@ func (q *Queries) GetCurrentUnitAndModule(ctx context.Context, arg GetCurrentUni
 	var i GetCurrentUnitAndModuleRow
 	err := row.Scan(
 		&i.UnitID,
+		&i.UnitFolderObjectKey,
+		&i.UnitImgKey,
+		&i.UnitMediaExt,
 		&i.UnitCreatedAt,
 		&i.UnitUpdatedAt,
 		&i.UnitName,
 		&i.UnitDescription,
 		&i.UnitNumber,
 		&i.ModuleID,
+		&i.ModuleFolderObjectKey,
+		&i.ModuleImgKey,
+		&i.ModuleMediaExt,
 		&i.ModuleCreatedAt,
 		&i.ModuleUpdatedAt,
 		&i.ModuleName,
@@ -779,12 +867,18 @@ latest_progress AS (
         u.unit_number,
         u.name as unit_name,
         u.description as unit_description,
+        u.folder_object_key as unit_folder_object_key,
+        u.img_key as unit_img_key,
+        u.media_ext as unit_media_ext,
         m.id as module_id,
         m.created_at as module_created_at,
         m.updated_at as module_updated_at,
         m.module_number,
         m.name as module_name,
         m.description as module_description,
+        m.folder_object_key as module_folder_object_key,
+        m.img_key as module_img_key,
+        m.media_ext as module_media_ext,
         ump.progress as module_progress,
         ump.status as module_status
     FROM units u
@@ -796,7 +890,7 @@ latest_progress AS (
 ),
 enrolled_courses AS (
     SELECT 
-        c.id, c.created_at, c.updated_at, c.draft, c.name, c.description, c.requirements, c.what_you_learn, c.background_color, c.icon_url, c.duration, c.difficulty_level, c.rating,
+        c.id, c.folder_object_key, c.created_at, c.updated_at, c.draft, c.name, c.description, c.img_key, c.media_ext, c.requirements, c.what_you_learn, c.background_color, c.duration, c.difficulty_level, c.rating,
         uc.progress as course_progress,
         (SELECT total FROM enrolled_count) as total_count,
         lp.unit_id,
@@ -805,12 +899,18 @@ enrolled_courses AS (
         lp.unit_number,
         lp.unit_name,
         lp.unit_description,
+        lp.unit_folder_object_key,
+        lp.unit_img_key,
+        lp.unit_media_ext,
         lp.module_id,
         lp.module_created_at,
         lp.module_updated_at,
         lp.module_number,
         lp.module_name,
         lp.module_description,
+        lp.module_folder_object_key,
+        lp.module_img_key,
+        lp.module_media_ext,
         lp.module_progress,
         lp.module_status
     FROM courses c
@@ -823,6 +923,7 @@ enrolled_courses AS (
 )
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -830,7 +931,8 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
+    c.media_ext,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -840,6 +942,9 @@ SELECT
     COALESCE(c.unit_number, 0) as unit_number,
     COALESCE(c.unit_name, '') as unit_name,
     COALESCE(c.unit_description, '') as unit_description,
+    COALESCE(c.unit_folder_object_key, '') as unit_folder_object_key,
+    COALESCE(c.unit_img_key, '') as unit_img_key,
+    COALESCE(c.unit_media_ext, '') as unit_media_ext,
     COALESCE(c.module_id, 0) as current_module_id,
     COALESCE(c.module_created_at, NOW()) as module_created_at,
     COALESCE(c.module_updated_at, NOW()) as module_updated_at,
@@ -849,6 +954,9 @@ SELECT
     COALESCE(c.module_description, '') as module_description,
     COALESCE(c.module_progress, 0) as module_progress,
     COALESCE(c.module_status, 'uninitiated') as module_status,
+    COALESCE(c.module_folder_object_key, '') as module_folder_object_key,
+    COALESCE(c.module_img_key, '') as module_img_key,
+    COALESCE(c.module_media_ext, '') as module_media_ext,
     c.course_progress,
     c.total_count
 FROM enrolled_courses c
@@ -861,35 +969,43 @@ type GetEnrolledCoursesWithProgressParams struct {
 }
 
 type GetEnrolledCoursesWithProgressRow struct {
-	ID                int32                `json:"id"`
-	CreatedAt         time.Time            `json:"createdAt"`
-	UpdatedAt         time.Time            `json:"updatedAt"`
-	Name              string               `json:"name"`
-	Description       string               `json:"description"`
-	Requirements      sql.NullString       `json:"requirements"`
-	WhatYouLearn      sql.NullString       `json:"whatYouLearn"`
-	BackgroundColor   sql.NullString       `json:"backgroundColor"`
-	IconUrl           sql.NullString       `json:"iconUrl"`
-	Duration          sql.NullInt32        `json:"duration"`
-	DifficultyLevel   NullDifficultyLevel  `json:"difficultyLevel"`
-	Rating            sql.NullFloat64      `json:"rating"`
-	CurrentUnitID     int32                `json:"currentUnitId"`
-	UnitCreatedAt     sql.NullTime         `json:"unitCreatedAt"`
-	UnitUpdatedAt     sql.NullTime         `json:"unitUpdatedAt"`
-	UnitNumber        int32                `json:"unitNumber"`
-	UnitName          string               `json:"unitName"`
-	UnitDescription   string               `json:"unitDescription"`
-	CurrentModuleID   int32                `json:"currentModuleId"`
-	ModuleCreatedAt   sql.NullTime         `json:"moduleCreatedAt"`
-	ModuleUpdatedAt   sql.NullTime         `json:"moduleUpdatedAt"`
-	ModuleNumber      int32                `json:"moduleNumber"`
-	ModuleUnitID      int32                `json:"moduleUnitId"`
-	ModuleName        string               `json:"moduleName"`
-	ModuleDescription string               `json:"moduleDescription"`
-	ModuleProgress    float64              `json:"moduleProgress"`
-	ModuleStatus      ModuleProgressStatus `json:"moduleStatus"`
-	CourseProgress    float64              `json:"courseProgress"`
-	TotalCount        int64                `json:"totalCount"`
+	ID                    int32                `json:"id"`
+	FolderObjectKey       uuid.NullUUID        `json:"folderObjectKey"`
+	CreatedAt             time.Time            `json:"createdAt"`
+	UpdatedAt             time.Time            `json:"updatedAt"`
+	Name                  string               `json:"name"`
+	Description           string               `json:"description"`
+	Requirements          sql.NullString       `json:"requirements"`
+	WhatYouLearn          sql.NullString       `json:"whatYouLearn"`
+	BackgroundColor       sql.NullString       `json:"backgroundColor"`
+	ImgKey                uuid.NullUUID        `json:"imgKey"`
+	MediaExt              sql.NullString       `json:"mediaExt"`
+	Duration              sql.NullInt32        `json:"duration"`
+	DifficultyLevel       NullDifficultyLevel  `json:"difficultyLevel"`
+	Rating                sql.NullFloat64      `json:"rating"`
+	CurrentUnitID         int32                `json:"currentUnitId"`
+	UnitCreatedAt         sql.NullTime         `json:"unitCreatedAt"`
+	UnitUpdatedAt         sql.NullTime         `json:"unitUpdatedAt"`
+	UnitNumber            int32                `json:"unitNumber"`
+	UnitName              string               `json:"unitName"`
+	UnitDescription       string               `json:"unitDescription"`
+	UnitFolderObjectKey   uuid.UUID            `json:"unitFolderObjectKey"`
+	UnitImgKey            uuid.UUID            `json:"unitImgKey"`
+	UnitMediaExt          string               `json:"unitMediaExt"`
+	CurrentModuleID       int32                `json:"currentModuleId"`
+	ModuleCreatedAt       sql.NullTime         `json:"moduleCreatedAt"`
+	ModuleUpdatedAt       sql.NullTime         `json:"moduleUpdatedAt"`
+	ModuleNumber          int32                `json:"moduleNumber"`
+	ModuleUnitID          int32                `json:"moduleUnitId"`
+	ModuleName            string               `json:"moduleName"`
+	ModuleDescription     string               `json:"moduleDescription"`
+	ModuleProgress        float64              `json:"moduleProgress"`
+	ModuleStatus          ModuleProgressStatus `json:"moduleStatus"`
+	ModuleFolderObjectKey uuid.UUID            `json:"moduleFolderObjectKey"`
+	ModuleImgKey          uuid.UUID            `json:"moduleImgKey"`
+	ModuleMediaExt        string               `json:"moduleMediaExt"`
+	CourseProgress        float64              `json:"courseProgress"`
+	TotalCount            int64                `json:"totalCount"`
 }
 
 func (q *Queries) GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnrolledCoursesWithProgressParams) ([]GetEnrolledCoursesWithProgressRow, error) {
@@ -903,6 +1019,7 @@ func (q *Queries) GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnr
 		var i GetEnrolledCoursesWithProgressRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Name,
@@ -910,7 +1027,8 @@ func (q *Queries) GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnr
 			&i.Requirements,
 			&i.WhatYouLearn,
 			&i.BackgroundColor,
-			&i.IconUrl,
+			&i.ImgKey,
+			&i.MediaExt,
 			&i.Duration,
 			&i.DifficultyLevel,
 			&i.Rating,
@@ -920,6 +1038,9 @@ func (q *Queries) GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnr
 			&i.UnitNumber,
 			&i.UnitName,
 			&i.UnitDescription,
+			&i.UnitFolderObjectKey,
+			&i.UnitImgKey,
+			&i.UnitMediaExt,
 			&i.CurrentModuleID,
 			&i.ModuleCreatedAt,
 			&i.ModuleUpdatedAt,
@@ -929,6 +1050,9 @@ func (q *Queries) GetEnrolledCoursesWithProgress(ctx context.Context, arg GetEnr
 			&i.ModuleDescription,
 			&i.ModuleProgress,
 			&i.ModuleStatus,
+			&i.ModuleFolderObjectKey,
+			&i.ModuleImgKey,
+			&i.ModuleMediaExt,
 			&i.CourseProgress,
 			&i.TotalCount,
 		); err != nil {
@@ -969,20 +1093,29 @@ func (q *Queries) GetFirstUnitAndModuleInCourse(ctx context.Context, courseID in
 }
 
 const getMarkdownSection = `-- name: GetMarkdownSection :one
-SELECT markdown
+SELECT 
+    markdown as markdown,
+    object_key as object_key,
+    media_ext as media_ext
 FROM markdown_sections
 WHERE section_id = $1::int
 `
 
-func (q *Queries) GetMarkdownSection(ctx context.Context, sectionID int32) (string, error) {
+type GetMarkdownSectionRow struct {
+	Markdown  string         `json:"markdown"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+}
+
+func (q *Queries) GetMarkdownSection(ctx context.Context, sectionID int32) (GetMarkdownSectionRow, error) {
 	row := q.db.QueryRowContext(ctx, getMarkdownSection, sectionID)
-	var markdown string
-	err := row.Scan(&markdown)
-	return markdown, err
+	var i GetMarkdownSectionRow
+	err := row.Scan(&i.Markdown, &i.ObjectKey, &i.MediaExt)
+	return i, err
 }
 
 const getModuleProgressByUnit = `-- name: GetModuleProgressByUnit :many
-SELECT m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description, ump.progress, ump.status
+SELECT m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description, m.folder_object_key, m.img_key, m.media_ext, ump.progress, ump.status
 FROM
     modules m
     LEFT JOIN user_module_progress ump ON ump.module_id = m.id
@@ -998,15 +1131,18 @@ type GetModuleProgressByUnitParams struct {
 }
 
 type GetModuleProgressByUnitRow struct {
-	ID           int32                    `json:"id"`
-	CreatedAt    time.Time                `json:"createdAt"`
-	UpdatedAt    time.Time                `json:"updatedAt"`
-	ModuleNumber int32                    `json:"moduleNumber"`
-	UnitID       int32                    `json:"unitId"`
-	Name         string                   `json:"name"`
-	Description  string                   `json:"description"`
-	Progress     sql.NullFloat64          `json:"progress"`
-	Status       NullModuleProgressStatus `json:"status"`
+	ID              int32                    `json:"id"`
+	CreatedAt       time.Time                `json:"createdAt"`
+	UpdatedAt       time.Time                `json:"updatedAt"`
+	ModuleNumber    int32                    `json:"moduleNumber"`
+	UnitID          int32                    `json:"unitId"`
+	Name            string                   `json:"name"`
+	Description     string                   `json:"description"`
+	FolderObjectKey uuid.NullUUID            `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID            `json:"imgKey"`
+	MediaExt        sql.NullString           `json:"mediaExt"`
+	Progress        sql.NullFloat64          `json:"progress"`
+	Status          NullModuleProgressStatus `json:"status"`
 }
 
 func (q *Queries) GetModuleProgressByUnit(ctx context.Context, arg GetModuleProgressByUnitParams) ([]GetModuleProgressByUnitRow, error) {
@@ -1026,6 +1162,9 @@ func (q *Queries) GetModuleProgressByUnit(ctx context.Context, arg GetModuleProg
 			&i.UnitID,
 			&i.Name,
 			&i.Description,
+			&i.FolderObjectKey,
+			&i.ImgKey,
+			&i.MediaExt,
 			&i.Progress,
 			&i.Status,
 		); err != nil {
@@ -1120,6 +1259,8 @@ SELECT
     q.id,
     q.question,
     q.type,
+    object_key as object_key,
+    media_ext as media_ext,
     COALESCE(
         json_agg(
             json_build_object(
@@ -1138,10 +1279,12 @@ GROUP BY q.id, q.question, q.type
 `
 
 type GetQuestionSectionRow struct {
-	ID              int32       `json:"id"`
-	Question        string      `json:"question"`
-	Type            string      `json:"type"`
-	QuestionOptions interface{} `json:"questionOptions"`
+	ID              int32          `json:"id"`
+	Question        string         `json:"question"`
+	Type            string         `json:"type"`
+	ObjectKey       uuid.NullUUID  `json:"objectKey"`
+	MediaExt        sql.NullString `json:"mediaExt"`
+	QuestionOptions interface{}    `json:"questionOptions"`
 }
 
 func (q *Queries) GetQuestionSection(ctx context.Context, sectionID int32) (GetQuestionSectionRow, error) {
@@ -1151,6 +1294,8 @@ func (q *Queries) GetQuestionSection(ctx context.Context, sectionID int32) (GetQ
 		&i.ID,
 		&i.Question,
 		&i.Type,
+		&i.ObjectKey,
+		&i.MediaExt,
 		&i.QuestionOptions,
 	)
 	return i, err
@@ -1160,18 +1305,20 @@ const getSectionContent = `-- name: GetSectionContent :one
 SELECT 
     CASE s.type
         WHEN 'markdown' THEN (
-            SELECT jsonb_build_object('markdown', markdown)
+            SELECT jsonb_build_object('markdown', markdown, 'object_key', object_key, 'media_ext', media_ext)
             FROM markdown_sections
             WHERE section_id = s.id
         )
         WHEN 'video' THEN (
-            SELECT jsonb_build_object('url', url)
+            SELECT jsonb_build_object('url', url, 'object_key', object_key, 'media_ext', media_ext)
             FROM video_sections
             WHERE section_id = s.id
         )
         WHEN 'question' THEN (
             SELECT jsonb_build_object(
                 'id', q.id,
+                'object_key', object_key,
+                'media_ext', media_ext,
                 'question', q.question,
                 'type', q.type,
                 'options', (
@@ -1188,10 +1335,29 @@ SELECT
             JOIN questions q ON q.id = qs.question_id
             WHERE qs.section_id = s.id
         )
+        WHEN 'lottie' THEN (
+            SELECT jsonb_build_object(
+                'caption', caption,
+                'description', description,
+                'object_key', object_key,
+                'media_ext', media_ext,
+                'width', width,
+                'height', height,
+                'alt_text', alt_text,
+                'fallback_url', fallback_url,
+                'autoplay', autoplay,
+                'loop', loop,
+                'speed', speed
+            )
+            FROM lottie_sections
+            WHERE section_id = s.id
+        )
         WHEN 'code' THEN (
             SELECT jsonb_build_object(
                 'code', code, 
-                'language', language
+                'language', language,
+                'object_key', object_key,
+                'media_ext', media_ext
             )
             FROM code_sections
             WHERE section_id = s.id
@@ -1211,6 +1377,9 @@ func (q *Queries) GetSectionContent(ctx context.Context, sectionID int32) (inter
 const getUnitModules = `-- name: GetUnitModules :many
 SELECT
     id,
+    folder_object_key,
+    img_key,
+    media_ext,
     created_at,
     updated_at,
     module_number,
@@ -1224,13 +1393,16 @@ ORDER BY module_number
 `
 
 type GetUnitModulesRow struct {
-	ID           int32     `json:"id"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	ModuleNumber int32     `json:"moduleNumber"`
-	UnitID       int32     `json:"unitId"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
+	ID              int32          `json:"id"`
+	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID  `json:"imgKey"`
+	MediaExt        sql.NullString `json:"mediaExt"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	UpdatedAt       time.Time      `json:"updatedAt"`
+	ModuleNumber    int32          `json:"moduleNumber"`
+	UnitID          int32          `json:"unitId"`
+	Name            string         `json:"name"`
+	Description     string         `json:"description"`
 }
 
 func (q *Queries) GetUnitModules(ctx context.Context, unitID int32) ([]GetUnitModulesRow, error) {
@@ -1244,6 +1416,9 @@ func (q *Queries) GetUnitModules(ctx context.Context, unitID int32) ([]GetUnitMo
 		var i GetUnitModulesRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.FolderObjectKey,
+			&i.ImgKey,
+			&i.MediaExt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ModuleNumber,
@@ -1266,16 +1441,24 @@ func (q *Queries) GetUnitModules(ctx context.Context, unitID int32) ([]GetUnitMo
 
 const getVideoSection = `-- name: GetVideoSection :one
 SELECT 
-    url as url
+    url as url,
+    object_key as object_key,
+    media_ext as media_ext
 FROM video_sections
 WHERE section_id = $1::int
 `
 
-func (q *Queries) GetVideoSection(ctx context.Context, sectionID int32) (string, error) {
+type GetVideoSectionRow struct {
+	Url       string         `json:"url"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+}
+
+func (q *Queries) GetVideoSection(ctx context.Context, sectionID int32) (GetVideoSectionRow, error) {
 	row := q.db.QueryRowContext(ctx, getVideoSection, sectionID)
-	var url string
-	err := row.Scan(&url)
-	return url, err
+	var i GetVideoSectionRow
+	err := row.Scan(&i.Url, &i.ObjectKey, &i.MediaExt)
+	return i, err
 }
 
 const initializeModuleProgress = `-- name: InitializeModuleProgress :exec
@@ -1402,6 +1585,7 @@ func (q *Queries) SearchCourseTags(ctx context.Context, arg SearchCourseTagsPara
 const searchCourses = `-- name: SearchCourses :many
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -1409,7 +1593,7 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -1442,6 +1626,7 @@ type SearchCoursesParams struct {
 
 type SearchCoursesRow struct {
 	ID              int32               `json:"id"`
+	FolderObjectKey uuid.NullUUID       `json:"folderObjectKey"`
 	CreatedAt       time.Time           `json:"createdAt"`
 	UpdatedAt       time.Time           `json:"updatedAt"`
 	Name            string              `json:"name"`
@@ -1449,7 +1634,7 @@ type SearchCoursesRow struct {
 	Requirements    sql.NullString      `json:"requirements"`
 	WhatYouLearn    sql.NullString      `json:"whatYouLearn"`
 	BackgroundColor sql.NullString      `json:"backgroundColor"`
-	IconUrl         sql.NullString      `json:"iconUrl"`
+	ImgKey          uuid.NullUUID       `json:"imgKey"`
 	Duration        sql.NullInt32       `json:"duration"`
 	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
 	Rating          sql.NullFloat64     `json:"rating"`
@@ -1467,6 +1652,7 @@ func (q *Queries) SearchCourses(ctx context.Context, arg SearchCoursesParams) ([
 		var i SearchCoursesRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Name,
@@ -1474,7 +1660,7 @@ func (q *Queries) SearchCourses(ctx context.Context, arg SearchCoursesParams) ([
 			&i.Requirements,
 			&i.WhatYouLearn,
 			&i.BackgroundColor,
-			&i.IconUrl,
+			&i.ImgKey,
 			&i.Duration,
 			&i.DifficultyLevel,
 			&i.Rating,
@@ -1496,6 +1682,7 @@ func (q *Queries) SearchCourses(ctx context.Context, arg SearchCoursesParams) ([
 const searchCoursesFullText = `-- name: SearchCoursesFullText :many
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -1503,7 +1690,7 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -1535,6 +1722,7 @@ type SearchCoursesFullTextParams struct {
 
 type SearchCoursesFullTextRow struct {
 	ID              int32               `json:"id"`
+	FolderObjectKey uuid.NullUUID       `json:"folderObjectKey"`
 	CreatedAt       time.Time           `json:"createdAt"`
 	UpdatedAt       time.Time           `json:"updatedAt"`
 	Name            string              `json:"name"`
@@ -1542,7 +1730,7 @@ type SearchCoursesFullTextRow struct {
 	Requirements    sql.NullString      `json:"requirements"`
 	WhatYouLearn    sql.NullString      `json:"whatYouLearn"`
 	BackgroundColor sql.NullString      `json:"backgroundColor"`
-	IconUrl         sql.NullString      `json:"iconUrl"`
+	ImgKey          uuid.NullUUID       `json:"imgKey"`
 	Duration        sql.NullInt32       `json:"duration"`
 	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
 	Rating          sql.NullFloat64     `json:"rating"`
@@ -1561,6 +1749,7 @@ func (q *Queries) SearchCoursesFullText(ctx context.Context, arg SearchCoursesFu
 		var i SearchCoursesFullTextRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Name,
@@ -1568,7 +1757,7 @@ func (q *Queries) SearchCoursesFullText(ctx context.Context, arg SearchCoursesFu
 			&i.Requirements,
 			&i.WhatYouLearn,
 			&i.BackgroundColor,
-			&i.IconUrl,
+			&i.ImgKey,
 			&i.Duration,
 			&i.DifficultyLevel,
 			&i.Rating,
@@ -1617,58 +1806,70 @@ SET
         WHEN $2::text = '' THEN description 
         ELSE $2::text 
     END,
-    requirements = CASE 
-        WHEN $3::text = '' THEN requirements 
-        ELSE $3::text 
+    folder_object_key = CASE 
+        WHEN $3::UUID IS NULL THEN folder_object_key 
+        ELSE $3::UUID 
     END,
-    what_you_learn = CASE 
-        WHEN $4::text = '' THEN what_you_learn 
+    media_ext = CASE 
+        WHEN $4::text = '' THEN media_ext 
         ELSE $4::text 
     END,
-    background_color = CASE 
-        WHEN $5::text = '' THEN background_color 
+    requirements = CASE 
+        WHEN $5::text = '' THEN requirements 
         ELSE $5::text 
     END,
-    icon_url = CASE 
-        WHEN $6::text = '' THEN icon_url 
+    what_you_learn = CASE 
+        WHEN $6::text = '' THEN what_you_learn 
         ELSE $6::text 
     END,
+    background_color = CASE 
+        WHEN $7::text = '' THEN background_color 
+        ELSE $7::text 
+    END,
+    img_key = CASE 
+        WHEN $8::UUID IS NULL THEN img_key 
+        ELSE $8::UUID 
+    END,
     duration = CASE 
-        WHEN $7::int = 0 THEN duration 
-        ELSE $7::int 
+        WHEN $9::int = 0 THEN duration 
+        ELSE $9::int 
     END,
     difficulty_level = CASE 
-        WHEN $8::text = '' THEN difficulty_level 
-        ELSE $8::difficulty_level 
+        WHEN $10::text = '' THEN difficulty_level 
+        ELSE $10::difficulty_level 
     END,
     rating = CASE 
-        WHEN $9::float < 0 THEN rating 
-        ELSE $9::float 
+        WHEN $11::float < 0 THEN rating 
+        ELSE $11::float 
     END
-WHERE id = $10::int
+WHERE id = $12::int
 `
 
 type UpdateCourseParams struct {
-	Name            string  `json:"name"`
-	Description     string  `json:"description"`
-	Requirements    string  `json:"requirements"`
-	WhatYouLearn    string  `json:"whatYouLearn"`
-	BackgroundColor string  `json:"backgroundColor"`
-	IconUrl         string  `json:"iconUrl"`
-	Duration        int32   `json:"duration"`
-	DifficultyLevel string  `json:"difficultyLevel"`
-	Rating          float64 `json:"rating"`
-	CourseID        int32   `json:"courseId"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	FolderObjectKey uuid.UUID `json:"folderObjectKey"`
+	MediaExt        string    `json:"mediaExt"`
+	Requirements    string    `json:"requirements"`
+	WhatYouLearn    string    `json:"whatYouLearn"`
+	BackgroundColor string    `json:"backgroundColor"`
+	ImgKey          uuid.UUID `json:"imgKey"`
+	Duration        int32     `json:"duration"`
+	DifficultyLevel string    `json:"difficultyLevel"`
+	Rating          float64   `json:"rating"`
+	CourseID        int32     `json:"courseId"`
 }
 
 func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) error {
 	_, err := q.db.ExecContext(ctx, updateCourse,
 		arg.Name,
 		arg.Description,
+		arg.FolderObjectKey,
+		arg.MediaExt,
 		arg.Requirements,
 		arg.WhatYouLearn,
 		arg.BackgroundColor,
-		arg.IconUrl,
+		arg.ImgKey,
 		arg.Duration,
 		arg.DifficultyLevel,
 		arg.Rating,

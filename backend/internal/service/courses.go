@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type CourseService interface {
@@ -92,10 +94,12 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, use
 			Requirements:    nullStringToString(result.Requirements),
 			WhatYouLearn:    nullStringToString(result.WhatYouLearn),
 			BackgroundColor: nullStringToString(result.BackgroundColor),
-			IconURL:         nullStringToString(result.IconUrl),
 			Duration:        nullInt32ToInt16(result.Duration),
 			DifficultyLevel: models.DifficultyLevel(result.DifficultyLevel.DifficultyLevel),
 			Rating:          result.Rating.Float64,
+			FolderObjectKey: uuid.NullUUID{UUID: result.FolderObjectKey.UUID, Valid: result.FolderObjectKey.Valid},
+			ImgKey:          uuid.NullUUID{UUID: result.ImgKey.UUID, Valid: result.ImgKey.Valid},
+			MediaExt:        result.MediaExt.String,
 		}
 
 		// Get authors for each course
@@ -136,6 +140,7 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, use
 				UnitNumber:  int16(result.UnitNumber),
 				Name:        result.UnitName,
 				Description: result.UnitDescription,
+				MediaExt:    result.MediaExt.String,
 			}
 		}
 
@@ -149,6 +154,7 @@ func (r *courseService) ListEnrolledCoursesWithProgress(ctx context.Context, use
 				ModuleNumber: int16(result.ModuleNumber),
 				Name:         result.ModuleName,
 				Description:  result.ModuleDescription,
+				MediaExt:     result.MediaExt.String,
 			}
 		}
 
@@ -196,10 +202,12 @@ func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, 
 			},
 			Name:            result.Name,
 			Description:     result.Description,
+			FolderObjectKey: uuid.NullUUID{UUID: result.FolderObjectKey.UUID, Valid: result.FolderObjectKey.Valid},
 			Requirements:    nullStringToString(result.Requirements),
 			WhatYouLearn:    nullStringToString(result.WhatYouLearn),
 			BackgroundColor: nullStringToString(result.BackgroundColor),
-			IconURL:         nullStringToString(result.IconUrl),
+			ImgKey:          uuid.NullUUID{UUID: result.ImgKey.UUID, Valid: result.ImgKey.Valid},
+			MediaExt:        result.MediaExt.String,
 			Duration:        nullInt32ToInt16(result.Duration),
 			DifficultyLevel: models.DifficultyLevel(result.DifficultyLevel.DifficultyLevel),
 			Rating:          result.Rating.Float64,
@@ -241,6 +249,7 @@ func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, 
 				UnitNumber:  int16(result.UnitNumber.Int32),
 				Name:        result.UnitName.String,
 				Description: result.UnitDescription.String,
+				MediaExt:    result.MediaExt.String,
 			}
 		}
 
@@ -256,6 +265,7 @@ func (r *courseService) ListAllCoursesWithOptionalProgress(ctx context.Context, 
 				Description:  result.ModuleDescription.String,
 				Progress:     float32(result.ModuleProgress),
 				Status:       string(result.ModuleStatus),
+				MediaExt:     result.MediaExt.String,
 			}
 		}
 
@@ -297,7 +307,9 @@ func (r *courseService) GetCourse(ctx context.Context, courseID int64) (*models.
 		Requirements:    nullStringToString(courseData.Requirements),
 		WhatYouLearn:    nullStringToString(courseData.WhatYouLearn),
 		BackgroundColor: nullStringToString(courseData.BackgroundColor),
-		IconURL:         nullStringToString(courseData.IconUrl),
+		FolderObjectKey: uuid.NullUUID{UUID: courseData.FolderObjectKey.UUID, Valid: courseData.FolderObjectKey.Valid},
+		ImgKey:          uuid.NullUUID{UUID: courseData.ImgKey.UUID, Valid: courseData.ImgKey.Valid},
+		MediaExt:        courseData.MediaExt.String,
 		Duration:        int16(courseData.Duration.Int32),
 		DifficultyLevel: models.DifficultyLevel(courseData.DifficultyLevel.DifficultyLevel),
 		Rating:          courseData.Rating.Float64,
@@ -408,7 +420,8 @@ func (r *courseService) GetCourseWithProgress(ctx context.Context, userID int64,
 		Requirements:    nullStringToString(courseData.Requirements),
 		WhatYouLearn:    nullStringToString(courseData.WhatYouLearn),
 		BackgroundColor: nullStringToString(courseData.BackgroundColor),
-		IconURL:         nullStringToString(courseData.IconUrl),
+		ImgKey:          uuid.NullUUID{UUID: courseData.ImgKey.UUID, Valid: courseData.ImgKey.Valid},
+		MediaExt:        courseData.MediaExt.String,
 		Duration:        int16(courseData.Duration.Int32),
 		DifficultyLevel: models.DifficultyLevel(courseData.DifficultyLevel.DifficultyLevel),
 		Rating:          courseData.Rating.Float64,
@@ -459,6 +472,7 @@ func (r *courseService) GetCourseWithProgress(ctx context.Context, userID int64,
 			UnitNumber:  int16(currentUnitAndModule.UnitNumber),
 			Name:        currentUnitAndModule.UnitName,
 			Description: currentUnitAndModule.UnitDescription,
+			MediaExt:    currentUnitAndModule.UnitMediaExt.String,
 		}
 	}
 
@@ -474,6 +488,7 @@ func (r *courseService) GetCourseWithProgress(ctx context.Context, userID int64,
 			Description:  currentUnitAndModule.ModuleDescription,
 			Progress:     float32(currentUnitAndModule.ModuleProgress),
 			Status:       string(currentUnitAndModule.ModuleStatus),
+			MediaExt:     currentUnitAndModule.ModuleMediaExt.String,
 		}
 	}
 
@@ -494,6 +509,7 @@ func (r *courseService) GetCourseWithProgress(ctx context.Context, userID int64,
 			UnitNumber:  int16(unit.UnitNumber),
 			Name:        unit.Name,
 			Description: unit.Description,
+			MediaExt:    unit.MediaExt.String,
 		}
 
 		modules, err := r.queries.GetModuleProgressByUnit(ctx, gen.GetModuleProgressByUnitParams{
@@ -565,7 +581,9 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.MarkdownContent{
-				Markdown: markdownContent,
+				Markdown:  markdownContent.Markdown,
+				ObjectKey: markdownContent.ObjectKey,
+				MediaExt:  markdownContent.MediaExt.String,
 			},
 			SectionProgress: &models.SectionProgress{
 				SectionID:   int64(section.ID),
@@ -591,7 +609,9 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.VideoContent{
-				URL: url,
+				URL:       url.Url,
+				ObjectKey: url.ObjectKey,
+				MediaExt:  url.MediaExt.String,
 			},
 		}
 
@@ -621,10 +641,12 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.QuestionContent{
-				ID:       int64(questionContent.ID),
-				Question: questionContent.Question,
-				Type:     questionContent.Type,
-				Options:  options,
+				ID:        int64(questionContent.ID),
+				Question:  questionContent.Question,
+				Type:      questionContent.Type,
+				Options:   options,
+				ObjectKey: questionContent.ObjectKey,
+				MediaExt:  questionContent.MediaExt.String,
 			},
 			SectionProgress: &models.SectionProgress{
 				SectionID:   int64(section.ID),
@@ -651,7 +673,10 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 			Type:     models.SectionType(section.Type),
 			Position: int16(section.Position),
 			Content: models.CodeContent{
-				Code: codeContent.Code,
+				Code:      codeContent.Code,
+				Language:  codeContent.Language.String,
+				ObjectKey: codeContent.ObjectKey,
+				MediaExt:  codeContent.MediaExt.String,
 			},
 			SectionProgress: &models.SectionProgress{
 				SectionID:   int64(section.ID),
@@ -707,17 +732,30 @@ func (r *courseService) StartCourse(ctx context.Context, userID int64, courseID 
 func (r *courseService) CreateCourse(ctx context.Context, course models.Course) (*models.Course, error) {
 	log := r.log.WithBaseFields(logger.Service, "CreateCourse")
 
-	courseID, err := r.queries.CreateCourse(ctx, gen.CreateCourseParams{
-		Name:            course.Name,
-		Description:     course.Description,
-		Requirements:    course.Requirements,
-		WhatYouLearn:    course.WhatYouLearn,
-		BackgroundColor: course.BackgroundColor,
-		IconUrl:         course.IconURL,
-		Duration:        int32(course.Duration),
-		DifficultyLevel: gen.DifficultyLevel(course.DifficultyLevel),
-		Rating:          float64(course.Rating),
-	})
+	var params gen.CreateCourseParams
+
+	params.Name = course.Name
+	params.Description = course.Description
+	params.Requirements = course.Requirements
+	params.WhatYouLearn = course.WhatYouLearn
+	params.BackgroundColor = course.BackgroundColor
+	params.Duration = int32(course.Duration)
+	params.DifficultyLevel = gen.DifficultyLevel(course.DifficultyLevel)
+	params.Rating = float64(course.Rating)
+
+	if course.FolderObjectKey.Valid {
+		params.FolderObjectKey = course.FolderObjectKey.UUID
+	}
+
+	if course.ImgKey.Valid {
+		params.ImgKey = course.ImgKey.UUID
+	}
+
+	if course.MediaExt != "" {
+		params.MediaExt = course.MediaExt
+	}
+
+	courseID, err := r.queries.CreateCourse(ctx, params)
 	if err != nil {
 		log.WithError(err).Error("failed to create course")
 		return nil, fmt.Errorf("failed to create course: %w", err)
@@ -739,10 +777,12 @@ func (r *courseService) GetCourseByID(ctx context.Context, courseID int32) (*mod
 		},
 		Name:            course.Name,
 		Description:     course.Description,
+		FolderObjectKey: course.FolderObjectKey,
 		Requirements:    nullStringToString(course.Requirements),
 		WhatYouLearn:    nullStringToString(course.WhatYouLearn),
 		BackgroundColor: nullStringToString(course.BackgroundColor),
-		IconURL:         nullStringToString(course.IconUrl),
+		ImgKey:          course.ImgKey,
+		MediaExt:        course.MediaExt.String,
 		Duration:        nullInt32ToInt16(course.Duration),
 		DifficultyLevel: models.DifficultyLevel(course.DifficultyLevel.DifficultyLevel),
 		Rating:          course.Rating.Float64,
@@ -759,10 +799,17 @@ func (r *courseService) UpdateCourse(ctx context.Context, course models.Course) 
 		Requirements:    course.Requirements,
 		WhatYouLearn:    course.WhatYouLearn,
 		BackgroundColor: course.BackgroundColor,
-		IconUrl:         course.IconURL,
 		Duration:        int32(course.Duration),
 		DifficultyLevel: string(course.DifficultyLevel),
 		Rating:          -1, // Default to -1 to keep existing value
+	}
+
+	if course.FolderObjectKey.Valid {
+		params.FolderObjectKey = course.FolderObjectKey.UUID
+	}
+
+	if course.ImgKey.Valid {
+		params.ImgKey = course.ImgKey.UUID
 	}
 
 	if course.Rating >= 0 {
@@ -921,10 +968,11 @@ func (r *courseService) SearchCourses(ctx context.Context, query string, page in
 				},
 				Name:            result.Name,
 				Description:     result.Description,
+				FolderObjectKey: uuid.NullUUID{UUID: result.FolderObjectKey.UUID, Valid: result.FolderObjectKey.Valid},
 				Requirements:    nullStringToString(result.Requirements),
 				WhatYouLearn:    nullStringToString(result.WhatYouLearn),
 				BackgroundColor: nullStringToString(result.BackgroundColor),
-				IconURL:         nullStringToString(result.IconUrl),
+				ImgKey:          uuid.NullUUID{UUID: result.ImgKey.UUID, Valid: result.ImgKey.Valid},
 				Duration:        nullInt32ToInt16(result.Duration),
 				DifficultyLevel: models.DifficultyLevel(result.DifficultyLevel.DifficultyLevel),
 				Rating:          result.Rating.Float64,
@@ -953,10 +1001,11 @@ func (r *courseService) SearchCourses(ctx context.Context, query string, page in
 				},
 				Name:            result.Name,
 				Description:     result.Description,
+				FolderObjectKey: uuid.NullUUID{UUID: result.FolderObjectKey.UUID, Valid: result.FolderObjectKey.Valid},
 				Requirements:    nullStringToString(result.Requirements),
 				WhatYouLearn:    nullStringToString(result.WhatYouLearn),
 				BackgroundColor: nullStringToString(result.BackgroundColor),
-				IconURL:         nullStringToString(result.IconUrl),
+				ImgKey:          uuid.NullUUID{UUID: result.ImgKey.UUID, Valid: result.ImgKey.Valid},
 				Duration:        nullInt32ToInt16(result.Duration),
 				DifficultyLevel: models.DifficultyLevel(result.DifficultyLevel.DifficultyLevel),
 				Rating:          result.Rating.Float64,

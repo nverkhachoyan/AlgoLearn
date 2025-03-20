@@ -14,6 +14,7 @@ import { Course } from "@/src/features/course/types";
 import { useTheme } from "react-native-paper";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
+import { buildImgUrl } from "@/src/lib/utils/transform";
 
 type SortOption = "name" | "rating" | "duration" | "difficultyLevel";
 
@@ -148,6 +149,12 @@ export const CourseSection = memo<CourseSectionProps>(
     const renderItem = useCallback(
       ({ item: course }: { item: Course | null }) => {
         if (!course) return null;
+        const imgUrl = buildImgUrl(
+          "courses",
+          course.folderObjectKey,
+          course.imgKey,
+          course.mediaExt
+        );
         return (
           <View
             style={[
@@ -160,7 +167,7 @@ export const CourseSection = memo<CourseSectionProps>(
               courseID={course.id.toString()}
               courseTitle={course.name}
               backgroundColor={course.backgroundColor || colors.surface}
-              iconUrl="https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png"
+              iconUrl={imgUrl}
               description={course.description}
               authors={course.authors}
               difficultyLevel={course.difficultyLevel}

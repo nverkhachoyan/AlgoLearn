@@ -3,13 +3,19 @@ INSERT INTO units (
     course_id,
     unit_number,
     name,
-    description
+    description,
+    folder_object_key,
+    img_key,
+    media_ext
 )
 VALUES (
     @course_id::int,
     @unit_number::int,
     @name::text,
-    @description::text
+    @description::text,
+    COALESCE(@folder_object_key::UUID, NULL),
+    COALESCE(@img_key::UUID, NULL),
+    COALESCE(@media_ext::text, '')
 )
 RETURNING id;
 

@@ -133,3 +133,4 @@ dist
 # Temp files
 backend/tmp/
 backend/tmp/main
+course-outline.md

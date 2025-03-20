@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"errors"
 )
 
@@ -21,6 +23,9 @@ type ModulePayload struct {
 
 type Module struct {
 	BaseModel
+	FolderObjectKey      uuid.NullUUID      `json:"folderObjectKey"`
+	ImgKey               uuid.NullUUID      `json:"imgKey"`
+	MediaExt             string             `json:"mediaExt"`
 	ModuleNumber         int16              `json:"moduleNumber"`
 	Name                 string             `json:"name"`
 	Description          string             `json:"description"`
@@ -36,15 +41,18 @@ type Module struct {
 func (m *Module) UnmarshalJSON(data []byte) error {
 	type TempModule struct {
 		BaseModel
-		ModuleNumber int16             `json:"moduleNumber"`
-		Name         string            `json:"name"`
-		Description  string            `json:"description"`
-		Progress     float32           `json:"progress"`
-		Status       string            `json:"status"`
-		StartedAt    time.Time         `json:"startedAt"`
-		CompletedAt  time.Time         `json:"completedAt,omitempty"`
-		LastAccessed time.Time         `json:"lastAccessed"`
-		Sections     []json.RawMessage `json:"sections"`
+		FolderObjectKey uuid.NullUUID     `json:"folderObjectKey"`
+		ImgKey          uuid.NullUUID     `json:"imgKey"`
+		MediaExt        string            `json:"mediaExt"`
+		ModuleNumber    int16             `json:"moduleNumber"`
+		Name            string            `json:"name"`
+		Description     string            `json:"description"`
+		Progress        float32           `json:"progress"`
+		Status          string            `json:"status"`
+		StartedAt       time.Time         `json:"startedAt"`
+		CompletedAt     time.Time         `json:"completedAt,omitempty"`
+		LastAccessed    time.Time         `json:"lastAccessed"`
+		Sections        []json.RawMessage `json:"sections"`
 	}
 
 	var temp TempModule
@@ -53,6 +61,9 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 	}
 
 	m.BaseModel = temp.BaseModel
+	m.FolderObjectKey = temp.FolderObjectKey
+	m.ImgKey = temp.ImgKey
+	m.MediaExt = temp.MediaExt
 	m.ModuleNumber = temp.ModuleNumber
 	m.Name = temp.Name
 	m.Description = temp.Description
@@ -97,6 +108,12 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to unmarshal video section: %w", err)
 			}
 			section = &s
+		case "lottie":
+			var s LottieSection
+			if err := json.Unmarshal(rawSection, &s); err != nil {
+				return fmt.Errorf("failed to unmarshal lottie section: %w", err)
+			}
+			section = &s
 		default:
 			return fmt.Errorf("unknown section type: %s", baseSection.Type)
 		}
@@ -132,6 +149,7 @@ const (
 	SectionTypeQuestion SectionType = "question"
 	SectionTypeVideo    SectionType = "video"
 	SectionTypeImage    SectionType = "image"
+	SectionTypeLottie   SectionType = "lottie"
 )
 
 type SectionInterface interface {
@@ -165,20 +183,26 @@ type BatchModuleProgress struct {
 }
 
 type MarkdownContent struct {
-	Markdown string `json:"markdown"`
+	Markdown  string        `json:"markdown"`
+	ObjectKey uuid.NullUUID `json:"objectKey"`
+	MediaExt  string        `json:"mediaExt"`
 }
 
 type VideoContent struct {
-	URL string `json:"url"`
+	URL       string        `json:"url"`
+	ObjectKey uuid.NullUUID `json:"objectKey"`
+	MediaExt  string        `json:"mediaExt"`
 }
 
 type QuestionContent struct {
-	ID                 int64       `json:"id"`
-	Question           string      `json:"question"`
-	Type               string      `json:"type"`
-	Options            []Option    `json:"options"`
-	Tags               []string    `json:"tags"`
-	UserQuestionAnswer *UserAnswer `json:"userQuestionAnswer,omitempty"`
+	ID                 int64         `json:"id"`
+	Question           string        `json:"question"`
+	Type               string        `json:"type"`
+	Options            []Option      `json:"options"`
+	Tags               []string      `json:"tags"`
+	UserQuestionAnswer *UserAnswer   `json:"userQuestionAnswer,omitempty"`
+	ObjectKey          uuid.NullUUID `json:"objectKey"`
+	MediaExt           string        `json:"mediaExt"`
 }
 
 type Option struct {
@@ -188,8 +212,24 @@ type Option struct {
 }
 
 type CodeContent struct {
-	Code     string `json:"code"`
-	Language string `json:"language"`
+	Code      string        `json:"code"`
+	Language  string        `json:"language"`
+	ObjectKey uuid.NullUUID `json:"objectKey"`
+	MediaExt  string        `json:"mediaExt"`
+}
+
+type LottieContent struct {
+	Caption     string        `json:"caption"`
+	Description string        `json:"description"`
+	Width       int           `json:"width"`
+	Height      int           `json:"height"`
+	AltText     string        `json:"alt_text"`
+	FallbackURL string        `json:"fallback_url"`
+	Autoplay    bool          `json:"autoplay"`
+	Loop        bool          `json:"loop"`
+	Speed       float32       `json:"speed"`
+	ObjectKey   uuid.NullUUID `json:"objectKey"`
+	MediaExt    string        `json:"mediaExt"`
 }
 
 type UserAnswer struct {
@@ -312,3 +352,14 @@ type ImageSection struct {
 
 func (is *ImageSection) GetType() SectionType { return is.Type }
 func (is *ImageSection) GetPosition() int16   { return is.Position }
+
+type LottieSection struct {
+	BaseModel
+	Type            SectionType      `json:"type"`
+	Position        int16            `json:"position"`
+	Content         LottieContent    `json:"content"`
+	SectionProgress *SectionProgress `json:"sectionProgress"`
+}
+
+func (ls *LottieSection) GetType() SectionType { return ls.Type }
+func (ls *LottieSection) GetPosition() int16   { return ls.Position }

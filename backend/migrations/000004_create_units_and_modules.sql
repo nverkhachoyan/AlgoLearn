@@ -2,8 +2,11 @@
 -- +goose StatementBegin
 CREATE TABLE units (
     id SERIAL PRIMARY KEY,
+    folder_object_key UUID UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    img_key UUID UNIQUE,
+    media_ext VARCHAR(10),
     draft BOOLEAN NOT NULL DEFAULT TRUE,
     unit_number INTEGER NOT NULL,
     course_id INTEGER NOT NULL,
@@ -16,8 +19,11 @@ CREATE TABLE units (
 
 CREATE TABLE modules (
     id SERIAL PRIMARY KEY,
+    folder_object_key UUID UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    img_key UUID UNIQUE,
+    media_ext VARCHAR(10),
     draft BOOLEAN NOT NULL DEFAULT TRUE,
     module_number INTEGER NOT NULL,
     unit_id INTEGER NOT NULL,

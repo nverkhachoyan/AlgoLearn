@@ -9,6 +9,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type DifficultyLevel string
@@ -106,6 +108,7 @@ const (
 	SectionTypeCode     SectionType = "code"
 	SectionTypeQuestion SectionType = "question"
 	SectionTypeVideo    SectionType = "video"
+	SectionTypeLottie   SectionType = "lottie"
 )
 
 func (e *SectionType) Scan(src interface{}) error {
@@ -198,21 +201,25 @@ type Achievement struct {
 
 type CodeSection struct {
 	SectionID int32          `json:"sectionId"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
 	Code      string         `json:"code"`
 	Language  sql.NullString `json:"language"`
 }
 
 type Course struct {
 	ID              int32               `json:"id"`
+	FolderObjectKey uuid.NullUUID       `json:"folderObjectKey"`
 	CreatedAt       time.Time           `json:"createdAt"`
 	UpdatedAt       time.Time           `json:"updatedAt"`
 	Draft           bool                `json:"draft"`
 	Name            string              `json:"name"`
 	Description     string              `json:"description"`
+	ImgKey          uuid.NullUUID       `json:"imgKey"`
+	MediaExt        sql.NullString      `json:"mediaExt"`
 	Requirements    sql.NullString      `json:"requirements"`
 	WhatYouLearn    sql.NullString      `json:"whatYouLearn"`
 	BackgroundColor sql.NullString      `json:"backgroundColor"`
-	IconUrl         sql.NullString      `json:"iconUrl"`
 	Duration        sql.NullInt32       `json:"duration"`
 	DifficultyLevel NullDifficultyLevel `json:"difficultyLevel"`
 	Rating          sql.NullFloat64     `json:"rating"`
@@ -229,26 +236,48 @@ type CourseTag struct {
 }
 
 type ImageSection struct {
-	SectionID int32  `json:"sectionId"`
-	Url       string `json:"url"`
-	Headline  string `json:"headline"`
-	Caption   string `json:"caption"`
+	SectionID int32          `json:"sectionId"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+	Url       sql.NullString `json:"url"`
+	Headline  string         `json:"headline"`
+	Caption   string         `json:"caption"`
+}
+
+type LottieSection struct {
+	SectionID   int32          `json:"sectionId"`
+	ObjectKey   uuid.NullUUID  `json:"objectKey"`
+	MediaExt    sql.NullString `json:"mediaExt"`
+	Caption     sql.NullString `json:"caption"`
+	Description sql.NullString `json:"description"`
+	Width       sql.NullInt32  `json:"width"`
+	Height      sql.NullInt32  `json:"height"`
+	AltText     sql.NullString `json:"altText"`
+	FallbackUrl sql.NullString `json:"fallbackUrl"`
+	Autoplay    bool           `json:"autoplay"`
+	Loop        bool           `json:"loop"`
+	Speed       float64        `json:"speed"`
 }
 
 type MarkdownSection struct {
-	SectionID int32  `json:"sectionId"`
-	Markdown  string `json:"markdown"`
+	SectionID int32          `json:"sectionId"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+	Markdown  string         `json:"markdown"`
 }
 
 type Module struct {
-	ID           int32     `json:"id"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	Draft        bool      `json:"draft"`
-	ModuleNumber int32     `json:"moduleNumber"`
-	UnitID       int32     `json:"unitId"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
+	ID              int32          `json:"id"`
+	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	UpdatedAt       time.Time      `json:"updatedAt"`
+	ImgKey          uuid.NullUUID  `json:"imgKey"`
+	MediaExt        sql.NullString `json:"mediaExt"`
+	Draft           bool           `json:"draft"`
+	ModuleNumber    int32          `json:"moduleNumber"`
+	UnitID          int32          `json:"unitId"`
+	Name            string         `json:"name"`
+	Description     string         `json:"description"`
 }
 
 type ModuleQuestion struct {
@@ -284,8 +313,10 @@ type QuestionOption struct {
 }
 
 type QuestionSection struct {
-	SectionID  int32 `json:"sectionId"`
-	QuestionID int32 `json:"questionId"`
+	SectionID  int32          `json:"sectionId"`
+	QuestionID int32          `json:"questionId"`
+	ObjectKey  uuid.NullUUID  `json:"objectKey"`
+	MediaExt   sql.NullString `json:"mediaExt"`
 }
 
 type QuestionTag struct {
@@ -319,14 +350,17 @@ type Tag struct {
 }
 
 type Unit struct {
-	ID          int32     `json:"id"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	Draft       bool      `json:"draft"`
-	UnitNumber  int32     `json:"unitNumber"`
-	CourseID    int32     `json:"courseId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	ID              int32          `json:"id"`
+	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
+	CreatedAt       time.Time      `json:"createdAt"`
+	UpdatedAt       time.Time      `json:"updatedAt"`
+	ImgKey          uuid.NullUUID  `json:"imgKey"`
+	MediaExt        sql.NullString `json:"mediaExt"`
+	Draft           bool           `json:"draft"`
+	UnitNumber      int32          `json:"unitNumber"`
+	CourseID        int32          `json:"courseId"`
+	Name            string         `json:"name"`
+	Description     string         `json:"description"`
 }
 
 type User struct {
@@ -416,6 +450,8 @@ type UserSectionProgress struct {
 }
 
 type VideoSection struct {
-	SectionID int32  `json:"sectionId"`
-	Url       string `json:"url"`
+	SectionID int32          `json:"sectionId"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+	Url       string         `json:"url"`
 }

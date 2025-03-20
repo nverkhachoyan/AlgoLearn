@@ -594,16 +594,7 @@ export default function ModuleSession() {
       <ModuleFooter
         moduleName={currentModule?.name ?? ""}
         onNext={handleModuleCompletion}
-        onTOC={() =>
-          router.push({
-            pathname: "/(protected)/course/[courseId]/module/[moduleId]/toc",
-            params: {
-              courseId: ids.courseId,
-              unitId: ids.unitId,
-              moduleId: ids.moduleId,
-            },
-          })
-        }
+        onTOC={() => {}}
         colors={colors}
       />
     </View>

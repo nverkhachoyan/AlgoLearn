@@ -1,9 +1,14 @@
+import { AnimationObject } from "lottie-react-native";
 export interface MarkdownContent {
   markdown: string;
+  objectKey?: string;
+  mediaExt?: string;
 }
 
 export interface VideoContent {
   url: string;
+  objectKey?: string;
+  mediaExt?: string;
 }
 
 export type Option = {
@@ -22,11 +27,15 @@ export interface QuestionContent {
     answeredAt: string;
     isCorrect: boolean;
   };
+  objectKey?: string;
+  mediaExt?: string;
 }
 
 export interface CodeContent {
   code: string;
   language: string;
+  objectKey?: string;
+  mediaExt?: string;
 }
 
 export interface ImageContent {
@@ -34,6 +43,23 @@ export interface ImageContent {
   headline: string;
   footer: string;
   source: string;
+  objectKey?: string;
+  mediaExt?: string;
+}
+
+export interface LottieContent {
+  source: string | AnimationObject;
+  caption: string;
+  description: string;
+  width: number;
+  height: number;
+  altText: string;
+  fallbackUrl: string;
+  autoplay: boolean;
+  loop: boolean;
+  speed: number;
+  objectKey: string;
+  mediaExt: string;
 }
 
 export type SectionProgress = {
@@ -63,14 +89,15 @@ export interface Section {
   id: number;
   createdAt: string;
   updatedAt: string;
-  type: "markdown" | "video" | "question" | "code" | "image";
+  type: "markdown" | "video" | "question" | "code" | "image" | "lottie";
   position: number;
   content:
     | VideoContent
     | QuestionContent
     | MarkdownContent
     | CodeContent
-    | ImageContent;
+    | ImageContent
+    | LottieContent;
   sectionProgress?: SectionProgress;
   progress?: SectionProgress;
 }
@@ -103,6 +130,12 @@ export function isImageSection(
   section: Section
 ): section is Section & { content: ImageContent } {
   return section.type === "image";
+}
+
+export function isLotteSection(
+  section: Section
+): section is Section & { content: LottieContent } {
+  return section.type === "lottie";
 }
 
 export interface QuestionOption {

@@ -32,6 +32,7 @@ func NewUploadHandler(storageService service.StorageService) UploadHandler {
 
 type UploadRequest struct {
 	Filename    string `json:"filename"`
+	Folder      string `json:"folder"`
 	ContentType string `json:"contentType"`
 }
 
@@ -44,18 +45,17 @@ func (h *uploadHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	if req.Filename == "" || req.ContentType == "" {
+	if req.Filename == "" || req.ContentType == "" || req.Folder == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "filename and contentType are required",
+			"error": "filename, contentType and folder are required",
 		})
 		return
 	}
 
 	// Generate unique filename to prevent collisions
 	ext := filepath.Ext(req.Filename)
-	key := fmt.Sprintf("course-icons/%s%s", uuid.New().String(), ext)
+	key := fmt.Sprintf("%s/%s%s", req.Folder, uuid.New().String(), ext)
 
-	// Get presigned URL from storage service
 	url, err := h.storage.GeneratePresignedPutURL(key, req.ContentType, 15*time.Minute)
 	if err != nil {
 		h.log.Error("Failed to generate presigned URL", "error", err)

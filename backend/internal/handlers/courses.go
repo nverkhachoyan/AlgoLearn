@@ -8,6 +8,7 @@ import (
 	"algolearn/pkg/middleware"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -168,6 +169,9 @@ func (h *courseHandler) CreateCourse(c *gin.Context) {
 		})
 		return
 	}
+
+	fmt.Println("course UUID: ", course.FolderObjectKey)
+	fmt.Println("course imgKey: ", course.ImgKey)
 
 	createdCourse, err := h.courseRepo.CreateCourse(ctx, course)
 	if err != nil {

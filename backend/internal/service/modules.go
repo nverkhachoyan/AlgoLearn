@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,8 +22,8 @@ type ModuleService interface {
 	GetModuleWithProgress(ctx context.Context, userID, courseID, unitID, moduleID int64) (*ModuleWithProgressResponse, error)
 	GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error)
 	GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error)
-	CreateModule(ctx context.Context, unitID int64, name, description string) (*models.Module, error)
-	CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, sections []models.Section) (*models.Module, error)
+	CreateModule(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID) (*models.Module, error)
+	CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID, sections []models.Section) (*models.Module, error)
 	UpdateModule(ctx context.Context, moduleID int64, name, description string) (*models.Module, error)
 	DeleteModule(ctx context.Context, moduleID int64) error
 	SaveModuleProgress(ctx context.Context, userID, moduleID int64, sections []models.SectionProgress, questions []models.QuestionProgress) error
@@ -288,7 +289,7 @@ func (s *moduleService) GetModuleTotalCount(ctx context.Context, unitID int64) (
 	return count, nil
 }
 
-func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, description string) (*models.Module, error) {
+func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID) (*models.Module, error) {
 	log := s.log.WithBaseFields(logger.Service, "CreateModule")
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -306,12 +307,22 @@ func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, de
 		return nil, fmt.Errorf("failed to get last module number: %w", err)
 	}
 
-	module, err := qtx.InsertModule(ctx, gen.InsertModuleParams{
-		ModuleNumber: int32(lastNumber.(int64)) + 1,
-		UnitID:       int32(unitID),
-		Name:         name,
-		Description:  description,
-	})
+	var moduleParams gen.InsertModuleParams
+
+	moduleParams.Name = name
+	moduleParams.Description = description
+	moduleParams.UnitID = int32(unitID)
+
+	if folderObjectKey.Valid {
+		moduleParams.FolderObjectKey = folderObjectKey.UUID
+	}
+
+	if imgKey.Valid {
+		moduleParams.ImgKey = imgKey.UUID
+	}
+
+	moduleParams.ModuleNumber = int32(lastNumber.(int64)) + 1
+	module, err := qtx.InsertModule(ctx, moduleParams)
 	if err != nil {
 		log.WithError(err).Error("failed to insert module")
 		return nil, fmt.Errorf("failed to insert module: %w", err)
@@ -651,7 +662,7 @@ func (s *moduleService) updateCourseProgress(ctx context.Context, qtx *gen.Queri
 	return nil
 }
 
-func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, sections []models.Section) (*models.Module, error) {
+func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID, sections []models.Section) (*models.Module, error) {
 	log := s.log.WithBaseFields(logger.Service, "CreateModuleWithContent")
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -671,12 +682,22 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 
 	lastNumber := lastNumberResult.(int64)
 
-	module, err := qtx.InsertModule(ctx, gen.InsertModuleParams{
-		ModuleNumber: int32(lastNumber + 1),
-		UnitID:       int32(unitID),
-		Name:         name,
-		Description:  description,
-	})
+	var moduleParams gen.InsertModuleParams
+
+	if folderObjectKey.Valid {
+		moduleParams.FolderObjectKey = folderObjectKey.UUID
+	}
+
+	if imgKey.Valid {
+		moduleParams.ImgKey = imgKey.UUID
+	}
+
+	moduleParams.ModuleNumber = int32(lastNumber + 1)
+	moduleParams.UnitID = int32(unitID)
+	moduleParams.Name = name
+	moduleParams.Description = description
+
+	module, err := qtx.InsertModule(ctx, moduleParams)
 	if err != nil {
 		log.WithError(err).Error("failed to insert module")
 		return nil, fmt.Errorf("failed to insert module: %w", err)
@@ -702,6 +723,7 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 			err = qtx.InsertMarkdownSection(ctx, gen.InsertMarkdownSectionParams{
 				SectionID: createdSection.ID,
 				Markdown:  content.Markdown,
+				ObjectKey: uuid.NullUUID{UUID: content.ObjectKey.UUID, Valid: content.ObjectKey.Valid},
 			})
 			if err != nil {
 				log.WithError(err).Error("failed to insert text section")
@@ -796,6 +818,37 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 				log.WithError(err).Error("failed to insert video section")
 				return nil, fmt.Errorf("failed to insert video section: %w", err)
 			}
+
+		case "lottie":
+			var content models.LottieContent
+			if err := json.Unmarshal(section.Content, &content); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal lottie content: %w", err)
+			}
+
+			sectionParams := gen.InsertLottieSectionParams{
+				SectionID: createdSection.ID,
+			}
+			sectionParams.Caption = sql.NullString{String: content.Caption, Valid: content.Caption != ""}
+			sectionParams.Description = sql.NullString{String: content.Description, Valid: content.Description != ""}
+			sectionParams.Width = sql.NullInt32{Int32: int32(content.Width), Valid: content.Width != 0}
+			sectionParams.Height = sql.NullInt32{Int32: int32(content.Height), Valid: content.Height != 0}
+			sectionParams.ObjectKey = uuid.NullUUID{UUID: content.ObjectKey.UUID, Valid: content.ObjectKey.Valid}
+			sectionParams.AltText = sql.NullString{String: content.AltText, Valid: content.AltText != ""}
+			sectionParams.FallbackUrl = sql.NullString{String: content.FallbackURL, Valid: content.FallbackURL != ""}
+			sectionParams.Autoplay = content.Autoplay
+			sectionParams.Loop = content.Loop
+
+			if content.Speed != 0 {
+				sectionParams.Speed = float64(content.Speed)
+			} else {
+				sectionParams.Speed = 1.0
+			}
+
+			err = qtx.InsertLottieSection(ctx, sectionParams)
+			if err != nil {
+				log.WithError(err).Error("failed to insert lottie section")
+				return nil, fmt.Errorf("failed to insert lottie section: %w", err)
+			}
 		}
 
 	}
@@ -811,9 +864,11 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 			CreatedAt: module.CreatedAt,
 			UpdatedAt: module.UpdatedAt,
 		},
-		ModuleNumber: int16(module.ModuleNumber),
-		Name:         module.Name,
-		Description:  module.Description,
-		Sections:     make([]models.SectionInterface, 0),
+		FolderObjectKey: uuid.NullUUID{UUID: module.FolderObjectKey.UUID, Valid: module.FolderObjectKey.Valid},
+		ImgKey:          uuid.NullUUID{UUID: module.ImgKey.UUID, Valid: module.ImgKey.Valid},
+		ModuleNumber:    int16(module.ModuleNumber),
+		Name:            module.Name,
+		Description:     module.Description,
+		Sections:        make([]models.SectionInterface, 0),
 	}, nil
 }

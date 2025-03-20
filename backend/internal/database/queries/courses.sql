@@ -5,10 +5,12 @@ INSERT INTO courses (
     requirements,
     what_you_learn,
     background_color,
-    icon_url,
     duration,
     difficulty_level,
-    rating
+    rating,
+    folder_object_key,
+    img_key,
+    media_ext
 )
 VALUES (
     COALESCE(@name::text, ''),
@@ -16,10 +18,12 @@ VALUES (
     COALESCE(@requirements::text, ''),
     COALESCE(@what_you_learn::text, ''),
     COALESCE(@background_color::text, ''),
-    COALESCE(@icon_url::text, ''),
     COALESCE(@duration::int, 0),
     COALESCE(@difficulty_level::difficulty_level, 'beginner'),
-    COALESCE(@rating::float, 0.0)
+    COALESCE(@rating::float, 0.0),
+    COALESCE(@folder_object_key::UUID, NULL),
+    COALESCE(@img_key::UUID, NULL),
+    COALESCE(@media_ext::text, '')
 )
 RETURNING id;
 
@@ -41,6 +45,14 @@ SET
         WHEN @description::text = '' THEN description 
         ELSE @description::text 
     END,
+    folder_object_key = CASE 
+        WHEN @folder_object_key::UUID IS NULL THEN folder_object_key 
+        ELSE @folder_object_key::UUID 
+    END,
+    media_ext = CASE 
+        WHEN @media_ext::text = '' THEN media_ext 
+        ELSE @media_ext::text 
+    END,
     requirements = CASE 
         WHEN @requirements::text = '' THEN requirements 
         ELSE @requirements::text 
@@ -53,9 +65,9 @@ SET
         WHEN @background_color::text = '' THEN background_color 
         ELSE @background_color::text 
     END,
-    icon_url = CASE 
-        WHEN @icon_url::text = '' THEN icon_url 
-        ELSE @icon_url::text 
+    img_key = CASE 
+        WHEN @img_key::UUID IS NULL THEN img_key 
+        ELSE @img_key::UUID 
     END,
     duration = CASE 
         WHEN @duration::int = 0 THEN duration 
@@ -81,12 +93,14 @@ SELECT
     id,
     created_at,
     updated_at,
+    folder_object_key,
+    img_key,
+    media_ext,
     name,
     description,
     requirements,
     what_you_learn,
     background_color,
-    icon_url,
     duration,
     difficulty_level,
     rating
@@ -136,6 +150,9 @@ AND tag_id = @tag_id::int;
 -- name: GetCourseUnits :many
 SELECT
     id,
+    folder_object_key,
+    img_key,
+    media_ext,
     created_at,
     updated_at,
     unit_number,
@@ -150,6 +167,9 @@ ORDER BY unit_number;
 -- name: GetUnitModules :many
 SELECT
     id,
+    folder_object_key,
+    img_key,
+    media_ext,
     created_at,
     updated_at,
     module_number,
@@ -163,12 +183,17 @@ ORDER BY module_number;
 
 -- name: GetVideoSection :one
 SELECT 
-    url as url
+    url as url,
+    object_key as object_key,
+    media_ext as media_ext
 FROM video_sections
 WHERE section_id = @section_id::int;
 
 -- name: GetMarkdownSection :one
-SELECT markdown
+SELECT 
+    markdown as markdown,
+    object_key as object_key,
+    media_ext as media_ext
 FROM markdown_sections
 WHERE section_id = @section_id::int;
 
@@ -177,6 +202,8 @@ SELECT
     q.id,
     q.question,
     q.type,
+    object_key as object_key,
+    media_ext as media_ext,
     COALESCE(
         json_agg(
             json_build_object(
@@ -196,7 +223,9 @@ GROUP BY q.id, q.question, q.type;
 -- name: GetCodeSection :one
 SELECT 
     code,
-    language
+    language,
+    object_key as object_key,
+    media_ext as media_ext
 FROM code_sections
 WHERE section_id = @section_id::int;
 
@@ -220,6 +249,7 @@ current_module_id AS (
 )
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -227,17 +257,24 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
+    c.media_ext,
     c.difficulty_level,
     c.duration,
     c.rating,
     u.id as unit_id,
+    u.folder_object_key as unit_folder_object_key,
+    u.img_key as unit_img_key,
+    u.media_ext as unit_media_ext,
     u.created_at as unit_created_at,
     u.updated_at as unit_updated_at,
     u.unit_number,
     u.name as unit_name,
     u.description as unit_description,
     m.id as module_id,
+    m.folder_object_key as module_folder_object_key,
+    m.img_key as module_img_key,
+    m.media_ext as module_media_ext,
     m.created_at as module_created_at,
     m.updated_at as module_updated_at,
     m.module_number,
@@ -255,7 +292,7 @@ FROM courses c
 WHERE c.id = @course_id::int;
 
 -- name: GetModuleProgressByUnit :many
-SELECT m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description, ump.progress, ump.status
+SELECT m.id, m.created_at, m.updated_at, m.module_number, m.unit_id, m.name, m.description, m.folder_object_key, m.img_key, m.media_ext, ump.progress, ump.status
 FROM
     modules m
     LEFT JOIN user_module_progress ump ON ump.module_id = m.id
@@ -274,12 +311,18 @@ WITH user_progress AS (
         u.unit_number,
         u.name as unit_name,
         u.description as unit_description,
+        u.folder_object_key as unit_folder_object_key,
+        u.img_key as unit_img_key,
+        u.media_ext as unit_media_ext,
         m.id as module_id,
         ump.created_at as module_created_at,
         ump.updated_at as module_updated_at,
         m.module_number,
         m.name as module_name,
         m.description as module_description,
+        m.folder_object_key as module_folder_object_key,
+        m.img_key as module_img_key,
+        m.media_ext as module_media_ext,
         ump.progress as module_progress,
         ump.status as module_status
     FROM user_courses uc
@@ -299,7 +342,9 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.folder_object_key,
+    c.img_key,
+    c.media_ext,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -366,12 +411,18 @@ latest_progress AS (
         u.unit_number,
         u.name as unit_name,
         u.description as unit_description,
+        u.folder_object_key as unit_folder_object_key,
+        u.img_key as unit_img_key,
+        u.media_ext as unit_media_ext,
         m.id as module_id,
         m.created_at as module_created_at,
         m.updated_at as module_updated_at,
         m.module_number,
         m.name as module_name,
         m.description as module_description,
+        m.folder_object_key as module_folder_object_key,
+        m.img_key as module_img_key,
+        m.media_ext as module_media_ext,
         ump.progress as module_progress,
         ump.status as module_status
     FROM units u
@@ -392,12 +443,18 @@ enrolled_courses AS (
         lp.unit_number,
         lp.unit_name,
         lp.unit_description,
+        lp.unit_folder_object_key,
+        lp.unit_img_key,
+        lp.unit_media_ext,
         lp.module_id,
         lp.module_created_at,
         lp.module_updated_at,
         lp.module_number,
         lp.module_name,
         lp.module_description,
+        lp.module_folder_object_key,
+        lp.module_img_key,
+        lp.module_media_ext,
         lp.module_progress,
         lp.module_status
     FROM courses c
@@ -410,6 +467,7 @@ enrolled_courses AS (
 )
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -417,7 +475,8 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
+    c.media_ext,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -427,6 +486,9 @@ SELECT
     COALESCE(c.unit_number, 0) as unit_number,
     COALESCE(c.unit_name, '') as unit_name,
     COALESCE(c.unit_description, '') as unit_description,
+    COALESCE(c.unit_folder_object_key, '') as unit_folder_object_key,
+    COALESCE(c.unit_img_key, '') as unit_img_key,
+    COALESCE(c.unit_media_ext, '') as unit_media_ext,
     COALESCE(c.module_id, 0) as current_module_id,
     COALESCE(c.module_created_at, NOW()) as module_created_at,
     COALESCE(c.module_updated_at, NOW()) as module_updated_at,
@@ -436,6 +498,9 @@ SELECT
     COALESCE(c.module_description, '') as module_description,
     COALESCE(c.module_progress, 0) as module_progress,
     COALESCE(c.module_status, 'uninitiated') as module_status,
+    COALESCE(c.module_folder_object_key, '') as module_folder_object_key,
+    COALESCE(c.module_img_key, '') as module_img_key,
+    COALESCE(c.module_media_ext, '') as module_media_ext,
     c.course_progress,
     c.total_count
 FROM enrolled_courses c;
@@ -464,18 +529,20 @@ ORDER BY s.position;
 SELECT 
     CASE s.type
         WHEN 'markdown' THEN (
-            SELECT jsonb_build_object('markdown', markdown)
+            SELECT jsonb_build_object('markdown', markdown, 'object_key', object_key, 'media_ext', media_ext)
             FROM markdown_sections
             WHERE section_id = s.id
         )
         WHEN 'video' THEN (
-            SELECT jsonb_build_object('url', url)
+            SELECT jsonb_build_object('url', url, 'object_key', object_key, 'media_ext', media_ext)
             FROM video_sections
             WHERE section_id = s.id
         )
         WHEN 'question' THEN (
             SELECT jsonb_build_object(
                 'id', q.id,
+                'object_key', object_key,
+                'media_ext', media_ext,
                 'question', q.question,
                 'type', q.type,
                 'options', (
@@ -492,10 +559,29 @@ SELECT
             JOIN questions q ON q.id = qs.question_id
             WHERE qs.section_id = s.id
         )
+        WHEN 'lottie' THEN (
+            SELECT jsonb_build_object(
+                'caption', caption,
+                'description', description,
+                'object_key', object_key,
+                'media_ext', media_ext,
+                'width', width,
+                'height', height,
+                'alt_text', alt_text,
+                'fallback_url', fallback_url,
+                'autoplay', autoplay,
+                'loop', loop,
+                'speed', speed
+            )
+            FROM lottie_sections
+            WHERE section_id = s.id
+        )
         WHEN 'code' THEN (
             SELECT jsonb_build_object(
                 'code', code, 
-                'language', language
+                'language', language,
+                'object_key', object_key,
+                'media_ext', media_ext
             )
             FROM code_sections
             WHERE section_id = s.id
@@ -531,6 +617,7 @@ ON CONFLICT (user_id, module_id) DO NOTHING;
 -- name: SearchCourses :many
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -538,7 +625,7 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -565,6 +652,7 @@ OFFSET @page_offset::int;
 -- name: SearchCoursesFullText :many
 SELECT
     c.id,
+    c.folder_object_key,
     c.created_at,
     c.updated_at,
     c.name,
@@ -572,7 +660,7 @@ SELECT
     c.requirements,
     c.what_you_learn,
     c.background_color,
-    c.icon_url,
+    c.img_key,
     c.duration,
     c.difficulty_level,
     c.rating,
@@ -660,12 +748,18 @@ WITH latest_module_progress AS (
 )
 SELECT
     u.id as unit_id,
+    u.folder_object_key as unit_folder_object_key,
+    u.img_key as unit_img_key,
+    u.media_ext as unit_media_ext,
     u.created_at as unit_created_at,
     u.updated_at as unit_updated_at,
     u.name as unit_name,
     u.description as unit_description,
     u.unit_number as unit_number,
     m.id as module_id,
+    m.folder_object_key as module_folder_object_key,
+    m.img_key as module_img_key,
+    m.media_ext as module_media_ext,
     m.created_at as module_created_at,
     m.updated_at as module_updated_at,
     m.name as module_name,

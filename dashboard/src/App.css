@@ -1,3 +1,24 @@
-body { 
-  overflow-x: hidden; /* Hide horizontal scrollbar */
+body,
+html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.draggable-section {
+  transition: transform 0.2s;
+}
+
+.draggable-section.dragging {
+  cursor: grabbing;
+  transform: scale(1.02);
+  z-index: 1;
+}
+
+.drag-handle {
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }

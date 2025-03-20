@@ -243,10 +243,11 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   icon: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     alignSelf: "center",
     marginVertical: 10,
+    borderRadius: 8,
   },
   currentModule: {
     marginVertical: 10,

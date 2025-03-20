@@ -20,7 +20,6 @@ export interface Course extends BaseModel {
   requirements: string;
   whatYouLearn: string;
   backgroundColor: string;
-  iconUrl: string;
   duration: number;
   difficultyLevel: DifficultyLevel;
   authors: Author[];
@@ -30,4 +29,7 @@ export interface Course extends BaseModel {
   currentModule: Module;
   units: Unit[];
   progress: number;
+  folderObjectKey: string;
+  imgKey: string;
+  mediaExt: string;
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Stack } from "expo-router";
 import { Platform, AppState, StyleSheet, View } from "react-native";
 import { QueryClientProvider, focusManager } from "@tanstack/react-query";
@@ -15,12 +15,35 @@ import { AuthProvider } from "@/src/features/auth/context/AuthContext";
 import { queryClient } from "@/src/lib/react-query/queryClient";
 import { PostHogProvider } from "posthog-react-native";
 
+const isBrowser = Platform.OS === "web" && typeof window !== "undefined";
+const isNative = Platform.OS !== "web";
+
+// Only use PostHog in browser or native environments
+const canUsePostHog = isBrowser || isNative;
+
 focusManager.setEventListener((handleFocus) => {
   const subscription = AppState.addEventListener("change", (state) => {
     handleFocus(state === "active");
   });
   return () => subscription.remove();
 });
+
+function SafePostHogProvider({ children }: { children: React.ReactNode }) {
+  if (canUsePostHog) {
+    return (
+      <PostHogProvider
+        apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
+        options={{
+          host: process.env.EXPO_PUBLIC_POSTHOG_HOST,
+        }}
+      >
+        {children}
+      </PostHogProvider>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 function AppContent() {
   const { theme, themeVersion } = useAppTheme();
@@ -82,12 +105,7 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <PostHogProvider
-      apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY}
-      options={{
-        host: process.env.EXPO_PUBLIC_POSTHOG_HOST,
-      }}
-    >
+    <SafePostHogProvider>
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
@@ -96,7 +114,7 @@ export default function RootLayout() {
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
-    </PostHogProvider>
+    </SafePostHogProvider>
   );
 }
 

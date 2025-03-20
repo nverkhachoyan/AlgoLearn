@@ -1,5 +1,7 @@
 package models
 
+import "github.com/google/uuid"
+
 type DifficultyLevel string
 type Status string
 
@@ -19,13 +21,15 @@ const (
 
 type Course struct {
 	BaseModel
+	FolderObjectKey uuid.NullUUID   `json:"folderObjectKey"`
 	Draft           bool            `json:"draft"`
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
 	Requirements    string          `json:"requirements"`
 	WhatYouLearn    string          `json:"whatYouLearn"`
 	BackgroundColor string          `json:"backgroundColor"`
-	IconURL         string          `json:"iconUrl"`
+	ImgKey          uuid.NullUUID   `json:"imgKey"`
+	MediaExt        string          `json:"mediaExt"`
 	Duration        int16           `json:"duration"`
 	DifficultyLevel DifficultyLevel `json:"difficultyLevel"`
 	Authors         []Author        `json:"authors"`
@@ -39,10 +43,13 @@ type Course struct {
 
 type Unit struct {
 	BaseModel
-	UnitNumber  int16    `json:"unitNumber"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Modules     []Module `json:"modules"`
+	FolderObjectKey uuid.NullUUID `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID `json:"imgKey"`
+	MediaExt        string        `json:"mediaExt"`
+	UnitNumber      int16         `json:"unitNumber"`
+	Name            string        `json:"name"`
+	Description     string        `json:"description"`
+	Modules         []Module      `json:"modules"`
 }
 
 type CourseQuery struct {

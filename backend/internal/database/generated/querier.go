@@ -46,7 +46,7 @@ type Querier interface {
 	GetFirstUnitAndModuleInCourse(ctx context.Context, courseID int32) (GetFirstUnitAndModuleInCourseRow, error)
 	GetFurthestModuleID(ctx context.Context, arg GetFurthestModuleIDParams) (sql.NullInt32, error)
 	GetLastModuleNumber(ctx context.Context, unitID int32) (interface{}, error)
-	GetMarkdownSection(ctx context.Context, sectionID int32) (string, error)
+	GetMarkdownSection(ctx context.Context, sectionID int32) (GetMarkdownSectionRow, error)
 	GetModuleByID(ctx context.Context, id int32) (Module, error)
 	GetModuleProgressByUnit(ctx context.Context, arg GetModuleProgressByUnitParams) ([]GetModuleProgressByUnitRow, error)
 	GetModuleSectionsWithProgress(ctx context.Context, arg GetModuleSectionsWithProgressParams) ([]GetModuleSectionsWithProgressRow, error)
@@ -78,11 +78,12 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id int32) (GetUserByIDRow, error)
 	GetUsers(ctx context.Context, arg GetUsersParams) ([]GetUsersRow, error)
 	GetUsersCount(ctx context.Context) (int64, error)
-	GetVideoSection(ctx context.Context, sectionID int32) (string, error)
+	GetVideoSection(ctx context.Context, sectionID int32) (GetVideoSectionRow, error)
 	InitializeModuleProgress(ctx context.Context, arg InitializeModuleProgressParams) error
 	InsertCodeSection(ctx context.Context, arg InsertCodeSectionParams) error
 	InsertCourseAuthor(ctx context.Context, arg InsertCourseAuthorParams) error
 	InsertCourseTag(ctx context.Context, arg InsertCourseTagParams) error
+	InsertLottieSection(ctx context.Context, arg InsertLottieSectionParams) error
 	InsertMarkdownSection(ctx context.Context, arg InsertMarkdownSectionParams) error
 	InsertModule(ctx context.Context, arg InsertModuleParams) (Module, error)
 	InsertQuestion(ctx context.Context, arg InsertQuestionParams) (Question, error)

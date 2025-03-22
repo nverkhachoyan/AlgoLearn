@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import useStore from "../store";
+import { useCoursesStore } from "../store";
 import CourseForm from "../components/courses/CourseForm";
 import { Course } from "../types/models";
 import ErrorComponent from "../components/Error";
@@ -8,7 +8,7 @@ import type { RcFile } from "antd/es/upload/interface";
 
 const CreateCoursePage: React.FC = () => {
   const navigate = useNavigate();
-  const { createCourse, isLoading, error } = useStore();
+  const { createCourse, isLoading, error } = useCoursesStore();
 
   const handleSubmit = async (values: Partial<Course>, iconFile?: RcFile) => {
     await createCourse(values, iconFile);

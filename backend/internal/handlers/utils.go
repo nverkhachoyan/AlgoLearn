@@ -13,7 +13,7 @@ import (
 	"github.com/lib/pq"
 )
 
-func IsDuplicateError(err error, constraints []string) bool {
+func IsUniqueConstraintViolation(err error, constraints []string) bool {
 	var pqErr *pq.Error
 	if errors.As(err, &pqErr) {
 		if pqErr.Code == "23505" {

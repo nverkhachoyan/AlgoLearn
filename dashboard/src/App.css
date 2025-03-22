@@ -22,3 +22,105 @@ html {
 .drag-handle:active {
   cursor: grabbing;
 }
+
+/* Add specific overrides for Ant Design components in dark mode */
+.ant-layout {
+  background-color: var(--background-color);
+}
+
+.ant-layout-header,
+.ant-layout-footer,
+.ant-layout-content {
+  color: var(--text-color);
+}
+
+/* Fix for modal and drawer backgrounds in dark mode */
+.ant-modal-content,
+.ant-drawer-content {
+  background-color: var(--bg-content) !important;
+}
+
+.ant-modal-header,
+.ant-drawer-header {
+  background-color: var(--bg-header) !important;
+}
+
+.ant-modal-title,
+.ant-drawer-title {
+  color: var(--text-color) !important;
+}
+
+/* Fix for dropdown menus in dark mode */
+.ant-dropdown-menu {
+  background-color: var(--bg-content) !important;
+}
+
+.ant-dropdown-menu-item {
+  color: var(--text-color) !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: var(--hover-color) !important;
+}
+
+/* Fix for select dropdowns */
+.ant-select-dropdown {
+  background-color: var(--bg-content) !important;
+}
+
+.ant-select-item {
+  color: var(--text-color) !important;
+}
+
+.ant-select-item-option-selected,
+.ant-select-item-option-active {
+  background-color: var(--hover-color) !important;
+}
+
+/* Fix form items and inputs */
+.ant-form-item-label > label {
+  color: var(--text-color) !important;
+}
+
+.ant-input,
+.ant-input-number,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker {
+  background-color: var(--bg-content) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-color) !important;
+}
+
+/* Fix for tables */
+.ant-table {
+  background-color: var(--bg-content);
+  color: var(--text-color);
+}
+
+.ant-table-thead > tr > th {
+  background-color: var(--bg-header) !important;
+  color: var(--text-color) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: var(--hover-color) !important;
+}
+
+/* Fix tabs */
+.ant-tabs-tab {
+  color: var(--secondary-text-color) !important;
+}
+
+.ant-tabs-tab-active {
+  color: var(--primary-color) !important;
+}
+
+.ant-tabs-ink-bar {
+  background-color: var(--primary-color) !important;
+}

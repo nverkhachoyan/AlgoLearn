@@ -181,6 +181,7 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	var moduleRequest struct {
 		Name            string           `json:"name"`
 		Description     string           `json:"description"`
+		ModuleNumber    int32            `json:"moduleNumber"`
 		FolderObjectKey uuid.NullUUID    `json:"folderObjectKey"`
 		ImgKey          uuid.NullUUID    `json:"imgKey"`
 		Sections        []models.Section `json:"sections"`
@@ -191,6 +192,15 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 			Success:   false,
 			ErrorCode: httperr.InvalidJson,
 			Message:   "invalid request body: " + err.Error(),
+		})
+		return
+	}
+
+	if moduleRequest.ModuleNumber <= 0 {
+		c.JSON(http.StatusBadRequest, models.Response{
+			Success:   false,
+			ErrorCode: httperr.InvalidInput,
+			Message:   "missing a positive module number",
 		})
 		return
 	}
@@ -218,8 +228,23 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 			positions[section.Position] = true
 		}
 
-		createdModule, err := h.moduleRepo.CreateModuleWithContent(ctx, unitID, moduleRequest.Name, moduleRequest.Description, moduleRequest.FolderObjectKey, moduleRequest.ImgKey, moduleRequest.Sections)
-		if err != nil {
+		createdModule, err := h.moduleRepo.CreateModuleWithContent(
+			ctx, unitID,
+			moduleRequest.Name,
+			moduleRequest.Description,
+			moduleRequest.ModuleNumber,
+			moduleRequest.FolderObjectKey,
+			moduleRequest.ImgKey,
+			moduleRequest.Sections)
+		if err != nil && IsUniqueConstraintViolation(err, []string{"unique_module_number_per_unit"}) {
+			log.WithError(err).Error("module with unit number exists")
+			c.JSON(http.StatusInternalServerError, models.Response{
+				Success:   false,
+				ErrorCode: httperr.DuplicateValue,
+				Message:   "a module with this unit number already exists",
+			})
+			return
+		} else if err != nil {
 			log.WithError(err).Error("error creating module with content")
 			c.JSON(http.StatusInternalServerError, models.Response{
 				Success:   false,
@@ -238,8 +263,22 @@ func (h *moduleHandler) CreateModule(c *gin.Context) {
 	}
 
 	// Create module without sections
-	createdModule, err := h.moduleRepo.CreateModule(ctx, unitID, moduleRequest.Name, moduleRequest.Description, moduleRequest.FolderObjectKey, moduleRequest.ImgKey)
-	if err != nil {
+	createdModule, err := h.moduleRepo.CreateModule(ctx,
+		unitID,
+		moduleRequest.Name,
+		moduleRequest.Description,
+		moduleRequest.ModuleNumber,
+		moduleRequest.FolderObjectKey,
+		moduleRequest.ImgKey)
+	if err != nil && IsUniqueConstraintViolation(err, []string{"unique_module_number_per_unit"}) {
+		log.WithError(err).Error("module with unit number exists")
+		c.JSON(http.StatusInternalServerError, models.Response{
+			Success:   false,
+			ErrorCode: httperr.DuplicateValue,
+			Message:   "a module with this unit number already exists",
+		})
+		return
+	} else if err != nil {
 		log.WithError(err).Error("error creating module")
 		c.JSON(http.StatusInternalServerError, models.Response{
 			Success:   false,

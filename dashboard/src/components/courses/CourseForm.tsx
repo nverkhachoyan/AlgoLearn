@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -8,17 +8,16 @@ import {
   Card,
   ColorPicker,
   Space,
-  Tag,
   Upload,
-  message,
   Typography,
   Row,
   Col,
   Divider,
 } from "antd";
-import { Course, DifficultyLevel } from "../../types/models";
+import { Course } from "../../types/models";
 import { UploadOutlined, InfoCircleOutlined } from "@ant-design/icons";
-import type { UploadFile, RcFile } from "antd/es/upload/interface";
+import type { RcFile } from "antd/es/upload/interface";
+import { buildImgUrl } from "../../store/utils";
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -35,19 +34,49 @@ const CourseForm: React.FC<CourseFormProps> = ({
   loading = false,
 }) => {
   const [form] = Form.useForm();
-  const [imageUrl, setImageUrl] = useState<string>(initialValues?.imgUrl || "");
   const [iconFile, setIconFile] = useState<RcFile | null>(null);
+
+  // Get the existing image URL if available
+  const existingImgUrl =
+    initialValues?.folderObjectKey &&
+    initialValues?.imgKey &&
+    initialValues?.mediaExt
+      ? buildImgUrl(
+          "courses",
+          initialValues.folderObjectKey,
+          initialValues.imgKey,
+          initialValues.mediaExt
+        )
+      : "";
+
+  const [imageUrl, setImageUrl] = useState<string>(existingImgUrl);
+
+  // Update imageUrl if initialValues change
+  useEffect(() => {
+    if (
+      initialValues?.folderObjectKey &&
+      initialValues?.imgKey &&
+      initialValues?.mediaExt
+    ) {
+      const url = buildImgUrl(
+        "courses",
+        initialValues.folderObjectKey,
+        initialValues.imgKey,
+        initialValues.mediaExt
+      );
+      setImageUrl(url);
+    }
+  }, [initialValues]);
 
   const handleImageSelect = (file: RcFile) => {
     setIconFile(file);
     const objectUrl = URL.createObjectURL(file);
     setImageUrl(objectUrl);
-    form.setFieldsValue({ imgUrl: "" }); // Clear the URL field as we're using local file
+    form.setFieldsValue({ imgUrl: "" });
     return false; // Prevent default upload behavior
   };
 
   const handleFormSubmit = (values: Partial<Course>) => {
-    // Pass both values and the file to parent onSubmit
     onSubmit(values, iconFile || undefined);
   };
 
@@ -116,7 +145,11 @@ const CourseForm: React.FC<CourseFormProps> = ({
               name="imgUrl"
               label="Course Icon"
               extra={
-                <Text type="secondary">Upload an image or provide a URL</Text>
+                <Text type="secondary">
+                  {initialValues?.imgKey
+                    ? "Current image shown. Upload a new one to replace it."
+                    : "Upload an image or provide a URL"}
+                </Text>
               }
             >
               <Space direction="vertical" style={{ width: "100%" }}>
@@ -160,14 +193,16 @@ const CourseForm: React.FC<CourseFormProps> = ({
                     </Button>
                   </Upload>
                 </div>
-                <Input
-                  placeholder="Or enter icon URL"
-                  onChange={(e) => {
-                    setImageUrl(e.target.value);
-                    setIconFile(null); // Clear file selection if URL is entered
-                  }}
-                  prefix={<InfoCircleOutlined style={{ color: "#bfbfbf" }} />}
-                />
+                {!initialValues?.imgKey && (
+                  <Input
+                    placeholder="Or enter icon URL"
+                    onChange={(e) => {
+                      setImageUrl(e.target.value);
+                      setIconFile(null); // Clear file selection if URL is entered
+                    }}
+                    prefix={<InfoCircleOutlined style={{ color: "#bfbfbf" }} />}
+                  />
+                )}
               </Space>
             </Form.Item>
 

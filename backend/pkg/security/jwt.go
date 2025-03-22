@@ -15,6 +15,8 @@ const (
 	refreshTokenExpiry = time.Hour * 24 * 7 // 7 days
 )
 
+var ErrTokenExpired = errors.New("token is expired")
+
 func GetJWTKey() []byte {
 	cfg, err := config.Load()
 	if err != nil {
@@ -72,7 +74,7 @@ func validateToken(tokenString string, maxExpiry time.Duration) (*Claims, error)
 		if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorExpired != 0 {
 				log.Debug("Token is expired")
-				return nil, errors.New("token is expired")
+				return nil, ErrTokenExpired
 			}
 		}
 		log.WithError(err).Error("Failed to parse token")

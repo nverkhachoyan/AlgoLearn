@@ -39,7 +39,7 @@ CREATE TABLE sections (
 
 CREATE TABLE video_sections (
     section_id INTEGER PRIMARY KEY,
-    object_key UUID UNIQUE,
+    object_key UUID,
     media_ext VARCHAR(10), 
     url TEXT NOT NULL,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
@@ -48,7 +48,7 @@ CREATE TABLE video_sections (
 CREATE TABLE question_sections (
     section_id INTEGER PRIMARY KEY,
     question_id INTEGER NOT NULL,
-    object_key UUID UNIQUE,
+    object_key UUID,
     media_ext VARCHAR(10),
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES questions (id) ON DELETE CASCADE
@@ -56,7 +56,7 @@ CREATE TABLE question_sections (
 
 CREATE TABLE markdown_sections (
     section_id INTEGER PRIMARY KEY,
-    object_key UUID UNIQUE,
+    object_key UUID,
     media_ext VARCHAR(10),
     markdown TEXT NOT NULL,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
@@ -64,7 +64,7 @@ CREATE TABLE markdown_sections (
 
 CREATE TABLE code_sections (
     section_id INTEGER PRIMARY KEY,
-    object_key UUID UNIQUE,
+    object_key UUID,
     media_ext VARCHAR(10),
     code TEXT NOT NULL,
     language VARCHAR(50),
@@ -73,7 +73,7 @@ CREATE TABLE code_sections (
 
 CREATE TABLE lottie_sections (
     section_id INTEGER PRIMARY KEY,
-    object_key UUID UNIQUE,
+    object_key UUID,
     media_ext VARCHAR(10),
     caption TEXT,
     description TEXT,
@@ -89,7 +89,7 @@ CREATE TABLE lottie_sections (
 
 CREATE TABLE image_sections (
     section_id INTEGER PRIMARY KEY,
-    object_key UUID UNIQUE,
+    object_key UUID,
     media_ext VARCHAR(10),
     url TEXT,
     headline TEXT NOT NULL,

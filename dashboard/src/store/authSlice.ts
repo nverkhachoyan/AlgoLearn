@@ -1,216 +1,147 @@
-import { apiUrl, getAuthHeaders } from "./utils";
-import { User } from "../types/models";
-import { SetState, GetState, StoreState } from "./types";
-import { debounce } from "lodash";
+import { StateCreator } from "zustand";
+import {
+  getAuthHeaders,
+  getRefreshedTokens,
+  TOKEN_STORAGE_KEY,
+  REFRESH_TOKEN_STORAGE_KEY,
+} from "./utils";
 
 export interface AuthState {
-  user: User | null;
-  token: string;
-  isAuthenticated: boolean;
+  token: string | null;
+  refreshToken: string | null;
+  isTokenRetry: boolean;
   authError: string | null;
+  isAuthenticated: boolean;
 
-  // Auth actions
-  login: (email: string, password: string) => Promise<void>;
-  debouncedLogin: (email: string, password: string) => void;
-  logout: () => void;
-  checkAuth: () => Promise<void>;
-  debouncedCheckAuth: () => void;
-  abortAuthRequest: (requestType: string) => void;
+  authFetch: (
+    input: RequestInfo | URL,
+    init?: RequestInit
+  ) => Promise<Response>;
+  setAuthState: (
+    token: string,
+    refreshToken: string,
+    isAuthenticated: boolean
+  ) => Promise<void>;
+  destroyAuthState: () => Promise<void>;
 }
 
-const createAuthSlice = (set: SetState, get: GetState) => {
-  // Create debounced versions of the API calls
-  const debouncedLoginImpl = debounce(
-    async (email: string, password: string) => {
-      const slice = createAuthSlice(set, get);
-      await slice.login(email, password);
-    },
-    500
-  );
-
-  const debouncedCheckAuthImpl = debounce(async () => {
-    const slice = createAuthSlice(set, get);
-    await slice.checkAuth();
-  }, 500);
+const createAuthSlice = (set: SetAuthState, get: () => AuthState) => {
+  const storedToken =
+    typeof window !== "undefined"
+      ? localStorage.getItem(TOKEN_STORAGE_KEY)
+      : null;
+  const storedRefreshToken =
+    typeof window !== "undefined"
+      ? localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+      : null;
 
   return {
-    user: null,
-    token: "",
-    isAuthenticated: false,
+    token: storedToken || null,
+    refreshToken: storedRefreshToken || null,
+    isTokenRetry: false,
+    isAuthenticated: !!storedToken,
     authError: null,
 
-    // Add debounced methods
-    debouncedLogin: (email: string, password: string) => {
-      debouncedLoginImpl(email, password);
-    },
-
-    debouncedCheckAuth: () => {
-      debouncedCheckAuthImpl();
-    },
-
-    abortAuthRequest: (requestType: string) => {
-      const state = get();
-      const controller = state.requestControllers[requestType];
-      if (controller) {
-        controller.abort();
-        set((state: StoreState) => ({
-          requestControllers: {
-            ...state.requestControllers,
-            [requestType]: null,
-          },
-        }));
-      }
-    },
-
-    login: async (email: string, password: string) => {
+    authFetch: async (
+      input: RequestInfo | URL,
+      init?: RequestInit
+    ): Promise<Response> => {
       const state = get();
 
-      // Abort any existing login request
-      const loginController = state.requestControllers["login"];
-      if (loginController) {
-        loginController.abort();
+      if (!state.token) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+        set({ token: null, refreshToken: null, isAuthenticated: false });
+        throw new Error("No authentication token available");
       }
 
-      // Create new AbortController
-      const abortController = new AbortController();
-      set((state: StoreState) => ({
-        requestControllers: {
-          ...state.requestControllers,
-          login: abortController,
-        },
-      }));
-
-      set({ isLoading: true, authError: null });
-      try {
-        const response = await fetch(`${apiUrl}/users/sign-in`, {
-          method: "POST",
-          headers: getAuthHeaders(""),
-          body: JSON.stringify({ email, password }),
-          signal: abortController.signal,
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || "Login failed");
-        }
-
-        const data = await response.json();
-        console.log("Login response:", data);
-
-        const token = data.payload.token;
-        const user = data.payload.user;
-
-        if (!token) {
-          throw new Error("No token received from server");
-        }
-
-        set((state: StoreState) => ({
-          token,
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-          authError: null,
-          requestControllers: {
-            ...state.requestControllers,
-            login: null,
-          },
-        }));
-
-        const newState = get();
-        console.log("Auth state after login:", {
-          token: newState.token,
-          isAuthenticated: newState.isAuthenticated,
-          user: newState.user,
-        });
-      } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          set((state: StoreState) => ({
-            authError: (error as Error).message,
-            isLoading: false,
-            isAuthenticated: false,
-            token: "",
-            requestControllers: {
-              ...state.requestControllers,
-              login: null,
-            },
-          }));
-        }
-      }
-    },
-
-    logout: () =>
-      set((state: StoreState) => ({
-        user: null,
-        token: "",
-        isAuthenticated: false,
-        authError: null,
-        courses: [], // Clear courses on logout
-        requestControllers: {
-          ...state.requestControllers,
-          login: null,
-          checkAuth: null,
-        },
-      })),
-
-    checkAuth: async () => {
-      const state = get();
-      const token = state.token;
-
-      if (!token) {
-        set({ isAuthenticated: false });
-        return;
-      }
-
-      // Abort any existing checkAuth request
-      const checkAuthController = state.requestControllers["checkAuth"];
-      if (checkAuthController) {
-        checkAuthController.abort();
-      }
-
-      // Create new AbortController
-      const abortController = new AbortController();
-      set((state: StoreState) => ({
-        requestControllers: {
-          ...state.requestControllers,
-          checkAuth: abortController,
-        },
-      }));
+      const authHeaders = getAuthHeaders(state.token);
+      let response;
 
       try {
-        const response = await fetch(`${apiUrl}/users/me`, {
-          headers: getAuthHeaders(token),
-          signal: abortController.signal,
+        response = await fetch(input, {
+          ...init,
+          headers: {
+            ...init?.headers,
+            ...authHeaders,
+          },
         });
 
-        if (!response.ok) {
-          throw new Error("Session expired");
-        }
-
-        const data = await response.json();
-        set((state: StoreState) => ({
-          user: data.payload.user,
-          isAuthenticated: true,
-          requestControllers: {
-            ...state.requestControllers,
-            checkAuth: null,
-          },
-        }));
-      } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          set((state: StoreState) => ({
-            user: null,
-            token: "",
-            isAuthenticated: false,
-            authError: (error as Error).message,
-            requestControllers: {
-              ...state.requestControllers,
-              checkAuth: null,
-            },
-          }));
-        }
+        if (response.ok) return response;
+      } catch (err) {
+        throw new Error("Failed to fetch resource");
       }
+
+      if (!state.refreshToken) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+        set({ token: null, refreshToken: null, isAuthenticated: false });
+        throw new Error("No refresh token available");
+      }
+
+      try {
+        const clonedResponse = response.clone();
+        const errorData = await clonedResponse.json();
+
+        if (
+          errorData.payload?.errorCode === "TOKEN_EXPIRED" &&
+          !state.isTokenRetry
+        ) {
+          set({ isTokenRetry: true });
+
+          try {
+            const newTokens = await getRefreshedTokens(state.refreshToken);
+            if (newTokens) {
+              set({
+                token: newTokens.token,
+                refreshToken: newTokens.refreshToken,
+                isTokenRetry: false,
+              });
+
+              const newAuthHeaders = getAuthHeaders(newTokens.token);
+              return fetch(input, {
+                ...init,
+                headers: {
+                  ...init?.headers,
+                  ...newAuthHeaders,
+                },
+              });
+            }
+          } finally {
+            set({ isTokenRetry: false });
+          }
+        }
+      } catch (err) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+        set({ token: null, refreshToken: null, isAuthenticated: false });
+        console.error("Error handling token refresh:", err);
+        throw err;
+      }
+
+      return response;
+    },
+
+    setAuthState: async (
+      token: string,
+      refreshToken: string,
+      isAuthenticated: boolean
+    ): Promise<void> => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+      set({ token, refreshToken, isAuthenticated });
+    },
+
+    destroyAuthState: async (): Promise<void> => {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      set({ token: null, refreshToken: null, isAuthenticated: false });
+      return Promise.resolve();
     },
   };
 };
 
 export default createAuthSlice;
+export type AuthStoreCreator<T> = StateCreator<AuthState, [], [], T>;
+export type SetAuthState = Parameters<AuthStoreCreator<AuthState>>[0];
+export type GetAuthState = () => AuthState;

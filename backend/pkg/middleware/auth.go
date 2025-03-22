@@ -5,6 +5,7 @@ import (
 	"algolearn/internal/models"
 	"algolearn/pkg/logger"
 	"algolearn/pkg/security"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -26,7 +27,8 @@ func Auth() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			log.Warn("Missing authorization header")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
 				Message:   "missing authorization header",
@@ -36,7 +38,8 @@ func Auth() gin.HandlerFunc {
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			log.Warnf("Invalid auth header format. Expected 'Bearer <token>', got: '%s'", authHeader)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
 				Message:   "invalid authorization header format",
@@ -47,7 +50,8 @@ func Auth() gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if len(tokenString) == 0 {
 			log.Warn("Empty token after Bearer prefix")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
 				Message:   "empty token",
@@ -56,9 +60,19 @@ func Auth() gin.HandlerFunc {
 		}
 
 		claims, err := security.ValidateJWT(tokenString)
-		if err != nil {
+		if errors.Is(err, security.ErrTokenExpired) {
 			log.Warnf("Token validation failed: %v", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, models.Response{
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, models.Response{
+				Success:   false,
+				ErrorCode: codes.TokenExpired,
+				Message:   "token expired",
+			})
+			return
+		} else if err != nil {
+			log.Warnf("Token validation failed: %v", err)
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, models.Response{
 				Success:   false,
 				ErrorCode: codes.Unauthorized,
 				Message:   "invalid token",

@@ -1,15 +1,14 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useStore from "../store";
+import { useCoursesStore } from "../store";
 import CourseForm from "../components/courses/CourseForm";
 import { Course } from "../types/models";
 import { Spin } from "antd";
-import ErrorComponent from "../components/Error";
 
 const EditCoursePage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { updateCourse, isLoading, courses, fetchCourses, error } = useStore();
+  const { updateCourse, isLoading, courses, fetchCourses } = useCoursesStore();
 
   const course = courses.find((c) => c.id === Number(id));
 

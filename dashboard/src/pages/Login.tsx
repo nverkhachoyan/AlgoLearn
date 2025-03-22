@@ -2,7 +2,7 @@ import React from "react";
 import { Form, Input, Button, Card, Alert } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import useStore from "../store";
+import { useAuthStore, useCoursesStore, useUserStore } from "../store";
 
 interface LoginFormData {
   email: string;
@@ -11,7 +11,9 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading, authError, isAuthenticated } = useStore();
+  const { authError, isAuthenticated } = useAuthStore();
+  const { login } = useUserStore();
+  const { isLoading } = useCoursesStore();
 
   React.useEffect(() => {
     if (isAuthenticated) {

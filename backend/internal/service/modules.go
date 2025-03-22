@@ -22,8 +22,8 @@ type ModuleService interface {
 	GetModuleWithProgress(ctx context.Context, userID, courseID, unitID, moduleID int64) (*ModuleWithProgressResponse, error)
 	GetModulesWithProgress(ctx context.Context, userID, unitID int64, page, pageSize int) ([]models.Module, error)
 	GetModuleTotalCount(ctx context.Context, unitID int64) (int64, error)
-	CreateModule(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID) (*models.Module, error)
-	CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID, sections []models.Section) (*models.Module, error)
+	CreateModule(ctx context.Context, unitID int64, name, description string, moduleNumber int32, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID) (*models.Module, error)
+	CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, moduleNumber int32, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID, sections []models.Section) (*models.Module, error)
 	UpdateModule(ctx context.Context, moduleID int64, name, description string) (*models.Module, error)
 	DeleteModule(ctx context.Context, moduleID int64) error
 	SaveModuleProgress(ctx context.Context, userID, moduleID int64, sections []models.SectionProgress, questions []models.QuestionProgress) error
@@ -289,7 +289,7 @@ func (s *moduleService) GetModuleTotalCount(ctx context.Context, unitID int64) (
 	return count, nil
 }
 
-func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID) (*models.Module, error) {
+func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, description string, moduleNumber int32, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID) (*models.Module, error) {
 	log := s.log.WithBaseFields(logger.Service, "CreateModule")
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -301,16 +301,11 @@ func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, de
 
 	qtx := s.queries.WithTx(tx)
 
-	lastNumber, err := qtx.GetLastModuleNumber(ctx, int32(unitID))
-	if err != nil {
-		log.WithError(err).Error("failed to get last module number")
-		return nil, fmt.Errorf("failed to get last module number: %w", err)
-	}
-
 	var moduleParams gen.InsertModuleParams
 
 	moduleParams.Name = name
 	moduleParams.Description = description
+	moduleParams.ModuleNumber = moduleNumber
 	moduleParams.UnitID = int32(unitID)
 
 	if folderObjectKey.Valid {
@@ -321,7 +316,6 @@ func (s *moduleService) CreateModule(ctx context.Context, unitID int64, name, de
 		moduleParams.ImgKey = imgKey.UUID
 	}
 
-	moduleParams.ModuleNumber = int32(lastNumber.(int64)) + 1
 	module, err := qtx.InsertModule(ctx, moduleParams)
 	if err != nil {
 		log.WithError(err).Error("failed to insert module")
@@ -662,7 +656,7 @@ func (s *moduleService) updateCourseProgress(ctx context.Context, qtx *gen.Queri
 	return nil
 }
 
-func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID, sections []models.Section) (*models.Module, error) {
+func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int64, name, description string, moduleNumber int32, folderObjectKey uuid.NullUUID, imgKey uuid.NullUUID, sections []models.Section) (*models.Module, error) {
 	log := s.log.WithBaseFields(logger.Service, "CreateModuleWithContent")
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -674,14 +668,6 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 
 	qtx := s.queries.WithTx(tx)
 
-	lastNumberResult, err := qtx.GetLastModuleNumber(ctx, int32(unitID))
-	if err != nil {
-		log.WithError(err).Error("failed to get last module number")
-		return nil, fmt.Errorf("failed to get last module number: %w", err)
-	}
-
-	lastNumber := lastNumberResult.(int64)
-
 	var moduleParams gen.InsertModuleParams
 
 	if folderObjectKey.Valid {
@@ -692,7 +678,7 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 		moduleParams.ImgKey = imgKey.UUID
 	}
 
-	moduleParams.ModuleNumber = int32(lastNumber + 1)
+	moduleParams.ModuleNumber = moduleNumber
 	moduleParams.UnitID = int32(unitID)
 	moduleParams.Name = name
 	moduleParams.Description = description

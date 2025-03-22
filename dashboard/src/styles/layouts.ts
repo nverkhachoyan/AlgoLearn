@@ -5,28 +5,30 @@ export const layoutStyles = {
   logo: {
     height: 32,
     margin: 16,
-    // background: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 2,
+    borderRadius: 6,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
   },
   header: {
     padding: "0 16px",
-    background: "white",
+    background: "var(--bg-header)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: "1px solid #e0e0e0",
+    borderBottom: "1px solid var(--border-color)",
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
   },
   headerLeft: {
     marginRight: 16,
     fontSize: 16,
     fontWeight: "bold",
+    color: "var(--text-color)",
   },
   footer: {
     textAlign: "center" as const,
+    background: "var(--bg-footer)",
+    color: "var(--text-color)",
   },
   content: {
     margin: "0 16px",
@@ -37,8 +39,9 @@ export const layoutStyles = {
   contentContainer: {
     padding: 24,
     minHeight: 360,
-    background: "white",
+    background: "var(--bg-content)",
     borderRadius: 8,
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
   },
   logoText: {
     color: "white",

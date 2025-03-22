@@ -7,10 +7,16 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
 type UnitService interface {
-	CreateUnit(ctx context.Context, courseID int64, unitNumber int16, name, description string) (*models.Unit, error)
+	CreateUnit(ctx context.Context,
+		courseID int64,
+		unitNumber int16,
+		name, description string,
+		folderObjectKey, imgKey uuid.NullUUID) (*models.Unit, error)
 	GetUnitByID(ctx context.Context, unitID int64) (*models.Unit, error)
 	GetUnitsByCourseID(ctx context.Context, courseID int64) ([]*models.Unit, error)
 	GetUnitsCount(ctx context.Context) (int64, error)
@@ -49,13 +55,28 @@ func (s *unitService) GetUnitByID(ctx context.Context, unitID int64) (*models.Un
 	}, nil
 }
 
-func (s *unitService) CreateUnit(ctx context.Context, courseID int64, unitNumber int16, name, description string) (*models.Unit, error) {
-	unitID, err := s.queries.CreateUnit(ctx, gen.CreateUnitParams{
-		CourseID:    int32(courseID),
-		UnitNumber:  int32(unitNumber),
-		Name:        name,
-		Description: description,
-	})
+func (s *unitService) CreateUnit(
+	ctx context.Context,
+	courseID int64,
+	unitNumber int16,
+	name, description string,
+	folderObjectKey, imgKey uuid.NullUUID) (*models.Unit, error) {
+	var params gen.CreateUnitParams
+
+	params.CourseID = int32(courseID)
+	params.UnitNumber = int32(unitNumber)
+	params.Name = name
+	params.Description = description
+
+	if folderObjectKey.Valid {
+		params.FolderObjectKey = folderObjectKey.UUID
+	}
+
+	if imgKey.Valid {
+		params.ImgKey = imgKey.UUID
+	}
+
+	unitID, err := s.queries.CreateUnit(ctx, params)
 	if err != nil {
 		return nil, err
 	}

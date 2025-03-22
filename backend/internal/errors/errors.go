@@ -24,6 +24,8 @@ const (
 	Forbidden            ErrorCode = "FORBIDDEN"
 	AccountNotFound      ErrorCode = "ACCOUNT_NOT_FOUND"
 	ContentAlreadyExists ErrorCode = "CONTENT_ALREADY_EXISTS"
+	TokenExpired         ErrorCode = "TOKEN_EXPIRED"
+	DuplicateValue       ErrorCode = "DUPLICATE_VALUE"
 )
 
 var ErrNotFound = errors.New("item not found")

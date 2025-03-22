@@ -7,9 +7,10 @@ import (
 	"algolearn/pkg/logger"
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UnitHandler interface {
@@ -58,8 +59,8 @@ func (h *unitHandler) CreateUnit(c *gin.Context) {
 		return
 	}
 
-	createdUnit, err := h.unitRepo.CreateUnit(ctx, courseID, unit.UnitNumber, unit.Name, unit.Description)
-	if err != nil && IsDuplicateError(err, []string{"unique_unit_number_per_course"}) {
+	createdUnit, err := h.unitRepo.CreateUnit(ctx, courseID, unit.UnitNumber, unit.Name, unit.Description, unit.FolderObjectKey, unit.ImgKey)
+	if err != nil && IsUniqueConstraintViolation(err, []string{"unique_unit_number_per_course"}) {
 		h.log.WithError(err).Error("unit number already exists")
 		c.JSON(http.StatusConflict, models.Response{
 			Success:   false,

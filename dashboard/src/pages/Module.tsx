@@ -7,15 +7,21 @@ import {
   Button,
   Divider,
   Progress,
-  message,
   Spin,
+  App,
 } from "antd";
 import { ArrowLeftOutlined, ArrowRightOutlined } from "@ant-design/icons";
-import useStore from "../store";
-import { MarkdownContent, CodeContent, QuestionContent } from "../types/models";
+import { useCoursesStore } from "../store";
+import {
+  MarkdownContent,
+  CodeContent,
+  QuestionContent,
+  LottieContent,
+} from "../types/models";
 import MarkdownSection from "../components/sections/MarkdownSection";
 import CodeSection from "../components/sections/CodeSection";
 import QuestionSection from "../components/sections/QuestionSection";
+import LottieSection from "../components/sections/LottieSection";
 
 const { Title, Text } = Typography;
 
@@ -26,11 +32,12 @@ const ModulePage: React.FC = () => {
     moduleId: string;
   }>();
   const navigate = useNavigate();
-  const { selectedModule } = useStore();
-  const isLoading = useStore((state) => state.isLoading);
-  const fetchModule = useStore((state) => state.fetchModule);
-  const answerQuestion = useStore((state) => state.answerQuestion);
-  const moduleNavigation = useStore((state) => state.moduleNavigation);
+  const { message } = App.useApp();
+  const selectedModule = useCoursesStore((state) => state.selectedModule);
+  const isLoading = useCoursesStore((state) => state.isLoading);
+  const fetchModule = useCoursesStore((state) => state.fetchModule);
+  const answerQuestion = useCoursesStore((state) => state.answerQuestion);
+  const moduleNavigation = useCoursesStore((state) => state.moduleNavigation);
   const module = selectedModule;
 
   useEffect(() => {
@@ -57,8 +64,8 @@ const ModulePage: React.FC = () => {
   };
 
   const handleNavigation = (
-    nextModuleId: number | undefined,
-    nextUnitId: number | undefined
+    nextModuleId?: number | null,
+    nextUnitId?: number | null
   ) => {
     if (nextModuleId && nextUnitId) {
       navigate(
@@ -107,6 +114,9 @@ const ModulePage: React.FC = () => {
                     content={section.content as QuestionContent}
                     onAnswer={(optionId) => handleAnswer(section.id, optionId)}
                   />
+                )}
+                {section.type === "lottie" && (
+                  <LottieSection content={section.content as LottieContent} />
                 )}
                 <Divider />
               </div>

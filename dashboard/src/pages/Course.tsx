@@ -12,6 +12,8 @@ import {
   Modal,
   Form,
   Input,
+  Spin,
+  Empty,
 } from "antd";
 import {
   EditOutlined,
@@ -20,7 +22,7 @@ import {
   OrderedListOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-import { useCoursesStore } from "../store";
+import { useStore } from "../store";
 import { buildImgUrl } from "../store/utils";
 import { Unit, Module } from "../types/models";
 
@@ -32,12 +34,10 @@ const CoursePage: React.FC = () => {
   const [form] = Form.useForm();
   const [isUnitModalVisible, setIsUnitModalVisible] = React.useState(false);
 
-  const {
-    selectedCourse: course,
-    fetchCourse,
-    isLoading,
-    createUnit,
-  } = useCoursesStore();
+  const createUnit = useStore((state) => state.createUnit);
+  const course = useStore((state) => state.selectedCourse);
+  const fetchCourse = useStore((state) => state.fetchCourse);
+  const isCourseLoading = useStore((state) => state.isCourseLoading);
 
   const imageUrl = buildImgUrl(
     "courses",
@@ -50,7 +50,7 @@ const CoursePage: React.FC = () => {
     if (id) {
       fetchCourse(Number(id));
     }
-  }, [id, fetchCourse]);
+  }, []);
 
   const handleCreateUnit = async (values: {
     name: string;
@@ -68,8 +68,20 @@ const CoursePage: React.FC = () => {
     }
   };
 
+  if (isCourseLoading) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   if (!course) {
-    return null;
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Empty description={`Course not found.`} />
+      </div>
+    );
   }
 
   const moduleItem = (unit: Unit, module: Module) => (
@@ -235,7 +247,7 @@ const CoursePage: React.FC = () => {
           setIsUnitModalVisible(false);
           form.resetFields();
         }}
-        confirmLoading={isLoading}
+        confirmLoading={isCourseLoading}
       >
         <Form form={form} layout="vertical" onFinish={handleCreateUnit}>
           <Form.Item

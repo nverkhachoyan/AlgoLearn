@@ -1,12 +1,12 @@
 import React from "react";
 import { Button } from "antd";
-import { useUserStore } from "../store";
+import { useStore } from "../store";
 
 const ErrorComponent: React.FC<{
   error: string;
   navigate: (path: string) => void;
 }> = (props) => {
-  const logout = useUserStore((state) => state.logout);
+  const logout = useStore((state) => state.logout);
   const handleLogout = () => {
     logout();
     props.navigate("/login");

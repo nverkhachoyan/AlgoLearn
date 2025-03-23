@@ -11,7 +11,8 @@ import {
   App,
 } from "antd";
 import { ArrowLeftOutlined, ArrowRightOutlined } from "@ant-design/icons";
-import { useCoursesStore } from "../store";
+import { Empty } from "antd";
+import { useStore } from "../store";
 import {
   MarkdownContent,
   CodeContent,
@@ -33,11 +34,11 @@ const ModulePage: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const { message } = App.useApp();
-  const selectedModule = useCoursesStore((state) => state.selectedModule);
-  const isLoading = useCoursesStore((state) => state.isLoading);
-  const fetchModule = useCoursesStore((state) => state.fetchModule);
-  const answerQuestion = useCoursesStore((state) => state.answerQuestion);
-  const moduleNavigation = useCoursesStore((state) => state.moduleNavigation);
+  const selectedModule = useStore((state) => state.selectedModule);
+  const isCourseLoading = useStore((state) => state.isCourseLoading);
+  const fetchModule = useStore((state) => state.fetchModule);
+  const answerQuestion = useStore((state) => state.answerQuestion);
+  const moduleNavigation = useStore((state) => state.moduleNavigation);
   const module = selectedModule;
 
   useEffect(() => {
@@ -76,10 +77,18 @@ const ModulePage: React.FC = () => {
     }
   };
 
-  if (isLoading || !module) {
+  if (isCourseLoading) {
     return (
       <div style={{ textAlign: "center", padding: "50px" }}>
         <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!module) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <Empty description={`Module with ID ${moduleId} not found.`} />
       </div>
     );
   }

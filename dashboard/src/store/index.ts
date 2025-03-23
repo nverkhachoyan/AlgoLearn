@@ -1,20 +1,29 @@
-import { create } from "zustand";
-import { AuthState } from "./authSlice";
-import { UserState } from "./userSlice";
-import { CoursesState } from "./coursesSlice";
+import { create, StateCreator } from "zustand";
+import { devtools } from "zustand/middleware";
 
-import createAuthSlice from "./authSlice";
-import createUserSlice from "./userSlice";
-import createCoursesSlice from "./coursesSlice";
+import createAuthSlice, { AuthState } from "./authSlice";
+import createUserSlice, { UserState } from "./userSlice";
+import createCoursesSlice, { CoursesState } from "./coursesSlice";
+import createUISlice, { UIState } from "./UISlice";
 
-export const useAuthStore = create<AuthState>()((set, get) => ({
-  ...createAuthSlice(set, get),
-}));
+export const useStore = create<StoreState>()(
+  devtools(
+    (set, get) => ({
+      ...createAuthSlice(set as any, get as any),
+      ...createUserSlice(set as any, get as any),
+      ...createCoursesSlice(set as any, get as any),
+      ...createUISlice(set as any, get as any),
+    }),
+    { name: "AlgoLearn-Store" }
+  )
+);
 
-export const useUserStore = create<UserState>()((set, get) => ({
-  ...createUserSlice(set, get),
-}));
+export interface StoreState
+  extends AuthState,
+    UserState,
+    CoursesState,
+    UIState {}
 
-export const useCoursesStore = create<CoursesState>()((set, get) => ({
-  ...createCoursesSlice(set, get),
-}));
+export type SliceCreator<TSlice> = StateCreator<StoreState, [], [], TSlice>;
+export type SetState<T> = Parameters<StateCreator<StoreState, [], [], T>>[0];
+export type GetState<T> = () => T;

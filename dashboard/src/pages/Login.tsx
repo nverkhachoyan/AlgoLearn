@@ -2,7 +2,7 @@ import React from "react";
 import { Form, Input, Button, Card, Alert } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore, useCoursesStore, useUserStore } from "../store";
+import { useStore } from "../store";
 
 interface LoginFormData {
   email: string;
@@ -11,9 +11,9 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { authError, isAuthenticated } = useAuthStore();
-  const { login } = useUserStore();
-  const { isLoading } = useCoursesStore();
+  const { authError, isAuthenticated } = useStore();
+  const { login } = useStore();
+  const isUserLoading = useStore((state) => state.isUserLoading);
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -81,7 +81,7 @@ const Login: React.FC = () => {
             <Button
               type="primary"
               htmlType="submit"
-              loading={isLoading}
+              loading={isUserLoading as any}
               block
               size="large"
             >

@@ -1,10 +1,10 @@
 import React from "react";
 import { List, Row, Col } from "antd";
-import { useCoursesStore } from "../store";
+import { useStore } from "../store";
 import CourseCard from "../components/courses/CourseCard";
 
 const Dashboard: React.FC = () => {
-  const courses = useCoursesStore((state) => state.courses);
+  const courses = useStore((state) => state.courses);
 
   return (
     <div className="dashboard-container" style={{ padding: "20px" }}>

@@ -27,21 +27,13 @@ export const layoutStyles = {
   },
   footer: {
     textAlign: "center" as const,
-    background: "var(--bg-footer)",
-    color: "var(--text-color)",
+    marginTop: "2rem",
   },
   content: {
     margin: "0 16px",
   },
   breadcrumb: {
     margin: "16px 0",
-  },
-  contentContainer: {
-    padding: 24,
-    minHeight: 360,
-    background: "var(--bg-content)",
-    borderRadius: 8,
-    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
   },
   logoText: {
     color: "white",

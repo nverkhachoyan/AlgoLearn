@@ -21,7 +21,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
-import { useAuthStore, useCoursesStore, useUserStore } from "../../store";
+import { useStore } from "../../store";
 import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
@@ -33,12 +33,13 @@ interface UserDrawerProps {
 }
 
 const UserDrawer: React.FC<UserDrawerProps> = ({ open, onClose }) => {
-  const user = useUserStore((state) => state.user);
-  const logout = useUserStore((state) => state.logout);
-  const isDarkMode = useCoursesStore((state) => state.isDarkMode);
-  const useSystemTheme = useCoursesStore((state) => state.useSystemTheme);
-  const setIsDarkMode = useCoursesStore((state) => state.setIsDarkMode);
-  const setUseSystemTheme = useCoursesStore((state) => state.setUseSystemTheme);
+  const user = useStore((state) => state.user);
+  const logout = useStore((state) => state.logout);
+
+  const isDarkMode = useStore((state) => state.isDarkMode);
+  const useSystemTheme = useStore((state) => state.useSystemTheme);
+  const setIsDarkMode = useStore((state) => state.setIsDarkMode);
+  const setUseSystemTheme = useStore((state) => state.setUseSystemTheme);
 
   if (!user) return null;
 

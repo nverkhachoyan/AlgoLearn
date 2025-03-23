@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { App } from "antd";
-import { useCoursesStore } from "../../store";
+import { useStore } from "../../store";
 
 const ErrorToast: React.FC = () => {
-  const error = useCoursesStore((state) => state.error);
-  const setError = useCoursesStore((state) => state.setError);
+  const error = useStore((state) => state.error);
+  const setError = useStore((state) => state.setError);
   const { message } = App.useApp();
 
   useEffect(() => {

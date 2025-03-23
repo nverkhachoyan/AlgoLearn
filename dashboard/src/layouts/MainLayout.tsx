@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 import { Layout, Menu, Space, Avatar, Tooltip } from "antd";
 import { MenuItem, getItem } from "../types/menu";
-import { useCoursesStore, useUserStore } from "../store";
+import { useStore } from "../store";
 import AppContent from "./AppContent";
 import CreateButton from "../components/common/CreateButton";
 import { layoutStyles } from "../styles/layouts";
@@ -20,16 +20,13 @@ const { Header, Footer, Sider } = Layout;
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const [isUserDrawerOpen, setIsUserDrawerOpen] = React.useState(false);
-  const sidebarCollapsed = useCoursesStore((state) => state.sidebarCollapsed);
-  const setSidebarCollapsed = useCoursesStore(
-    (state) => state.setSidebarCollapsed
-  );
-  const user = useUserStore((state) => state.user);
-  const isLoading = useCoursesStore((state) => state.isLoading);
-  const error = useCoursesStore((state) => state.error);
-  const fetchCourses = useCoursesStore((state) => state.fetchCourses);
-  const fetchUser = useUserStore((state) => state.fetchUser);
-  const pagination = useCoursesStore((state) => state.pagination);
+  const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
+  const setSidebarCollapsed = useStore((state) => state.setSidebarCollapsed);
+  const error = useStore((state) => state.error);
+  const user = useStore((state) => state.user);
+  const fetchCourses = useStore((state) => state.fetchCourses);
+  const fetchUser = useStore((state) => state.fetchUser);
+  const pagination = useStore((state) => state.pagination);
 
   const abortControllerRef = React.useRef<AbortController | null>(null);
   React.useEffect(() => {
@@ -52,10 +49,6 @@ const MainLayout: React.FC = () => {
   const handleCloseUserDrawer = () => {
     setIsUserDrawerOpen(false);
   };
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
 
   if (error) {
     return <ErrorComponent error={error} navigate={navigate} />;
@@ -88,7 +81,6 @@ const MainLayout: React.FC = () => {
     return colors[hash % colors.length];
   };
 
-  // Get user initials for avatar
   const getUserInitials = (username: string) => {
     return username
       .split(" ")

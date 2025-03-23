@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCoursesStore } from "../store";
+import { useStore } from "../store";
 import CourseForm from "../components/courses/CourseForm";
 import { Course } from "../types/models";
 import { Spin } from "antd";
@@ -8,7 +8,8 @@ import { Spin } from "antd";
 const EditCoursePage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { updateCourse, isLoading, courses, fetchCourses } = useCoursesStore();
+  const { updateCourse, courses, fetchCourses } = useStore();
+  const isCourseLoading = useStore((state) => state.isCourseLoading);
 
   const course = courses.find((c) => c.id === Number(id));
 
@@ -39,7 +40,7 @@ const EditCoursePage: React.FC = () => {
       <CourseForm
         initialValues={course}
         onSubmit={handleSubmit}
-        loading={isLoading}
+        loading={isCourseLoading}
       />
     </div>
   );

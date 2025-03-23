@@ -1,23 +1,21 @@
 import { Course, Unit, Module } from "../types/models";
-import { RequestController } from "./types";
 import { apiUrl, parseImgKey } from "./utils";
-import { StateCreator } from "zustand";
 import { RcFile } from "antd/es/upload/interface";
 import { v4 as uuidv4 } from "uuid";
 import { apiService } from "./apiService";
+import { SetState, GetState } from ".";
 
 export interface CoursesState {
   courses: Course[];
   selectedCourse: Course | null;
   selectedUnit: Unit | null;
   selectedModule: Module | null;
-  isLoading: boolean;
-  error: string | null;
   pagination: {
     current: number;
     pageSize: number;
     total: number;
   };
+  isCourseLoading: boolean;
   moduleNavigation: {
     nextModuleId: number | null;
     prevModuleId: number | null;
@@ -26,11 +24,6 @@ export interface CoursesState {
     nextUnitModuleId: number | null;
     prevUnitModuleId: number | null;
   } | null;
-
-  sidebarCollapsed: boolean;
-  isDarkMode: boolean;
-  useSystemTheme: boolean;
-  requestControllers: RequestController;
 
   getPresignedUrl: (
     fileName: string,
@@ -50,17 +43,16 @@ export interface CoursesState {
   createCourse: (course: Partial<Course>, iconFile?: RcFile) => Promise<void>;
   updateCourse: (id: number, course: Partial<Course>) => Promise<void>;
   deleteCourse: (id: number) => Promise<void>;
-  selectCourse: (course: Course | null) => void;
 
   // Unit actions
   createUnit: (courseId: number, unit: Partial<Unit>) => Promise<void>;
+  fetchUnit: (courseId: number, unitId: number) => Promise<void>;
   updateUnit: (
     courseId: number,
     unitId: number,
     unit: Partial<Unit>
   ) => Promise<void>;
   deleteUnit: (courseId: number, unitId: number) => Promise<void>;
-  selectUnit: (unit: Unit | null) => void;
 
   // Module actions
   fetchModule: (
@@ -84,7 +76,7 @@ export interface CoursesState {
     unitId: number,
     moduleId: number
   ) => Promise<void>;
-  selectModule: (module: Module | null) => void;
+
   answerQuestion: (
     courseId: number,
     unitId: number,
@@ -92,70 +84,38 @@ export interface CoursesState {
     sectionId: number,
     optionId: number
   ) => Promise<void>;
-  setIsDarkMode: (isDark: boolean) => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
-  toggleDarkMode: () => void;
-  setUseSystemTheme: (useSystem: boolean) => void;
-  setLoading: (isLoading: boolean) => void;
-  setError: (error: string | null) => void;
 }
 
-export type CourseStoreCreator<T> = StateCreator<CoursesState, [], [], T>;
-export type SetCourseState = Parameters<CourseStoreCreator<CoursesState>>[0];
-export type GetCourseState = () => CoursesState;
-
-const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
+const createCoursesSlice = (
+  set: SetState<CoursesState>,
+  get: GetState<CoursesState>
+) => {
   return {
     courses: [],
     selectedCourse: null,
     selectedUnit: null,
     selectedModule: null,
-    isLoading: false,
-    error: null,
     pagination: {
       current: 1,
       pageSize: 10,
       total: 0,
     },
+    isCourseLoading: false,
     moduleNavigation: null,
-    requestControllers: {},
 
-    // UI STATE
-    sidebarCollapsed: false,
-    isDarkMode: false,
-    useSystemTheme: true,
-
-    // UI ACTIONS
-    setIsDarkMode: (isDark: boolean) => set({ isDarkMode: isDark }),
-    setSidebarCollapsed: (collapsed: boolean) =>
-      set({ sidebarCollapsed: collapsed }),
-    toggleDarkMode: () =>
-      set((state: CoursesState) => ({ isDarkMode: !state.isDarkMode })),
-    setUseSystemTheme: (useSystem: boolean) =>
-      set({ useSystemTheme: useSystem }),
-
-    // COURSE ACTIONS
-    setLoading: (isLoading: boolean) => set({ isLoading }),
-    setError: (error: string | null) => set({ error }),
     setCourses: (courses: Course[]) => set({ courses }),
     setPagination: (pagination: {
       current: number;
       pageSize: number;
       total: number;
     }) => set({ pagination }),
-    selectCourse: (course: Course | null) => set({ selectedCourse: course }),
-    selectUnit: (unit: Unit | null) => set({ selectedUnit: unit }),
-    selectModule: (module: Module | null) => set({ selectedModule: module }),
 
     fetchCourses: async (page = 1, pageSize = 10) => {
-      const abortController = new AbortController();
+      set({ isCourseLoading: true });
 
       try {
         const response = await apiService.fetch(
-          `${apiUrl}/courses?page=${page}&pageSize=${pageSize}`,
-          {
-            signal: abortController.signal,
-          }
+          `${apiUrl}/courses?page=${page}&pageSize=${pageSize}`
         );
 
         if (!response.ok) {
@@ -175,28 +135,19 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
             pageSize: data.payload.pagination.pageSize,
             total: data.payload.pagination.totalItems,
           },
-          isLoading: false,
-          error: null,
+          isCourseLoading: false,
         });
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          set({
-            error: (error as Error).message,
-            isLoading: false,
-          });
-        }
+        set({ isCourseLoading: false, error: (error as Error).message });
       }
     },
 
     fetchCourse: async (courseId: number) => {
-      const abortController = new AbortController();
+      set({ isCourseLoading: true, error: null });
 
       try {
         const response = await apiService.fetch(
-          `${apiUrl}/courses/${courseId}`,
-          {
-            signal: abortController.signal,
-          }
+          `${apiUrl}/courses/${courseId}`
         );
 
         if (!response.ok) {
@@ -211,22 +162,22 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
 
         set({
           selectedCourse: data.payload || null,
-          isLoading: false,
+          isCourseLoading: false,
           error: null,
         });
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          set({
-            error: (error as Error).message,
-            isLoading: false,
-          });
-        }
+        set({
+          error: (error as Error).message,
+          isCourseLoading: false,
+        });
       }
     },
 
     createCourse: async (course: Partial<Course>, iconFile?: RcFile) => {
       const state = get();
-      set({ isLoading: true, error: null });
+
+      set({ isCourseLoading: true, error: null });
+
       try {
         const parentObjectKey = "courses";
         const subObjectKey = uuidv4();
@@ -269,15 +220,19 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
         const newCourse = await response.json();
         set((state) => ({
           courses: [...state.courses, newCourse],
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          error: (error as Error).message,
+          isCourseLoading: false,
+        });
       }
     },
 
     updateCourse: async (id: number, course: Partial<Course>) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(`${apiUrl}/courses/${id}`, {
           method: "PUT",
@@ -292,19 +247,20 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
           courses: state.courses.map((c: Course) =>
             c.id === id ? updatedCourse : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
           error: null,
         }));
       } catch (error) {
         set({
           error: (error as Error).message || "An unexpected error occurred",
-          isLoading: false,
+          isCourseLoading: false,
         });
       }
     },
 
     deleteCourse: async (id: number) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(`${apiUrl}/courses/${id}`, {
           method: "DELETE",
@@ -312,23 +268,26 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
         if (!response.ok) throw new Error("Failed to delete course");
         set((state: CoursesState) => ({
           courses: state.courses.filter((c: Course) => c.id !== id),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
     // Unit actions
     createUnit: async (courseId: number, unit: Partial<Unit>) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         console.log("UNIT", unit);
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units`,
           {
             method: "POST",
-
             body: JSON.stringify(unit),
           }
         );
@@ -341,10 +300,35 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
               ? { ...c, units: [...(c.units ?? []), newUnit] }
               : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
+      }
+    },
+
+    fetchUnit: async (courseId: number, unitId: number) => {
+      set({ isCourseLoading: true, error: null });
+
+      try {
+        await get().fetchCourse(courseId);
+        const freshState = get();
+        const unit = freshState.selectedCourse?.units.find(
+          (u) => u.id === unitId
+        );
+
+        set({
+          selectedUnit: unit,
+          isCourseLoading: false,
+        });
+      } catch (error) {
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -353,7 +337,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       unitId: number,
       unit: Partial<Unit>
     ) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units/${unitId}`,
@@ -375,15 +360,19 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
                 }
               : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
     deleteUnit: async (courseId: number, unitId: number) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units/${unitId}`,
@@ -401,10 +390,13 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
                 }
               : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -415,23 +407,16 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       unitId: number,
       moduleId: number
     ): Promise<void> => {
-      const abortController = new AbortController();
+      set({ isCourseLoading: true, error: null });
 
       try {
         const response = await apiService.fetch(
-          `${apiUrl}/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
-          {
-            signal: abortController.signal,
-          }
+          `${apiUrl}/courses/${courseId}/units/${unitId}/modules/${moduleId}`
         );
 
         if (!response.ok) {
           const error = await response.json();
-          set({
-            error: error.message || "Failed to fetch module",
-            isLoading: false,
-          });
-          return;
+          throw new Error(error.message || "Failed to fetch module");
         }
 
         const data = await response.json();
@@ -441,8 +426,6 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
 
         set({
           selectedModule: data.payload.module || null,
-          isLoading: false,
-          error: null,
           moduleNavigation: {
             nextModuleId: data.payload.nextModuleId || null,
             prevModuleId: data.payload.prevModuleId || null,
@@ -451,14 +434,14 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
             nextUnitModuleId: data.payload.nextUnitModuleId || null,
             prevUnitModuleId: data.payload.prevUnitModuleId || null,
           },
+          isCourseLoading: false,
+          error: null,
         });
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          set({
-            error: (error as Error).message,
-            isLoading: false,
-          });
-        }
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -467,7 +450,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       unitId: number,
       module: Partial<Module>
     ) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units/${unitId}/modules`,
@@ -477,24 +461,34 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
           }
         );
         if (!response.ok) throw new Error("Failed to create module");
-        const newModule = await response.json();
-        set((state: CoursesState) => ({
-          courses: state.courses.map((c: Course) =>
-            c.id === courseId
-              ? {
-                  ...c,
-                  units: c.units.map((u: Unit) =>
-                    u.id === unitId
-                      ? { ...u, modules: [...u.modules, newModule] }
-                      : u
-                  ),
-                }
-              : c
-          ),
-          isLoading: false,
-        }));
+        const data = await response.json();
+        const newModule = data.payload;
+
+        const state = get();
+        if (state.courses && state.courses.length) {
+          set((state: CoursesState) => ({
+            courses: state?.courses.map((c: Course) =>
+              c.id === courseId
+                ? {
+                    ...c,
+                    units: c?.units.map((u: Unit) =>
+                      u.id === unitId
+                        ? { ...u, modules: [...u.modules, newModule] }
+                        : u
+                    ),
+                  }
+                : c
+            ),
+            isCourseLoading: false,
+          }));
+        } else {
+          set({ isCourseLoading: false });
+        }
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -504,7 +498,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       moduleId: number,
       module: Partial<Module>
     ) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
@@ -533,10 +528,13 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
                 }
               : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -545,7 +543,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       unitId: number,
       moduleId: number
     ) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units/${unitId}/modules/${moduleId}`,
@@ -572,10 +571,13 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
                 }
               : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -586,7 +588,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       sectionId: number,
       optionId: number
     ) => {
-      set({ isLoading: true, error: null });
+      set({ isCourseLoading: true, error: null });
+
       try {
         const response = await apiService.fetch(
           `${apiUrl}/courses/${courseId}/units/${unitId}/modules/${moduleId}/sections/${sectionId}/answer`,
@@ -632,10 +635,13 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
                 }
               : c
           ),
-          isLoading: false,
+          isCourseLoading: false,
         }));
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({
+          isCourseLoading: false,
+          error: (error as Error).message,
+        });
       }
     },
 
@@ -646,7 +652,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       subObjectKey: string,
       contentType: string
     ): Promise<Record<string, string> | undefined> => {
-      set({ isLoading: true, error: null });
+      set({ error: null });
+
       try {
         const fullFolderPath = `${parentObjectKey}/${subObjectKey}`;
         const response = await apiService.fetch(`${apiUrl}/upload/presign`, {
@@ -661,7 +668,7 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
         const data = await response.json();
         return data.payload;
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
+        set({ error: (error as Error).message });
       }
     },
 
@@ -670,7 +677,8 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
       presignedUrl: string,
       isPublic: boolean
     ) => {
-      set({ isLoading: true, error: null });
+      set({ error: null });
+
       try {
         const response = await fetch(presignedUrl, {
           method: "PUT",
@@ -681,24 +689,12 @@ const createCoursesSlice = (set: SetCourseState, get: () => CoursesState) => {
           },
           body: file,
         });
-        if (!response.ok) throw new Error("Failed to upload to S3");
+        if (!response.ok) {
+          set({ error: "Failed to upload to S3" });
+        }
         return response;
       } catch (error) {
-        set({ error: (error as Error).message, isLoading: false });
-      }
-    },
-
-    abortRequest: (requestType: string) => {
-      const state = get();
-      const controller = state.requestControllers[requestType];
-      if (controller) {
-        controller.abort();
-        set((state) => ({
-          requestControllers: {
-            ...state.requestControllers,
-            [requestType]: null,
-          },
-        }));
+        set({ error: (error as Error).message });
       }
     },
   };

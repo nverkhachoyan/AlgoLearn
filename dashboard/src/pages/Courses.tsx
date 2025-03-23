@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useCoursesStore } from "../store";
+import { useStore } from "../store";
 import { Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import CourseList from "../components/courses/CourseList";
@@ -8,12 +8,12 @@ import CourseList from "../components/courses/CourseList";
 const CoursesPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const courses = useCoursesStore((state) => state.courses);
-  const isLoading = useCoursesStore((state) => state.isLoading);
-  const error = useCoursesStore((state) => state.error);
-  const pagination = useCoursesStore((state) => state.pagination);
-  const fetchCourses = useCoursesStore((state) => state.fetchCourses);
-  const deleteCourse = useCoursesStore((state) => state.deleteCourse);
+  const courses = useStore((state) => state.courses);
+  const isCourseLoading = useStore((state) => state.isCourseLoading);
+  const error = useStore((state) => state.error);
+  const pagination = useStore((state) => state.pagination);
+  const fetchCourses = useStore((state) => state.fetchCourses);
+  const deleteCourse = useStore((state) => state.deleteCourse);
 
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
@@ -65,7 +65,7 @@ const CoursesPage: React.FC = () => {
       </div>
       <CourseList
         courses={courses}
-        loading={isLoading}
+        loading={isCourseLoading}
         onDelete={deleteCourse}
         onPaginationChange={handlePaginationChange}
         currentPage={pagination.current}

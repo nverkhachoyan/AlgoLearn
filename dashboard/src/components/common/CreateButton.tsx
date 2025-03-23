@@ -7,12 +7,12 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useCoursesStore } from "../../store";
+import { useStore } from "../../store";
 
 const CreateButton: React.FC = () => {
   const navigate = useNavigate();
-  const selectedCourse = useCoursesStore((state) => state.selectedCourse);
-  const selectedUnit = useCoursesStore((state) => state.selectedUnit);
+  const selectedCourse = useStore((state) => state.selectedCourse);
+  const selectedUnit = useStore((state) => state.selectedUnit);
 
   const handleCreate = (type: "course" | "unit" | "module") => {
     switch (type) {

@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { ConfigProvider, theme as antTheme } from "antd";
-import { useCoursesStore } from "../store";
+import { useStore } from "../store";
 import { darkTheme, lightTheme } from "./themeConfig";
 
 interface ThemeProviderProps {
@@ -8,9 +8,9 @@ interface ThemeProviderProps {
 }
 
 const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const isDarkMode = useCoursesStore((state) => state.isDarkMode);
-  const useSystemTheme = useCoursesStore((state) => state.useSystemTheme);
-  const setIsDarkMode = useCoursesStore((state) => state.setIsDarkMode);
+  const isDarkMode = useStore((state) => state.isDarkMode);
+  const useSystemTheme = useStore((state) => state.useSystemTheme);
+  const setIsDarkMode = useStore((state) => state.setIsDarkMode);
 
   // Check for system theme preference
   useEffect(() => {

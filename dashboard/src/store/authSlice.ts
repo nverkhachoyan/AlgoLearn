@@ -1,10 +1,10 @@
-import { StateCreator } from "zustand";
 import {
   getAuthHeaders,
   getRefreshedTokens,
   TOKEN_STORAGE_KEY,
   REFRESH_TOKEN_STORAGE_KEY,
 } from "./utils";
+import { SetState, GetState } from ".";
 
 export interface AuthState {
   token: string | null;
@@ -25,7 +25,10 @@ export interface AuthState {
   destroyAuthState: () => Promise<void>;
 }
 
-const createAuthSlice = (set: SetAuthState, get: () => AuthState) => {
+const createAuthSlice = (
+  set: SetState<AuthState>,
+  get: GetState<AuthState>
+) => {
   const storedToken =
     typeof window !== "undefined"
       ? localStorage.getItem(TOKEN_STORAGE_KEY)
@@ -69,6 +72,7 @@ const createAuthSlice = (set: SetAuthState, get: () => AuthState) => {
 
         if (response.ok) return response;
       } catch (err) {
+        console.log("ERROR HERE", err);
         throw new Error("Failed to fetch resource");
       }
 
@@ -83,10 +87,7 @@ const createAuthSlice = (set: SetAuthState, get: () => AuthState) => {
         const clonedResponse = response.clone();
         const errorData = await clonedResponse.json();
 
-        if (
-          errorData.payload?.errorCode === "TOKEN_EXPIRED" &&
-          !state.isTokenRetry
-        ) {
+        if (errorData.errorCode === "TOKEN_EXPIRED" && !state.isTokenRetry) {
           set({ isTokenRetry: true });
 
           try {
@@ -142,6 +143,3 @@ const createAuthSlice = (set: SetAuthState, get: () => AuthState) => {
 };
 
 export default createAuthSlice;
-export type AuthStoreCreator<T> = StateCreator<AuthState, [], [], T>;
-export type SetAuthState = Parameters<AuthStoreCreator<AuthState>>[0];
-export type GetAuthState = () => AuthState;

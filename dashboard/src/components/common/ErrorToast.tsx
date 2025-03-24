@@ -18,7 +18,7 @@ const ErrorToast: React.FC = () => {
         onClose: () => setError(null),
       });
     }
-  }, [error, setError]);
+  }, [error, setError, message]);
 
   return null;
 };

@@ -4,7 +4,6 @@ import "./App.css";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
-import ErrorToast from "./components/common/ErrorToast";
 import ThemeProvider from "./theme/ThemeProvider";
 import { App as AntApp } from "antd";
 
@@ -22,7 +21,6 @@ const AppRoutes: React.FC = () => {
           }
         />
       </Routes>
-      <ErrorToast />
     </>
   );
 };

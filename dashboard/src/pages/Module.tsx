@@ -45,7 +45,7 @@ const ModulePage: React.FC = () => {
     if (courseId && unitId && moduleId) {
       fetchModule(Number(courseId), Number(unitId), Number(moduleId));
     }
-  }, [courseId, unitId, moduleId]);
+  }, [courseId, unitId, moduleId, fetchModule]);
 
   const handleAnswer = async (sectionId: number, optionId: number) => {
     if (courseId && unitId && moduleId) {
@@ -58,7 +58,7 @@ const ModulePage: React.FC = () => {
           optionId
         );
         message.success("Answer submitted successfully");
-      } catch (error) {
+      } catch {
         message.error("Failed to submit answer");
       }
     }
@@ -121,11 +121,14 @@ const ModulePage: React.FC = () => {
                 {section.type === "question" && (
                   <QuestionSection
                     content={section.content as QuestionContent}
-                    onAnswer={(optionId) => handleAnswer(section.id, optionId)}
+                    onAnswer={(optionId) => handleAnswer(section.id!, optionId)}
                   />
                 )}
                 {section.type === "lottie" && (
-                  <LottieSection content={section.content as LottieContent} />
+                  <LottieSection
+                    content={section.content as LottieContent}
+                    module={module}
+                  />
                 )}
                 <Divider />
               </div>

@@ -1,9 +1,10 @@
-import { Course, Unit, Module } from "../types/models";
+import { Course, Unit, Module, Section, LottieContent } from "../types/models";
 import { apiUrl, parseImgKey } from "./utils";
 import { RcFile } from "antd/es/upload/interface";
 import { v4 as uuidv4 } from "uuid";
 import { apiService } from "./apiService";
 import { SetState, GetState } from ".";
+import { isNewLottie, NewSection } from "./types";
 
 export interface CoursesState {
   courses: Course[];
@@ -27,12 +28,12 @@ export interface CoursesState {
 
   getPresignedUrl: (
     fileName: string,
-    parentObjectKey: string,
-    subObjectKey: string,
+    folder: string,
+    subFolder: string,
     contentType: string
   ) => Promise<Record<string, string> | undefined>;
   uploadToS3: (
-    file: RcFile,
+    file: File,
     presignedUrl: string,
     isPublic: boolean
   ) => Promise<Response | undefined>;
@@ -63,7 +64,8 @@ export interface CoursesState {
   createModule: (
     courseId: number,
     unitId: number,
-    module: Partial<Module>
+    module: Partial<Module>,
+    newSections: NewSection[]
   ) => Promise<void>;
   updateModule: (
     courseId: number,
@@ -448,47 +450,119 @@ const createCoursesSlice = (
     createModule: async (
       courseId: number,
       unitId: number,
-      module: Partial<Module>
+      module: Partial<Module>,
+      newSections: NewSection[]
     ) => {
       set({ isCourseLoading: true, error: null });
 
+      // build prepared sections
       try {
-        const response = await apiService.fetch(
-          `${apiUrl}/courses/${courseId}/units/${unitId}/modules`,
-          {
-            method: "POST",
-            body: JSON.stringify(module),
-          }
-        );
-        if (!response.ok) throw new Error("Failed to create module");
-        const data = await response.json();
-        const newModule = data.payload;
-
         const state = get();
-        if (state.courses && state.courses.length) {
-          set((state: CoursesState) => ({
-            courses: state?.courses.map((c: Course) =>
-              c.id === courseId
-                ? {
-                    ...c,
-                    units: c?.units.map((u: Unit) =>
-                      u.id === unitId
-                        ? { ...u, modules: [...u.modules, newModule] }
-                        : u
-                    ),
-                  }
-                : c
-            ),
+
+        module.folderObjectKey = uuidv4();
+        const preparedSections = newSections.map(async (s) => {
+          if (isNewLottie(s)) {
+            if (!s.content.file) {
+              throw new Error("Lottie section missing animation file");
+            }
+            const folderName = "modules";
+            const subFolder = module.folderObjectKey;
+            if (!subFolder) {
+              throw new Error(
+                "Module does not hve a valid UUID for folderObjectKey"
+              );
+            }
+            const presignedURL = await state.getPresignedUrl(
+              s.content.file.name,
+              folderName,
+              subFolder,
+              subFolder
+            );
+            if (!presignedURL) {
+              throw new Error("Failed to get a presigned URL for S3");
+            }
+
+            const resp = await state.uploadToS3(
+              s.content.file,
+              presignedURL.url,
+              true
+            );
+
+            if (resp?.status !== 200) {
+              throw new Error("failed to upload to S3");
+            }
+            const parsed = parseImgKey(presignedURL.key);
+            if (parsed) {
+              s.content.objectKey = parsed.imgObjectKey;
+              s.content.mediaExt = parsed.mediaExtension;
+            }
+
+            return {
+              type: s.type,
+              position: s.position,
+              content: {
+                objectKey: s.content.objectKey,
+                mediaExt: s.content.mediaExt,
+                mediaUrl: "",
+                caption: s.content.caption,
+                description: s.content.description,
+                width: s.content.width,
+              } as LottieContent,
+            } as Section;
+          }
+
+          return s;
+
+          // throw new Error("Unknown section type provided to client API");
+        });
+
+        // set it to module sections
+        module.sections = await Promise.all(preparedSections);
+        console.log(module);
+
+        try {
+          const response = await apiService.fetch(
+            `${apiUrl}/courses/${courseId}/units/${unitId}/modules`,
+            {
+              method: "POST",
+              body: JSON.stringify(module),
+            }
+          );
+          if (!response.ok) throw new Error("Failed to create module");
+          const data = await response.json();
+          const newModule = data.payload;
+
+          const state = get();
+          if (state.courses && state.courses.length) {
+            set((state: CoursesState) => ({
+              courses: state?.courses.map((c: Course) =>
+                c.id === courseId
+                  ? {
+                      ...c,
+                      units: c?.units.map((u: Unit) =>
+                        u.id === unitId
+                          ? { ...u, modules: [...u.modules, newModule] }
+                          : u
+                      ),
+                    }
+                  : c
+              ),
+              isCourseLoading: false,
+            }));
+          } else {
+            set({ isCourseLoading: false });
+          }
+        } catch (error) {
+          set({
             isCourseLoading: false,
-          }));
-        } else {
-          set({ isCourseLoading: false });
+            error: (error as Error).message,
+          });
         }
       } catch (error) {
         set({
-          isCourseLoading: false,
           error: (error as Error).message,
         });
+        throw new Error(`EPIC FAILURE: Creating module: ${error}`);
       }
     },
 
@@ -648,14 +722,14 @@ const createCoursesSlice = (
     // Utility functions
     getPresignedUrl: async (
       fileName: string,
-      parentObjectKey: string,
-      subObjectKey: string,
+      folder: string,
+      subFolder: string,
       contentType: string
     ): Promise<Record<string, string> | undefined> => {
       set({ error: null });
 
       try {
-        const fullFolderPath = `${parentObjectKey}/${subObjectKey}`;
+        const fullFolderPath = `${folder}/${subFolder}`;
         const response = await apiService.fetch(`${apiUrl}/upload/presign`, {
           method: "POST",
           body: JSON.stringify({
@@ -672,11 +746,7 @@ const createCoursesSlice = (
       }
     },
 
-    uploadToS3: async (
-      file: RcFile,
-      presignedUrl: string,
-      isPublic: boolean
-    ) => {
+    uploadToS3: async (file: File, presignedUrl: string, isPublic: boolean) => {
       set({ error: null });
 
       try {

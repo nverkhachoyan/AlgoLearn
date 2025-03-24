@@ -6,9 +6,9 @@ export type DifficultyLevel =
 export type Status = "uninitiated" | "in_progress" | "completed" | "abandoned";
 
 export interface BaseModel {
-  id: number;
-  createdAt: string;
-  updatedAt: string;
+  id?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Author {
@@ -82,6 +82,13 @@ export interface Section extends BaseModel {
     | LottieContent;
   progress?: SectionProgress;
 }
+
+export type SectionContent =
+  | MarkdownContent
+  | CodeContent
+  | QuestionContent
+  | VideoContent
+  | LottieContent;
 
 export interface MarkdownContent {
   objectKey?: string;

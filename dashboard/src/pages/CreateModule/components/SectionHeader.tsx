@@ -10,7 +10,7 @@ const SectionHeader = ({
   handleRemove,
 }: {
   section: NewSection;
-  handleRemove: (sectionId: string) => void;
+  handleRemove: (sectionId: number) => void;
 }) => (
   <div
     className="drag-handle"

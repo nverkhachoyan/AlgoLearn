@@ -19,7 +19,7 @@ export interface User {
 }
 
 export interface NewLottie {
-  fileUrl?: string;
+  file?: File | null;
   caption?: string;
   description?: string;
   width?: number;
@@ -29,6 +29,8 @@ export interface NewLottie {
   autoplay?: boolean;
   loop?: boolean;
   speed?: number;
+  objectKey?: string;
+  mediaExt?: string;
 }
 
 export interface NewMarkdown {
@@ -59,8 +61,32 @@ export interface QuestionOption {
 }
 
 export interface NewSection {
-  id: string;
+  id: number;
   type: "markdown" | "code" | "question" | "lottie";
   position: number;
   content: NewLottie | NewMarkdown | NewCode | NewVideo | NewQuestion;
 }
+
+export const isNewLottie = (
+  section: NewSection
+): section is NewSection & { content: NewLottie } => {
+  return section.type === "lottie";
+};
+
+export const isNewMarkdown = (
+  section: NewSection
+): section is NewSection & { content: NewMarkdown } => {
+  return section.type === "markdown";
+};
+
+export const isNewQuestion = (
+  section: NewSection
+): section is NewSection & { content: NewQuestion } => {
+  return section.type === "question";
+};
+
+export const isNewCode = (
+  section: NewSection
+): section is NewSection & { content: NewCode } => {
+  return section.type === "code";
+};

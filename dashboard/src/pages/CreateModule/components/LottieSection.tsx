@@ -1,31 +1,19 @@
-import {
-  Space,
-  Button,
-  Typography,
-  Alert,
-  Input,
-  InputNumber,
-  Form,
-  Switch,
-  Flex,
-} from "antd";
-import {
-  UploadOutlined,
-  FileOutlined,
-  CheckOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { Space, Typography, Input, InputNumber, Switch, Flex } from "antd";
+import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import { NewLottie } from "../../../store/types";
 import React, { useState, useRef } from "react";
 import { NewSection } from "../../../store/types";
 import TextArea from "antd/es/input/TextArea";
+import ConditionalRenderer from "../../../components/ConditionalRenderer";
+import LottiPreview from "./LottiePreview";
+import UploadLottie from "./UploadLottie";
+import { useEffect } from "react";
 
 const { Title, Text } = Typography;
 
 type LottieSectionProps = {
   section: {
-    id: string;
+    id: number;
     type: "lottie";
     position: number;
     content: NewLottie;
@@ -33,11 +21,38 @@ type LottieSectionProps = {
   onChange: (updatedSection: NewSection) => void;
 };
 
-const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
+const LottieSection: React.FC<LottieSectionProps> = ({ section, onChange }) => {
   const [lottieUrl, setLottieUrl] = useState<string>("");
   const [isHovering, setIsHovering] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filename, setFilename] = useState<string>("");
+
+  useEffect(() => {
+    return () => {
+      if (lottieUrl) {
+        URL.revokeObjectURL(lottieUrl);
+      }
+    };
+  }, [lottieUrl]);
+
+  const updateSection = (updatedContent: Partial<NewLottie>) => {
+    onChange({
+      ...section,
+      content: {
+        ...section.content,
+        ...updatedContent,
+      },
+    });
+  };
+
+  const handleRemoveLottieFile = () => {
+    setLottieUrl("");
+    setFilename("");
+    updateSection({ file: null });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -45,11 +60,11 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
       const objectUrl = URL.createObjectURL(file);
       setLottieUrl(objectUrl);
       setFilename(file.name);
-      section.content.fileUrl = objectUrl;
+      updateSection({ file });
     }
   };
 
-  const handleButtonClick = () => {
+  const handleUploadLottie = () => {
     fileInputRef.current?.click();
   };
 
@@ -64,6 +79,7 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
         <Text>Caption</Text>
         <Input
           value={section.content.caption}
+          onChange={(e) => updateSection({ caption: e.target.value })}
           placeholder="Enter your caption here"
         />
       </Flex>
@@ -71,81 +87,48 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
       <Flex vertical gap={10}>
         <Text>Description</Text>
         <TextArea
-          value={section.content.caption}
+          value={section.content.description}
+          onChange={(e) => updateSection({ description: e.target.value })}
           placeholder="Enter your description here"
         />
       </Flex>
 
       <Flex vertical gap={10} align="center">
-        {lottieUrl ? (
-          <div style={{ marginBottom: "20px", textAlign: "center" }}>
-            <DotLottieReact
-              src={lottieUrl as any}
-              loop
-              autoplay
-              style={{
-                height: "300px",
-                width: "100%",
-                maxWidth: "400px",
-                marginBottom: "16px",
-              }}
+        <ConditionalRenderer
+          condition={lottieUrl !== ""}
+          renderTrue={() => (
+            <LottiPreview
+              lottieUrl={lottieUrl}
+              filename={filename}
+              onRemove={handleRemoveLottieFile}
             />
-            <div style={{ textAlign: "center", marginBottom: 15 }}>
-              <Button
-                danger
-                style={{ marginLeft: "10px", borderRadius: "6px" }}
-                onClick={() => {
-                  setLottieUrl("");
-                  setFilename("");
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                  section.content.fileUrl = "";
-                }}
-              >
-                Remove
-              </Button>
-            </div>
-            <Alert
-              message={`Current file: ${filename}`}
-              type="success"
-              showIcon
-              style={{ marginBottom: "16px" }}
+          )}
+          renderFalse={() => (
+            <UploadLottie
+              isHovering={isHovering}
+              onButtonClick={handleUploadLottie}
+              onHoverEnter={() => setIsHovering(true)}
+              onHoverLeave={() => setIsHovering(false)}
             />
-          </div>
-        ) : (
-          <div
-            style={{
-              maxWidth: 400,
-              border: `2px dashed ${isHovering ? "#1890ff" : "#d9d9d9"}`,
-              borderRadius: "8px",
-              padding: "40px 20px",
-              textAlign: "center",
-              cursor: "pointer",
-              marginBottom: "20px",
-              transition: "all 0.3s",
-              backgroundColor: isHovering ? "#f0f7ff" : "#fafafa",
-            }}
-            onClick={handleButtonClick}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            <FileOutlined
-              style={{ fontSize: 48, color: "#1890ff", marginBottom: 16 }}
-            />
-            <p>Click or drag file to this area to upload</p>
-            <p style={{ color: "#888" }}>
-              Support for .lottie animated files only
-            </p>
-          </div>
-        )}
+          )}
+        />
       </Flex>
 
       <Space>
         <Text>Width</Text>
-        <InputNumber min={1} max={200} defaultValue={section.content.width} />
+        <InputNumber
+          min={1}
+          max={200}
+          defaultValue={section.content.width}
+          onChange={(n) => updateSection({ width: Number(n) })}
+        />
         <Text>Height</Text>
-        <InputNumber min={1} max={200} defaultValue={section.content.height} />
+        <InputNumber
+          min={1}
+          max={200}
+          defaultValue={section.content.height}
+          onChange={(n) => updateSection({ height: Number(n) })}
+        />
       </Space>
 
       <Flex gap={20} vertical>
@@ -155,6 +138,7 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
             checkedChildren={<CheckOutlined />}
             unCheckedChildren={<CloseOutlined />}
             defaultValue={section.content.autoplay}
+            onChange={(isChecked) => updateSection({ autoplay: isChecked })}
           />
         </Space>
 
@@ -164,6 +148,7 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
             checkedChildren={<CheckOutlined />}
             unCheckedChildren={<CloseOutlined />}
             defaultValue={section.content.loop}
+            onChange={(isChecked) => updateSection({ loop: isChecked })}
           />
         </Space>
 
@@ -173,6 +158,7 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section }) => {
             min={0.5}
             max={5.0}
             defaultValue={section.content.speed}
+            onChange={(n) => updateSection({ speed: Number(n) })}
           />
         </Space>
       </Flex>

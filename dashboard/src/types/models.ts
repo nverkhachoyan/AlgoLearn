@@ -72,14 +72,9 @@ export interface Module extends BaseModel {
 }
 
 export interface Section extends BaseModel {
-  type: "markdown" | "code" | "question" | "video" | "lottie";
+  type: "markdown" | "code" | "question" | "video" | "lottie" | "image";
   position: number;
-  content:
-    | MarkdownContent
-    | CodeContent
-    | QuestionContent
-    | VideoContent
-    | LottieContent;
+  content: SectionContent;
   progress?: SectionProgress;
 }
 
@@ -88,7 +83,8 @@ export type SectionContent =
   | CodeContent
   | QuestionContent
   | VideoContent
-  | LottieContent;
+  | LottieContent
+  | ImageContent;
 
 export interface MarkdownContent {
   objectKey?: string;
@@ -134,6 +130,18 @@ export interface QuestionContent {
   options: QuestionOption[];
   question: string;
   userQuestionAnswer?: UserQuestionAnswer;
+}
+
+export interface ImageContent {
+  url: string;
+  width: number;
+  height: number;
+  headline: string;
+  caption: string;
+  altText: string;
+  source: string;
+  objectKey?: string;
+  mediaExt?: string;
 }
 
 export interface QuestionOption {

@@ -104,7 +104,7 @@ INSERT INTO modules (
     COALESCE($5::UUID, NULL),
     COALESCE($6::text, '')
 )
-RETURNING id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, module_number, unit_id, name, description
+RETURNING id, created_at, updated_at, media_ext, draft, module_number, unit_id, name, description, folder_object_key, img_key
 `
 
 type CreateModuleParams struct {
@@ -128,16 +128,16 @@ func (q *Queries) CreateModule(ctx context.Context, arg CreateModuleParams) (Mod
 	var i Module
 	err := row.Scan(
 		&i.ID,
-		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ImgKey,
 		&i.MediaExt,
 		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,
 		&i.Description,
+		&i.FolderObjectKey,
+		&i.ImgKey,
 	)
 	return i, err
 }
@@ -220,7 +220,7 @@ func (q *Queries) GetLastModuleNumber(ctx context.Context, unitID int32) (interf
 }
 
 const getModuleByID = `-- name: GetModuleByID :one
-SELECT id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, module_number, unit_id, name, description FROM modules WHERE id = $1::int
+SELECT id, created_at, updated_at, media_ext, draft, module_number, unit_id, name, description, folder_object_key, img_key FROM modules WHERE id = $1::int
 `
 
 func (q *Queries) GetModuleByID(ctx context.Context, id int32) (Module, error) {
@@ -228,16 +228,16 @@ func (q *Queries) GetModuleByID(ctx context.Context, id int32) (Module, error) {
 	var i Module
 	err := row.Scan(
 		&i.ID,
-		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ImgKey,
 		&i.MediaExt,
 		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,
 		&i.Description,
+		&i.FolderObjectKey,
+		&i.ImgKey,
 	)
 	return i, err
 }
@@ -290,7 +290,7 @@ func (q *Queries) GetModuleWithProgress(ctx context.Context, arg GetModuleWithPr
 }
 
 const getModulesByUnitId = `-- name: GetModulesByUnitId :many
-SELECT id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, module_number, unit_id, name, description FROM modules WHERE unit_id = $1::int
+SELECT id, created_at, updated_at, media_ext, draft, module_number, unit_id, name, description, folder_object_key, img_key FROM modules WHERE unit_id = $1::int
 `
 
 func (q *Queries) GetModulesByUnitId(ctx context.Context, unitID int32) ([]Module, error) {
@@ -304,16 +304,16 @@ func (q *Queries) GetModulesByUnitId(ctx context.Context, unitID int32) ([]Modul
 		var i Module
 		if err := rows.Scan(
 			&i.ID,
-			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.ImgKey,
 			&i.MediaExt,
 			&i.Draft,
 			&i.ModuleNumber,
 			&i.UnitID,
 			&i.Name,
 			&i.Description,
+			&i.FolderObjectKey,
+			&i.ImgKey,
 		); err != nil {
 			return nil, err
 		}
@@ -341,7 +341,7 @@ func (q *Queries) GetModulesCount(ctx context.Context) (int64, error) {
 
 const getModulesList = `-- name: GetModulesList :many
 SELECT
-    m.id, m.folder_object_key, m.created_at, m.updated_at, m.img_key, m.media_ext, m.draft, m.module_number, m.unit_id, m.name, m.description,
+    m.id, m.created_at, m.updated_at, m.media_ext, m.draft, m.module_number, m.unit_id, m.name, m.description, m.folder_object_key, m.img_key,
     jsonb_build_object(
         'folderObjectKey', m.folder_object_key,
         'imgKey', m.img_key,
@@ -370,16 +370,16 @@ type GetModulesListParams struct {
 
 type GetModulesListRow struct {
 	ID              int32           `json:"id"`
-	FolderObjectKey uuid.NullUUID   `json:"folderObjectKey"`
 	CreatedAt       time.Time       `json:"createdAt"`
 	UpdatedAt       time.Time       `json:"updatedAt"`
-	ImgKey          uuid.NullUUID   `json:"imgKey"`
 	MediaExt        sql.NullString  `json:"mediaExt"`
 	Draft           bool            `json:"draft"`
 	ModuleNumber    int32           `json:"moduleNumber"`
 	UnitID          int32           `json:"unitId"`
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
+	FolderObjectKey uuid.NullUUID   `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID   `json:"imgKey"`
 	ModuleProgress  json.RawMessage `json:"moduleProgress"`
 }
 
@@ -399,16 +399,16 @@ func (q *Queries) GetModulesList(ctx context.Context, arg GetModulesListParams) 
 		var i GetModulesListRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.ImgKey,
 			&i.MediaExt,
 			&i.Draft,
 			&i.ModuleNumber,
 			&i.UnitID,
 			&i.Name,
 			&i.Description,
+			&i.FolderObjectKey,
+			&i.ImgKey,
 			&i.ModuleProgress,
 		); err != nil {
 			return nil, err
@@ -643,7 +643,11 @@ WITH section_content AS (
         s.type::section_type as type,
         CASE s.type
             WHEN 'markdown' THEN (
-                SELECT jsonb_build_object('markdown', markdown, 'objectKey', ms.object_key, 'media_ext', ms.media_ext)
+                SELECT jsonb_build_object(
+                    'markdown', ms.markdown, 
+                    'objectKey', ms.object_key, 
+                    'mediaExt', ms.media_ext
+                )
                 FROM markdown_sections ms
                 WHERE ms.section_id = s.id
             )
@@ -654,18 +658,22 @@ WITH section_content AS (
                     'objectKey', ls.object_key,
                     'width', ls.width,
                     'height', ls.height,
-                    'alt_text', ls.alt_text,
-                    'fallback_url', ls.fallback_url,
+                    'altText', ls.alt_text,
+                    'fallbackUrl', ls.fallback_url,
                     'autoplay', ls.autoplay,
                     'loop', ls.loop,
                     'speed', ls.speed,
-                    'media_ext', ls.media_ext
+                    'mediaExt', ls.media_ext
                 )
                 FROM lottie_sections ls
                 WHERE ls.section_id = s.id
             )
             WHEN 'video' THEN (
-                SELECT jsonb_build_object('url', url, 'objectKey', vs.object_key, 'media_ext', vs.media_ext)
+                SELECT jsonb_build_object(
+                    'url', vs.url, 
+                    'objectKey', vs.object_key, 
+                    'mediaExt', vs.media_ext
+                )
                 FROM video_sections vs
                 WHERE vs.section_id = s.id
             )
@@ -673,7 +681,7 @@ WITH section_content AS (
                 SELECT jsonb_build_object(
                     'id', q.id,
                     'objectKey', qs.object_key,
-                    'media_ext', qs.media_ext,
+                    'mediaExt', qs.media_ext,
                     'question', q.question,
                     'type', q.type,
                     'options', COALESCE(
@@ -711,10 +719,28 @@ WITH section_content AS (
                 WHERE qs.section_id = s.id
             )
             WHEN 'code' THEN (
-                SELECT jsonb_build_object('code', code, 'language', language, 'objectKey', cs.object_key, 'media_ext', cs.media_ext)
+                SELECT jsonb_build_object(
+                    'code', cs.code, 
+                    'language', cs.language, 
+                    'objectKey', cs.object_key, 
+                    'mediaExt', cs.media_ext
+                )
                 FROM code_sections cs
                 WHERE cs.section_id = s.id
             )
+            WHEN 'image' THEN (
+            SELECT jsonb_build_object(
+                'url', ims.url, 
+                'width', ims.width,
+                'height', ims.height,
+                'objectKey', ims.object_key,
+                'mediaExt', ims.media_ext,
+                'headline', ims.headline,
+                'caption', ims.caption
+            )
+            FROM image_sections ims
+            WHERE ims.section_id = s.id
+        )
         END as content
     FROM sections s
     WHERE s.module_id = $1::int
@@ -810,6 +836,59 @@ func (q *Queries) InsertCodeSection(ctx context.Context, arg InsertCodeSectionPa
 		arg.Language,
 		arg.ObjectKey,
 		arg.MediaExt,
+	)
+	return err
+}
+
+const insertImageSection = `-- name: InsertImageSection :exec
+INSERT INTO
+    image_sections (
+        section_id, 
+        width, 
+        height, 
+        headline, 
+        caption, 
+        alt_text,
+        object_key, 
+        media_ext,
+        url
+)
+VALUES (
+    $1,
+    COALESCE($2::INTEGER, NULL),
+    COALESCE($3::INTEGER, NULL),
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9
+)
+`
+
+type InsertImageSectionParams struct {
+	SectionID int32          `json:"sectionId"`
+	Width     int32          `json:"width"`
+	Height    int32          `json:"height"`
+	Headline  sql.NullString `json:"headline"`
+	Caption   sql.NullString `json:"caption"`
+	AltText   sql.NullString `json:"altText"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+	Url       sql.NullString `json:"url"`
+}
+
+func (q *Queries) InsertImageSection(ctx context.Context, arg InsertImageSectionParams) error {
+	_, err := q.db.ExecContext(ctx, insertImageSection,
+		arg.SectionID,
+		arg.Width,
+		arg.Height,
+		arg.Headline,
+		arg.Caption,
+		arg.AltText,
+		arg.ObjectKey,
+		arg.MediaExt,
+		arg.Url,
 	)
 	return err
 }
@@ -913,7 +992,7 @@ INSERT INTO
         name,
         description
     )
-VALUES (COALESCE($1::UUID, NULL), COALESCE($2::UUID, NULL), COALESCE($3::text, ''), $4, $5, $6, $7) RETURNING id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, module_number, unit_id, name, description
+VALUES (COALESCE($1::UUID, NULL), COALESCE($2::UUID, NULL), COALESCE($3::text, ''), $4, $5, $6, $7) RETURNING id, created_at, updated_at, media_ext, draft, module_number, unit_id, name, description, folder_object_key, img_key
 `
 
 type InsertModuleParams struct {
@@ -939,16 +1018,16 @@ func (q *Queries) InsertModule(ctx context.Context, arg InsertModuleParams) (Mod
 	var i Module
 	err := row.Scan(
 		&i.ID,
-		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ImgKey,
 		&i.MediaExt,
 		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,
 		&i.Description,
+		&i.FolderObjectKey,
+		&i.ImgKey,
 	)
 	return i, err
 }
@@ -1138,7 +1217,7 @@ SET
     description = COALESCE(NULLIF($2::text, ''), description),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $3::int
-RETURNING id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, module_number, unit_id, name, description
+RETURNING id, created_at, updated_at, media_ext, draft, module_number, unit_id, name, description, folder_object_key, img_key
 `
 
 type UpdateModuleParams struct {
@@ -1152,16 +1231,16 @@ func (q *Queries) UpdateModule(ctx context.Context, arg UpdateModuleParams) (Mod
 	var i Module
 	err := row.Scan(
 		&i.ID,
-		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ImgKey,
 		&i.MediaExt,
 		&i.Draft,
 		&i.ModuleNumber,
 		&i.UnitID,
 		&i.Name,
 		&i.Description,
+		&i.FolderObjectKey,
+		&i.ImgKey,
 	)
 	return i, err
 }

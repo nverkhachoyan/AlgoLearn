@@ -15,61 +15,61 @@ import (
 
 const createCourse = `-- name: CreateCourse :one
 INSERT INTO courses (
-    folder_object_key,
     name,
     description,
     requirements,
     what_you_learn,
     background_color,
-    img_key,
-    media_ext,
     duration,
     difficulty_level,
-    rating
+    rating,
+    folder_object_key,
+    img_key,
+    media_ext
 )
 VALUES (
-    COALESCE($1::UUID, NULL),
+    COALESCE($1::text, ''),
     COALESCE($2::text, ''),
     COALESCE($3::text, ''),
     COALESCE($4::text, ''),
     COALESCE($5::text, ''),
-    COALESCE($6::text, ''),
-    COALESCE($7::UUID, NULL),
-    COALESCE($8::text, ''),
-    COALESCE($9::int, 0),
-    COALESCE($10::difficulty_level, 'beginner'),
-    COALESCE($11::float, 0.0)
+    COALESCE($6::int, 0),
+    COALESCE($7::difficulty_level, 'beginner'),
+    COALESCE($8::float, 0.0),
+    COALESCE($9::UUID, NULL),
+    COALESCE($10::UUID, NULL),
+    COALESCE($11::text, '')
 )
 RETURNING id
 `
 
 type CreateCourseParams struct {
-	FolderObjectKey uuid.UUID       `json:"folderObjectKey"`
 	Name            string          `json:"name"`
 	Description     string          `json:"description"`
 	Requirements    string          `json:"requirements"`
 	WhatYouLearn    string          `json:"whatYouLearn"`
 	BackgroundColor string          `json:"backgroundColor"`
-	ImgKey          uuid.UUID       `json:"imgKey"`
-	MediaExt        string          `json:"mediaExt"`
 	Duration        int32           `json:"duration"`
 	DifficultyLevel DifficultyLevel `json:"difficultyLevel"`
 	Rating          float64         `json:"rating"`
+	FolderObjectKey uuid.UUID       `json:"folderObjectKey"`
+	ImgKey          uuid.UUID       `json:"imgKey"`
+	MediaExt        string          `json:"mediaExt"`
 }
 
 func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (int32, error) {
 	row := q.db.QueryRowContext(ctx, createCourse,
-		arg.FolderObjectKey,
 		arg.Name,
 		arg.Description,
 		arg.Requirements,
 		arg.WhatYouLearn,
 		arg.BackgroundColor,
-		arg.ImgKey,
-		arg.MediaExt,
 		arg.Duration,
 		arg.DifficultyLevel,
 		arg.Rating,
+		arg.FolderObjectKey,
+		arg.ImgKey,
+		arg.MediaExt,
 	)
 	var id int32
 	err := row.Scan(&id)
@@ -1092,6 +1092,47 @@ func (q *Queries) GetFirstUnitAndModuleInCourse(ctx context.Context, courseID in
 	return i, err
 }
 
+const getImageSection = `-- name: GetImageSection :one
+SELECT 
+    url,
+    headline,
+    caption,
+    alt_text,
+    width,
+    height,
+    object_key,
+    media_ext
+FROM image_sections
+WHERE section_id = $1::int
+`
+
+type GetImageSectionRow struct {
+	Url       sql.NullString `json:"url"`
+	Headline  sql.NullString `json:"headline"`
+	Caption   sql.NullString `json:"caption"`
+	AltText   sql.NullString `json:"altText"`
+	Width     sql.NullInt32  `json:"width"`
+	Height    sql.NullInt32  `json:"height"`
+	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	MediaExt  sql.NullString `json:"mediaExt"`
+}
+
+func (q *Queries) GetImageSection(ctx context.Context, sectionID int32) (GetImageSectionRow, error) {
+	row := q.db.QueryRowContext(ctx, getImageSection, sectionID)
+	var i GetImageSectionRow
+	err := row.Scan(
+		&i.Url,
+		&i.Headline,
+		&i.Caption,
+		&i.AltText,
+		&i.Width,
+		&i.Height,
+		&i.ObjectKey,
+		&i.MediaExt,
+	)
+	return i, err
+}
+
 const getMarkdownSection = `-- name: GetMarkdownSection :one
 SELECT 
     markdown as markdown,
@@ -1255,6 +1296,7 @@ func (q *Queries) GetModuleSectionsWithProgress(ctx context.Context, arg GetModu
 }
 
 const getQuestionSection = `-- name: GetQuestionSection :one
+
 SELECT 
     q.id,
     q.question,
@@ -1287,6 +1329,14 @@ type GetQuestionSectionRow struct {
 	QuestionOptions interface{}    `json:"questionOptions"`
 }
 
+// object_key UUID,
+//
+//	width INTEGER DEFAULT 200,
+//	height INTEGER DEFAULT 200,
+//	media_ext VARCHAR(10),
+//	url TEXT,
+//	headline TEXT NOT NULL,
+//	caption TEXT NOT NULL,
 func (q *Queries) GetQuestionSection(ctx context.Context, sectionID int32) (GetQuestionSectionRow, error) {
 	row := q.db.QueryRowContext(ctx, getQuestionSection, sectionID)
 	var i GetQuestionSectionRow
@@ -1305,20 +1355,28 @@ const getSectionContent = `-- name: GetSectionContent :one
 SELECT 
     CASE s.type
         WHEN 'markdown' THEN (
-            SELECT jsonb_build_object('markdown', markdown, 'object_key', object_key, 'media_ext', media_ext)
+            SELECT jsonb_build_object(
+                'markdown', markdown, 
+                'objectKey', object_key, 
+                'mediaExt', media_ext
+            )
             FROM markdown_sections
             WHERE section_id = s.id
         )
         WHEN 'video' THEN (
-            SELECT jsonb_build_object('url', url, 'object_key', object_key, 'media_ext', media_ext)
+            SELECT jsonb_build_object(
+                'url', url, 'objectKey', 
+                object_key, 'mediaExt', 
+                media_ext
+            )
             FROM video_sections
             WHERE section_id = s.id
         )
         WHEN 'question' THEN (
             SELECT jsonb_build_object(
                 'id', q.id,
-                'object_key', object_key,
-                'media_ext', media_ext,
+                'objectKey', object_key,
+                'mediaExt', media_ext,
                 'question', q.question,
                 'type', q.type,
                 'options', (
@@ -1339,12 +1397,12 @@ SELECT
             SELECT jsonb_build_object(
                 'caption', caption,
                 'description', description,
-                'object_key', object_key,
-                'media_ext', media_ext,
+                'objectKey', object_key,
+                'mediaExt', media_ext,
                 'width', width,
                 'height', height,
-                'alt_text', alt_text,
-                'fallback_url', fallback_url,
+                'altText', alt_text,
+                'fallbackUrl', fallback_url,
                 'autoplay', autoplay,
                 'loop', loop,
                 'speed', speed
@@ -1356,8 +1414,21 @@ SELECT
             SELECT jsonb_build_object(
                 'code', code, 
                 'language', language,
-                'object_key', object_key,
-                'media_ext', media_ext
+                'objectKey', object_key,
+                'mediaExt', media_ext
+            )
+            FROM code_sections
+            WHERE section_id = s.id
+        )
+        WHEN 'image' THEN (
+            SELECT jsonb_build_object(
+                'url', url, 
+                'width', width,
+                'height', height,
+                'objectKey', object_key,
+                'mediaExt', media_ext,
+                'headline', headline,
+                'caption', caption
             )
             FROM code_sections
             WHERE section_id = s.id

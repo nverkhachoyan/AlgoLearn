@@ -44,17 +44,17 @@ export const parseImgKey = (imgKey: string): ParsedImgKey | undefined => {
 
 export const buildImgUrl = (
   resource?: string,
-  folderObjectKey?: string,
+  parentFolder?: string,
   objectKey?: string,
   mediaExt?: string
 ) => {
-  if (!resource || !folderObjectKey || !objectKey || !mediaExt) {
+  if (!resource || !parentFolder || !objectKey || !mediaExt) {
     return "";
   }
   const bucketName = import.meta.env.VITE_S3_BUCKET_NAME;
   const region = import.meta.env.VITE_S3_REGION;
   const endpoint = import.meta.env.VITE_S3_ENDPOINT;
-  return `https://${bucketName}.${region}.${endpoint}/${resource}/${folderObjectKey}/${objectKey}.${mediaExt}`;
+  return `https://${bucketName}.${region}.${endpoint}/${resource}/${parentFolder}/${objectKey}.${mediaExt}`;
 };
 
 export const getRefreshedTokens = async (

@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TYPE section_type AS ENUM ('markdown', 'code', 'question', 'video', 'lottie');
+CREATE TYPE section_type AS ENUM ('markdown', 'code', 'question', 'video', 'lottie', 'image');
 
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
@@ -90,10 +90,13 @@ CREATE TABLE lottie_sections (
 CREATE TABLE image_sections (
     section_id INTEGER PRIMARY KEY,
     object_key UUID,
+    width INTEGER DEFAULT 200,
+    height INTEGER DEFAULT 200,
     media_ext VARCHAR(10),
     url TEXT,
-    headline TEXT NOT NULL,
-    caption TEXT NOT NULL,
+    headline TEXT,
+    caption TEXT,
+    alt_text TEXT,
     FOREIGN KEY (section_id) REFERENCES sections (id) ON DELETE CASCADE
 );
 

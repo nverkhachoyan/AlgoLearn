@@ -109,6 +109,7 @@ const (
 	SectionTypeQuestion SectionType = "question"
 	SectionTypeVideo    SectionType = "video"
 	SectionTypeLottie   SectionType = "lottie"
+	SectionTypeImage    SectionType = "image"
 )
 
 func (e *SectionType) Scan(src interface{}) error {
@@ -238,10 +239,13 @@ type CourseTag struct {
 type ImageSection struct {
 	SectionID int32          `json:"sectionId"`
 	ObjectKey uuid.NullUUID  `json:"objectKey"`
+	Width     sql.NullInt32  `json:"width"`
+	Height    sql.NullInt32  `json:"height"`
 	MediaExt  sql.NullString `json:"mediaExt"`
 	Url       sql.NullString `json:"url"`
-	Headline  string         `json:"headline"`
-	Caption   string         `json:"caption"`
+	Headline  sql.NullString `json:"headline"`
+	Caption   sql.NullString `json:"caption"`
+	AltText   sql.NullString `json:"altText"`
 }
 
 type LottieSection struct {
@@ -268,16 +272,16 @@ type MarkdownSection struct {
 
 type Module struct {
 	ID              int32          `json:"id"`
-	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
 	CreatedAt       time.Time      `json:"createdAt"`
 	UpdatedAt       time.Time      `json:"updatedAt"`
-	ImgKey          uuid.NullUUID  `json:"imgKey"`
 	MediaExt        sql.NullString `json:"mediaExt"`
 	Draft           bool           `json:"draft"`
 	ModuleNumber    int32          `json:"moduleNumber"`
 	UnitID          int32          `json:"unitId"`
 	Name            string         `json:"name"`
 	Description     string         `json:"description"`
+	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID  `json:"imgKey"`
 }
 
 type ModuleQuestion struct {
@@ -351,16 +355,16 @@ type Tag struct {
 
 type Unit struct {
 	ID              int32          `json:"id"`
-	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
 	CreatedAt       time.Time      `json:"createdAt"`
 	UpdatedAt       time.Time      `json:"updatedAt"`
-	ImgKey          uuid.NullUUID  `json:"imgKey"`
 	MediaExt        sql.NullString `json:"mediaExt"`
 	Draft           bool           `json:"draft"`
 	UnitNumber      int32          `json:"unitNumber"`
 	CourseID        int32          `json:"courseId"`
 	Name            string         `json:"name"`
 	Description     string         `json:"description"`
+	FolderObjectKey uuid.NullUUID  `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID  `json:"imgKey"`
 }
 
 type User struct {

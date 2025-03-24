@@ -1,10 +1,10 @@
 import { Course, Unit, Module, Section, LottieContent } from "../types/models";
-import { apiUrl, parseImgKey } from "./utils";
+import { apiUrl } from "./utils";
 import { RcFile } from "antd/es/upload/interface";
 import { v4 as uuidv4 } from "uuid";
 import { apiService } from "./apiService";
 import { SetState, GetState } from ".";
-import { isNewLottie, NewSection } from "./types";
+import { isNewImage, isNewLottie, NewImage, NewSection } from "./types";
 
 export interface CoursesState {
   courses: Course[];
@@ -37,6 +37,14 @@ export interface CoursesState {
     presignedUrl: string,
     isPublic: boolean
   ) => Promise<Response | undefined>;
+  deleteFromS3: (
+    folder: string,
+    subFolder: string,
+    fileName: string
+  ) => Promise<void>;
+  cleanupS3Objects: (
+    objects: Array<{ folder: string; subFolder: string; objectKey: string }>
+  ) => Promise<void>;
 
   // Course actions
   fetchCourses: (page?: number, pageSize?: number) => Promise<void>;
@@ -178,16 +186,16 @@ const createCoursesSlice = (
     createCourse: async (course: Partial<Course>, iconFile?: RcFile) => {
       const state = get();
 
-      set({ isCourseLoading: true, error: null });
+      set({ isCourseLoading: true });
 
       try {
-        const parentObjectKey = "courses";
-        const subObjectKey = uuidv4();
+        const parentFolder = "courses";
+        const subFolder = uuidv4();
         if (iconFile) {
           const presignedUrl = await state.getPresignedUrl(
             iconFile.name,
-            parentObjectKey,
-            subObjectKey,
+            parentFolder,
+            subFolder,
             iconFile.type
           );
           if (presignedUrl) {
@@ -201,12 +209,9 @@ const createCoursesSlice = (
             }
 
             if (presignedUrl.key) {
-              const parsedImgKey = parseImgKey(presignedUrl.key);
-              if (parsedImgKey) {
-                course.imgKey = parsedImgKey.imgObjectKey;
-                course.mediaExt = parsedImgKey.mediaExtension;
-                course.folderObjectKey = subObjectKey.toString();
-              }
+              course.imgKey = presignedUrl.key;
+              course.mediaExt = presignedUrl.ext;
+              course.folderObjectKey = subFolder.toString();
             }
           }
         }
@@ -453,14 +458,18 @@ const createCoursesSlice = (
       module: Partial<Module>,
       newSections: NewSection[]
     ) => {
-      set({ isCourseLoading: true, error: null });
+      set({ isCourseLoading: true });
+      const state = get();
+      const uploadedObjects: Array<{
+        folder: string;
+        subFolder: string;
+        objectKey: string;
+      }> = [];
 
-      // build prepared sections
       try {
-        const state = get();
-
         module.folderObjectKey = uuidv4();
-        const preparedSections = newSections.map(async (s) => {
+
+        const sectionPromises = newSections.map(async (s) => {
           if (isNewLottie(s)) {
             if (!s.content.file) {
               throw new Error("Lottie section missing animation file");
@@ -491,11 +500,15 @@ const createCoursesSlice = (
             if (resp?.status !== 200) {
               throw new Error("failed to upload to S3");
             }
-            const parsed = parseImgKey(presignedURL.key);
-            if (parsed) {
-              s.content.objectKey = parsed.imgObjectKey;
-              s.content.mediaExt = parsed.mediaExtension;
-            }
+
+            s.content.objectKey = presignedURL.key;
+            s.content.mediaExt = presignedURL.ext;
+
+            uploadedObjects.push({
+              folder: folderName,
+              subFolder,
+              objectKey: presignedURL.url,
+            });
 
             return {
               type: s.type,
@@ -503,7 +516,6 @@ const createCoursesSlice = (
               content: {
                 objectKey: s.content.objectKey,
                 mediaExt: s.content.mediaExt,
-                mediaUrl: "",
                 caption: s.content.caption,
                 description: s.content.description,
                 width: s.content.width,
@@ -511,14 +523,65 @@ const createCoursesSlice = (
             } as Section;
           }
 
-          return s;
+          if (isNewImage(s)) {
+            if (!s.content.file) {
+              throw new Error("Lottie section missing animation file");
+            }
+            const folderName = "modules";
+            const subFolder = module.folderObjectKey;
+            if (!subFolder) {
+              throw new Error(
+                "Module does not hve a valid UUID for folderObjectKey"
+              );
+            }
+            const presignedURL = await state.getPresignedUrl(
+              s.content.file.name,
+              folderName,
+              subFolder,
+              subFolder
+            );
+            if (!presignedURL) {
+              throw new Error("Failed to get a presigned URL for S3");
+            }
 
-          // throw new Error("Unknown section type provided to client API");
+            const resp = await state.uploadToS3(
+              s.content.file,
+              presignedURL.url,
+              true
+            );
+
+            if (resp?.status !== 200) {
+              throw new Error("failed to upload to S3");
+            }
+
+            s.content.objectKey = presignedURL.key;
+            s.content.mediaExt = presignedURL.ext;
+
+            uploadedObjects.push({
+              folder: folderName,
+              subFolder,
+              objectKey: presignedURL.url,
+            });
+
+            return {
+              type: s.type,
+              position: s.position,
+              content: {
+                objectKey: s.content.objectKey,
+                mediaExt: s.content.mediaExt,
+                headline: s.content.headline,
+                caption: s.content.caption,
+                altText: s.content.altText,
+                width: s.content.width,
+                height: s.content.height,
+              } as NewImage,
+            } as Section;
+          }
+
+          return s;
         });
 
-        // set it to module sections
-        module.sections = await Promise.all(preparedSections);
-        console.log(module);
+        module.sections = await Promise.all(sectionPromises);
 
         try {
           const response = await apiService.fetch(
@@ -552,15 +615,17 @@ const createCoursesSlice = (
           } else {
             set({ isCourseLoading: false });
           }
-        } catch (error) {
+        } catch {
+          await state.cleanupS3Objects(uploadedObjects);
           set({
             isCourseLoading: false,
-            error: (error as Error).message,
           });
+          throw new Error("failed to create module");
         }
       } catch (error) {
+        await state.cleanupS3Objects(uploadedObjects);
         set({
-          error: (error as Error).message,
+          isCourseLoading: false,
         });
         throw new Error(`EPIC FAILURE: Creating module: ${error}`);
       }
@@ -725,16 +790,16 @@ const createCoursesSlice = (
       folder: string,
       subFolder: string,
       contentType: string
-    ): Promise<Record<string, string> | undefined> => {
+    ): Promise<{ key: string; ext: string; url: string } | undefined> => {
       set({ error: null });
 
       try {
-        const fullFolderPath = `${folder}/${subFolder}`;
-        const response = await apiService.fetch(`${apiUrl}/upload/presign`, {
+        const response = await apiService.fetch(`${apiUrl}/storage/presign`, {
           method: "POST",
           body: JSON.stringify({
-            fileName,
-            folder: fullFolderPath,
+            filename: fileName,
+            folder: folder,
+            subFolder: subFolder,
             contentType,
           }),
         });
@@ -747,8 +812,6 @@ const createCoursesSlice = (
     },
 
     uploadToS3: async (file: File, presignedUrl: string, isPublic: boolean) => {
-      set({ error: null });
-
       try {
         const response = await fetch(presignedUrl, {
           method: "PUT",
@@ -763,8 +826,45 @@ const createCoursesSlice = (
           set({ error: "Failed to upload to S3" });
         }
         return response;
-      } catch (error) {
-        set({ error: (error as Error).message });
+      } catch {
+        throw new Error("failed to upload to S3");
+      }
+    },
+
+    deleteFromS3: async (
+      folder: string,
+      subFolder: string,
+      fileName: string
+    ) => {
+      try {
+        const response = await apiService.fetch(`${apiUrl}/storage/delete`, {
+          method: "POST",
+          body: JSON.stringify({
+            fileName,
+            folder: folder,
+            subFolder: subFolder,
+          }),
+        });
+        if (!response.ok) throw new Error("failed to delete S3 file");
+        const data = await response.json();
+        return data.payload;
+      } catch {
+        throw new Error("failed to delete from S3");
+      }
+    },
+
+    cleanupS3Objects: async (
+      objects: Array<{ folder: string; subFolder: string; objectKey: string }>
+    ) => {
+      const state = get();
+
+      for (const obj of objects) {
+        try {
+          await state.deleteFromS3(obj.folder, obj.subFolder, obj.objectKey);
+        } catch (err) {
+          console.error(`Failed to delete S3 object: ${obj.objectKey}`, err);
+          throw new Error(`Failed to delete S3 object: ${obj.objectKey}`);
+        }
       }
     },
   };

@@ -835,6 +835,29 @@ func (s *moduleService) CreateModuleWithContent(ctx context.Context, unitID int6
 				log.WithError(err).Error("failed to insert lottie section")
 				return nil, fmt.Errorf("failed to insert lottie section: %w", err)
 			}
+
+		case "image":
+			var content models.ImageContent
+			if err := json.Unmarshal(section.Content, &content); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal image content: %w", err)
+			}
+			err = qtx.InsertImageSection(ctx, gen.InsertImageSectionParams{
+				SectionID: createdSection.ID,
+				ObjectKey: uuid.NullUUID{UUID: content.ObjectKey.UUID, Valid: content.ObjectKey.Valid},
+				MediaExt:  sql.NullString{String: content.MediaExt, Valid: content.MediaExt != ""},
+				Url:       sql.NullString{String: content.URL, Valid: content.URL != ""},
+				Headline:  sql.NullString{String: content.Headline, Valid: content.Headline != ""},
+				Caption:   sql.NullString{String: content.Caption, Valid: content.Caption != ""},
+				AltText:   sql.NullString{String: content.AltText, Valid: content.AltText != ""},
+				Width:     int32(content.Width),
+				Height:    int32(content.Height),
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to insert image section")
+				return nil, fmt.Errorf("failed to insert image section: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported section type: %s", section.Type)
 		}
 
 	}

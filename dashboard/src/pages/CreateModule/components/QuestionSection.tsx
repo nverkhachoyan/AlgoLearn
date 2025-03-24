@@ -7,12 +7,7 @@ const { Title } = Typography;
 const { Option } = Select;
 
 type QuestionSectionProps = {
-  section: {
-    id: string;
-    type: "lottie";
-    position: number;
-    content: NewQuestion;
-  };
+  section: NewSection & { content: NewQuestion };
   onChange: (updatedSection: NewSection) => void;
 };
 

@@ -114,6 +114,12 @@ func (m *Module) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to unmarshal lottie section: %w", err)
 			}
 			section = &s
+		case "image":
+			var s ImageSection
+			if err := json.Unmarshal(rawSection, &s); err != nil {
+				return fmt.Errorf("failed to unmarshal image section: %w", err)
+			}
+			section = &s
 		default:
 			return fmt.Errorf("unknown section type: %s", baseSection.Type)
 		}
@@ -232,6 +238,18 @@ type LottieContent struct {
 	MediaExt    string        `json:"mediaExt"`
 }
 
+type ImageContent struct {
+	URL       string        `json:"url"`
+	Width     int           `json:"width"`
+	Height    int           `json:"height"`
+	AltText   string        `json:"alt_text"`
+	Headline  string        `json:"headline"`
+	Caption   string        `json:"caption"`
+	Source    string        `json:"source"`
+	ObjectKey uuid.NullUUID `json:"objectKey"`
+	MediaExt  string        `json:"mediaExt"`
+}
+
 type UserAnswer struct {
 	OptionID   *int64    `json:"optionId"`
 	AnsweredAt time.Time `json:"answeredAt"`
@@ -346,7 +364,7 @@ type ImageSection struct {
 	BaseModel
 	Type            SectionType      `json:"type"`
 	Position        int16            `json:"position"`
-	Content         string           `json:"content"`
+	Content         ImageContent     `json:"content"`
 	SectionProgress *SectionProgress `json:"sectionProgress"`
 }
 

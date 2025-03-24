@@ -1,16 +1,12 @@
-import { Form, Input } from "antd";
+import { Flex } from "antd";
 import { NewMarkdown, NewSection } from "../../../store/types";
 import React from "react";
-
-const { TextArea } = Input;
+import MDEditor from "@uiw/react-md-editor";
+import ConditionalRenderer from "../../../components/ConditionalRenderer";
+import "./markdown.css";
 
 type MarkdownSectionProps = {
-  section: {
-    id: string;
-    type: "lottie";
-    position: number;
-    content: NewMarkdown;
-  };
+  section: NewSection & { content: NewMarkdown };
   onChange: (updatedSection: NewSection) => void;
 };
 
@@ -18,23 +14,32 @@ const MarkdownSection: React.FC<MarkdownSectionProps> = ({
   section,
   onChange,
 }) => (
-  <Form.Item
-    label="Content"
-    required
-    rules={[{ required: true, message: "Please enter content" }]}
-  >
-    <TextArea
-      rows={4}
-      value={section.content.markdown}
-      onChange={(e) =>
-        onChange({
-          ...section,
-          content: { markdown: e.target.value },
-        })
-      }
-      placeholder="Enter markdown content"
+  <Flex vertical>
+    <ConditionalRenderer
+      condition={section.content.markdown !== ""}
+      renderTrue={() => (
+        <MDEditor.Markdown
+          source={section.content.markdown}
+          style={{
+            marginTop: 20,
+            marginBottom: 20,
+            borderRadius: 8,
+            padding: 15,
+          }}
+        />
+      )}
+      renderFalse={() => <p>Start typing markdown to see a preview.</p>}
     />
-  </Form.Item>
+    <MDEditor
+      minHeight={400}
+      style={{ borderRadius: 8, overflow: "hidden" }}
+      preview="edit"
+      value={section.content.markdown}
+      onChange={(v) =>
+        onChange({ ...section, content: { markdown: v as string } })
+      }
+    />
+  </Flex>
 );
 
 export default MarkdownSection;

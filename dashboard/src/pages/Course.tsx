@@ -50,7 +50,7 @@ const CoursePage: React.FC = () => {
     if (id) {
       fetchCourse(Number(id));
     }
-  }, []);
+  }, [id, fetchCourse]);
 
   const handleCreateUnit = async (values: {
     name: string;

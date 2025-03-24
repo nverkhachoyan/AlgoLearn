@@ -16,6 +16,7 @@ import {
   FileTextOutlined,
   QuestionOutlined,
   PlaySquareOutlined,
+  FileImageOutlined,
 } from "@ant-design/icons";
 import {
   DragDropContext,
@@ -31,12 +32,18 @@ import MarkdownSection from "./components/MarkdownSection";
 import QuestionSection from "./components/QuestionSection";
 import SectionHeader from "./components/SectionHeader";
 import {
+  isNewCode,
+  isNewImage,
+  isNewLottie,
+  isNewMarkdown,
+  isNewQuestion,
   NewCode,
   NewLottie,
   NewMarkdown,
   NewQuestion,
   NewSection,
 } from "../../store/types";
+import ImageSection from "./components/ImageSection";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -54,18 +61,17 @@ const CreateModulePage: React.FC = () => {
   const [sections, setSections] = useState<NewSection[]>([]);
 
   const handleAddSection = (
-    type: "markdown" | "code" | "question" | "lottie"
+    type: "markdown" | "code" | "question" | "lottie" | "image"
   ) => {
     const contentMap = {
-      markdown: { markdown: "" } as NewMarkdown,
-      code: { code: "", language: "javascript" } as NewCode,
+      markdown: {} as NewMarkdown,
+      code: { language: "javascript" } as NewCode,
       question: {
         id: Date.now(),
         type: "multiple_choice",
-        question: "",
         options: [
-          { id: 1, content: "", isCorrect: false },
-          { id: 2, content: "", isCorrect: false },
+          { id: 1, isCorrect: false },
+          { id: 2, isCorrect: false },
         ],
       } as NewQuestion,
       lottie: {
@@ -75,6 +81,7 @@ const CreateModulePage: React.FC = () => {
         loop: false,
         speed: 1.0,
       } as NewLottie,
+      image: {},
     };
 
     const newSection: NewSection = {
@@ -117,8 +124,6 @@ const CreateModulePage: React.FC = () => {
     setSections(updatePositions(items));
   };
 
-  console.log("SECTIONS", sections);
-
   const handleUpdateSection = (updatedSection: NewSection) => {
     setSections(
       sections.map((s) => (s.id === updatedSection.id ? updatedSection : s))
@@ -155,28 +160,31 @@ const CreateModulePage: React.FC = () => {
   };
 
   const renderSectionContent = (section: NewSection) => {
-    switch (section.type) {
-      case "markdown":
-        return (
-          // @ts-expect-error will fix
-          <MarkdownSection section={section} onChange={handleUpdateSection} />
-        );
-      case "code":
-        // @ts-expect-error will fix
-        return <CodeSection section={section} onChange={handleUpdateSection} />;
-      case "question":
-        return (
-          // @ts-expect-error will fix
-          <QuestionSection section={section} onChange={handleUpdateSection} />
-        );
-      case "lottie":
-        return (
-          // @ts-expect-error will fix
-          <LottieSection section={section} onChange={handleUpdateSection} />
-        );
-      default:
-        return null;
+    if (isNewMarkdown(section)) {
+      return (
+        <MarkdownSection section={section} onChange={handleUpdateSection} />
+      );
     }
+
+    if (isNewCode(section)) {
+      return <CodeSection section={section} onChange={handleUpdateSection} />;
+    }
+
+    if (isNewQuestion(section)) {
+      return (
+        <QuestionSection section={section} onChange={handleUpdateSection} />
+      );
+    }
+
+    if (isNewLottie(section)) {
+      return <LottieSection section={section} onChange={handleUpdateSection} />;
+    }
+
+    if (isNewImage(section)) {
+      return <ImageSection section={section} onChange={handleUpdateSection} />;
+    }
+
+    throw new Error("unknown section type");
   };
 
   return (
@@ -230,7 +238,12 @@ const CreateModulePage: React.FC = () => {
             >
               Add Question
             </Button>
-
+            <Button
+              onClick={() => handleAddSection("image")}
+              icon={<FileImageOutlined />}
+            >
+              Add Image
+            </Button>
             <Button
               onClick={() => handleAddSection("lottie")}
               icon={<PlaySquareOutlined />}

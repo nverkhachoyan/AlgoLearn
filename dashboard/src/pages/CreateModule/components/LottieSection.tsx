@@ -12,12 +12,7 @@ import { useEffect } from "react";
 const { Title, Text } = Typography;
 
 type LottieSectionProps = {
-  section: {
-    id: number;
-    type: "lottie";
-    position: number;
-    content: NewLottie;
-  };
+  section: NewSection & { content: NewLottie };
   onChange: (updatedSection: NewSection) => void;
 };
 

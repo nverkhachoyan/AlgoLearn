@@ -33,7 +33,11 @@ WITH section_content AS (
         s.type::section_type as type,
         CASE s.type
             WHEN 'markdown' THEN (
-                SELECT jsonb_build_object('markdown', markdown, 'objectKey', ms.object_key, 'media_ext', ms.media_ext)
+                SELECT jsonb_build_object(
+                    'markdown', ms.markdown, 
+                    'objectKey', ms.object_key, 
+                    'mediaExt', ms.media_ext
+                )
                 FROM markdown_sections ms
                 WHERE ms.section_id = s.id
             )
@@ -44,18 +48,22 @@ WITH section_content AS (
                     'objectKey', ls.object_key,
                     'width', ls.width,
                     'height', ls.height,
-                    'alt_text', ls.alt_text,
-                    'fallback_url', ls.fallback_url,
+                    'altText', ls.alt_text,
+                    'fallbackUrl', ls.fallback_url,
                     'autoplay', ls.autoplay,
                     'loop', ls.loop,
                     'speed', ls.speed,
-                    'media_ext', ls.media_ext
+                    'mediaExt', ls.media_ext
                 )
                 FROM lottie_sections ls
                 WHERE ls.section_id = s.id
             )
             WHEN 'video' THEN (
-                SELECT jsonb_build_object('url', url, 'objectKey', vs.object_key, 'media_ext', vs.media_ext)
+                SELECT jsonb_build_object(
+                    'url', vs.url, 
+                    'objectKey', vs.object_key, 
+                    'mediaExt', vs.media_ext
+                )
                 FROM video_sections vs
                 WHERE vs.section_id = s.id
             )
@@ -63,7 +71,7 @@ WITH section_content AS (
                 SELECT jsonb_build_object(
                     'id', q.id,
                     'objectKey', qs.object_key,
-                    'media_ext', qs.media_ext,
+                    'mediaExt', qs.media_ext,
                     'question', q.question,
                     'type', q.type,
                     'options', COALESCE(
@@ -101,10 +109,28 @@ WITH section_content AS (
                 WHERE qs.section_id = s.id
             )
             WHEN 'code' THEN (
-                SELECT jsonb_build_object('code', code, 'language', language, 'objectKey', cs.object_key, 'media_ext', cs.media_ext)
+                SELECT jsonb_build_object(
+                    'code', cs.code, 
+                    'language', cs.language, 
+                    'objectKey', cs.object_key, 
+                    'mediaExt', cs.media_ext
+                )
                 FROM code_sections cs
                 WHERE cs.section_id = s.id
             )
+            WHEN 'image' THEN (
+            SELECT jsonb_build_object(
+                'url', ims.url, 
+                'width', ims.width,
+                'height', ims.height,
+                'objectKey', ims.object_key,
+                'mediaExt', ims.media_ext,
+                'headline', ims.headline,
+                'caption', ims.caption
+            )
+            FROM image_sections ims
+            WHERE ims.section_id = s.id
+        )
         END as content
     FROM sections s
     WHERE s.module_id = @module_id::int
@@ -301,6 +327,31 @@ VALUES (sqlc.arg(module_id), sqlc.arg(section_type)::section_type, sqlc.arg(posi
 INSERT INTO
     markdown_sections (section_id, markdown, object_key, media_ext)
 VALUES ($1, $2, $3, $4);
+
+-- name: InsertImageSection :exec
+INSERT INTO
+    image_sections (
+        section_id, 
+        width, 
+        height, 
+        headline, 
+        caption, 
+        alt_text,
+        object_key, 
+        media_ext,
+        url
+)
+VALUES (
+    @section_id,
+    COALESCE(@width::INTEGER, NULL),
+    COALESCE(@height::INTEGER, NULL),
+    @headline,
+    @caption,
+    @alt_text,
+    @object_key,
+    @media_ext,
+    @url
+);
 
 -- name: InsertLottieSection :exec
 INSERT INTO

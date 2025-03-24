@@ -69,7 +69,7 @@ func (q *Queries) DeleteUnit(ctx context.Context, unitID int32) error {
 }
 
 const getUnitByID = `-- name: GetUnitByID :one
-SELECT id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, unit_number, course_id, name, description FROM units
+SELECT id, created_at, updated_at, media_ext, draft, unit_number, course_id, name, description, folder_object_key, img_key FROM units
 WHERE id = $1::int
 `
 
@@ -78,22 +78,22 @@ func (q *Queries) GetUnitByID(ctx context.Context, unitID int32) (Unit, error) {
 	var i Unit
 	err := row.Scan(
 		&i.ID,
-		&i.FolderObjectKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ImgKey,
 		&i.MediaExt,
 		&i.Draft,
 		&i.UnitNumber,
 		&i.CourseID,
 		&i.Name,
 		&i.Description,
+		&i.FolderObjectKey,
+		&i.ImgKey,
 	)
 	return i, err
 }
 
 const getUnitsByCourseID = `-- name: GetUnitsByCourseID :many
-SELECT id, folder_object_key, created_at, updated_at, img_key, media_ext, draft, unit_number, course_id, name, description FROM units
+SELECT id, created_at, updated_at, media_ext, draft, unit_number, course_id, name, description, folder_object_key, img_key FROM units
 WHERE course_id = $1::int
 `
 
@@ -108,16 +108,16 @@ func (q *Queries) GetUnitsByCourseID(ctx context.Context, courseID int32) ([]Uni
 		var i Unit
 		if err := rows.Scan(
 			&i.ID,
-			&i.FolderObjectKey,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.ImgKey,
 			&i.MediaExt,
 			&i.Draft,
 			&i.UnitNumber,
 			&i.CourseID,
 			&i.Name,
 			&i.Description,
+			&i.FolderObjectKey,
+			&i.ImgKey,
 		); err != nil {
 			return nil, err
 		}

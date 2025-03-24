@@ -36,7 +36,6 @@ const CourseForm: React.FC<CourseFormProps> = ({
   const [form] = Form.useForm();
   const [iconFile, setIconFile] = useState<RcFile | null>(null);
 
-  // Get the existing image URL if available
   const existingImgUrl =
     initialValues?.folderObjectKey &&
     initialValues?.imgKey &&
@@ -51,7 +50,6 @@ const CourseForm: React.FC<CourseFormProps> = ({
 
   const [imageUrl, setImageUrl] = useState<string>(existingImgUrl);
 
-  // Update imageUrl if initialValues change
   useEffect(() => {
     if (
       initialValues?.folderObjectKey &&

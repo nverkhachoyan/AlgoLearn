@@ -197,6 +197,27 @@ SELECT
 FROM markdown_sections
 WHERE section_id = @section_id::int;
 
+-- name: GetImageSection :one
+SELECT 
+    url,
+    headline,
+    caption,
+    alt_text,
+    width,
+    height,
+    object_key,
+    media_ext
+FROM image_sections
+WHERE section_id = @section_id::int;
+
+--  object_key UUID,
+--     width INTEGER DEFAULT 200,
+--     height INTEGER DEFAULT 200,
+--     media_ext VARCHAR(10),
+--     url TEXT,
+--     headline TEXT NOT NULL,
+--     caption TEXT NOT NULL,
+
 -- name: GetQuestionSection :one
 SELECT 
     q.id,
@@ -529,20 +550,28 @@ ORDER BY s.position;
 SELECT 
     CASE s.type
         WHEN 'markdown' THEN (
-            SELECT jsonb_build_object('markdown', markdown, 'object_key', object_key, 'media_ext', media_ext)
+            SELECT jsonb_build_object(
+                'markdown', markdown, 
+                'objectKey', object_key, 
+                'mediaExt', media_ext
+            )
             FROM markdown_sections
             WHERE section_id = s.id
         )
         WHEN 'video' THEN (
-            SELECT jsonb_build_object('url', url, 'object_key', object_key, 'media_ext', media_ext)
+            SELECT jsonb_build_object(
+                'url', url, 'objectKey', 
+                object_key, 'mediaExt', 
+                media_ext
+            )
             FROM video_sections
             WHERE section_id = s.id
         )
         WHEN 'question' THEN (
             SELECT jsonb_build_object(
                 'id', q.id,
-                'object_key', object_key,
-                'media_ext', media_ext,
+                'objectKey', object_key,
+                'mediaExt', media_ext,
                 'question', q.question,
                 'type', q.type,
                 'options', (
@@ -563,12 +592,12 @@ SELECT
             SELECT jsonb_build_object(
                 'caption', caption,
                 'description', description,
-                'object_key', object_key,
-                'media_ext', media_ext,
+                'objectKey', object_key,
+                'mediaExt', media_ext,
                 'width', width,
                 'height', height,
-                'alt_text', alt_text,
-                'fallback_url', fallback_url,
+                'altText', alt_text,
+                'fallbackUrl', fallback_url,
                 'autoplay', autoplay,
                 'loop', loop,
                 'speed', speed
@@ -580,8 +609,21 @@ SELECT
             SELECT jsonb_build_object(
                 'code', code, 
                 'language', language,
-                'object_key', object_key,
-                'media_ext', media_ext
+                'objectKey', object_key,
+                'mediaExt', media_ext
+            )
+            FROM code_sections
+            WHERE section_id = s.id
+        )
+        WHEN 'image' THEN (
+            SELECT jsonb_build_object(
+                'url', url, 
+                'width', width,
+                'height', height,
+                'objectKey', object_key,
+                'mediaExt', media_ext,
+                'headline', headline,
+                'caption', caption
             )
             FROM code_sections
             WHERE section_id = s.id

@@ -45,6 +45,7 @@ type Querier interface {
 	GetFirstModuleIdInUnit(ctx context.Context, unitID int32) (int32, error)
 	GetFirstUnitAndModuleInCourse(ctx context.Context, courseID int32) (GetFirstUnitAndModuleInCourseRow, error)
 	GetFurthestModuleID(ctx context.Context, arg GetFurthestModuleIDParams) (sql.NullInt32, error)
+	GetImageSection(ctx context.Context, sectionID int32) (GetImageSectionRow, error)
 	GetLastModuleNumber(ctx context.Context, unitID int32) (interface{}, error)
 	GetMarkdownSection(ctx context.Context, sectionID int32) (GetMarkdownSectionRow, error)
 	GetModuleByID(ctx context.Context, id int32) (Module, error)
@@ -63,6 +64,13 @@ type Querier interface {
 	GetPrevModuleId(ctx context.Context, arg GetPrevModuleIdParams) (int32, error)
 	GetPrevUnitId(ctx context.Context, arg GetPrevUnitIdParams) (int32, error)
 	GetPrevUnitModuleId(ctx context.Context, unitID int32) (int32, error)
+	//  object_key UUID,
+	//     width INTEGER DEFAULT 200,
+	//     height INTEGER DEFAULT 200,
+	//     media_ext VARCHAR(10),
+	//     url TEXT,
+	//     headline TEXT NOT NULL,
+	//     caption TEXT NOT NULL,
 	GetQuestionSection(ctx context.Context, sectionID int32) (GetQuestionSectionRow, error)
 	GetReceivedAchievementsCount(ctx context.Context) (int64, error)
 	GetSectionContent(ctx context.Context, sectionID int32) (interface{}, error)
@@ -83,6 +91,7 @@ type Querier interface {
 	InsertCodeSection(ctx context.Context, arg InsertCodeSectionParams) error
 	InsertCourseAuthor(ctx context.Context, arg InsertCourseAuthorParams) error
 	InsertCourseTag(ctx context.Context, arg InsertCourseTagParams) error
+	InsertImageSection(ctx context.Context, arg InsertImageSectionParams) error
 	InsertLottieSection(ctx context.Context, arg InsertLottieSectionParams) error
 	InsertMarkdownSection(ctx context.Context, arg InsertMarkdownSectionParams) error
 	InsertModule(ctx context.Context, arg InsertModuleParams) (Module, error)

@@ -60,11 +60,30 @@ export interface QuestionOption {
   isCorrect: boolean;
 }
 
+export interface NewImage {
+  file?: File | null;
+  url: string;
+  width: number;
+  height: number;
+  headline: string;
+  caption: string;
+  altText: string;
+  source: string;
+  objectKey?: string;
+  mediaExt?: string;
+}
+
 export interface NewSection {
   id: number;
-  type: "markdown" | "code" | "question" | "lottie";
+  type: "markdown" | "code" | "question" | "lottie" | "image";
   position: number;
-  content: NewLottie | NewMarkdown | NewCode | NewVideo | NewQuestion;
+  content:
+    | NewLottie
+    | NewMarkdown
+    | NewCode
+    | NewVideo
+    | NewQuestion
+    | NewImage;
 }
 
 export const isNewLottie = (
@@ -89,4 +108,10 @@ export const isNewCode = (
   section: NewSection
 ): section is NewSection & { content: NewCode } => {
   return section.type === "code";
+};
+
+export const isNewImage = (
+  section: NewSection
+): section is NewSection & { content: NewImage } => {
+  return section.type === "image";
 };

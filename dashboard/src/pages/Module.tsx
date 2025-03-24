@@ -18,11 +18,13 @@ import {
   CodeContent,
   QuestionContent,
   LottieContent,
+  ImageContent,
 } from "../types/models";
 import MarkdownSection from "../components/sections/MarkdownSection";
 import CodeSection from "../components/sections/CodeSection";
 import QuestionSection from "../components/sections/QuestionSection";
 import LottieSection from "../components/sections/LottieSection";
+import ImageSection from "../components/sections/ImageSection";
 
 const { Title, Text } = Typography;
 
@@ -127,6 +129,12 @@ const ModulePage: React.FC = () => {
                 {section.type === "lottie" && (
                   <LottieSection
                     content={section.content as LottieContent}
+                    module={module}
+                  />
+                )}
+                {section.type === "image" && (
+                  <ImageSection
+                    content={section.content as ImageContent}
                     module={module}
                   />
                 )}

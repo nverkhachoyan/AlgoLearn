@@ -686,6 +686,36 @@ func (r *courseService) getSectionContent(ctx context.Context, section gen.GetMo
 				CompletedAt: section.CompletedAt.Time,
 			},
 		}
+	case "image":
+		imageContent, err := r.queries.GetImageSection(ctx, section.ID)
+		if err != nil {
+			log.WithError(err).Error("failed to get image section content")
+			return nil, fmt.Errorf("failed to get image section content: %w", err)
+		}
+		result = &models.ImageSection{
+			BaseModel: models.BaseModel{
+				ID:        int64(section.ID),
+				CreatedAt: section.CreatedAt,
+				UpdatedAt: section.UpdatedAt,
+			},
+			Type:     models.SectionType(section.Type),
+			Position: int16(section.Position),
+			Content: models.ImageContent{
+				URL:       imageContent.Url.String,
+				ObjectKey: imageContent.ObjectKey,
+				MediaExt:  imageContent.MediaExt.String,
+				Headline:  imageContent.Headline.String,
+				Caption:   imageContent.Caption.String,
+				AltText:   imageContent.AltText.String,
+			},
+			SectionProgress: &models.SectionProgress{
+				SectionID:   int64(section.ID),
+				SeenAt:      section.SeenAt.Time,
+				HasSeen:     section.HasSeen.Bool,
+				StartedAt:   section.StartedAt.Time,
+				CompletedAt: section.CompletedAt.Time,
+			},
+		}
 
 	default:
 		return nil, fmt.Errorf("unknown section type: %s", section.Type)

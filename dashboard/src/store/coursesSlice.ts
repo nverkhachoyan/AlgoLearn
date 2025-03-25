@@ -318,7 +318,7 @@ const createCoursesSlice = (
     },
 
     fetchUnit: async (courseId: number, unitId: number) => {
-      set({ isCourseLoading: true, error: null });
+      set({ isCourseLoading: true });
 
       try {
         await get().fetchCourse(courseId);
@@ -331,11 +331,11 @@ const createCoursesSlice = (
           selectedUnit: unit,
           isCourseLoading: false,
         });
-      } catch (error) {
+      } catch {
         set({
           isCourseLoading: false,
-          error: (error as Error).message,
         });
+        throw new Error("failed to fetch unit");
       }
     },
 

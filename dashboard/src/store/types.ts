@@ -20,6 +20,7 @@ export interface User {
 
 export interface NewLottie {
   file?: File | null;
+  tempUrl: string;
   caption?: string;
   description?: string;
   width?: number;

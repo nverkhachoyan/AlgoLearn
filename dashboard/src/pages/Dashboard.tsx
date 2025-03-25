@@ -1,10 +1,18 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { List, Row, Col } from "antd";
 import { useStore } from "../store";
 import CourseCard from "../components/courses/CourseCard";
 
 const Dashboard: React.FC = () => {
   const courses = useStore((state) => state.courses);
+  const fetchCourses = useStore((state) => state.fetchCourses);
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      await fetchCourses();
+    };
+    fetchResources();
+  }, [fetchCourses]);
 
   return (
     <div className="dashboard-container" style={{ padding: "20px" }}>

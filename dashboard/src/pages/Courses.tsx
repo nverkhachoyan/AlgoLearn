@@ -26,7 +26,7 @@ const CoursesPage: React.FC = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, [fetchCourses]);
 
   const handlePaginationChange = React.useCallback(
     (page: number, size: number) => {

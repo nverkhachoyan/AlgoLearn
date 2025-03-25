@@ -15,7 +15,7 @@ export interface UIState {
 
 const createUISlice = (set: SetState<UIState>, get: GetState<UIState>) => {
   return {
-    sidebarCollapsed: false,
+    sidebarCollapsed: true,
     isDarkMode: false,
     useSystemTheme: true,
     error: null,

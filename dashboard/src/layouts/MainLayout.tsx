@@ -10,30 +10,29 @@ import { Layout, Menu, Space, Avatar, Tooltip } from "antd";
 import { MenuItem, getItem } from "../types/menu";
 import { useStore } from "../store";
 import AppContent from "./AppContent";
-import CreateButton from "../components/common/CreateButton";
+
 import { layoutStyles } from "../styles/layouts";
 import ErrorComponent from "../components/Error";
 import UserDrawer from "../components/user/UserDrawer";
 
-const { Header, Footer, Sider } = Layout;
+const { Header, Sider } = Layout;
 
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const [isUserDrawerOpen, setIsUserDrawerOpen] = React.useState(false);
+  const isDarkMode = useStore((state) => state.isDarkMode);
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const setSidebarCollapsed = useStore((state) => state.setSidebarCollapsed);
   const error = useStore((state) => state.error);
   const user = useStore((state) => state.user);
-  const fetchCourses = useStore((state) => state.fetchCourses);
+
   const fetchUser = useStore((state) => state.fetchUser);
-  const pagination = useStore((state) => state.pagination);
 
   const abortControllerRef = React.useRef<AbortController | null>(null);
   React.useEffect(() => {
     abortControllerRef.current = new AbortController();
 
     fetchUser();
-    fetchCourses(pagination.current, pagination.pageSize);
 
     return () => {
       if (abortControllerRef.current) {
@@ -91,21 +90,35 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={layoutStyles.mainLayout}>
+    <Layout
+      style={{
+        height: "100vh",
+        // overflow: "hidden",
+      }}
+      className="custom-scrollbar"
+    >
       <Sider
         collapsible
         collapsed={sidebarCollapsed}
         onCollapse={setSidebarCollapsed}
+        theme={isDarkMode ? "dark" : "light"}
+        style={{
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          overflowY: "auto",
+        }}
       >
         <div
           className="logo"
           style={layoutStyles.logo}
           onClick={() => navigate("/")}
         >
-          <h1 style={layoutStyles.logoText}>AlgoLearn</h1>
+          <h1 style={layoutStyles.logoText}>AL</h1>
         </div>
         <Menu
-          theme="dark"
+          theme={isDarkMode ? "dark" : "light"}
+          style={{ paddingLeft: 8, paddingRight: 8 }}
           defaultSelectedKeys={["/"]}
           mode="inline"
           items={items}
@@ -115,7 +128,15 @@ const MainLayout: React.FC = () => {
         />
       </Sider>
       <Layout>
-        <Header style={layoutStyles.header}>
+        <Header
+          style={{
+            ...layoutStyles.header,
+            position: "sticky",
+            top: 0,
+            zIndex: 1000,
+            width: "100%",
+          }}
+        >
           <div style={layoutStyles.headerLeft}>
             <p>Dashboard</p>
           </div>
@@ -147,11 +168,10 @@ const MainLayout: React.FC = () => {
           </Space>
         </Header>
         <AppContent />
-        <Footer style={layoutStyles.footer}>
+        {/* <Footer style={layoutStyles.footer}>
           AlgoLearn Dashboard ©{new Date().getFullYear()}
-        </Footer>
+        </Footer> */}
       </Layout>
-      <CreateButton />
       <UserDrawer open={isUserDrawerOpen} onClose={handleCloseUserDrawer} />
     </Layout>
   );

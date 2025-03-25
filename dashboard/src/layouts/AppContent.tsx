@@ -17,6 +17,7 @@ const { Content } = Layout;
 const AppContent: React.FC = () => {
   const location = useLocation();
   const selectedCourse = useStore((state) => state.selectedCourse);
+
   const selectedUnit = useStore((state) => state.selectedUnit);
   const selectedModule = useStore((state) => state.selectedModule);
   const isDarkMode = useStore((state) => state.isDarkMode);
@@ -24,22 +25,33 @@ const AppContent: React.FC = () => {
   const pathSnippets = location.pathname.split("/").filter((i) => i);
 
   const breadcrumbItems = () => {
-    const pathMap = [
-      { path: "courses", selectedItem: selectedCourse },
-      { path: "units", selectedItem: selectedUnit },
-      { path: "modules", selectedItem: selectedModule },
-    ];
+    const items = [];
 
-    return pathMap
-      .filter((item) => pathSnippets.includes(item.path))
-      .map((item) => ({
-        key: item.path,
-        title: (
-          <Link to={`/${item.path}/${item.selectedItem?.id}`}>
-            {item.selectedItem?.name}
-          </Link>
-        ),
-      }));
+    const createBreadcrumbItem = (key: string, path: string, name: string) => ({
+      key,
+      title: <Link to={path}>{name}</Link>,
+    });
+
+    if (selectedCourse && pathSnippets.includes("courses")) {
+      const coursePath = `/courses/${selectedCourse.id}`;
+      items.push(
+        createBreadcrumbItem("course", coursePath, selectedCourse.name)
+      );
+
+      if (selectedUnit && pathSnippets.includes("units")) {
+        const unitPath = `${coursePath}/units/${selectedUnit.id}`;
+        items.push(createBreadcrumbItem("unit", unitPath, selectedUnit.name));
+
+        if (selectedModule && pathSnippets.includes("modules")) {
+          const modulePath = `${unitPath}/modules/${selectedModule.id}`;
+          items.push(
+            createBreadcrumbItem("module", modulePath, selectedModule.name)
+          );
+        }
+      }
+    }
+
+    return items;
   };
 
   const items = [
@@ -52,7 +64,11 @@ const AppContent: React.FC = () => {
 
   return (
     <Content
-      style={layoutStyles.content}
+      style={{
+        ...layoutStyles.content,
+        height: "calc(100vh - 64px)", // Adjust 64px based on your header height
+        position: "relative",
+      }}
       className={isDarkMode ? "dark-content" : "light-content"}
     >
       <Breadcrumb style={layoutStyles.breadcrumb} items={items} />

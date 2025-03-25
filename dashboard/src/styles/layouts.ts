@@ -1,7 +1,4 @@
 export const layoutStyles = {
-  mainLayout: {
-    minHeight: "100vh",
-  },
   logo: {
     height: 32,
     margin: 16,

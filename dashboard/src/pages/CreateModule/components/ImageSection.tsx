@@ -52,45 +52,48 @@ const ImageSection: React.FC<ImageSectionProps> = ({ section, onChange }) => {
           placeholder="Enter your headline here"
         />
       </Flex>
-      <ConditionalRenderer
-        condition={imgUrl !== ""}
-        renderTrue={() => (
-          <Image src={imgUrl} style={{ borderRadius: 8, overflow: "hidden" }} />
-        )}
-        renderFalse={() => (
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="Upload lottie animation"
-            style={{
-              maxWidth: 400,
-              border: `2px dashed ${isHovering ? "#1890ff" : "#d9d9d9"}`,
-              borderRadius: "8px",
-              padding: "40px 20px",
-              textAlign: "center",
-              cursor: "pointer",
-              marginBottom: "20px",
-              transition: "all 0.3s",
-            }}
-            onClick={handleClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                handleClick();
-              }
-            }}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            <FileOutlined
-              style={{ fontSize: 48, color: "#1890ff", marginBottom: 16 }}
+      <Flex vertical align="center">
+        <ConditionalRenderer
+          condition={imgUrl !== ""}
+          renderTrue={() => (
+            <Image
+              src={imgUrl}
+              style={{ borderRadius: 8, overflow: "hidden" }}
             />
-            <p>Click or drag file to this area to upload</p>
-            <p style={{ color: "#888" }}>
-              Support for .lottie animated files only
-            </p>
-          </div>
-        )}
-      />
+          )}
+          renderFalse={() => (
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Upload lottie animation"
+              style={{
+                maxWidth: 400,
+                maxHeight: 200,
+                border: `2px dashed ${isHovering ? "#1890ff" : "#d9d9d9"}`,
+                borderRadius: "8px",
+                padding: "20px 20px",
+                textAlign: "center",
+                cursor: "pointer",
+                marginTop: "20px",
+                transition: "all 0.3s",
+              }}
+              onClick={handleClick}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  handleClick();
+                }
+              }}
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+            >
+              <FileOutlined
+                style={{ fontSize: 20, color: "#1890ff", marginBottom: 16 }}
+              />
+              <p>Click or drag image to this area to upload</p>
+            </div>
+          )}
+        />
+      </Flex>
       <input
         type="file"
         accept=".jpeg,.png,.jpg"

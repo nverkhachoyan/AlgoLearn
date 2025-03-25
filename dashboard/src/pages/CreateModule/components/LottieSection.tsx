@@ -56,6 +56,7 @@ const LottieSection: React.FC<LottieSectionProps> = ({ section, onChange }) => {
       setLottieUrl(objectUrl);
       setFilename(file.name);
       updateSection({ file });
+      updateSection({ tempUrl: objectUrl });
     }
   };
 

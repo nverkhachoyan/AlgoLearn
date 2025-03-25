@@ -2,7 +2,6 @@ import { Flex } from "antd";
 import { NewMarkdown, NewSection } from "../../../store/types";
 import React from "react";
 import MDEditor from "@uiw/react-md-editor";
-import ConditionalRenderer from "../../../components/ConditionalRenderer";
 import "./markdown.css";
 
 type MarkdownSectionProps = {
@@ -15,21 +14,6 @@ const MarkdownSection: React.FC<MarkdownSectionProps> = ({
   onChange,
 }) => (
   <Flex vertical>
-    <ConditionalRenderer
-      condition={section.content.markdown !== ""}
-      renderTrue={() => (
-        <MDEditor.Markdown
-          source={section.content.markdown}
-          style={{
-            marginTop: 20,
-            marginBottom: 20,
-            borderRadius: 8,
-            padding: 15,
-          }}
-        />
-      )}
-      renderFalse={() => <p>Start typing markdown to see a preview.</p>}
-    />
     <MDEditor
       minHeight={400}
       style={{ borderRadius: 8, overflow: "hidden" }}

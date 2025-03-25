@@ -107,6 +107,7 @@ export interface VideoContent {
 }
 
 export interface LottieContent {
+  tempUrl: string;
   objectKey?: string;
   mediaExt?: string;
   mediaUrl?: string;

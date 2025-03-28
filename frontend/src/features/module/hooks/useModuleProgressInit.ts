@@ -1,5 +1,4 @@
 import { Module } from "../types";
-import { BatchModuleProgress } from "../types";
 import { useState, useEffect, useRef } from "react";
 import {
   SectionProgress,

@@ -1,21 +1,7 @@
-import {
-  listCourses,
-  getCourse,
-  listCoursesProgress,
-  getCourseProgress,
-  startCourse,
-  resetCourseProgress,
-  searchCourses,
-} from "@/src/features/course/api";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { Course } from "@/src/features/course/types";
-import { ApiResponse, PaginatedPayload } from "../../../types/api";
-import { handleApiError } from "@/src/lib/api/client";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Course } from '@/src/features/course/types';
+import { ApiResponse, PaginatedPayload } from '../../../types/api';
+import { useAuthFetcher } from '@/src/features/auth';
 
 // Helper function to handle API responses
 const handleResponse = <T>(response: ApiResponse<T>) => {
@@ -31,36 +17,38 @@ interface CourseQueryParams {
 }
 
 // Hook for listing courses (public or with progress)
-export const useCourses = ({
-  pageSize,
-  isAuthenticated = false,
-}: CourseQueryParams) => {
-  const queryKey = isAuthenticated ? ["courses", "progress"] : ["courses"];
+export const useCourses = ({ pageSize, isAuthenticated = false }: CourseQueryParams) => {
+  const queryKey = isAuthenticated ? ['courses', 'progress'] : ['courses'];
+  const authFetcher = useAuthFetcher();
 
   const queryResult = useInfiniteQuery<PaginatedPayload<Course>>({
     queryKey,
     queryFn: async ({ pageParam = 1 }) => {
       try {
         const { data } = isAuthenticated
-          ? await listCoursesProgress({
-              page: pageParam as number,
-              pageSize,
+          ? await authFetcher.get(`/courses/progress`, {
+              params: {
+                page: pageParam,
+                pageSize,
+              },
             })
-          : await listCourses({
-              page: pageParam as number,
-              pageSize,
+          : await authFetcher.get(`/courses`, {
+              params: {
+                page: pageParam,
+                pageSize,
+              },
             });
 
         if (!data.payload) {
-          throw new Error("No data received");
+          throw new Error('No data received');
         }
 
         return handleResponse(data);
       } catch (error) {
-        throw new Error(handleApiError(error));
+        throw new Error((error as Error).message);
       }
     },
-    getNextPageParam: (lastPage) =>
+    getNextPageParam: lastPage =>
       lastPage.pagination.currentPage < lastPage.pagination.totalPages
         ? lastPage.pagination.currentPage + 1
         : undefined,
@@ -69,12 +57,12 @@ export const useCourses = ({
   });
 
   return {
-    courses: queryResult.data?.pages.flatMap((page) => page.items) ?? [],
+    courses: queryResult.data?.pages.flatMap(page => page.items) ?? [],
     totalItems: queryResult.data?.pages[0]?.pagination.totalItems ?? 0,
     fetchNextPage: queryResult.fetchNextPage,
     hasNextPage: queryResult.hasNextPage,
     isFetchingNextPage: queryResult.isFetchingNextPage,
-    isLoading: queryResult.status === "pending",
+    isLoading: queryResult.status === 'pending',
     error: queryResult.error,
   };
 };
@@ -86,14 +74,9 @@ interface CourseParams {
 }
 
 // Hook for getting a single course (public or with progress)
-export const useCourse = ({
-  courseId,
-  isAuthenticated,
-  hasProgress,
-}: CourseParams) => {
-  const queryKey = isAuthenticated
-    ? ["course", courseId, "progress"]
-    : ["course", courseId];
+export const useCourse = ({ courseId, isAuthenticated, hasProgress }: CourseParams) => {
+  const queryKey = isAuthenticated ? ['course', courseId, 'progress'] : ['course', courseId];
+  const authFetcher = useAuthFetcher();
 
   const queryResult = useQuery<Course>({
     queryKey,
@@ -101,11 +84,11 @@ export const useCourse = ({
       try {
         const { data } =
           isAuthenticated && hasProgress
-            ? await getCourseProgress(courseId)
-            : await getCourse(courseId);
+            ? await authFetcher.get(`/courses/${courseId}/progress`)
+            : await authFetcher.get(`/courses/${courseId}`);
         return handleResponse(data);
       } catch (error) {
-        throw new Error(handleApiError(error));
+        throw new Error((error as Error).message);
       }
     },
     enabled: Boolean(courseId),
@@ -137,29 +120,30 @@ interface RestartCourseResponse {
 // Hook for starting a course
 export const useStartCourse = (courseId: number) => {
   const queryClient = useQueryClient();
+  const authFetcher = useAuthFetcher();
 
-  const mutation = useMutation<StartCourseResponse["payload"], Error>({
+  const mutation = useMutation<StartCourseResponse['payload'], Error>({
     mutationFn: async () => {
       if (!courseId) {
-        throw new Error("courseId is required to start a course");
+        throw new Error('courseId is required to start a course');
       }
 
       try {
-        const { data } = await startCourse(courseId);
+        const { data } = await authFetcher.post(`/courses/${courseId}/start`);
         if (!data.success || !data.payload) {
-          throw new Error(data.message || "Failed to start course");
+          throw new Error(data.message || 'Failed to start course');
         }
         return data.payload;
       } catch (error) {
-        throw new Error(handleApiError(error));
+        throw new Error((error as Error).message);
       }
     },
     onSuccess: () => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({
-        queryKey: ["course", courseId, "progress"],
+        queryKey: ['course', courseId, 'progress'],
       });
-      queryClient.invalidateQueries({ queryKey: ["courses", "progress"] });
+      queryClient.invalidateQueries({ queryKey: ['courses', 'progress'] });
     },
   });
 
@@ -175,29 +159,30 @@ export const useStartCourse = (courseId: number) => {
 // Hook for restarting a course
 export const useResetCourseProgress = (courseId: number) => {
   const queryClient = useQueryClient();
+  const authFetcher = useAuthFetcher();
 
   const mutation = useMutation<RestartCourseResponse, Error>({
     mutationFn: async () => {
       if (!courseId) {
-        throw new Error("courseId is required to restart course");
+        throw new Error('courseId is required to restart course');
       }
 
       try {
-        const { data } = await resetCourseProgress(courseId);
+        const { data } = await authFetcher.post(`/courses/${courseId}/reset`);
         if (!data.success) {
-          throw new Error(data.message || "Failed to restart course");
+          throw new Error(data.message || 'Failed to restart course');
         }
         return data;
       } catch (error) {
-        throw new Error(handleApiError(error));
+        throw new Error((error as Error).message);
       }
     },
     onSuccess: () => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({
-        queryKey: ["course", courseId, "progress"],
+        queryKey: ['course', courseId, 'progress'],
       });
-      queryClient.invalidateQueries({ queryKey: ["courses", "progress"] });
+      queryClient.invalidateQueries({ queryKey: ['courses', 'progress'] });
     },
   });
 
@@ -217,13 +202,11 @@ interface SearchCoursesParams {
 }
 
 // Hook for searching courses
-export const useSearchCourses = ({
-  query,
-  pageSize,
-  useFullText = false,
-}: SearchCoursesParams) => {
+export const useSearchCourses = ({ query, pageSize, useFullText = false }: SearchCoursesParams) => {
+  const authFetcher = useAuthFetcher();
+
   const queryResult = useInfiniteQuery<PaginatedPayload<Course>>({
-    queryKey: ["courses", "search", query, useFullText],
+    queryKey: ['courses', 'search', query, useFullText],
     queryFn: async ({ pageParam = 1 }) => {
       if (!query.trim()) {
         return {
@@ -238,23 +221,25 @@ export const useSearchCourses = ({
       }
 
       try {
-        const { data } = await searchCourses({
-          q: query,
-          page: pageParam as number,
-          pageSize,
-          fulltext: useFullText,
+        const { data } = await authFetcher.get(`/courses/search`, {
+          params: {
+            q: query,
+            page: pageParam,
+            pageSize,
+            fulltext: useFullText,
+          },
         });
 
         if (!data.payload) {
-          throw new Error("No data received");
+          throw new Error('No data received');
         }
 
         return handleResponse(data);
       } catch (error) {
-        throw new Error(handleApiError(error));
+        throw new Error((error as Error).message);
       }
     },
-    getNextPageParam: (lastPage) =>
+    getNextPageParam: lastPage =>
       lastPage.pagination.currentPage < lastPage.pagination.totalPages
         ? lastPage.pagination.currentPage + 1
         : undefined,
@@ -264,7 +249,7 @@ export const useSearchCourses = ({
   });
 
   return {
-    courses: queryResult.data?.pages.flatMap((page) => page.items) ?? [],
+    courses: queryResult.data?.pages.flatMap(page => page.items) ?? [],
     totalItems: queryResult.data?.pages[0]?.pagination.totalItems ?? 0,
     fetchNextPage: queryResult.fetchNextPage,
     hasNextPage: queryResult.hasNextPage,

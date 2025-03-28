@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,15 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-} from "react-native";
-import { useRouter } from "expo-router";
-import Button from "@/src/components/common/Button";
-import { Feather } from "@expo/vector-icons";
-import { useTheme } from "react-native-paper";
-import useToast from "@/src/hooks/useToast";
-import { Colors } from "@/constants/Colors";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
-import type {
-  ApiResponse,
-  EmailCheckResponse,
-} from "@/src/features/auth/authService";
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import Button from '@/src/components/common/Button';
+import { Feather } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
+import useToast from '@/src/hooks/useToast';
+import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/src/features/auth/AuthContext';
+import type { ApiResponse, EmailCheckResponse } from '@/src/features/auth/authService';
 
 export default function SignUp() {
   const router = useRouter();
@@ -30,11 +27,11 @@ export default function SignUp() {
   const { colors }: { colors: Colors } = useTheme();
   const [hasCheckedEmail, setHasCheckedEmail] = useState<boolean>(false);
   const [emailExists, setEmailExists] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [retryPassword, setRetryPassword] = useState<string>("");
-  const [emailError, setEmailError] = useState<string>("");
-  const [passwordError, setPasswordError] = useState<string>("");
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [retryPassword, setRetryPassword] = useState<string>('');
+  const [emailError, setEmailError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { showToast } = useToast();
 
@@ -45,32 +42,32 @@ export default function SignUp() {
 
   const validatePassword = (password: string) => {
     if (password.length < 8) {
-      return "Password must be at least 8 characters long";
+      return 'Password must be at least 8 characters long';
     }
     if (!/[A-Z]/.test(password)) {
-      return "Password must contain at least one uppercase letter";
+      return 'Password must contain at least one uppercase letter';
     }
     if (!/[a-z]/.test(password)) {
-      return "Password must contain at least one lowercase letter";
+      return 'Password must contain at least one lowercase letter';
     }
     if (!/[0-9]/.test(password)) {
-      return "Password must contain at least one number";
+      return 'Password must contain at least one number';
     }
-    return "";
+    return '';
   };
 
   const signInWithGoogle = () => {
-    showToast("Google sign in coming soon!");
+    showToast('Google sign in coming soon!');
   };
 
   const handleEmailCheck = async () => {
-    setEmailError("");
+    setEmailError('');
     if (!email.trim()) {
-      setEmailError("Email is required");
+      setEmailError('Email is required');
       return;
     }
     if (!isValidEmail(email)) {
-      setEmailError("Please enter a valid email address");
+      setEmailError('Please enter a valid email address');
       return;
     }
 
@@ -79,19 +76,18 @@ export default function SignUp() {
       const response = await checkEmail(email);
       const exists = response.data.payload?.exists;
       if (exists === undefined) {
-        throw new Error("Error checking email");
+        throw new Error('Error checking email');
       }
       setHasCheckedEmail(true);
       setEmailExists(exists);
       showToast(
         exists
-          ? "Welcome back! Please enter your password."
-          : "Create a new account to get started!"
+          ? 'Welcome back! Please enter your password.'
+          : 'Create a new account to get started!'
       );
     } catch (error: any) {
-      console.error("[Auth] Email check error:", error);
-      const errorMessage =
-        error.response?.data?.message || "Error checking email";
+      console.error('[Auth] Email check error:', error);
+      const errorMessage = error.response?.data?.message || 'Error checking email';
       setEmailError(errorMessage);
       showToast(errorMessage);
       setHasCheckedEmail(false);
@@ -101,26 +97,25 @@ export default function SignUp() {
   };
 
   const handleSignUp = async () => {
-    setPasswordError("");
+    setPasswordError('');
     const passwordValidation = validatePassword(password);
     if (passwordValidation) {
       setPasswordError(passwordValidation);
       return;
     }
     if (password !== retryPassword) {
-      setPasswordError("Passwords do not match");
+      setPasswordError('Passwords do not match');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const username = email.split("@")[0];
+      const username = email.split('@')[0];
       await signUp(username, email, password);
-      showToast("Account created successfully!");
+      showToast('Account created successfully!');
     } catch (error: any) {
-      console.error("[Auth] Sign up error:", error);
-      const errorMessage =
-        error.response?.data?.message || "Failed to create account";
+      console.error('[Auth] Sign up error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to create account';
       setPasswordError(errorMessage);
       showToast(errorMessage);
     } finally {
@@ -129,20 +124,19 @@ export default function SignUp() {
   };
 
   const handleSignIn = async () => {
-    setPasswordError("");
+    setPasswordError('');
     if (!password.trim()) {
-      setPasswordError("Password is required");
+      setPasswordError('Password is required');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await signIn(email, password);
-      showToast("Welcome back!");
+      showToast('Welcome back!');
     } catch (error: any) {
-      console.error("[Auth] Sign in error:", error);
-      const errorMessage =
-        error.response?.data?.message || "Invalid email or password";
+      console.error('[Auth] Sign in error:', error);
+      const errorMessage = error.response?.data?.message || 'Invalid email or password';
       setPasswordError(errorMessage);
       showToast(errorMessage);
     } finally {
@@ -168,7 +162,7 @@ export default function SignUp() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -186,14 +180,12 @@ export default function SignUp() {
           </Pressable>
 
           <Text style={[styles.title, { color: colors.onSurface }]}>
-            {emailExists ? "Welcome back!" : "Create an account"}
+            {emailExists ? 'Welcome back!' : 'Create an account'}
           </Text>
 
           <View style={styles.middleContent}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.onSurface }]}>
-                Email
-              </Text>
+              <Text style={[styles.label, { color: colors.onSurface }]}>Email</Text>
               <TextInput
                 style={[
                   styles.textInput,
@@ -206,9 +198,9 @@ export default function SignUp() {
                 placeholder="Enter your email"
                 placeholderTextColor={colors.surfaceDisabled}
                 value={email}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setEmail(text);
-                  setEmailError("");
+                  setEmailError('');
                 }}
                 autoCapitalize="none"
                 keyboardType="email-address"
@@ -217,25 +209,19 @@ export default function SignUp() {
                 accessibilityHint="Enter your email address"
               />
               {emailError ? (
-                <Text style={[styles.errorText, { color: colors.error }]}>
-                  {emailError}
-                </Text>
+                <Text style={[styles.errorText, { color: colors.error }]}>{emailError}</Text>
               ) : null}
             </View>
 
             {hasCheckedEmail && (
               <>
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.label, { color: colors.onSurface }]}>
-                    Password
-                  </Text>
+                  <Text style={[styles.label, { color: colors.onSurface }]}>Password</Text>
                   <TextInput
                     style={[
                       styles.textInput,
                       {
-                        borderColor: passwordError
-                          ? colors.error
-                          : colors.shadow,
+                        borderColor: passwordError ? colors.error : colors.shadow,
                         color: colors.onSurface,
                         backgroundColor: colors.surface,
                       },
@@ -243,9 +229,9 @@ export default function SignUp() {
                     placeholder="Enter your password"
                     placeholderTextColor={colors.surfaceDisabled}
                     value={password}
-                    onChangeText={(text) => {
+                    onChangeText={text => {
                       setPassword(text);
-                      setPasswordError("");
+                      setPasswordError('');
                     }}
                     autoCapitalize="none"
                     secureTextEntry
@@ -255,21 +241,14 @@ export default function SignUp() {
                   />
                   {!emailExists && (
                     <>
-                      <Text
-                        style={[
-                          styles.label,
-                          { color: colors.onSurface, marginTop: 16 },
-                        ]}
-                      >
+                      <Text style={[styles.label, { color: colors.onSurface, marginTop: 16 }]}>
                         Confirm Password
                       </Text>
                       <TextInput
                         style={[
                           styles.textInput,
                           {
-                            borderColor: passwordError
-                              ? colors.error
-                              : colors.shadow,
+                            borderColor: passwordError ? colors.error : colors.shadow,
                             color: colors.onSurface,
                             backgroundColor: colors.surface,
                           },
@@ -277,9 +256,9 @@ export default function SignUp() {
                         placeholder="Retype password"
                         placeholderTextColor={colors.surfaceDisabled}
                         value={retryPassword}
-                        onChangeText={(text) => {
+                        onChangeText={text => {
                           setRetryPassword(text);
-                          setPasswordError("");
+                          setPasswordError('');
                         }}
                         autoCapitalize="none"
                         secureTextEntry
@@ -290,18 +269,16 @@ export default function SignUp() {
                     </>
                   )}
                   {passwordError ? (
-                    <Text style={[styles.errorText, { color: colors.error }]}>
-                      {passwordError}
-                    </Text>
+                    <Text style={[styles.errorText, { color: colors.error }]}>{passwordError}</Text>
                   ) : null}
                 </View>
                 <Button
-                  title={isSubmitting ? "Please wait..." : "Continue"}
+                  title={isSubmitting ? 'Please wait...' : 'Continue'}
                   onPress={handleContinue}
-                  icon={{ name: "arrow-right", position: "right" }}
+                  icon={{ name: 'arrow-right', position: 'right' }}
                   textStyle={{ color: colors.inverseOnSurface }}
                   iconStyle={{
-                    position: "absolute",
+                    position: 'absolute',
                     right: 12,
                     color: colors.inverseOnSurface,
                   }}
@@ -317,12 +294,12 @@ export default function SignUp() {
 
             {!hasCheckedEmail && (
               <Button
-                title={isSubmitting ? "Checking..." : "Continue"}
+                title={isSubmitting ? 'Checking...' : 'Continue'}
                 onPress={handleEmailCheck}
-                icon={{ name: "arrow-right", position: "right" }}
+                icon={{ name: 'arrow-right', position: 'right' }}
                 textStyle={{ color: colors.inverseOnSurface }}
                 iconStyle={{
-                  position: "absolute",
+                  position: 'absolute',
                   right: 12,
                   color: colors.inverseOnSurface,
                 }}
@@ -337,13 +314,9 @@ export default function SignUp() {
           </View>
 
           <View style={styles.dividerContainer}>
-            <View
-              style={[styles.line, { backgroundColor: colors.onSurface }]}
-            />
+            <View style={[styles.line, { backgroundColor: colors.onSurface }]} />
             <Text style={[styles.orText, { color: colors.onSurface }]}>or</Text>
-            <View
-              style={[styles.line, { backgroundColor: colors.onSurface }]}
-            />
+            <View style={[styles.line, { backgroundColor: colors.onSurface }]} />
           </View>
 
           <View style={styles.buttonContainer}>
@@ -351,10 +324,10 @@ export default function SignUp() {
               title="Continue with Google"
               onPress={signInWithGoogle}
               icon={{
-                name: "google",
-                position: "left",
-                type: "png",
-                src: require("@/assets/icons/google.png"),
+                name: 'google',
+                position: 'left',
+                type: 'png',
+                src: require('@/assets/icons/google.png'),
               }}
               iconStyle={{ width: 20, height: 20 }}
               style={{
@@ -381,13 +354,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 25,
   },
   centered: {
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   goBackButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "absolute",
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
     top: 20,
     left: 25,
     zIndex: 1,
@@ -403,7 +376,7 @@ const styles = StyleSheet.create({
   },
   middleContent: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     marginTop: 30,
     marginBottom: 30,
   },
@@ -412,14 +385,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 30,
-    fontWeight: "bold",
-    textAlign: "left",
+    fontWeight: 'bold',
+    textAlign: 'left',
     marginTop: 70,
     marginBottom: 30,
   },
   label: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: '500',
     marginBottom: 8,
   },
   textInput: {
@@ -434,9 +407,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: 24,
   },
   line: {

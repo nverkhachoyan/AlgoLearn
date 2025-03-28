@@ -1,15 +1,15 @@
-import { StatusBar } from "expo-status-bar";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Text } from "react-native-paper";
-import { useTheme } from "react-native-paper";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
-import { router, useLocalSearchParams } from "expo-router";
-import { useCourse } from "@/src/features/course/hooks/useCourses";
-import { Course } from "@/src/features/course/types/types";
-import { Module } from "@/src/features/module/types";
-import { FlashList } from "@shopify/flash-list";
-import { Unit } from "@/src/features/course/types";
-import { Feather } from "@expo/vector-icons";
+import { StatusBar } from 'expo-status-bar';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from 'react-native-paper';
+import { useTheme } from 'react-native-paper';
+import { useAuth } from '@/src/features/auth/AuthContext';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCourse } from '@/src/features/course/hooks/useCourses';
+import { Course } from '@/src/features/course/types/types';
+import { Module } from '@/src/features/module/types';
+import { FlashList } from '@shopify/flash-list';
+import { Unit } from '@/src/features/course/types';
+import { Feather } from '@expo/vector-icons';
 export default function SessionTOC(): JSX.Element {
   const { colors } = useTheme();
   const { isAuthenticated } = useAuth();
@@ -34,7 +34,7 @@ export default function SessionTOC(): JSX.Element {
       style={[styles.moduleItem, { backgroundColor: colors.surface }]}
       onPress={() =>
         router.replace({
-          pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+          pathname: '/(protected)/course/[courseId]/module/[moduleId]',
           params: {
             courseId: course.id,
             moduleId: module.id,
@@ -75,21 +75,15 @@ export default function SessionTOC(): JSX.Element {
   const renderUnit = ({ item: unit }: { item: Unit }): JSX.Element => (
     <View style={[styles.unitTitle, { backgroundColor: colors.background }]}>
       <View style={styles.unitTitleContainer}>
-        <Text style={[styles.unitTitleText, { color: colors.onSurface }]}>
-          {unit.unitNumber}.
-        </Text>
-        <Text style={[styles.unitTitleText, { color: colors.onSurface }]}>
-          {unit.name}
-        </Text>
+        <Text style={[styles.unitTitleText, { color: colors.onSurface }]}>{unit.unitNumber}.</Text>
+        <Text style={[styles.unitTitleText, { color: colors.onSurface }]}>{unit.name}</Text>
       </View>
       <View style={styles.modulesContainer}>
         <FlashList
           data={Object.values(unit.modules) as Module[]}
-          renderItem={(props) =>
-            renderModule({ ...props, unitId: unit.unitNumber })
-          }
+          renderItem={props => renderModule({ ...props, unitId: unit.unitNumber })}
           estimatedItemSize={50}
-          keyExtractor={(item): string => item.id?.toString() ?? ""}
+          keyExtractor={(item): string => item.id?.toString() ?? ''}
         />
       </View>
     </View>
@@ -107,7 +101,7 @@ export default function SessionTOC(): JSX.Element {
         estimatedItemSize={200}
         keyExtractor={(item): string => item.unitNumber.toString()}
       />
-      <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
+      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
     </View>
   );
 }
@@ -118,79 +112,79 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
     marginVertical: 20,
     borderBottomWidth: 0.5,
   },
   courseTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginVertical: 20,
-    textAlign: "center",
-    textTransform: "capitalize",
+    textAlign: 'center',
+    textTransform: 'capitalize',
   },
   unitContainer: {
     borderRadius: 5,
     paddingHorizontal: 20,
   },
   unitTitleContainer: {
-    textTransform: "capitalize",
-    flexDirection: "row",
-    justifyContent: "flex-start",
+    textTransform: 'capitalize',
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
     gap: 10,
-    alignItems: "center",
+    alignItems: 'center',
     marginHorizontal: 23,
   },
   unitTitle: {
     paddingVertical: 13,
-    textTransform: "capitalize",
+    textTransform: 'capitalize',
   },
   unitTitleText: {
     fontSize: 16,
-    fontWeight: "bold",
-    textTransform: "capitalize",
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
   },
 
   modulesContainer: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     marginVertical: 10,
-    height: "auto",
+    height: 'auto',
   },
   moduleItem: {
     minHeight: 50,
-    justifyContent: "center",
+    justifyContent: 'center',
     paddingHorizontal: 15,
     marginVertical: 5,
     borderRadius: 5,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   moduleContent: {
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
     paddingVertical: 8,
   },
   moduleTitle: {
-    textTransform: "capitalize",
+    textTransform: 'capitalize',
   },
   progressBarContainer: {
     height: 3,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: '#E0E0E0',
     borderRadius: 1.5,
-    overflow: "hidden",
+    overflow: 'hidden',
     marginTop: 4,
   },
   progressBar: {
-    height: "100%",
+    height: '100%',
     borderRadius: 1.5,
   },
   tocContainer: {
-    width: "80%",
+    width: '80%',
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: '#ddd',
     borderRadius: 5,
   },
   unitsContainer: {},

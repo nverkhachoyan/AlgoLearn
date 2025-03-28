@@ -1,10 +1,10 @@
-import { useEffect } from "react";
-import { useSegments, useRouter, useRootNavigation } from "expo-router";
-import { useAuth } from "../context/AuthContext";
-import { Platform } from "react-native";
+import { useEffect } from 'react';
+import { useSegments, useRouter, useRootNavigation } from 'expo-router';
+import { useAuth } from './AuthContext';
+import { Platform } from 'react-native';
 
-const PROTECTED_ROUTE = "/(protected)/(tabs)" as const;
-const AUTH_ROUTE = "/(auth)" as const;
+const PROTECTED_ROUTE = '/(protected)/(tabs)' as const;
+const AUTH_ROUTE = '/(auth)' as const;
 
 export function AuthGuard() {
   const segments = useSegments();
@@ -16,14 +16,12 @@ export function AuthGuard() {
     if (!rootNavigation?.isReady || isLoading) return;
 
     const currentGroup = segments[0];
-    const inAuthGroup = currentGroup === "(auth)";
-    const inPublicGroup = currentGroup === "(public)";
-    const inProtectedGroup = currentGroup === "(protected)";
+    const inAuthGroup = currentGroup === '(auth)';
+    const inPublicGroup = currentGroup === '(public)';
+    const inProtectedGroup = currentGroup === '(protected)';
 
-    const navigateToPath = (
-      path: typeof PROTECTED_ROUTE | typeof AUTH_ROUTE
-    ) => {
-      if (Platform.OS === "web") {
+    const navigateToPath = (path: typeof PROTECTED_ROUTE | typeof AUTH_ROUTE) => {
+      if (Platform.OS === 'web') {
         // Use setTimeout to ensure navigation happens after the current render cycle
         setTimeout(() => {
           router.replace(path);

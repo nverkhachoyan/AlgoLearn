@@ -1,18 +1,18 @@
-import { StatusBar } from "expo-status-bar";
-import { Platform, StyleSheet, Image, View } from "react-native";
-import { Text } from "react-native-paper";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { useEffect } from "react";
-import { useTheme } from "react-native-paper";
-import { HeaderGoBack } from "@/src/components/common/StickyHeader";
-import { ScrollView } from "react-native";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
-import { humanReadableDate } from "@/src/lib/utils/date";
+import { StatusBar } from 'expo-status-bar';
+import { Platform, StyleSheet, Image, View } from 'react-native';
+import { Text } from 'react-native-paper';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import Button from '@/src/components/common/Button';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { useEffect } from 'react';
+import { useTheme } from 'react-native-paper';
+import { HeaderGoBack } from '@/src/components/common/StickyHeader';
+import { ScrollView } from 'react-native';
+import { useAuth } from '@/src/features/auth/AuthContext';
+import { humanReadableDate } from '@/src/lib/utils/date';
 
-type IconType = React.ComponentProps<typeof Feather>["name"];
+type IconType = React.ComponentProps<typeof Feather>['name'];
 
 export default function Profile() {
   const { user, error } = useUser();
@@ -21,7 +21,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (error) {
-      console.log("Error while fetching user", error.message);
+      console.log('Error while fetching user', error.message);
     }
   }, [error]);
 
@@ -38,68 +38,48 @@ export default function Profile() {
             source={
               user.profilePictureUrl
                 ? {
-                  uri: user.profilePictureUrl,
-                }
-                : require("@/assets/images/defaultAvatar.png")
+                    uri: user.profilePictureUrl,
+                  }
+                : require('@/assets/images/defaultAvatar.png')
             }
             style={styles.profilePicture}
           />
           {user.firstName || user.lastName ? (
             <Text style={[styles.fullName, { color: colors.onSurface }]}>
-              {user.firstName + " " + user.lastName}
+              {user.firstName + ' ' + user.lastName}
             </Text>
           ) : null}
 
           <Text style={[styles.username, { color: colors.onSurface }]}>
-            {"@" + user.username || user.email}
+            {'@' + user.username || user.email}
           </Text>
           <Text style={[styles.bio, { color: colors.onSurface }]}>
-            {user.bio || "No bio available"}
+            {user.bio || 'No bio available'}
           </Text>
         </View>
 
         <View style={[styles.separator, { backgroundColor: colors.shadow }]} />
 
-        <View
-          style={[
-            styles.userInfoContainer,
-            { backgroundColor: colors.surface },
-          ]}
-        >
+        <View style={[styles.userInfoContainer, { backgroundColor: colors.surface }]}>
           <UserInfoRow icon="mail" label="Email" value={user.email} />
-          <UserInfoRow
-            icon="user"
-            label="Username"
-            value={user.username || "N/A"}
-          />
+          <UserInfoRow icon="user" label="Username" value={user.username || 'N/A'} />
           <UserInfoRow icon="cpu" label="CPUS" value={`${user.cpus}`} />
           <UserInfoRow
             icon="tag"
             label="Role"
-            value={
-              `${user.role}`.charAt(0).toUpperCase() + `${user.role}`.slice(1)
-            }
+            value={`${user.role}`.charAt(0).toUpperCase() + `${user.role}`.slice(1)}
           />
-          <UserInfoRow
-            icon="calendar"
-            label="Created"
-            value={humanReadableDate(user.createdAt)}
-          />
+          <UserInfoRow icon="calendar" label="Created" value={humanReadableDate(user.createdAt)} />
           <UserInfoRow
             icon="clock"
             label="Last Login"
-            value={humanReadableDate(user.lastLoginAt)
-            }
+            value={humanReadableDate(user.lastLoginAt)}
           />
-          <UserInfoRow
-            icon="check-circle"
-            label="Active"
-            value={user.isActive ? "Yes" : "No"}
-          />
+          <UserInfoRow icon="check-circle" label="Active" value={user.isActive ? 'Yes' : 'No'} />
           <UserInfoRow
             icon="check-circle"
             label="Email Verified"
-            value={user.isEmailVerified ? "Yes" : "No"}
+            value={user.isEmailVerified ? 'Yes' : 'No'}
           />
         </View>
 
@@ -107,43 +87,31 @@ export default function Profile() {
 
         <Button
           title="Account Settings"
-          onPress={() => router.replace("/preferences")}
+          onPress={() => router.replace('/preferences')}
           style={{
             backgroundColor: colors.onBackground,
             borderColor: colors.shadow,
             paddingHorizontal: 15,
           }}
-          icon={{ name: "settings", position: "right" }}
+          icon={{ name: 'settings', position: 'right' }}
           iconStyle={{ color: colors.inverseOnSurface }}
           textStyle={{ color: colors.inverseOnSurface }}
         />
         <View style={styles.separator} />
-        <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
+        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
       </ScrollView>
       {/* <EmptyFooter /> */}
     </View>
   );
 }
 
-function UserInfoRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: IconType;
-  label: string;
-  value: string;
-}) {
+function UserInfoRow({ icon, label, value }: { icon: IconType; label: string; value: string }) {
   const { colors } = useTheme();
   return (
     <View style={styles.userInfoRow}>
       <Feather name={icon} size={20} color={colors.onSurface} />
-      <Text style={[styles.userInfoLabel, { color: colors.onSurface }]}>
-        {label}:
-      </Text>
-      <Text style={[styles.userInfoText, { color: colors.onSurface }]}>
-        {value}
-      </Text>
+      <Text style={[styles.userInfoLabel, { color: colors.onSurface }]}>{label}:</Text>
+      <Text style={[styles.userInfoText, { color: colors.onSurface }]}>{value}</Text>
     </View>
   );
 }
@@ -157,7 +125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   profileHeader: {
-    alignItems: "center",
+    alignItems: 'center',
     marginVertical: 20,
   },
   profilePicture: {
@@ -168,44 +136,44 @@ const styles = StyleSheet.create({
   },
   fullName: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   username: {
     fontSize: 15,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   bio: {
     fontSize: 16,
-    fontStyle: "italic",
+    fontStyle: 'italic',
     marginVertical: 15,
   },
   separator: {
     height: 1,
-    width: "100%",
+    width: '100%',
     marginVertical: 10,
   },
   userInfoContainer: {
     padding: 15,
     borderRadius: 10,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
   userInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginVertical: 5,
   },
   userInfoLabel: {
     fontSize: 16,
     marginLeft: 10,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   userInfoText: {
     fontSize: 16,

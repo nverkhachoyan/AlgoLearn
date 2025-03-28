@@ -1,15 +1,15 @@
-import { StyleSheet, View, ScrollView } from "react-native";
-import { Text } from "react-native-paper";
-import { Seperator } from "@/src/components/common/Seperator";
-import React from "react";
-import { router } from "expo-router";
-import { Feather, MaterialIcons } from "@expo/vector-icons";
-import { useTheme } from "react-native-paper";
-import { StickyHeader } from "@/src/components/common/StickyHeader";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { Colors } from "@/constants/Colors";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
-import { humanReadableDate } from "@/src/lib/utils/date";
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Seperator } from '@/src/components/common/Seperator';
+import React from 'react';
+import { router } from 'expo-router';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
+import { StickyHeader } from '@/src/components/common/StickyHeader';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/src/features/auth/AuthContext';
+import { humanReadableDate } from '@/src/lib/utils/date';
 
 export default function Feed() {
   const { user } = useUser();
@@ -19,35 +19,34 @@ export default function Feed() {
   const feedItems = [
     {
       id: 1,
-      type: "course",
-      title: "New Course: Advanced JavaScript",
-      description: "Dive deep into advanced JavaScript topics.",
-      date: "2024-07-25",
+      type: 'course',
+      title: 'New Course: Advanced JavaScript',
+      description: 'Dive deep into advanced JavaScript topics.',
+      date: '2024-07-25',
     },
     {
       id: 2,
-      type: "poll",
-      title: "Poll: Your Favorite Programming Language",
-      description: "Vote for your favorite programming language.",
-      date: "2024-07-24",
+      type: 'poll',
+      title: 'Poll: Your Favorite Programming Language',
+      description: 'Vote for your favorite programming language.',
+      date: '2024-07-24',
     },
     {
       id: 3,
-      type: "achievement",
-      title: "Achievement: Completed JavaScript Basics",
-      description:
-        "Congratulations on completing the JavaScript Basics course!",
-      date: "2024-07-23",
+      type: 'achievement',
+      title: 'Achievement: Completed JavaScript Basics',
+      description: 'Congratulations on completing the JavaScript Basics course!',
+      date: '2024-07-23',
     },
   ];
 
   const renderFeedItemIcon = (type: any) => {
     switch (type) {
-      case "course":
+      case 'course':
         return <Feather name="book" size={24} color={colors.onSurface} />;
-      case "poll":
+      case 'poll':
         return <MaterialIcons name="poll" size={24} color={colors.onSurface} />;
-      case "achievement":
+      case 'achievement':
         return <Feather name="award" size={24} color={colors.onSurface} />;
       default:
         return null;
@@ -71,18 +70,16 @@ export default function Feed() {
         cpus={user.cpus}
         streak={user?.streak || 0}
         userAvatar={user.profile_picture_url}
-        onAvatarPress={() => router.push("/(protected)/(profile)")}
+        onAvatarPress={() => router.push('/(protected)/(profile)')}
       />
 
-      <ScrollView
-        style={[styles.scrollContainer, { backgroundColor: colors.background }]}
-      >
+      <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
         <View style={styles.innerContainer}>
           <Text style={[styles.title, { color: colors.onSurface }]}>Feed</Text>
           <Seperator />
           <View style={styles.separator} />
           <View style={styles.feedContainer}>
-            {feedItems.map((item) => (
+            {feedItems.map(item => (
               <View
                 key={item.id}
                 style={[
@@ -93,17 +90,11 @@ export default function Feed() {
                   },
                 ]}
               >
-                <View style={styles.feedItemIcon}>
-                  {renderFeedItemIcon(item.type)}
-                </View>
+                <View style={styles.feedItemIcon}>{renderFeedItemIcon(item.type)}</View>
                 <View style={styles.feedItemContent}>
                   <Text style={styles.feedItemTitle}>{item.title}</Text>
-                  <Text style={styles.feedItemDescription}>
-                    {item.description}
-                  </Text>
-                  <Text style={styles.feedItemDate}>
-                    {humanReadableDate(item.date)}
-                  </Text>
+                  <Text style={styles.feedItemDescription}>{item.description}</Text>
+                  <Text style={styles.feedItemDate}>{humanReadableDate(item.date)}</Text>
                 </View>
               </View>
             ))}
@@ -123,11 +114,11 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     padding: 20,
-    alignItems: "center",
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   loadingText: {
     fontSize: 18,
@@ -137,15 +128,15 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    width: "80%",
+    width: '80%',
   },
   feedContainer: {
-    width: "100%",
+    width: '100%',
     marginBottom: 20,
   },
   feedItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 15,
     borderWidth: 1,
     borderRadius: 10,
@@ -159,7 +150,7 @@ const styles = StyleSheet.create({
   },
   feedItemTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 5,
   },
   feedItemDescription: {
@@ -168,13 +159,13 @@ const styles = StyleSheet.create({
   },
   feedItemDate: {
     fontSize: 14,
-    color: "#888",
+    color: '#888',
   },
   button: {
-    width: "100%",
+    width: '100%',
     padding: 10,
     borderRadius: 5,
-    alignItems: "center",
+    alignItems: 'center',
     marginVertical: 10,
   },
 });

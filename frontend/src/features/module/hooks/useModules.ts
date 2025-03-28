@@ -1,19 +1,22 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  UseMutationResult,
-} from "@tanstack/react-query";
-import { fetchModule } from "@/src/features/module/api/queries";
-import { updateModuleProgress } from "@/src/features/module/api/queries";
-import { Module } from "../types";
-import { ModuleProgressResponse } from "../api/types";
+import { useMutation, useQuery, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import { Module } from '../types';
+import { useAuthFetcher } from '../../auth';
 
 export type UseModuleProgressProps = {
   courseId: number;
   unitId: number;
   moduleId: number;
 };
+
+export interface ModuleProgressResponse {
+  module: Module;
+  nextModuleId: number | null;
+  prevModuleId: number | null;
+  nextUnitId: number | null;
+  prevUnitId: number | null;
+  nextUnitModuleId: number | null;
+  prevUnitModuleId: number | null;
+}
 
 export type UseModuleProgressReturn = {
   currentModule: Module | undefined;
@@ -35,20 +38,17 @@ export type UseModuleProgressReturn = {
   isModuleFetching: boolean;
 };
 
-export const useModuleProgress = (
-  props: UseModuleProgressProps
-): UseModuleProgressReturn => {
+export const useModuleProgress = (props: UseModuleProgressProps): UseModuleProgressReturn => {
   const queryClient = useQueryClient();
+  const authFetcher = useAuthFetcher();
   const { courseId, unitId, moduleId } = props;
 
   const currentModule = useQuery({
-    queryKey: ["module", courseId, unitId, moduleId],
+    queryKey: ['module', courseId, unitId, moduleId],
     queryFn: async (): Promise<ModuleProgressResponse> => {
-      const response = await fetchModule({
-        courseId,
-        unitId,
-        moduleId,
-      });
+      const response = await authFetcher.get(
+        `/courses/${courseId}/units/${unitId}/modules/${moduleId}`
+      );
 
       const axiosResponse = response.data;
       const payload = axiosResponse.payload;
@@ -59,41 +59,38 @@ export const useModuleProgress = (
   });
 
   const completeModuleMutation = useMutation({
-    mutationKey: ["complete-module"],
+    mutationKey: ['complete-module'],
     mutationFn: async (moduleProgress: any) => {
-      const res = await updateModuleProgress({
-        courseId,
-        unitId,
-        moduleId,
-        moduleProgress,
-      });
+      const res = await authFetcher.put(
+        `/courses/${courseId}/units/${unitId}/modules/${moduleId}/progress`,
+        moduleProgress
+      );
 
       return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["module", courseId, unitId, moduleId],
+        queryKey: ['module', courseId, unitId, moduleId],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["course", courseId, "progress"],
+        queryKey: ['course', courseId, 'progress'],
       });
 
       queryClient.invalidateQueries({
-        queryKey: ["courses", "progress"],
+        queryKey: ['courses', 'progress'],
       });
     },
   });
 
   if (currentModule.data?.nextModuleId) {
     queryClient.prefetchQuery({
-      queryKey: ["module", courseId, unitId, currentModule.data?.nextModuleId],
+      queryKey: ['module', courseId, unitId, currentModule.data?.nextModuleId],
       queryFn: async (): Promise<ModuleProgressResponse> => {
-        const response = await fetchModule({
-          courseId,
-          unitId,
-          moduleId: currentModule.data?.nextModuleId || 0,
-        });
+        const response = await authFetcher.get(
+          `/courses/${courseId}/units/${unitId}/modules/${currentModule.data?.nextModuleId || 0}`
+        );
+
         const axiosResponse = response.data;
         const payload = axiosResponse.payload;
 

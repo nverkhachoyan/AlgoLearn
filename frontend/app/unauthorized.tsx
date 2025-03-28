@@ -1,12 +1,10 @@
-import { StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
+import { StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import Button from '@/src/components/common/Button';
+import { router } from 'expo-router';
 
 export default function Home() {
-  const { invalidateAuth } = useUser();
-
   return (
     <View style={styles.container}>
       <Text>
@@ -14,13 +12,13 @@ export default function Home() {
         <Button
           title="Sign in"
           onPress={() => {
-            router.push("/(auth)");
+            router.push('/(auth)');
           }}
         />
         <Button
           title="Clear local storage"
           onPress={() => {
-            invalidateAuth();
+            console.log('INVALIDATE AUTH NOT IMPLEMENTED');
           }}
         />
       </Text>
@@ -31,28 +29,28 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,
     marginHorizontal: 16,
     paddingVertical: 16,
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
   },
   title: {
     fontSize: 20,
-    fontWeight: "bold",
-    alignSelf: "center",
+    fontWeight: 'bold',
+    alignSelf: 'center',
   },
   separator: {
     marginVertical: 10,
     height: 1,
-    width: "80%",
-    alignSelf: "center",
+    width: '80%',
+    alignSelf: 'center',
   },
   headerItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   logo: {
@@ -61,6 +59,6 @@ const styles = StyleSheet.create({
   },
   stickyHeaderTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });

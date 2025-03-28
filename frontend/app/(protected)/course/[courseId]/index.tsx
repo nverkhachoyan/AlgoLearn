@@ -1,4 +1,4 @@
-import { useLocalSearchParams, router } from "expo-router";
+import { useLocalSearchParams, router } from 'expo-router';
 import {
   StyleSheet,
   View,
@@ -6,30 +6,26 @@ import {
   Animated,
   Platform,
   useWindowDimensions,
-} from "react-native";
-import {
-  Text,
-  Menu,
-  IconButton,
-} from "react-native-paper";
-import { useEffect, useState, useRef } from "react";
-import { useTheme } from "react-native-paper";
+} from 'react-native';
+import { Text, Menu, IconButton } from 'react-native-paper';
+import { useEffect, useState, useRef } from 'react';
+import { useTheme } from 'react-native-paper';
 import {
   useCourse,
   useStartCourse,
   useResetCourseProgress,
-} from "@/src/features/course/hooks/useCourses";
-import { StickyHeader } from "@/src/components/common/StickyHeader";
-import CourseHeader from "@/src/features/course/components/CourseHeader";
-import CurrentModuleCard from "@/src/features/course/components/CurrentModuleCard";
-import TableOfContents from "@/src/features/course/components/TableOfContents";
-import CourseInfo from "@/src/features/course/components/CourseInfo";
-import FooterButtons from "@/src/features/course/components/FooterButtons";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { Colors } from "@/constants/Colors";
-import Loading from "@/src/components/common/Loading";
-import { Alert } from "react-native";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
+} from '@/src/features/course/hooks/useCourses';
+import { StickyHeader } from '@/src/components/common/StickyHeader';
+import CourseHeader from '@/src/features/course/components/CourseHeader';
+import CurrentModuleCard from '@/src/features/course/components/CurrentModuleCard';
+import TableOfContents from '@/src/features/course/components/TableOfContents';
+import CourseInfo from '@/src/features/course/components/CourseInfo';
+import FooterButtons from '@/src/features/course/components/FooterButtons';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import { Colors } from '@/constants/Colors';
+import Loading from '@/src/components/common/Loading';
+import { Alert } from 'react-native';
+import { useAuth } from '@/src/features/auth/AuthContext';
 
 export default function CourseDetails() {
   const { courseId, hasProgress } = useLocalSearchParams();
@@ -42,13 +38,14 @@ export default function CourseDetails() {
   const { course, isLoading, error } = useCourse({
     courseId: parseInt(courseId as string),
     isAuthenticated: true,
-    hasProgress: hasProgress === "true",
+    hasProgress: hasProgress === 'true',
   });
   const { startCourse, isLoading: isStartCourseLoading } = useStartCourse(
     parseInt(courseId as string)
   );
-  const { resetCourseProgress, isLoading: isResetCourseProgressLoading } =
-    useResetCourseProgress(parseInt(courseId as string));
+  const { resetCourseProgress, isLoading: isResetCourseProgressLoading } = useResetCourseProgress(
+    parseInt(courseId as string)
+  );
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 1024;
   const isMediumScreen = width >= 768 && width < 1024;
@@ -63,25 +60,21 @@ export default function CourseDetails() {
     moduleId: number;
   }) => {
     if (!user) {
-      Alert.alert(
-        "Authentication Required",
-        "Please sign in to access course content.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Sign In",
-            onPress: () => router.push("/(auth)"),
-          },
-        ]
-      );
+      Alert.alert('Authentication Required', 'Please sign in to access course content.', [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign In',
+          onPress: () => router.push('/(auth)'),
+        },
+      ]);
       return;
     }
 
     router.push({
-      pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+      pathname: '/(protected)/course/[courseId]/module/[moduleId]',
       params: {
         courseId,
         unitId,
@@ -92,20 +85,16 @@ export default function CourseDetails() {
 
   const handleStartCourse = async () => {
     if (!user) {
-      Alert.alert(
-        "Authentication Required",
-        "Please sign in to start the course.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Sign In",
-            onPress: () => router.push("/(auth)"),
-          },
-        ]
-      );
+      Alert.alert('Authentication Required', 'Please sign in to start the course.', [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign In',
+          onPress: () => router.push('/(auth)'),
+        },
+      ]);
       return;
     }
 
@@ -126,41 +115,38 @@ export default function CourseDetails() {
           });
         } else {
           router.dismissTo({
-            pathname: "/(protected)/(tabs)",
+            pathname: '/(protected)/(tabs)',
           });
         }
       } catch (error) {
-        console.log("Failed to start the course", error);
-        Alert.alert("Error", "Failed to start the course. Please try again.");
+        console.log('Failed to start the course', error);
+        Alert.alert('Error', 'Failed to start the course. Please try again.');
       }
     }
   };
 
   const handleRestartCourse = async () => {
     Alert.alert(
-      "Restart Course",
-      "Are you sure you want to restart this course? All progress will be lost.",
+      'Restart Course',
+      'Are you sure you want to restart this course? All progress will be lost.',
       [
         {
-          text: "Cancel",
-          style: "cancel",
+          text: 'Cancel',
+          style: 'cancel',
         },
         {
-          text: "Restart",
-          style: "destructive",
+          text: 'Restart',
+          style: 'destructive',
           onPress: async () => {
             try {
               const response = await resetCourseProgress();
               if (response?.success) {
                 router.dismissTo({
-                  pathname: "/(protected)/(tabs)",
+                  pathname: '/(protected)/(tabs)',
                 });
               }
             } catch (error) {
-              Alert.alert(
-                "Error",
-                "Failed to restart course. Please try again."
-              );
+              Alert.alert('Error', 'Failed to restart course. Please try again.');
             }
           },
         },
@@ -194,7 +180,7 @@ export default function CourseDetails() {
 
   const spin = rotationValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0deg", "90deg"],
+    outputRange: ['0deg', '90deg'],
   });
 
   if (isLoading) {
@@ -206,13 +192,13 @@ export default function CourseDetails() {
       <View
         style={{
           flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
           backgroundColor: colors.background,
         }}
       >
-        <Text style={{ fontSize: 20, fontWeight: "bold", textAlign: "center" }}>
-          {error.message || "Failed to load course."}
+        <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
+          {error.message || 'Failed to load course.'}
         </Text>
       </View>
     );
@@ -223,12 +209,12 @@ export default function CourseDetails() {
       <View
         style={{
           flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
           backgroundColor: colors.background,
         }}
       >
-        <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
           Course not found.
           <IconButton icon="arrow-left" onPress={() => router.back()} />
         </Text>
@@ -243,7 +229,7 @@ export default function CourseDetails() {
           cpus={user?.cpus || 0}
           streak={user?.streak || 0}
           userAvatar={user?.avatar}
-          onAvatarPress={() => user && router.push("/(protected)/(profile)")}
+          onAvatarPress={() => user && router.push('/(protected)/(profile)')}
         />
       </View>
       <ScrollView
@@ -252,10 +238,7 @@ export default function CourseDetails() {
           { backgroundColor: colors.background },
           isLargeScreen && styles.webScrollView,
         ]}
-        style={[
-          styles.scrollViewContainer,
-          isLargeScreen && styles.webScrollViewContainer,
-        ]}
+        style={[styles.scrollViewContainer, isLargeScreen && styles.webScrollViewContainer]}
       >
         <View
           style={[
@@ -267,18 +250,11 @@ export default function CourseDetails() {
           <CourseHeader course={course} />
 
           {!isLargeScreen && course.units && (
-            <TableOfContents
-              courseId={parseInt(courseId as string)}
-              units={course.units}
-            />
+            <TableOfContents courseId={parseInt(courseId as string)} units={course.units} />
           )}
 
           <View style={isLargeScreen ? styles.webLayout : styles.mobileLayout}>
-            <View
-              style={
-                isLargeScreen ? styles.webMainContent : styles.mobileMainContent
-              }
-            >
+            <View style={isLargeScreen ? styles.webMainContent : styles.mobileMainContent}>
               {isAuthenticated && course.currentModule && (
                 <CurrentModuleCard
                   course={course}
@@ -294,10 +270,7 @@ export default function CourseDetails() {
             {isLargeScreen && (
               <View style={styles.webSidebar}>
                 {course.units && (
-                  <TableOfContents
-                    courseId={parseInt(courseId as string)}
-                    units={course.units}
-                  />
+                  <TableOfContents courseId={parseInt(courseId as string)} units={course.units} />
                 )}
               </View>
             )}
@@ -330,10 +303,7 @@ export default function CourseDetails() {
                 </Animated.View>
               }
               anchorPosition="top"
-              contentStyle={[
-                styles.menuContent,
-                { backgroundColor: colors.surface },
-              ]}
+              contentStyle={[styles.menuContent, { backgroundColor: colors.surface }]}
             >
               <Menu.Item
                 onPress={() => {
@@ -346,15 +316,11 @@ export default function CourseDetails() {
             </Menu>
           </View>
         )}
-        <View
-          style={[styles.mainButton, isLargeScreen && styles.webMainButton]}
-        >
+        <View style={[styles.mainButton, isLargeScreen && styles.webMainButton]}>
           <FooterButtons
             colors={colors}
             rightButton={
-              isAuthenticated && course.currentModule
-                ? "Continue Course"
-                : "Start Course"
+              isAuthenticated && course.currentModule ? 'Continue Course' : 'Start Course'
             }
             onStartCourse={handleStartCourse}
             isLoading={isStartCourseLoading || isResetCourseProgressLoading}
@@ -373,15 +339,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 1,
   },
   webHeader: {
-    position: "fixed",
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    position: 'fixed',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   scrollViewContainer: {
     flex: 1,
@@ -393,37 +359,37 @@ const styles = StyleSheet.create({
   scrollView: {
     flexGrow: 1,
     paddingVertical: 15,
-    paddingHorizontal: Platform.OS === "web" ? 0 : 15,
+    paddingHorizontal: Platform.OS === 'web' ? 0 : 15,
   },
   webScrollView: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   content: {
     flex: 1,
     gap: 20,
-    width: "100%",
+    width: '100%',
   },
   webContent: {
     maxWidth: MAX_CONTENT_WIDTH,
     paddingHorizontal: 40,
   },
   tabletContent: {
-    maxWidth: "100%",
+    maxWidth: '100%',
     paddingHorizontal: 24,
   },
   webLayout: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 40,
   },
   mobileLayout: {
-    flexDirection: "column",
+    flexDirection: 'column',
     gap: 20,
   },
   webMainContent: {
     flex: 2,
   },
   mobileMainContent: {
-    width: "100%",
+    width: '100%',
   },
   webSidebar: {
     flex: 1,
@@ -431,26 +397,26 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   mobileSidebar: {
-    width: "100%",
+    width: '100%',
   },
   separator: {
     marginVertical: 10,
     height: 1,
-    backgroundColor: "#333",
+    backgroundColor: '#333',
     opacity: 0.2,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.1)",
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
   },
   webFooter: {
     paddingHorizontal: 40,
@@ -464,13 +430,13 @@ const styles = StyleSheet.create({
   },
   webMainButton: {
     maxWidth: 300,
-    marginLeft: "auto",
+    marginLeft: 'auto',
   },
   menuContent: {
     borderRadius: 8,
     marginTop: -40,
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,

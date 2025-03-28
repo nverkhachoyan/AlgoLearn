@@ -1,13 +1,13 @@
-import { StyleSheet, View, ScrollView } from "react-native";
-import { Text, useTheme } from "react-native-paper";
-import { Seperator } from "@/src/components/common/Seperator";
-import React from "react";
-import { router } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import { StickyHeader } from "@/src/components/common/StickyHeader";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { Colors } from "@/constants/Colors";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import { Seperator } from '@/src/components/common/Seperator';
+import React from 'react';
+import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StickyHeader } from '@/src/components/common/StickyHeader';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/src/features/auth/AuthContext';
 
 export default function Leaderboard() {
   const { user } = useUser();
@@ -15,8 +15,8 @@ export default function Leaderboard() {
   const { colors }: { colors: Colors } = useTheme();
 
   function getRandomColor() {
-    var letters = "0123456789ABCDEF";
-    var color = "#";
+    var letters = '0123456789ABCDEF';
+    var color = '#';
     for (var i = 0; i < 6; i++) {
       color += letters[Math.floor(Math.random() * 16)];
     }
@@ -26,38 +26,38 @@ export default function Leaderboard() {
   const leaderboardItems = [
     {
       id: 1,
-      name: "Alice Johnson",
+      name: 'Alice Johnson',
       score: 1200,
-      rank: "Quantum Circuit",
-      icon: "memory",
+      rank: 'Quantum Circuit',
+      icon: 'memory',
     },
     {
       id: 2,
-      name: "Bob Smith",
+      name: 'Bob Smith',
       score: 1150,
-      rank: "Memory Circuit",
-      icon: "data-usage",
+      rank: 'Memory Circuit',
+      icon: 'data-usage',
     },
     {
       id: 3,
-      name: "Charlie Brown",
+      name: 'Charlie Brown',
       score: 1100,
-      rank: "Compiler Circuit",
-      icon: "code",
+      rank: 'Compiler Circuit',
+      icon: 'code',
     },
     {
       id: 4,
-      name: "David Williams",
+      name: 'David Williams',
       score: 1050,
-      rank: "Logic Circuit",
-      icon: "build",
+      rank: 'Logic Circuit',
+      icon: 'build',
     },
     {
       id: 5,
-      name: "Eva Green",
+      name: 'Eva Green',
       score: 1000,
-      rank: "Data Circuit",
-      icon: "storage",
+      rank: 'Data Circuit',
+      icon: 'storage',
     },
   ];
 
@@ -78,15 +78,11 @@ export default function Leaderboard() {
         cpus={user.cpus}
         streak={user.streak || 0}
         userAvatar={null}
-        onAvatarPress={() => router.push("/(protected)/(profile)")}
+        onAvatarPress={() => router.push('/(protected)/(profile)')}
       />
-      <ScrollView
-        style={[styles.scrollContainer, { backgroundColor: colors.background }]}
-      >
+      <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
         <View style={styles.innerContainer}>
-          <Text style={[styles.title, { color: colors.onSurface }]}>
-            Circuit Rankings
-          </Text>
+          <Text style={[styles.title, { color: colors.onSurface }]}>Circuit Rankings</Text>
           <Seperator />
           <View style={styles.separator} />
           <View style={styles.leaderboardContainer}>
@@ -101,34 +97,17 @@ export default function Leaderboard() {
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.leaderboardPosition,
-                    { color: colors.onSurface },
-                  ]}
-                >
+                <Text style={[styles.leaderboardPosition, { color: colors.onSurface }]}>
                   {index + 1}
                 </Text>
                 <View style={styles.leaderboardItemContent}>
-                  <Text
-                    style={[
-                      styles.leaderboardItemName,
-                      { color: colors.onSurface },
-                    ]}
-                  >
+                  <Text style={[styles.leaderboardItemName, { color: colors.onSurface }]}>
                     {item.name}
                   </Text>
-                  <Text
-                    style={[
-                      styles.leaderboardItemScore,
-                      { color: colors.onSurface },
-                    ]}
-                  >
+                  <Text style={[styles.leaderboardItemScore, { color: colors.onSurface }]}>
                     {item.score} CPUs
                   </Text>
-                  <Text
-                    style={[styles.leaderboardItemRank, { color: "#25A879" }]}
-                  >
+                  <Text style={[styles.leaderboardItemRank, { color: '#25A879' }]}>
                     {item.rank}
                   </Text>
                 </View>
@@ -156,11 +135,11 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     padding: 20,
-    alignItems: "center",
+    alignItems: 'center',
   },
   title: {
     fontSize: 26,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   loadingText: {
     fontSize: 18,
@@ -170,15 +149,15 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    width: "80%",
+    width: '80%',
   },
   leaderboardContainer: {
-    width: "100%",
+    width: '100%',
     marginBottom: 20,
   },
   leaderboardItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 15,
     borderWidth: 2,
     borderRadius: 12,
@@ -186,17 +165,17 @@ const styles = StyleSheet.create({
   },
   leaderboardPosition: {
     fontSize: 22,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginRight: 15,
     width: 40,
-    textAlign: "center",
+    textAlign: 'center',
   },
   leaderboardItemContent: {
     flex: 1,
   },
   leaderboardItemName: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   leaderboardItemScore: {
     fontSize: 16,

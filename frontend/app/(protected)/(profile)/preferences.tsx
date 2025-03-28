@@ -1,29 +1,19 @@
-import { StatusBar } from "expo-status-bar";
-import {
-  Platform,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  View,
-} from "react-native";
-import { Text, useTheme } from "react-native-paper";
-import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import LabeledInput from "@/src/components/common/LabeledInput";
-import {
-  StickyHeaderSimple,
-  HeaderGoBack,
-} from "@/src/components/common/StickyHeader";
-import useToast from "@/src/hooks/useToast";
-import { ImageFile } from "@/src/types/common";
-import * as ImagePicker from "expo-image-picker";
-import { FontAwesome } from "@expo/vector-icons";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { EmptyFooter } from "@/src/components/common/Footer";
-import { useAuth } from "@/src/features/auth/context/AuthContext";
+import { StatusBar } from 'expo-status-bar';
+import { Platform, StyleSheet, Image, TouchableOpacity, ScrollView, View } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import Button from '@/src/components/common/Button';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import LabeledInput from '@/src/components/common/LabeledInput';
+import { StickyHeaderSimple, HeaderGoBack } from '@/src/components/common/StickyHeader';
+import useToast from '@/src/hooks/useToast';
+import { ImageFile } from '@/src/types/common';
+import * as ImagePicker from 'expo-image-picker';
+import { FontAwesome } from '@expo/vector-icons';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import { EmptyFooter } from '@/src/components/common/Footer';
+import { useAuth } from '@/src/features/auth/AuthContext';
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -69,11 +59,11 @@ export default function Preferences() {
 
     if (!result.canceled) {
       const { uri, type, fileSize } = result.assets[0];
-      const fileType = type || "image/jpeg"; // default to image/jpeg if type is not available
-      const fileName = uri.split("/").pop();
+      const fileType = type || 'image/jpeg'; // default to image/jpeg if type is not available
+      const fileName = uri.split('/').pop();
 
       if (fileSize && fileSize > MaxProfilePictureSize) {
-        showToast("This image is too large. The accepted size is 5MB or less.");
+        showToast('This image is too large. The accepted size is 5MB or less.');
         return;
       }
 
@@ -95,7 +85,7 @@ export default function Preferences() {
     try {
       await signOut();
     } catch (error) {
-      showToast("Error signing out");
+      showToast('Error signing out');
     }
   };
 
@@ -118,7 +108,7 @@ export default function Preferences() {
 
     updateUser.mutate(userData, {
       onSuccess: () => {
-        showToast("Account updated successfully");
+        showToast('Account updated successfully');
       },
       onError: () => {
         showToast(`Error while updating user: ${updateUser.error?.message}`);
@@ -131,16 +121,10 @@ export default function Preferences() {
       <HeaderGoBack title="Account Preferences" />
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
-          { backgroundColor: colors.background },
-        ]}
+        contentContainerStyle={[styles.scrollContainer, { backgroundColor: colors.background }]}
       >
         <View style={styles.profileHeader}>
-          <TouchableOpacity
-            onPress={pickImage}
-            style={styles.profilePictureContainer}
-          >
+          <TouchableOpacity onPress={pickImage} style={styles.profilePictureContainer}>
             {image ? (
               <Image source={{ uri: image }} style={styles.image} />
             ) : (
@@ -151,7 +135,7 @@ export default function Preferences() {
                       ? {
                           uri: user.profilePictureUrl,
                         }
-                      : require("@/assets/images/defaultAvatar.png")
+                      : require('@/assets/images/defaultAvatar.png')
                   }
                   style={styles.profilePicture}
                 />
@@ -165,7 +149,7 @@ export default function Preferences() {
             {user.username || user.email}
           </Text>
           <Text style={[styles.bio, { color: colors.onSurface }]}>
-            {user.bio || "No bio available"}
+            {user.bio || 'No bio available'}
           </Text>
         </View>
 
@@ -174,8 +158,8 @@ export default function Preferences() {
             label="Bio"
             icon="file-text"
             placeholder="Bio"
-            value={formData.bio || ""}
-            onChangeText={(text) => handleChange("bio", text)}
+            value={formData.bio || ''}
+            onChangeText={text => handleChange('bio', text)}
             multiline={true}
             numberOfLines={4}
             maxLength={140}
@@ -185,36 +169,36 @@ export default function Preferences() {
             label="Location"
             icon="map-pin"
             placeholder="Location"
-            value={formData.location || ""}
-            onChangeText={(text) => handleChange("location", text)}
+            value={formData.location || ''}
+            onChangeText={text => handleChange('location', text)}
           />
           <LabeledInput
             label="First Name"
             icon="user"
             placeholder="First Name"
-            value={formData.first_name || ""}
-            onChangeText={(text) => handleChange("first_name", text)}
+            value={formData.first_name || ''}
+            onChangeText={text => handleChange('first_name', text)}
           />
           <LabeledInput
             label="Last Name"
             icon="user"
             placeholder="Last Name"
-            value={formData.last_name || ""}
-            onChangeText={(text) => handleChange("last_name", text)}
+            value={formData.last_name || ''}
+            onChangeText={text => handleChange('last_name', text)}
           />
           <LabeledInput
             label="Username"
             icon="user"
             placeholder="Username"
-            value={formData.username || ""}
-            onChangeText={(text) => handleChange("username", text)}
+            value={formData.username || ''}
+            onChangeText={text => handleChange('username', text)}
           />
           <LabeledInput
             label="Email"
             icon="mail"
             placeholder="Email"
-            value={formData.email || ""}
-            onChangeText={(text) => handleChange("email", text)}
+            value={formData.email || ''}
+            onChangeText={text => handleChange('email', text)}
             keyboardType="email-address"
           />
 
@@ -239,23 +223,23 @@ export default function Preferences() {
             title="Log Out"
             onPress={handleSignOut}
             style={{
-              width: "auto",
+              width: 'auto',
               backgroundColor: colors.background,
               borderColor: colors.shadow,
             }}
             textStyle={{ color: colors.onSurface }}
-            icon={{ name: "log-out", position: "right" }}
+            icon={{ name: 'log-out', position: 'right' }}
             iconStyle={{ color: colors.onSurface }}
           />
           <Button
             title="Delete Account"
             onPress={() => handleDeleteAccount()}
-            style={{ width: "auto", backgroundColor: "red" }}
+            style={{ width: 'auto', backgroundColor: 'red' }}
             textStyle={{ color: colors.onSurface }}
-            icon={{ name: "remove", type: "fontawesome", position: "right" }}
+            icon={{ name: 'remove', type: 'fontawesome', position: 'right' }}
           />
         </View>
-        <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
+        <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
       </ScrollView>
       <EmptyFooter />
     </View>
@@ -267,26 +251,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 40,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   headerContent: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingRight: 20,
     gap: 10,
   },
   actionButtonsContainer: {
-    flexDirection: "column",
+    flexDirection: 'column',
     gap: 20,
   },
   profileHeader: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: 20,
   },
   profilePicture: {
@@ -297,19 +281,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   bio: {
     fontSize: 16,
-    fontStyle: "italic",
+    fontStyle: 'italic',
   },
   separator: {
     height: 1,
-    width: "80%",
+    width: '80%',
     marginVertical: 10,
   },
   form: {
-    width: "90%",
+    width: '90%',
     marginVertical: 20,
   },
   input: {
@@ -320,14 +304,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   userInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginVertical: 5,
   },
   userInfoLabel: {
     fontSize: 16,
     marginLeft: 10,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   userInfoText: {
     fontSize: 16,
@@ -336,46 +320,46 @@ const styles = StyleSheet.create({
   button: {
     borderWidth: 1,
     marginBottom: 10,
-    width: "80%",
+    width: '80%',
   },
   profilePictureContainer: {
-    position: "relative",
+    position: 'relative',
     width: 100,
     height: 100,
-    alignItems: "center",
-    alignSelf: "center",
+    alignItems: 'center',
+    alignSelf: 'center',
     marginBottom: 16,
-    overflow: "hidden",
+    overflow: 'hidden',
     borderRadius: 100,
   },
   image: {
     width: 100,
     height: 100,
-    position: "relative",
-    alignItems: "center",
-    alignSelf: "center",
+    position: 'relative',
+    alignItems: 'center',
+    alignSelf: 'center',
     marginBottom: 16,
-    overflow: "hidden",
+    overflow: 'hidden',
     borderRadius: 100,
   },
   uploadAvatarContainer: {
-    width: "100%",
+    width: '100%',
     fontSize: 16,
     // fontFamily: "OpenSauceOne-Regular",
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    color: "white",
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    color: 'white',
     padding: 5,
     borderBottomStartRadius: 100,
     borderBottomEndRadius: 100,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   uploadAvatarText: {
-    color: "white",
+    color: 'white',
     fontSize: 16,
     // fontFamily: "OpenSauceOne-Regular",
-    textAlign: "center",
+    textAlign: 'center',
   },
 });

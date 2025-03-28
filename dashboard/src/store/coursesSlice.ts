@@ -478,7 +478,7 @@ const createCoursesSlice = (
             const subFolder = module.folderObjectKey;
             if (!subFolder) {
               throw new Error(
-                "Module does not hve a valid UUID for folderObjectKey"
+                "Module does not have a valid UUID for folderObjectKey"
               );
             }
             const presignedURL = await state.getPresignedUrl(
@@ -488,7 +488,9 @@ const createCoursesSlice = (
               subFolder
             );
             if (!presignedURL) {
-              throw new Error("Failed to get a presigned URL for S3");
+              throw new Error(
+                "Failed to get a presigned URL for S3 for animation file"
+              );
             }
 
             const resp = await state.uploadToS3(
@@ -525,13 +527,13 @@ const createCoursesSlice = (
 
           if (isNewImage(s)) {
             if (!s.content.file) {
-              throw new Error("Lottie section missing animation file");
+              throw new Error(`Image section ${s.position} missing image file`);
             }
             const folderName = "modules";
             const subFolder = module.folderObjectKey;
             if (!subFolder) {
               throw new Error(
-                "Module does not hve a valid UUID for folderObjectKey"
+                "Module does not have a valid UUID for folderObjectKey"
               );
             }
             const presignedURL = await state.getPresignedUrl(
@@ -541,7 +543,9 @@ const createCoursesSlice = (
               subFolder
             );
             if (!presignedURL) {
-              throw new Error("Failed to get a presigned URL for S3");
+              throw new Error(
+                "Failed to get a presigned URL for S3 to upload image"
+              );
             }
 
             const resp = await state.uploadToS3(
@@ -551,7 +555,7 @@ const createCoursesSlice = (
             );
 
             if (resp?.status !== 200) {
-              throw new Error("failed to upload to S3");
+              throw new Error("failed to upload image to S3");
             }
 
             s.content.objectKey = presignedURL.key;
@@ -627,7 +631,7 @@ const createCoursesSlice = (
         set({
           isCourseLoading: false,
         });
-        throw new Error(`EPIC FAILURE: Creating module: ${error}`);
+        throw new Error(`Creating module: ${error}`);
       }
     },
 

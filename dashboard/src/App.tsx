@@ -7,6 +7,7 @@ import MainLayout from "./layouts/MainLayout";
 import ThemeProvider from "./theme/ThemeProvider";
 import { useStore } from "./store";
 import { App as AntApp, ConfigProvider, theme } from "antd";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const AppRoutes: React.FC = () => {
   const isDarkMode = useStore((state) => state.isDarkMode);
@@ -94,13 +95,17 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AntApp>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AntApp>
-    </ThemeProvider>
+    <React.StrictMode>
+      <ThemeProvider>
+        <AntApp>
+          <ErrorBoundary>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </ErrorBoundary>
+        </AntApp>
+      </ThemeProvider>
+    </React.StrictMode>
   );
 };
 

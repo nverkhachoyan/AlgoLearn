@@ -40,8 +40,12 @@ export interface CodeContent {
 
 export interface ImageContent {
   url: string;
+  width: number;
+  height: number;
   headline: string;
+  caption: string;
   footer: string;
+  altText: string;
   source: string;
   objectKey?: string;
   mediaExt?: string;

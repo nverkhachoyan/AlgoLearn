@@ -22,7 +22,7 @@ const ImageSection: React.FC<{
     } else {
       setImgUrl(content.url);
     }
-  }, [module, content.mediaExt, content.objectKey]);
+  }, [module, content.mediaExt, content.objectKey, content.url]);
 
   return (
     <div className="markdown-content">
@@ -30,8 +30,8 @@ const ImageSection: React.FC<{
       <Image
         src={imgUrl}
         alt={content.altText}
-        width={content.width}
-        height={content.height}
+        width={content.width > 0 ? content.width : 200}
+        height={content.height > 0 ? content.height : 200}
       />
       <Title>{content.caption}</Title>
     </div>

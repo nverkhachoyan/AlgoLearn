@@ -1,0 +1,62 @@
+/* CourseForm.css */
+
+/* More compact form styling */
+.compact-form .ant-form-item {
+  margin-bottom: 12px;
+}
+
+.compact-form .ant-form-item-label {
+  padding-bottom: 4px;
+}
+
+.compact-form .ant-input,
+.compact-form .ant-select-selector,
+.compact-form .ant-input-number,
+.compact-form .ant-picker {
+  padding: 4px 8px;
+}
+
+.compact-form .ant-form-item-explain {
+  font-size: 12px;
+  min-height: 20px;
+}
+
+.compact-form .ant-tag {
+  margin-bottom: 4px;
+  margin-right: 4px;
+  font-size: 12px;
+  padding: 0 7px;
+  height: 22px;
+  line-height: 20px;
+}
+
+.compact-form .ant-select-selection-overflow {
+  padding: 1px 2px;
+}
+
+.compact-form .ant-typography {
+  margin-bottom: 12px;
+}
+
+.compact-form .ant-form-item-extra {
+  font-size: 12px;
+  min-height: 18px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .course-form-card {
+    margin: 0 12px !important;
+    padding: 16px 12px !important;
+  }
+
+  .compact-form .ant-row {
+    margin-right: -8px !important;
+    margin-left: -8px !important;
+  }
+
+  .compact-form .ant-col {
+    padding-right: 8px !important;
+    padding-left: 8px !important;
+  }
+}

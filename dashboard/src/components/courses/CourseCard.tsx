@@ -4,6 +4,8 @@ import {
   EllipsisOutlined,
   SendOutlined,
   DeleteOutlined,
+  AlignLeftOutlined,
+  BookOutlined,
 } from "@ant-design/icons";
 import { Course } from "../../types/models";
 import { Link } from "react-router-dom";
@@ -68,16 +70,30 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       cover={
-        <img
-          alt={course.name}
-          src={imgUrl}
-          style={{
-            borderRadius: "6px 6px 0 0",
-            width: "100%",
-            height: "160px",
-            objectFit: "cover",
-          }}
-        />
+        imgUrl ? (
+          <img
+            alt={course.name}
+            src={imgUrl}
+            style={{
+              borderRadius: "6px 6px 0 0",
+              width: "100%",
+              height: "160px",
+              objectFit: "cover",
+            }}
+          />
+        ) : (
+          <BookOutlined
+            alt={course.name}
+            style={{
+              borderRadius: "6px 6px 0 0",
+              fontSize: "2rem",
+              width: "100%",
+              height: "160px",
+              objectFit: "cover",
+              alignContent: "center",
+            }}
+          />
+        )
       }
       actions={[
         <Link to={`/courses/${course.id}/edit`}>
@@ -90,7 +106,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
     >
       <Link to={`/courses/${course.id}`} style={{ color: "var(--text-color)" }}>
         <Card.Meta
-          avatar={<Avatar src={imgUrl} />}
+          avatar={<Avatar src={imgUrl ? imgUrl : <AlignLeftOutlined />} />}
           title={
             <div style={{ color: "var(--text-color)" }}>{course.name}</div>
           }

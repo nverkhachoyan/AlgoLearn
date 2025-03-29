@@ -13,7 +13,6 @@ import { router } from 'expo-router';
 import Button from '@/src/components/common/Button';
 import LottieView from 'lottie-react-native';
 import { useTheme } from 'react-native-paper';
-import { useAuth } from '@/src/features/auth/AuthContext';
 import { Colors } from '@/constants/Colors';
 
 // Breakpoints for responsive design
@@ -26,7 +25,6 @@ export default function Welcome() {
   const { colors }: { colors: Colors } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
   const animation = useRef(null);
-  const { isLoading } = useAuth();
   const { width } = useWindowDimensions();
 
   // Calculate responsive sizes based on screen width
@@ -83,7 +81,7 @@ export default function Welcome() {
     return () => setIsMounted(false);
   }, []);
 
-  if (isLoading || !isMounted) {
+  if (!isMounted) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />

@@ -16,7 +16,9 @@ SELECT
     is_email_verified,
     cpus,
     streak,
-    last_streak_date
+    last_streak_date,
+    folder_object_key,
+    img_key
 FROM users
 WHERE 1=1
     AND (sqlc.narg(role)::text IS NULL OR role = sqlc.narg(role)::user_role)
@@ -86,11 +88,10 @@ SET
     email = COALESCE(NULLIF(@email::text, ''), email),
     first_name = COALESCE(NULLIF(@first_name::text, ''), first_name),
     last_name = COALESCE(NULLIF(@last_name::text, ''), last_name),
-    profile_picture_url = COALESCE(NULLIF(@profile_picture_url::text, ''), profile_picture_url),
     bio = COALESCE(NULLIF(@bio::text, ''), bio),
     location = COALESCE(NULLIF(@location::text, ''), location),
-    streak = COALESCE(@streak::int, streak),
-    last_streak_date = COALESCE(@last_streak_date::timestamptz, last_streak_date),
+    folder_object_key = COALESCE(@folder_object_key::UUID, folder_object_key),
+    img_key = COALESCE(@img_key::UUID, img_key),
     updated_at = NOW()
 WHERE id = @id
 RETURNING *;
@@ -101,7 +102,6 @@ SELECT
     username, 
     profile_picture_url, 
     streak,
-    last_streak_date,
     cpus
 FROM users
 WHERE is_active = true

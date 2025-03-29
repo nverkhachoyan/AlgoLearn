@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type UserService interface {
@@ -210,6 +212,7 @@ func (r *userService) CreateUser(ctx context.Context, user *models.User) (*model
 	}
 
 	return &models.User{
+		ID:                newUser.ID,
 		Username:          newUser.Username,
 		Email:             newUser.Email,
 		Role:              string(newUser.Role),
@@ -257,11 +260,13 @@ func (r *userService) GetUserByID(ctx context.Context, id int32) (*models.User, 
 			Language: user.Language.String,
 			Timezone: user.Timezone.String,
 		},
-		Streak:         user.Streak,
-		CPUs:           int(user.Cpus),
-		LastStreakDate: user.LastStreakDate.Time,
-		CreatedAt:      user.CreatedAt,
-		UpdatedAt:      user.UpdatedAt,
+		Streak:          user.Streak,
+		CPUs:            int(user.Cpus),
+		LastStreakDate:  user.LastStreakDate.Time,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       user.UpdatedAt,
+		FolderObjectKey: user.FolderObjectKey,
+		ImgKey:          user.ImgKey,
 	}, nil
 }
 
@@ -322,18 +327,27 @@ func (r *userService) CheckEmailExists(ctx context.Context, email string) (bool,
 func (r *userService) UpdateUser(ctx context.Context, user *models.User) error {
 	log := r.log.WithBaseFields(logger.Service, "UpdateUser")
 
-	_, err := r.db.UpdateUser(ctx, gen.UpdateUserParams{
-		ID:                user.ID,
-		Username:          user.Username,
-		Email:             user.Email,
-		FirstName:         user.FirstName,
-		LastName:          user.LastName,
-		ProfilePictureUrl: user.ProfilePictureURL,
-		Bio:               user.Bio,
-		Location:          user.Location,
-		Streak:            user.Streak,
-		LastStreakDate:    user.LastStreakDate,
-	})
+	params := gen.UpdateUserParams{
+		ID:              user.ID,
+		Username:        user.Username,
+		Email:           user.Email,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		Bio:             user.Bio,
+		Location:        user.Location,
+		FolderObjectKey: uuid.Nil,
+		ImgKey:          uuid.Nil,
+	}
+
+	if user.FolderObjectKey.Valid {
+		params.FolderObjectKey = user.FolderObjectKey.UUID
+	}
+
+	if user.ImgKey.Valid {
+		params.ImgKey = user.ImgKey.UUID
+	}
+
+	_, err := r.db.UpdateUser(ctx, params)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("user not found")

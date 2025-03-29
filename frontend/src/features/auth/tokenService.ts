@@ -4,9 +4,45 @@ import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const IS_ONBOARDING = 'is_onboarding';
 
 class TokenService {
   private isWeb = Platform.OS === 'web';
+
+  async getIsOnboarding(): Promise<boolean> {
+    try {
+      if (this.isWeb) {
+        const hasOnboarded = await AsyncStorage.getItem(IS_ONBOARDING);
+        if (hasOnboarded === 'true') {
+          return true;
+        }
+        return false;
+      }
+
+      const hasOnboarded = await SecureStore.getItemAsync(IS_ONBOARDING);
+      if (hasOnboarded === 'true') {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('failed to get the value for HAS_ONBOARDED from secure storage', error);
+      return true;
+    }
+  }
+
+  async setIsOnboarding(hasOnboarded: boolean): Promise<void> {
+    try {
+      if (this.isWeb) {
+        await AsyncStorage.setItem(IS_ONBOARDING, String(hasOnboarded));
+        return;
+      }
+
+      await SecureStore.setItemAsync(IS_ONBOARDING, String(hasOnboarded));
+    } catch (error) {
+      console.error('failed to set the value for HAS_ONBOARDED to secure storage', error);
+      return;
+    }
+  }
 
   async getToken(): Promise<string | null> {
     try {
@@ -19,6 +55,8 @@ class TokenService {
 
       return token;
     } catch (error) {
+      console.error('failed to get the value for TOKEN_KEY from secure storage', error);
+
       return null;
     }
   }
@@ -32,7 +70,7 @@ class TokenService {
 
       await SecureStore.setItemAsync(TOKEN_KEY, token);
     } catch (error) {
-      console.error('failed to set token in secure store', error);
+      console.error('failed to set the value for TOKEN_KEY to secure storage', error);
     }
   }
 
@@ -47,6 +85,7 @@ class TokenService {
 
       return refreshToken;
     } catch (error) {
+      console.error('failed to get the value for REFRESH_TOKEN_KEY from secure storage', error);
       return null;
     }
   }
@@ -60,7 +99,7 @@ class TokenService {
 
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
     } catch (error) {
-      console.error('failed to set refresh token in secure store', error);
+      console.error('failed to set the value for REFRESH_TOKEN_KEY to secure storage', error);
     }
   }
 
@@ -80,7 +119,7 @@ class TokenService {
         ]);
       }
     } catch (error) {
-      throw error;
+      console.error('failed to refresh auth tokens from secure storage', error);
     }
   }
 }

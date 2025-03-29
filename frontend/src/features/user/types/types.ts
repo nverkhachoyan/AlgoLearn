@@ -1,3 +1,4 @@
+import { ImageFile } from '@/src/types/common';
 export interface User {
   id: number;
   username: string;
@@ -20,6 +21,12 @@ export interface User {
   streak?: number;
   lastStreakDate: string;
   achievements?: UserAchievement[];
+  folderObjectKey: string;
+  imgKey: string;
+  mediaExt: string;
+
+  // frontend types
+  imageFile: ImageFile;
 }
 
 export interface Streak {

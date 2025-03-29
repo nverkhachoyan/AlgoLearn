@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSegments, useRouter, useRootNavigation } from 'expo-router';
+import { useSegments, useRouter, useNavigationContainerRef } from 'expo-router';
 import { useAuth } from './AuthContext';
 import { Platform } from 'react-native';
 
@@ -8,12 +8,12 @@ const AUTH_ROUTE = '/(auth)' as const;
 
 export function AuthGuard() {
   const segments = useSegments();
-  const { isAuthenticated, isLoading } = useAuth();
-  const rootNavigation = useRootNavigation();
+  const { isAuthenticated, isLoading, isOnboarding } = useAuth();
+  const rootNavigation = useNavigationContainerRef();
   const router = useRouter();
 
   useEffect(() => {
-    if (!rootNavigation?.isReady || isLoading) return;
+    if (!rootNavigation?.isReady() || isLoading) return;
 
     const currentGroup = segments[0];
     const inAuthGroup = currentGroup === '(auth)';
@@ -25,22 +25,18 @@ export function AuthGuard() {
         // Use setTimeout to ensure navigation happens after the current render cycle
         setTimeout(() => {
           router.replace(path);
-          // Don't use window.location.href as it causes issues with the development server
         }, 0);
       } else {
         router.replace(path);
       }
     };
+    console.log('IS ONBOARDING?', isOnboarding);
 
-    if (isAuthenticated) {
-      // Redirect to protected area if user is in auth/public pages
+    if (!isAuthenticated) {
+      navigateToPath(AUTH_ROUTE);
+    } else if (!isOnboarding) {
       if (inAuthGroup || inPublicGroup) {
         navigateToPath(PROTECTED_ROUTE);
-      }
-    } else {
-      // Redirect to auth if user tries to access protected pages
-      if (inProtectedGroup) {
-        navigateToPath(AUTH_ROUTE);
       }
     }
   }, [isLoading, isAuthenticated, segments, rootNavigation?.isReady]);

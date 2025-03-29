@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import { tokenService } from './tokenService';
-import { getBaseURL } from '.';
+import { getBaseURL } from './utils';
 import { QueryClient } from '@tanstack/react-query';
 
 interface RefreshTokenResponse {

@@ -1,32 +1,23 @@
-import React from "react";
-import {
-  StyleSheet,
-  Pressable,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
-import { Text, useTheme } from "react-native-paper";
-import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+import React from 'react';
+import { StyleSheet, Pressable, TouchableOpacity, ScrollView } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import Button from '@/src/components/common/Button';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 
 export default function PushNotifications() {
   const { colors } = useTheme();
 
   const handleNotNow = () => {
-    router.navigate("/(auth)/sign-up/courses");
+    router.navigate('/(auth)/onboarding/courses');
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
         <Feather name="arrow-left" size={24} color={colors.onSurface} />
       </Pressable>
-      <Text style={[styles.title, { color: colors.onSurface }]}>
-        Turn on notifications
-      </Text>
+      <Text style={[styles.title, { color: colors.onSurface }]}>Turn on notifications</Text>
 
       <Text style={[styles.description, { color: colors.onSurface }]}>
         Get daily reminders to learn programming with our lessons.
@@ -34,7 +25,7 @@ export default function PushNotifications() {
       <Button
         title="Turn on notifications"
         onPress={() => {
-          console.log("turn on notifications");
+          console.log('turn on notifications');
         }}
         style={{
           backgroundColor: colors.background,
@@ -42,9 +33,7 @@ export default function PushNotifications() {
         textStyle={{ color: colors.onSurface }}
       />
       <TouchableOpacity onPress={handleNotNow}>
-        <Text style={[styles.dismissButton, { color: colors.secondary }]}>
-          Not now
-        </Text>
+        <Text style={[styles.dismissButton, { color: colors.secondary }]}>Not now</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -57,9 +46,9 @@ const styles = StyleSheet.create({
     paddingRight: 25,
   },
   goBackButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "absolute",
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
     top: 20,
     left: 0,
     zIndex: 1,
@@ -74,14 +63,14 @@ const styles = StyleSheet.create({
   },
   middleContent: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     marginTop: 30,
     marginBottom: 30,
   },
   title: {
     fontSize: 30,
-    fontWeight: "bold",
-    textAlign: "left",
+    fontWeight: 'bold',
+    textAlign: 'left',
     marginTop: 70,
     marginBottom: 30,
   },
@@ -93,9 +82,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   line: {
     height: 1,
@@ -110,7 +99,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   dismissButton: {
-    alignSelf: "center",
+    alignSelf: 'center',
     marginVertical: 20,
     fontSize: 14,
   },

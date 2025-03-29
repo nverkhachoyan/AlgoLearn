@@ -2,30 +2,34 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type User struct {
 	ID                int32             `json:"id,omitempty"`
-	CreatedAt         time.Time         `json:"createdAt,omitempty"`
-	UpdatedAt         time.Time         `json:"updatedAt,omitempty"`
-	Username          string            `json:"username,omitempty"`
-	Email             string            `json:"email,omitempty"`
-	OAuthID           string            `json:"oauthId,omitempty"`
-	Role              string            `json:"role,omitempty"`
+	CreatedAt         time.Time         `json:"createdAt"`
+	UpdatedAt         time.Time         `json:"updatedAt"`
+	Username          string            `json:"username"`
+	Email             string            `json:"email"`
+	OAuthID           string            `json:"oauthId"`
+	Role              string            `json:"role"`
 	PasswordHash      string            `json:"-"`
-	FirstName         string            `json:"firstName,omitempty"`
-	LastName          string            `json:"lastName,omitempty"`
-	ProfilePictureURL string            `json:"profilePictureUrl,omitempty"`
-	LastLoginAt       time.Time         `json:"lastLoginAt,omitempty"`
-	IsActive          bool              `json:"isActive,omitempty"`
-	IsEmailVerified   bool              `json:"isEmailVerified,omitempty"`
-	Bio               string            `json:"bio,omitempty"`
-	Location          string            `json:"location,omitempty"`
-	CPUs              int               `json:"cpus,omitempty"`
-	Preferences       Preferences       `json:"preferences,omitempty"`
+	FirstName         string            `json:"firstName"`
+	LastName          string            `json:"lastName"`
+	ProfilePictureURL string            `json:"profilePictureUrl"`
+	LastLoginAt       time.Time         `json:"lastLoginAt"`
+	IsActive          bool              `json:"isActive"`
+	IsEmailVerified   bool              `json:"isEmailVerified"`
+	Bio               string            `json:"bio"`
+	Location          string            `json:"location"`
+	CPUs              int               `json:"cpus"`
+	Preferences       Preferences       `json:"preferences"`
 	Streak            int32             `json:"streak"`
-	LastStreakDate    time.Time         `json:"lastStreakDate,omitempty"`
-	Achievements      []UserAchievement `json:"achievements,omitempty"`
+	LastStreakDate    time.Time         `json:"lastStreakDate"`
+	Achievements      []UserAchievement `json:"achievements"`
+	FolderObjectKey   uuid.NullUUID     `json:"folderObjectKey"`
+	ImgKey            uuid.NullUUID     `json:"imgKey"`
 }
 
 type Preferences struct {

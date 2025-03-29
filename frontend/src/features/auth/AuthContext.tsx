@@ -1,26 +1,25 @@
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { tokenService } from './tokenService';
-import type { ApiResponse, AuthResponse, EmailCheckResponse } from '.';
+import type { ApiResponse, AuthResponse, EmailCheckResponse } from './utils';
 import { AxiosError, AxiosResponse } from 'axios';
-import { useRouter, useNavigationContainerRef } from 'expo-router';
+import { useNavigationContainerRef } from 'expo-router';
 
-import { Platform } from 'react-native';
-import api from '.';
+import { api, ApiErrorResponse } from './utils';
 import { View, ActivityIndicator } from 'react-native';
 import { AuthenticatedFetcher } from './authenticatedFetcher';
-
-const PROTECTED_ROUTE = '/(protected)/(tabs)' as const;
-const AUTH_ROUTE = '/(auth)' as const;
+import useToast from '@/src/hooks/useToast';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  isOnboarding: boolean;
   token: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (username: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   checkEmail: (email: string) => Promise<AxiosResponse<ApiResponse<EmailCheckResponse>>>;
+  setHasOnboarded: (hasOnboarded: boolean) => Promise<void>;
   authFetcher: AuthenticatedFetcher;
 }
 
@@ -32,57 +31,20 @@ interface AuthProviderProps {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children, onAuthSuccess, onSignOut }: AuthProviderProps) {
+export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const rootNavigation = useNavigationContainerRef();
   const [authFetcher, setAuthFetcher] = useState<AuthenticatedFetcher | null>(null);
+  const { showToast } = useToast();
 
-  const defaultOnAuthSuccess = useCallback(() => {
-    if (!rootNavigation?.isReady()) return;
-
-    if (Platform.OS === 'web') {
-      setTimeout(() => {
-        router.replace(PROTECTED_ROUTE);
-      }, 0);
-    } else {
-      router.replace(PROTECTED_ROUTE);
-    }
-  }, [router, rootNavigation?.isReady()]);
-
-  const defaultOnSignOut = useCallback(() => {
-    if (!rootNavigation?.isReady()) return;
-    router.replace(AUTH_ROUTE);
-  }, [router, rootNavigation?.isReady()]);
-
-  const effectiveOnAuthSuccess = onAuthSuccess || defaultOnAuthSuccess;
-  const effectiveOnSignOut = onSignOut || defaultOnSignOut;
-
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = async () => {
     try {
       await tokenService.clearTokens();
-
-      queryClient.removeQueries({ queryKey: ['user'] });
-      queryClient.removeQueries({ queryKey: ['auth'] });
       queryClient.setQueryData(['auth', 'token'], null);
-
-      effectiveOnSignOut();
     } catch (error) {
-      router.replace(AUTH_ROUTE);
+      throw error;
     }
-  }, [queryClient, router, effectiveOnSignOut]);
-
-  const handleAuthError = useCallback(
-    async (error?: AxiosError) => {
-      console.debug('[AuthContext] Handling auth error...', error?.response?.data);
-      const errorCode = (error?.response?.data as any)?.errorCode;
-
-      if (errorCode === 'ACCOUNT_NOT_FOUND' || errorCode === 'UNAUTHORIZED') {
-        await handleSignOut();
-      }
-    },
-    [handleSignOut]
-  );
+  };
 
   const { data: token = null, isLoading } = useQuery({
     queryKey: ['auth', 'token'],
@@ -90,6 +52,17 @@ export function AuthProvider({ children, onAuthSuccess, onSignOut }: AuthProvide
       const token = await tokenService.getToken();
       console.debug('[AuthContext] Token from query:', token ? 'exists' : 'null');
       return token;
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 5,
+  });
+
+  const { data: isOnboarding = false } = useQuery({
+    queryKey: ['isOnboarding'],
+    queryFn: async () => {
+      const isOnboarding = await tokenService.getIsOnboarding();
+      return isOnboarding;
     },
     staleTime: Infinity,
     gcTime: Infinity,
@@ -128,31 +101,35 @@ export function AuthProvider({ children, onAuthSuccess, onSignOut }: AuthProvide
     },
   });
 
+  const setIsOnboarding = useMutation({
+    mutationFn: async ({ isUserOnboarding }: { isUserOnboarding: boolean }) => {
+      await tokenService.setIsOnboarding(isUserOnboarding);
+    },
+  });
+
   const signInMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
       const response = await api.post('/users/sign-in', { email, password });
-      if (!response.data.success || !response.data.payload) {
-        throw new Error(response.data.message || 'Failed to sign in');
+
+      if (response.data.success) {
+        return response.data.payload;
       }
-      return response.data.payload;
     },
     onSuccess: async (payload: AuthResponse) => {
-      const { token, refreshToken } = payload;
-      await tokenService.setToken(token);
-      if (typeof refreshToken === 'string') {
-        await tokenService.setRefreshToken(refreshToken);
+      await tokenService.setToken(payload.token);
+      await tokenService.setRefreshToken(payload.refreshToken);
+      queryClient.setQueryData(['auth', 'token'], payload.token);
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+    },
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const errorResponse = error.response;
+      const data = errorResponse?.data;
+      if (data?.errorCode === 'INVALID_CREDENTIALS') {
+        showToast('Invalid email or password');
+        return;
       }
 
-      // Update auth state
-      queryClient.setQueryData(['auth', 'token'], token);
-
-      // Invalidate user query to force a fresh fetch
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-
-      effectiveOnAuthSuccess();
-    },
-    onError: (error: AxiosError) => {
-      handleAuthError(error);
+      showToast(data?.message || 'An unexpected error occurred');
     },
   });
 
@@ -167,28 +144,26 @@ export function AuthProvider({ children, onAuthSuccess, onSignOut }: AuthProvide
       password: string;
     }) => {
       const response = await api.post('/users/sign-up', { username, email, password });
-      if (!response.data.success || !response.data.payload) {
-        throw new Error(response.data.message || 'Failed to sign up');
+      if (response.data.success) {
+        return response.data.payload;
       }
-      return response.data.payload;
     },
-    onSuccess: async (payload: AuthResponse) => {
-      const { token, refreshToken } = payload;
-      await tokenService.setToken(token);
-      if (typeof refreshToken === 'string') {
-        await tokenService.setRefreshToken(refreshToken);
-      }
-
-      // Update auth state
-      queryClient.setQueryData(['auth', 'token'], token);
-
-      // Invalidate user query to force a fresh fetch
+    onSuccess: async payload => {
+      await setIsOnboarding.mutateAsync({ isUserOnboarding: true });
+      await tokenService.setToken(payload.token);
+      await tokenService.setRefreshToken(payload.refreshToken);
+      queryClient.setQueryData(['auth', 'token'], payload.token);
       queryClient.invalidateQueries({ queryKey: ['user'] });
-
-      effectiveOnAuthSuccess();
     },
-    onError: (error: AxiosError) => {
-      handleAuthError(error);
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const errorResponse = error.response;
+      const data = errorResponse?.data;
+      if (data?.errorCode === 'ACCOUNT_EXISTS') {
+        showToast('An account with this email already exists');
+        return;
+      }
+
+      showToast(data?.message || 'An unexpected error occurred');
     },
   });
 
@@ -201,24 +176,32 @@ export function AuthProvider({ children, onAuthSuccess, onSignOut }: AuthProvide
     );
   }
 
-  const value = {
-    isAuthenticated: !!token,
-    isLoading,
-    token,
-    signIn: async (email: string, password: string) => {
-      await signInMutation.mutateAsync({ email, password });
-    },
-    signUp: async (username: string, email: string, password: string) => {
-      await signUpMutation.mutateAsync({ username, email, password });
-    },
-    signOut: handleSignOut,
-    checkEmail: async (email: string) => {
-      return checkEmailMutation.mutateAsync(email);
-    },
-    authFetcher,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: !!token,
+        isLoading,
+        token,
+        isOnboarding,
+        setHasOnboarded: async (isUserOnboarding: boolean) => {
+          await setIsOnboarding.mutateAsync({ isUserOnboarding });
+        },
+        signIn: async (email: string, password: string) => {
+          await signInMutation.mutateAsync({ email, password });
+        },
+        signUp: async (username: string, email: string, password: string) => {
+          await signUpMutation.mutateAsync({ username, email, password });
+        },
+        signOut: handleSignOut,
+        checkEmail: async (email: string) => {
+          return await checkEmailMutation.mutateAsync(email);
+        },
+        authFetcher,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

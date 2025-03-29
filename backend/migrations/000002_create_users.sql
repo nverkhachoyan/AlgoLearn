@@ -19,8 +19,9 @@ CREATE TABLE users (
     location VARCHAR(255),
     cpus INTEGER NOT NULL DEFAULT 1,
     streak INTEGER NOT NULL DEFAULT 0,
-    last_streak_date TIMESTAMPTZ DEFAULT NULL
-
+    last_streak_date TIMESTAMPTZ DEFAULT NULL,
+    folder_object_key UUID,
+    img_key UUID
 );
 
 CREATE TABLE user_preferences (

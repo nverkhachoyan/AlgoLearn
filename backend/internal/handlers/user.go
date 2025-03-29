@@ -183,10 +183,26 @@ func (h *userHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
+	refreshToken, err := security.GenerateRefreshToken(newUser.ID)
+	if err != nil {
+		log.WithError(err).Error("failed to generate JWT")
+		c.JSON(http.StatusInternalServerError,
+			models.Response{
+				Success:   false,
+				ErrorCode: httperr.InternalError,
+				Message:   "failed to generate refresh token",
+			})
+		return
+	}
+
 	response := models.Response{
 		Success: true,
 		Message: "user created successfully",
-		Payload: map[string]any{"token": token, "user": newUser},
+		Payload: models.AuthResponse{
+			Token:        token,
+			RefreshToken: refreshToken,
+			User:         *newUser,
+		},
 	}
 
 	c.JSON(http.StatusCreated, response)

@@ -7,16 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func parseTime(timeStr string) *time.Time {
-	if timeStr == "" {
-		return nil
-	}
-	if t, err := time.Parse(time.RFC3339, timeStr); err == nil {
-		return &t
-	}
-	return nil
-}
-
 func SafeInt32(ptr *int) int32 {
 	if ptr == nil {
 		return 0 // or whatever default value makes sense

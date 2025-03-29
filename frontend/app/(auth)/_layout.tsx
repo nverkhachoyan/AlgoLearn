@@ -1,24 +1,31 @@
-import { View } from "react-native";
-import { useTheme } from "react-native-paper";
-import { Stack } from "expo-router";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { ActivityIndicator } from "react-native";
-import { Colors } from "@/constants/Colors";
+import { View } from 'react-native';
+import { useTheme } from 'react-native-paper';
+import { Stack } from 'expo-router';
+import { Colors } from '@/constants/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 export default function AuthLayout() {
-  const { isAuthenticated, isLoading, token, user, isUserPending } = useUser();
   const { colors }: { colors: Colors } = useTheme();
 
-  if (isLoading || (token && isUserPending)) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (isAuthenticated) {
-    return null;
-  }
-
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <SafeAreaView
+        edges={['top']}
+        style={{
+          flex: 0,
+          backgroundColor: colors.background,
+        }}
+      />
+      <SafeAreaView edges={['left', 'right']} style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false }} />
+      </SafeAreaView>
+      <SafeAreaView
+        edges={['bottom']}
+        style={{
+          flex: 0,
+          backgroundColor: colors.background,
+        }}
+      />
+    </View>
+  );
 }

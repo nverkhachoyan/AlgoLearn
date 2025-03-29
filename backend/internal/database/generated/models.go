@@ -387,6 +387,8 @@ type User struct {
 	Cpus              int32          `json:"cpus"`
 	Streak            int32          `json:"streak"`
 	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
+	FolderObjectKey   uuid.NullUUID  `json:"folderObjectKey"`
+	ImgKey            uuid.NullUUID  `json:"imgKey"`
 }
 
 type UserAchievement struct {

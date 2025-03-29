@@ -14,6 +14,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { EmptyFooter } from '@/src/components/common/Footer';
 import { useAuth } from '@/src/features/auth/AuthContext';
+import { useRouter } from 'expo-router';
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -36,6 +37,7 @@ export default function Preferences() {
   const { showToast } = useToast();
   const [image, setImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<ImageFile>(null);
+  const router = useRouter();
 
   const [formData, setFormData] = useState<UpdateUserData>({
     username: user?.username,
@@ -105,15 +107,15 @@ export default function Preferences() {
       ...formData,
       ...(imageFile && { avatar: imageFile }),
     };
-
-    updateUser.mutate(userData, {
-      onSuccess: () => {
-        showToast('Account updated successfully');
-      },
-      onError: () => {
-        showToast(`Error while updating user: ${updateUser.error?.message}`);
-      },
-    });
+    showToast('Not implemented yet.');
+    // updateUser.mutate(userData, {
+    //   onSuccess: () => {
+    //     showToast('Account updated successfully');
+    //   },
+    //   onError: () => {
+    //     showToast(`Error while updating user: ${updateUser.error?.message}`);
+    //   },
+    // });
   };
 
   return (

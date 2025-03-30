@@ -66,6 +66,9 @@
     "updates": {
       "url": "https://u.expo.dev/8973f7e9-27c5-43e1-aa75-aff16ec756c8"
     },
-    "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"]
-  }
+    "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"],
+    "sdkVersion": "52.0.0",
+    "entryPoint": ".vscode/exponentIndex.js"
+  },
+  "name": "algolearn"
 }

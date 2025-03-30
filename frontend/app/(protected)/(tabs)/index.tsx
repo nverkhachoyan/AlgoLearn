@@ -5,15 +5,18 @@ import { useUser } from '@/src/features/user/hooks/useUser';
 import useToast from '@/src/hooks/useToast';
 import { useCourses } from '@/src/features/course/hooks/useCourses';
 import { StickyHeader } from '@/src/components/common/StickyHeader';
-import { router, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTheme } from 'react-native-paper';
 import { useAuth } from '@/src/features/auth/AuthContext';
-import ErrorBoundary from '@/src/components/ErrorBoundary';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors } from '@/constants/Colors';
 
 export default function Home() {
   const { user, error: userError } = useUser();
+  const { colors, dark }: { colors: Colors; dark: boolean } = useTheme();
   const { isAuthenticated, token } = useAuth();
-  const { colors } = useTheme();
+
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -22,29 +25,41 @@ export default function Home() {
     isAuthenticated: isAuthenticated,
   });
 
+  const headerGradientColors = dark
+    ? (['#24272E', '#2D3347', '#363F5C'] as readonly [string, string, string])
+    : (['#E6EAF5', '#C7D3E8', '#A8BDDB'] as readonly [string, string, string]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StickyHeader
-        cpus={user?.cpus ?? 0}
-        streak={user?.streak || 0}
-        userAvatar={user?.profilePictureURL ?? ''}
-        onAvatarPress={() => router.push('/(protected)/(profile)')}
+      <LinearGradient
+        colors={headerGradientColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
       />
-
-      <ScrollView contentContainerStyle={[styles.scrollContent]}>
-        <CourseSection
-          title="Your Courses"
-          courses={courses}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          onLoadMore={() => {
-            if (hasNextPage && !isFetchingNextPage) {
-              fetchNextPage();
-            }
-          }}
-          hasProgress={true}
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <StickyHeader
+          cpus={user?.cpus ?? 0}
+          streak={user?.streak || 0}
+          onAvatarPress={() => router.push('/(protected)/(profile)')}
+          gradientColors={headerGradientColors}
         />
-      </ScrollView>
+
+        <ScrollView contentContainerStyle={[styles.scrollContent]}>
+          <CourseSection
+            title="Your Courses"
+            courses={courses}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
+              }
+            }}
+            hasProgress={true}
+          />
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -95,5 +110,13 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#666',
     fontStyle: 'italic',
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 70, // Increase height to cover enough space for the header + title content
+    zIndex: 0,
   },
 });

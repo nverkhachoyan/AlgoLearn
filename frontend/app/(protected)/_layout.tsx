@@ -1,32 +1,57 @@
-import { Stack } from "expo-router";
-import { View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "react-native-paper";
+import { useState, useEffect } from 'react';
+import { Stack } from 'expo-router';
+import { View, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'react-native-paper';
+import { Tabs, useSegments } from 'expo-router';
+import { AppTheme, TabGradients, TabName } from '@/constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProtectedLayout() {
-  const { colors } = useTheme();
+  const theme = useTheme<AppTheme>();
+  const segments = useSegments();
+  const [activeTab, setActiveTab] = useState<TabName>('index');
+
+  useEffect(() => {
+    if (segments.length > 0) {
+      const lastSegment = segments[segments.length - 1];
+      const tabMapping: Record<string, TabName> = {
+        '(tabs)': 'index',
+        explore: 'explore',
+        challenges: 'challenges',
+        leaderboard: 'leaderboard',
+        feed: 'feed',
+      };
+
+      if (lastSegment in tabMapping) {
+        setActiveTab(tabMapping[lastSegment as keyof typeof tabMapping]);
+      }
+    }
+  }, [segments]);
+
+  const getCurrentGradientColors = () => {
+    return theme.dark ? TabGradients[activeTab].dark : TabGradients[activeTab].light;
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      <SafeAreaView
-        edges={["top"]}
-        style={{
-          flex: 0,
-          backgroundColor: colors.surface,
-        }}
-      />
-      <SafeAreaView edges={["left", "right"]} style={{ flex: 1 }}>
-        <View style={{ flex: 1, backgroundColor: "#333333" }}>
+      <SafeAreaView edges={['left', 'right']} style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: '#333333' }}>
           <Stack screenOptions={{ headerShown: false }} />
         </View>
       </SafeAreaView>
-      <SafeAreaView
-        edges={["bottom"]}
-        style={{
-          flex: 0,
-          backgroundColor: colors.surface,
-        }}
-      />
+      <LinearGradient
+        colors={getCurrentGradientColors()}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <SafeAreaView
+          edges={['bottom']}
+          style={{
+            flex: 0,
+          }}
+        />
+      </LinearGradient>
     </View>
   );
 }

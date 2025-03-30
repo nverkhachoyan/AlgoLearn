@@ -8,7 +8,7 @@ type ConditionalRendererProps = {
   renderFalse: RenderFunction | ReactNode;
 };
 
-const ConditionalRenderer = ({ condition, renderTrue, renderFalse }: ConditionalRendererProps) => {
+const Conditional = ({ condition, renderTrue, renderFalse }: ConditionalRendererProps) => {
   const renderContent = (content: RenderFunction | ReactNode) => {
     return typeof content === 'function' ? content() : content;
   };
@@ -43,7 +43,7 @@ export const StateRenderer = <T extends StateKey>({
   return fallback ? <>{renderContent(fallback)}</> : null;
 };
 
-ConditionalRenderer.displayName = 'ConditionalRenderer';
+Conditional.displayName = 'ConditionalRenderer';
 StateRenderer.displayName = 'StateRenderer';
 
-export default ConditionalRenderer;
+export default Conditional;

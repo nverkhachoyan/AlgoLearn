@@ -33,11 +33,11 @@ class TokenService {
   async setIsOnboarding(hasOnboarded: boolean): Promise<void> {
     try {
       if (this.isWeb) {
-        await AsyncStorage.setItem(IS_ONBOARDING, String(hasOnboarded));
+        await AsyncStorage.setItem(IS_ONBOARDING, hasOnboarded ? 'true' : 'false');
         return;
       }
 
-      await SecureStore.setItemAsync(IS_ONBOARDING, String(hasOnboarded));
+      await SecureStore.setItemAsync(IS_ONBOARDING, hasOnboarded ? 'true' : 'false');
     } catch (error) {
       console.error('failed to set the value for HAS_ONBOARDED to secure storage', error);
       return;

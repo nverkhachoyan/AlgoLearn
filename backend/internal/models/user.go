@@ -30,6 +30,7 @@ type User struct {
 	Achievements      []UserAchievement `json:"achievements"`
 	FolderObjectKey   uuid.NullUUID     `json:"folderObjectKey"`
 	ImgKey            uuid.NullUUID     `json:"imgKey"`
+	MediaExt          string            `json:"mediaExt"`
 }
 
 type Preferences struct {

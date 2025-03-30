@@ -18,7 +18,6 @@ export function AuthGuard() {
     const currentGroup = segments[0];
     const inAuthGroup = currentGroup === '(auth)';
     const inPublicGroup = currentGroup === '(public)';
-    const inProtectedGroup = currentGroup === '(protected)';
 
     const navigateToPath = (path: typeof PROTECTED_ROUTE | typeof AUTH_ROUTE) => {
       if (Platform.OS === 'web') {
@@ -30,7 +29,6 @@ export function AuthGuard() {
         router.replace(path);
       }
     };
-    console.log('IS ONBOARDING?', isOnboarding);
 
     if (!isAuthenticated) {
       navigateToPath(AUTH_ROUTE);

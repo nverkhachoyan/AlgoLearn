@@ -265,8 +265,9 @@ func (r *userService) GetUserByID(ctx context.Context, id int32) (*models.User, 
 		LastStreakDate:  user.LastStreakDate.Time,
 		CreatedAt:       user.CreatedAt,
 		UpdatedAt:       user.UpdatedAt,
-		FolderObjectKey: user.FolderObjectKey,
-		ImgKey:          user.ImgKey,
+		FolderObjectKey: uuid.NullUUID{UUID: user.FolderObjectKey.UUID, Valid: user.FolderObjectKey.Valid},
+		ImgKey:          uuid.NullUUID{UUID: user.ImgKey.UUID, Valid: user.ImgKey.Valid},
+		MediaExt:        user.MediaExt.String,
 	}, nil
 }
 
@@ -301,11 +302,14 @@ func (r *userService) GetUserByEmail(ctx context.Context, email string) (*models
 			Language: user.Language.String,
 			Timezone: user.Timezone.String,
 		},
-		CPUs:           int(user.Cpus),
-		Streak:         user.Streak,
-		LastStreakDate: user.LastStreakDate.Time,
-		CreatedAt:      user.CreatedAt,
-		UpdatedAt:      user.UpdatedAt,
+		CPUs:            int(user.Cpus),
+		Streak:          user.Streak,
+		LastStreakDate:  user.LastStreakDate.Time,
+		CreatedAt:       user.CreatedAt,
+		UpdatedAt:       user.UpdatedAt,
+		FolderObjectKey: uuid.NullUUID{UUID: user.FolderObjectKey.UUID, Valid: user.FolderObjectKey.Valid},
+		ImgKey:          uuid.NullUUID{UUID: user.ImgKey.UUID, Valid: user.ImgKey.Valid},
+		MediaExt:        user.MediaExt.String,
 	}, nil
 }
 
@@ -331,20 +335,21 @@ func (r *userService) UpdateUser(ctx context.Context, user *models.User) error {
 		ID:              user.ID,
 		Username:        user.Username,
 		Email:           user.Email,
-		FirstName:       user.FirstName,
 		LastName:        user.LastName,
+		FirstName:       user.FirstName,
 		Bio:             user.Bio,
 		Location:        user.Location,
-		FolderObjectKey: uuid.Nil,
-		ImgKey:          uuid.Nil,
+		FolderObjectKey: uuid.NullUUID{Valid: false},
+		ImgKey:          uuid.NullUUID{Valid: false},
+		MediaExt:        user.MediaExt,
 	}
 
 	if user.FolderObjectKey.Valid {
-		params.FolderObjectKey = user.FolderObjectKey.UUID
+		params.FolderObjectKey = user.FolderObjectKey
 	}
 
 	if user.ImgKey.Valid {
-		params.ImgKey = user.ImgKey.UUID
+		params.ImgKey = user.ImgKey
 	}
 
 	_, err := r.db.UpdateUser(ctx, params)

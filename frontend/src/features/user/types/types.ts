@@ -11,13 +11,13 @@ export interface User {
   firstName?: string;
   lastName?: string;
   profilePictureUrl?: string;
-  lastLoginAt?: string; // ISO date string
+  lastLoginAt: string; // ISO date string
   isActive: boolean;
   isEmailVerified: boolean;
   bio?: string;
   location?: string;
   cpus: number;
-  preferences?: string; // JSON string
+  preferences?: UserPreferences;
   streak?: number;
   lastStreakDate: string;
   achievements?: UserAchievement[];
@@ -27,6 +27,12 @@ export interface User {
 
   // frontend types
   imageFile: ImageFile;
+}
+
+export interface UserPreferences {
+  theme: string;
+  lang: string;
+  timezone: string;
 }
 
 export interface Streak {

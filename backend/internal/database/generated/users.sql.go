@@ -38,7 +38,7 @@ VALUES (
         $8,
         $9,
         $10
-    ) RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key
+    ) RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, media_ext
 `
 
 type CreateUserParams struct {
@@ -90,6 +90,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LastStreakDate,
 		&i.FolderObjectKey,
 		&i.ImgKey,
+		&i.MediaExt,
 	)
 	return i, err
 }
@@ -165,7 +166,7 @@ func (q *Queries) GetTopUsersByStreak(ctx context.Context, limit int32) ([]GetTo
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, user_id, theme, language, timezone
+SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, media_ext, user_id, theme, language, timezone
 FROM users
     LEFT JOIN user_preferences ON users.id = user_preferences.user_id
 WHERE
@@ -195,6 +196,7 @@ type GetUserByEmailRow struct {
 	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 	FolderObjectKey   uuid.NullUUID  `json:"folderObjectKey"`
 	ImgKey            uuid.NullUUID  `json:"imgKey"`
+	MediaExt          sql.NullString `json:"mediaExt"`
 	UserID            sql.NullInt32  `json:"userId"`
 	Theme             sql.NullString `json:"theme"`
 	Language          sql.NullString `json:"language"`
@@ -226,6 +228,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.LastStreakDate,
 		&i.FolderObjectKey,
 		&i.ImgKey,
+		&i.MediaExt,
 		&i.UserID,
 		&i.Theme,
 		&i.Language,
@@ -235,7 +238,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, user_id, theme, language, timezone
+SELECT id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, media_ext, user_id, theme, language, timezone
 FROM users
     LEFT JOIN user_preferences ON users.id = user_preferences.user_id
 WHERE
@@ -265,6 +268,7 @@ type GetUserByIDRow struct {
 	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 	FolderObjectKey   uuid.NullUUID  `json:"folderObjectKey"`
 	ImgKey            uuid.NullUUID  `json:"imgKey"`
+	MediaExt          sql.NullString `json:"mediaExt"`
 	UserID            sql.NullInt32  `json:"userId"`
 	Theme             sql.NullString `json:"theme"`
 	Language          sql.NullString `json:"language"`
@@ -296,6 +300,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (GetUserByIDRow, er
 		&i.LastStreakDate,
 		&i.FolderObjectKey,
 		&i.ImgKey,
+		&i.MediaExt,
 		&i.UserID,
 		&i.Theme,
 		&i.Language,
@@ -565,23 +570,25 @@ SET
     last_name = COALESCE(NULLIF($4::text, ''), last_name),
     bio = COALESCE(NULLIF($5::text, ''), bio),
     location = COALESCE(NULLIF($6::text, ''), location),
-    folder_object_key = COALESCE($7::UUID, folder_object_key),
-    img_key = COALESCE($8::UUID, img_key),
+    folder_object_key = COALESCE($7, folder_object_key),
+    img_key = COALESCE($8, img_key),
+    media_ext = COALESCE(NULLIF($9::text, ''), media_ext),
     updated_at = NOW()
-WHERE id = $9
-RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key
+WHERE id = $10
+RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, media_ext
 `
 
 type UpdateUserParams struct {
-	Username        string    `json:"username"`
-	Email           string    `json:"email"`
-	FirstName       string    `json:"firstName"`
-	LastName        string    `json:"lastName"`
-	Bio             string    `json:"bio"`
-	Location        string    `json:"location"`
-	FolderObjectKey uuid.UUID `json:"folderObjectKey"`
-	ImgKey          uuid.UUID `json:"imgKey"`
-	ID              int32     `json:"id"`
+	Username        string        `json:"username"`
+	Email           string        `json:"email"`
+	FirstName       string        `json:"firstName"`
+	LastName        string        `json:"lastName"`
+	Bio             string        `json:"bio"`
+	Location        string        `json:"location"`
+	FolderObjectKey uuid.NullUUID `json:"folderObjectKey"`
+	ImgKey          uuid.NullUUID `json:"imgKey"`
+	MediaExt        string        `json:"mediaExt"`
+	ID              int32         `json:"id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
@@ -594,6 +601,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Location,
 		arg.FolderObjectKey,
 		arg.ImgKey,
+		arg.MediaExt,
 		arg.ID,
 	)
 	var i User
@@ -619,6 +627,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.LastStreakDate,
 		&i.FolderObjectKey,
 		&i.ImgKey,
+		&i.MediaExt,
 	)
 	return i, err
 }
@@ -663,7 +672,7 @@ SET
     streak = $1::int,
     last_streak_date = $2::timestamptz
 WHERE id = $3
-RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key
+RETURNING id, created_at, updated_at, username, email, oauth_id, role, password_hash, first_name, last_name, profile_picture_url, last_login_at, is_active, is_email_verified, bio, location, cpus, streak, last_streak_date, folder_object_key, img_key, media_ext
 `
 
 type UpdateUserStreakParams struct {
@@ -697,6 +706,7 @@ func (q *Queries) UpdateUserStreak(ctx context.Context, arg UpdateUserStreakPara
 		&i.LastStreakDate,
 		&i.FolderObjectKey,
 		&i.ImgKey,
+		&i.MediaExt,
 	)
 	return i, err
 }

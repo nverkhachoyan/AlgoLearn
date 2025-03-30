@@ -1,7 +1,7 @@
-import React, { useCallback, useRef } from "react";
-import { Tabs } from "expo-router";
-import Feather from "@expo/vector-icons/Feather";
-import { useClientOnlyValue } from "@/src/components/useClientOnlyValue";
+import React, { useCallback, useRef, useState, useEffect } from 'react';
+import { Tabs, useSegments } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
+import { useClientOnlyValue } from '@/src/components/useClientOnlyValue';
 import {
   TouchableOpacity,
   View,
@@ -11,18 +11,19 @@ import {
   AccessibilityInfo,
   Animated,
   AccessibilityState,
-} from "react-native";
-import * as Haptics from "expo-haptics";
-import { MaterialIcons } from "@expo/vector-icons";
-import { useTheme } from "react-native-paper";
-import { AppTheme } from "@/constants/Colors";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
+import { AppTheme, TabGradients, TabName } from '@/constants/Colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const TAB_BAR_HEIGHT = Platform.select({ web: 60, default: 20 });
 const ICON_SIZE = 28;
 
 interface TabBarIconProps {
-  name: React.ComponentProps<typeof Feather>["name"];
+  name: React.ComponentProps<typeof Feather>['name'];
   color: string;
   size?: number;
 }
@@ -64,7 +65,7 @@ function HapticTabButton({
   };
 
   const handlePress = useCallback(() => {
-    if (Platform.OS !== "web") {
+    if (Platform.OS !== 'web') {
       Haptics.selectionAsync().catch(() => {
         // silently handle haptics errors
       });
@@ -73,16 +74,13 @@ function HapticTabButton({
 
     // announce screen change for accessibility
     AccessibilityInfo.announceForAccessibility(
-      `${accessibilityLabel} ${accessibilityState?.selected ? "selected" : ""}`
+      `${accessibilityLabel} ${accessibilityState?.selected ? 'selected' : ''}`
     );
   }, [onPress, accessibilityLabel, accessibilityState?.selected]);
 
   const isSelected = accessibilityState?.selected;
   const getTabColor = (tab: string) => {
-    return (
-      theme.colors.tabs[tab as keyof typeof theme.colors.tabs] ||
-      theme.colors.tabs.default
-    );
+    return theme.colors.tabs[tab as keyof typeof theme.colors.tabs] || theme.colors.tabs.default;
   };
 
   return (
@@ -99,7 +97,7 @@ function HapticTabButton({
         style={[
           styles.tabButtonContent,
           {
-            backgroundColor: isSelected ? getTabColor(tabName) : "transparent",
+            backgroundColor: isSelected ? getTabColor(tabName) : 'transparent',
             transform: [{ scale: scaleAnim }],
           },
         ]}
@@ -114,14 +112,37 @@ export default function TabLayout() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const segments = useSegments();
+  const [activeTab, setActiveTab] = useState<TabName>('index');
+
+  // Extract the active tab from the path
+  useEffect(() => {
+    if (segments.length > 0) {
+      const lastSegment = segments[segments.length - 1];
+      // Map the route to the tab name
+      const tabMapping: Record<string, TabName> = {
+        index: 'index',
+        explore: 'explore',
+        challenges: 'challenges',
+        leaderboard: 'leaderboard',
+        feed: 'feed',
+      };
+
+      if (lastSegment in tabMapping) {
+        setActiveTab(tabMapping[lastSegment as keyof typeof tabMapping]);
+      }
+    }
+  }, [segments]);
+
+  // Get current gradient colors based on active tab and theme
+  const getCurrentGradientColors = () => {
+    return theme.dark ? TabGradients[activeTab].dark : TabGradients[activeTab].light;
+  };
 
   const getTabBarIcon = useCallback(
-    (name: React.ComponentProps<typeof Feather>["name"]) =>
+    (name: React.ComponentProps<typeof Feather>['name']) =>
       ({ focused }: { focused: boolean }) => (
-        <TabBarIcon
-          name={name}
-          color={focused ? "white" : theme.colors.secondary}
-        />
+        <TabBarIcon name={name} color={focused ? 'white' : theme.colors.secondary} />
       ),
     [theme]
   );
@@ -130,7 +151,7 @@ export default function TabLayout() {
     tabBar: Platform.select({
       web: {
         height: TAB_BAR_HEIGHT,
-        position: "fixed" as const,
+        position: 'fixed' as const,
         bottom: 0,
         left: 0,
         right: 0,
@@ -155,6 +176,12 @@ export default function TabLayout() {
     },
   });
 
+  // Calculate the extra padding needed to cover iOS safe area
+  const extraPadding = Platform.OS === 'ios' ? Math.max(insets.bottom * 2, 40) : 0;
+
+  // Determine the right gradient component to use
+  const GradientComponent = LinearGradient;
+
   return (
     <View style={containerStyle}>
       <Tabs
@@ -168,10 +195,10 @@ export default function TabLayout() {
           tabBarActiveTintColor: theme.colors.primary,
           tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
           tabBarStyle: {
-            backgroundColor: theme.colors.surfaceVariant,
+            backgroundColor: 'transparent', // Make tab bar transparent for gradient
             ...dynamicStyles.tabBar,
-            borderTopStartRadius: Platform.OS === "web" ? 0 : 16,
-            borderTopEndRadius: Platform.OS === "web" ? 0 : 16,
+            borderTopStartRadius: Platform.OS === 'web' ? 0 : 16,
+            borderTopEndRadius: Platform.OS === 'web' ? 0 : 16,
             shadowColor: theme.colors.shadow,
             shadowOffset: Platform.select({
               ios: {
@@ -189,20 +216,27 @@ export default function TabLayout() {
             }),
             shadowOpacity: 0.5,
             shadowRadius: 8,
-            elevation: Platform.OS === "android" ? 10 : 0,
+            elevation: Platform.OS === 'android' ? 10 : 0,
             borderTopWidth: 0,
           },
           tabBarBackground: () => (
-            <View
-              style={[
-                styles.tabBarBackground,
-                {
-                  backgroundColor: theme.colors.surfaceVariant,
-                  borderTopLeftRadius: Platform.OS === "web" ? 0 : 16,
-                  borderTopRightRadius: Platform.OS === "web" ? 0 : 16,
-                },
-              ]}
-            />
+            <>
+              {/* Tab bar gradient background + safe area below it */}
+              <GradientComponent
+                colors={getCurrentGradientColors()}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.tabBarGradient,
+                  {
+                    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 16,
+                    borderTopRightRadius: Platform.OS === 'web' ? 0 : 16,
+                    // Extra padding to ensure it covers the safe area completely
+                    paddingBottom: extraPadding,
+                  },
+                ]}
+              />
+            </>
           ),
           freezeOnBlur: true,
         }}
@@ -210,11 +244,11 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            tabBarIcon: getTabBarIcon("home"),
+            tabBarIcon: getTabBarIcon('home'),
             headerShown: false,
-            tabBarButton: (props) => (
+            tabBarButton: props => (
               <HapticTabButton
-                tabName="home"
+                tabName="index"
                 accessibilityLabel="Home tab"
                 accessibilityState={props.accessibilityState}
                 {...props}
@@ -223,13 +257,16 @@ export default function TabLayout() {
               </HapticTabButton>
             ),
           }}
+          listeners={{
+            tabPress: () => setActiveTab('index'),
+          }}
         />
         <Tabs.Screen
           name="explore"
           options={{
-            tabBarIcon: getTabBarIcon("compass"),
+            tabBarIcon: getTabBarIcon('compass'),
             headerShown: false,
-            tabBarButton: (props) => (
+            tabBarButton: props => (
               <HapticTabButton
                 tabName="explore"
                 accessibilityLabel="Explore tab"
@@ -240,13 +277,16 @@ export default function TabLayout() {
               </HapticTabButton>
             ),
           }}
+          listeners={{
+            tabPress: () => setActiveTab('explore'),
+          }}
         />
         <Tabs.Screen
           name="challenges"
           options={{
-            tabBarIcon: getTabBarIcon("codesandbox"),
+            tabBarIcon: getTabBarIcon('codesandbox'),
             headerShown: false,
-            tabBarButton: (props) => (
+            tabBarButton: props => (
               <HapticTabButton
                 tabName="challenges"
                 accessibilityLabel="Challenges tab"
@@ -257,6 +297,9 @@ export default function TabLayout() {
               </HapticTabButton>
             ),
           }}
+          listeners={{
+            tabPress: () => setActiveTab('challenges'),
+          }}
         />
         <Tabs.Screen
           name="leaderboard"
@@ -265,11 +308,11 @@ export default function TabLayout() {
               <MaterialIcons
                 name="leaderboard"
                 size={ICON_SIZE}
-                color={focused ? "white" : theme.colors.secondary}
+                color={focused ? 'white' : theme.colors.secondary}
               />
             ),
             headerShown: false,
-            tabBarButton: (props) => (
+            tabBarButton: props => (
               <HapticTabButton
                 tabName="leaderboard"
                 accessibilityLabel="Leaderboard tab"
@@ -280,13 +323,16 @@ export default function TabLayout() {
               </HapticTabButton>
             ),
           }}
+          listeners={{
+            tabPress: () => setActiveTab('leaderboard'),
+          }}
         />
         <Tabs.Screen
           name="feed"
           options={{
-            tabBarIcon: getTabBarIcon("inbox"),
+            tabBarIcon: getTabBarIcon('inbox'),
             headerShown: false,
-            tabBarButton: (props) => (
+            tabBarButton: props => (
               <HapticTabButton
                 tabName="feed"
                 accessibilityLabel="Feed tab"
@@ -296,6 +342,9 @@ export default function TabLayout() {
                 {props.children}
               </HapticTabButton>
             ),
+          }}
+          listeners={{
+            tabPress: () => setActiveTab('feed'),
           }}
         />
       </Tabs>
@@ -309,7 +358,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    marginTop: Platform.OS === "web" ? 0 : 10,
+    marginTop: Platform.OS === 'web' ? 0 : 10,
     borderRadius: 8,
     minWidth: 44,
     minHeight: 44,
@@ -318,15 +367,21 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 8,
     padding: 4,
-    alignSelf: "center",
-    justifyContent: "center",
-    alignItems: "center",
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tabBarBackground: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  tabBarGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
 });

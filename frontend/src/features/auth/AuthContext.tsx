@@ -19,7 +19,7 @@ interface AuthContextType {
   signUp: (username: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   checkEmail: (email: string) => Promise<AxiosResponse<ApiResponse<EmailCheckResponse>>>;
-  setHasOnboarded: (hasOnboarded: boolean) => Promise<void>;
+  setIsOnboarding: (hasOnboarded: boolean) => Promise<void>;
   authFetcher: AuthenticatedFetcher;
 }
 
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     retry: 5,
   });
 
-  const { data: isOnboarding = false } = useQuery({
+  const { data: isOnboarding = false, isLoading: isOnboardingLoading } = useQuery({
     queryKey: ['isOnboarding'],
     queryFn: async () => {
       const isOnboarding = await tokenService.getIsOnboarding();
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   });
 
   // Wait for AuthFetcher to be initialized
-  if (isLoading || !authFetcher) {
+  if (isLoading || !authFetcher || isOnboardingLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -183,8 +183,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading,
         token,
         isOnboarding,
-        setHasOnboarded: async (isUserOnboarding: boolean) => {
-          await setIsOnboarding.mutateAsync({ isUserOnboarding });
+        setIsOnboarding: async (isUserOnboarding: boolean) => {
+          return await setIsOnboarding.mutateAsync({ isUserOnboarding });
         },
         signIn: async (email: string, password: string) => {
           await signInMutation.mutateAsync({ email, password });

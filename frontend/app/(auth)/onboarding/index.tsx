@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Image,
   Animated,
+  Platform,
 } from 'react-native';
 
 import { router } from 'expo-router';
@@ -25,7 +26,7 @@ import { Colors } from '@/constants/Colors';
 import Conditional from '@/src/components/Conditional';
 import { User } from '@/src/features/user/types/index';
 
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'expo-crypto';
 
 const MaxProfilePictureSize = 5 * 1024 * 1024;
 
@@ -33,8 +34,6 @@ export default function UserDetails() {
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
-  const [image, setImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<ImageFile>(null);
   const { updateUser } = useUser();
   const { colors }: { colors: Colors } = useTheme();
@@ -71,34 +70,39 @@ export default function UserDetails() {
   }, [isFocused.lastName]);
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    if (Platform.OS !== 'web') {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      const { uri, fileSize, file, type } = result.assets[0];
-      const fileExt = uri.split('.').pop() || 'jpeg';
-      const fileName = uri.split('/').pop() || uuidv4();
+      if (!result.canceled) {
+        const { uri, fileSize, type } = result.assets[0];
+        const fileExt = uri.split('.').pop() || 'jpeg';
+        const fileName = uri.split('/').pop() || `${randomUUID()}.${fileExt}`;
 
-      if (fileSize && fileSize > MaxProfilePictureSize) {
-        showToast('This image is too large. The accepted size is 5MB or less.');
-        return;
-      }
+        if (fileSize && fileSize > MaxProfilePictureSize) {
+          showToast('This image is too large. The accepted size is 5MB or less.');
+          return;
+        }
 
-      if (file) {
-        console.log('it is there');
-        setImage(uri);
+        if (!uri || !fileSize || !type) {
+          showToast('Unable to determine image metadata');
+          return;
+        }
+
         setImageFile({
           uri,
           name: fileName,
           ext: fileExt,
-          file,
+          size: fileSize,
           contentType: `${type}/${fileExt}`,
         });
       }
+    } else {
+      showToast('NOT IMPLEMENTED FOR WEB YET');
     }
   };
 
@@ -157,8 +161,8 @@ export default function UserDetails() {
             activeOpacity={0.8}
           >
             <Conditional
-              condition={image !== null}
-              renderTrue={() => <Image source={{ uri: image! }} style={styles.image} />}
+              condition={imageFile !== null && imageFile.uri !== ''}
+              renderTrue={() => <Image source={{ uri: imageFile!.uri }} style={styles.image} />}
               renderFalse={() => (
                 <View style={[styles.emptyAvatar, { backgroundColor: colors.surfaceVariant }]}>
                   <FontAwesome name="user" color={colors.onSurfaceVariant} size={60} />
@@ -266,6 +270,32 @@ export default function UserDetails() {
             shadowOpacity: 0.2,
             shadowRadius: 8,
             elevation: 4,
+          }}
+        />
+
+        <Button
+          title="Skip"
+          onPress={() => {
+            router.navigate('/(auth)/onboarding/courses');
+          }}
+          icon={{ name: 'arrow-right', position: 'right' }}
+          textStyle={{
+            color: colors.onSurface,
+            fontSize: 16,
+            fontWeight: '600',
+          }}
+          iconStyle={{
+            position: 'absolute',
+            right: 20,
+            color: colors.onSurface,
+          }}
+          style={{
+            backgroundColor: 'transparent',
+            borderWidth: 0.5,
+            borderColor: colors.surface,
+            borderRadius: 12,
+            paddingVertical: 16,
+            marginTop: 24,
           }}
         />
       </View>

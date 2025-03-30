@@ -21,7 +21,8 @@ CREATE TABLE users (
     streak INTEGER NOT NULL DEFAULT 0,
     last_streak_date TIMESTAMPTZ DEFAULT NULL,
     folder_object_key UUID,
-    img_key UUID
+    img_key UUID,
+    media_ext VARCHAR(10)
 );
 
 CREATE TABLE user_preferences (

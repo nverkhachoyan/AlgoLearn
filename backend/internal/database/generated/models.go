@@ -389,6 +389,7 @@ type User struct {
 	LastStreakDate    sql.NullTime   `json:"lastStreakDate"`
 	FolderObjectKey   uuid.NullUUID  `json:"folderObjectKey"`
 	ImgKey            uuid.NullUUID  `json:"imgKey"`
+	MediaExt          sql.NullString `json:"mediaExt"`
 }
 
 type UserAchievement struct {

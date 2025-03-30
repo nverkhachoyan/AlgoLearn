@@ -90,8 +90,9 @@ SET
     last_name = COALESCE(NULLIF(@last_name::text, ''), last_name),
     bio = COALESCE(NULLIF(@bio::text, ''), bio),
     location = COALESCE(NULLIF(@location::text, ''), location),
-    folder_object_key = COALESCE(@folder_object_key::UUID, folder_object_key),
-    img_key = COALESCE(@img_key::UUID, img_key),
+    folder_object_key = COALESCE(@folder_object_key, folder_object_key),
+    img_key = COALESCE(@img_key, img_key),
+    media_ext = COALESCE(NULLIF(@media_ext::text, ''), media_ext),
     updated_at = NOW()
 WHERE id = @id
 RETURNING *;

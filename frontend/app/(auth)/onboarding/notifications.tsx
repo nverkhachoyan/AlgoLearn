@@ -4,12 +4,15 @@ import { Text, useTheme } from 'react-native-paper';
 import Button from '@/src/components/common/Button';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useAuth } from '@/src/features/auth/AuthContext';
 
 export default function PushNotifications() {
+  const { setIsOnboarding } = useAuth();
   const { colors } = useTheme();
 
-  const handleNotNow = () => {
-    router.navigate('/(auth)/onboarding/courses');
+  const handleNotNow = async () => {
+    await setIsOnboarding(false);
+    router.navigate('/(protected)/(tabs)');
   };
 
   return (

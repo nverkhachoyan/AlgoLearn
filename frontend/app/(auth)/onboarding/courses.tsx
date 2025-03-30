@@ -1,25 +1,25 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  Pressable,
-  TouchableOpacity,
-  ScrollView,
-  View,
-} from "react-native";
-import { Text } from "react-native-paper";
-import Button from "@/src/components/common/Button";
-import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useTheme } from "react-native-paper";
+import React, { useState } from 'react';
+import { StyleSheet, Pressable, TouchableOpacity, ScrollView, View, TextInput } from 'react-native';
+import { Text } from 'react-native-paper';
+import Button from '@/src/components/common/Button';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 
 export default function CourseSelectionScreen() {
   const { colors } = useTheme();
   const [checked, setChecked] = useState(false);
 
+  const handleContinue = () => {
+    router.navigate('/(auth)/onboarding/notifications');
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView style={[{ backgroundColor: colors.background }]}>
+      <ScrollView
+        style={[{ paddingLeft: 25, paddingRight: 25, backgroundColor: colors.background }]}
+      >
         <Pressable style={styles.goBackButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
@@ -28,8 +28,7 @@ export default function CourseSelectionScreen() {
         </Text>
 
         <Text style={[styles.description, { color: colors.onSurface }]}>
-          Select one (or more) of our courses and start learning at your own
-          pace!
+          Select one (or more) of our courses and start learning at your own pace!
         </Text>
 
         <View>
@@ -38,24 +37,20 @@ export default function CourseSelectionScreen() {
               setChecked(!checked);
             }}
           >
-            <View
-              style={[styles.inputContainer, { borderColor: colors.onSurface }]}
-            >
-              {/* <TextInput
+            <View style={[styles.inputContainer, { borderColor: colors.onSurface }]}>
+              <TextInput
                 style={[
                   {
-                    borderColor: colors.border,
-                    color: colors.text,
+                    borderColor: colors.primary,
+                    color: colors.onSurface,
                   },
                 ]}
                 value="The JavaScript Ecosystem"
-                placeholderTextColor={colors.placeholderText}
-              /> */}
+                placeholderTextColor={colors.surfaceDisabled}
+              />
 
               <MaterialCommunityIcons
-                name={
-                  checked ? "checkbox-marked-outline" : "checkbox-blank-outline"
-                }
+                name={checked ? 'checkbox-marked-outline' : 'checkbox-blank-outline'}
                 size={22}
                 style={{ color: colors.onSurface }}
               />
@@ -66,17 +61,34 @@ export default function CourseSelectionScreen() {
         <Text style={[styles.informative, { color: colors.secondary }]}>
           More courses coming soon
         </Text>
+
+        <Button
+          title="Continue"
+          onPress={handleContinue}
+          icon={{ name: 'arrow-right', position: 'right' }}
+          textStyle={{
+            color: colors.onPrimary,
+            fontSize: 16,
+            fontWeight: '600',
+          }}
+          iconStyle={{
+            position: 'absolute',
+            right: 20,
+            color: colors.onPrimary,
+          }}
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 12,
+            paddingVertical: 16,
+            marginTop: 24,
+            shadowColor: colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 4,
+          }}
+        />
       </ScrollView>
-      <Button
-        title="Start learning"
-        onPress={() => {
-          router.navigate("/(tabs)" as any);
-        }}
-        style={{
-          backgroundColor: colors.background,
-        }}
-        textStyle={{ color: colors.onSurface }}
-      />
     </View>
   );
 }
@@ -84,13 +96,11 @@ export default function CourseSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingLeft: 25,
-    paddingRight: 25,
   },
   goBackButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "absolute",
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'absolute',
     top: 20,
     left: 0,
     zIndex: 1,
@@ -105,21 +115,21 @@ const styles = StyleSheet.create({
   },
   middleContent: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     marginTop: 30,
     marginBottom: 30,
   },
   title: {
     fontSize: 30,
-    fontWeight: "bold",
-    textAlign: "left",
+    fontWeight: 'bold',
+    textAlign: 'left',
     marginTop: 70,
     marginBottom: 30,
   },
   dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   line: {
     height: 1,
@@ -134,14 +144,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   informative: {
-    alignSelf: "center",
+    alignSelf: 'center',
     marginVertical: 20,
     fontSize: 14,
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     height: 45,
     padding: 10,
     borderWidth: 1,

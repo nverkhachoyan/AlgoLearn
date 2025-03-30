@@ -1,9 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/src/features/auth/AuthContext';
-import type { User } from '../types/index';
+import { User } from '../types/index';
 import { useAuthFetcher } from '../../auth';
 import { useS3 } from '@/src/features/upload';
-import { v4 as uuidv4, NIL as NIL_UUID } from 'uuid';
+import { randomUUID } from 'expo-crypto';
+import { AxiosError } from 'axios';
+
+const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 export function useUser() {
   const { token, isAuthenticated } = useAuth();
@@ -11,7 +14,7 @@ export function useUser() {
   const authFetcher = useAuthFetcher();
   const { getPresignedUrlMutation, uploadToS3Mutation } = useS3();
 
-  const { data: user, error } = useQuery({
+  const { data: user, error } = useQuery<User>({
     queryKey: ['user'],
     queryFn: async () => {
       try {
@@ -33,55 +36,60 @@ export function useUser() {
 
   const updateUserMutation = useMutation({
     mutationFn: async (userData: Partial<User>) => {
+      console.log('UPDATE MUTATION RAN', userData);
       let updatedUserData = { ...userData };
 
       if (userData.imageFile) {
-        try {
-          let subFolder = '';
+        let subFolder = '';
 
-          if (userData.folderObjectKey === NIL_UUID) {
-            subFolder = uuidv4();
-          } else {
-            subFolder = userData.folderObjectKey!;
-          }
+        console.log('Current folderObjectKey:', userData.folderObjectKey);
+        console.log('NIL_UUID:', NIL_UUID);
+        console.log('Comparison result:', userData.folderObjectKey === NIL_UUID);
 
-          const { key, url, ext } = await getPresignedUrlMutation.mutateAsync({
-            fileName: userData.imageFile.name,
-            folder: 'users',
-            subFolder: subFolder,
-            contentType: userData.imageFile.contentType,
-          });
-
-          await uploadToS3Mutation.mutateAsync({
-            file: userData.imageFile.file,
-            presignedUrl: url,
-            isPublic: true,
-          });
-
-          updatedUserData = {
-            ...updatedUserData,
-            folderObjectKey: subFolder,
-            imgKey: key,
-            mediaExt: ext,
-            imageFile: undefined,
-          };
-        } catch (error) {
-          console.error('Failed to upload image:', error);
-          throw new Error('Failed to upload profile image');
+        if (!userData.folderObjectKey || userData.folderObjectKey === NIL_UUID) {
+          subFolder = randomUUID();
+          console.log('Generating new folder:', subFolder);
+        } else {
+          subFolder = userData.folderObjectKey;
+          console.log('Using existing folder:', subFolder);
         }
+
+        const { key, url, ext } = await getPresignedUrlMutation.mutateAsync({
+          fileName: userData.imageFile.name,
+          folder: 'users',
+          subFolder: subFolder,
+          contentType: userData.imageFile.contentType,
+        });
+
+        await uploadToS3Mutation.mutateAsync({
+          imageFile: userData.imageFile,
+          presignedUrl: url,
+          isPublic: true,
+        });
+
+        console.log('FINAL DATA STUFF: ', subFolder, 'key: ', key, 'ext: ', ext);
+        updatedUserData = {
+          ...updatedUserData,
+          folderObjectKey: subFolder,
+          imgKey: key,
+          mediaExt: ext,
+          imageFile: undefined,
+        };
       }
 
-      const response = await authFetcher.put('/users/me', {
+      const response = await authFetcher.put('/users/me', updatedUserData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedUserData),
       });
       return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
+    },
+    onError: (error: AxiosError) => {
+      console.error('failed to update user', error.response);
     },
   });
 

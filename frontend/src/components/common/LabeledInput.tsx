@@ -1,16 +1,16 @@
-import React, { useState } from "react";
-import { View, TextInput, StyleSheet, Text } from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { useTheme } from "react-native-paper";
+import React, { useState } from 'react';
+import { View, TextInput, StyleSheet, Text } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 
 interface LabeledInputProps {
   label: string;
-  icon: React.ComponentProps<typeof Feather>["name"];
+  icon: React.ComponentProps<typeof Feather>['name'];
   value: string;
   placeholder: string;
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
-  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad";
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   multiline?: boolean;
   scrollEnabled?: boolean;
   numberOfLines?: number;
@@ -24,7 +24,7 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
   placeholder,
   onChangeText,
   secureTextEntry = false,
-  keyboardType = "default",
+  keyboardType = 'default',
   multiline = false,
   scrollEnabled = false,
   numberOfLines = 1,
@@ -36,12 +36,7 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
   return (
     <View style={[styles.container]}>
       <View style={styles.labelContainer}>
-        <Feather
-          name={icon}
-          size={20}
-          color={colors.onSurface}
-          style={styles.icon}
-        />
+        <Feather name={icon} size={20} color={colors.onSurface} style={styles.icon} />
         <Text style={[styles.label, { color: colors.onSurface }]}>{label}</Text>
       </View>
 
@@ -50,9 +45,7 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
           styles.input,
           {
             borderColor: isFocused ? colors.secondaryContainer : colors.shadow,
-            backgroundColor: isFocused
-              ? colors.onPrimary
-              : colors.primaryContainer,
+            backgroundColor: isFocused ? colors.background : colors.onPrimary,
             color: isFocused ? colors.onSurface : colors.secondary,
           },
         ]}
@@ -75,15 +68,15 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "column",
+    flexDirection: 'column',
     marginVertical: 15,
   },
   inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   labelContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: 10,
   },
   icon: {

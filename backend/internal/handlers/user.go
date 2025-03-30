@@ -377,8 +377,6 @@ func (h *userHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("USEEER: %v", user)
-
 	user.ID = userID
 	if err := h.repo.UpdateUser(ctx, &user); err != nil {
 		log.WithError(err).Error("failed to update user")

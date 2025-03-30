@@ -8,8 +8,9 @@ export type ImageFile = {
   uri: string;
   name: string;
   ext: string;
-  file: File;
   contentType: string;
+  size: number; // file size in bytes
+  file?: File; // web only
 } | null;
 
 export enum DifficultyLevel {

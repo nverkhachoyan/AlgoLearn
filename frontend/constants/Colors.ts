@@ -222,3 +222,36 @@ export const TabGradients: Record<
     light: ['#4F6CF7', '#6A78ED', '#8A84E2'] as const,
   },
 };
+
+export const USER_PROFILE_GRADIENTS = {
+  default: {
+    name: 'Default',
+    light: ['#4F6CF7', '#6A78ED', '#8A84E2'],
+    dark: ['#4F6CF7', '#3D4FA3', '#2A3550'],
+  },
+  purple: {
+    name: 'Purple',
+    light: ['#8A2BE2', '#AE67DD', '#D8BFD8'],
+    dark: ['#8A2BE2', '#612094', '#38204C'],
+  },
+  green: {
+    name: 'Green',
+    light: ['#2E8B57', '#63AE7B', '#98FB98'],
+    dark: ['#2E8B57', '#246843', '#1A3C2A'],
+  },
+  sunset: {
+    name: 'Sunset',
+    light: ['#FF7F50', '#FF9765', '#FFA07A'],
+    dark: ['#FF7F50', '#CF573D', '#5E2F25'],
+  },
+  ocean: {
+    name: 'Ocean',
+    light: ['#00CED1', '#43DFDF', '#87CEEB'],
+    dark: ['#00CED1', '#059B9F', '#0A4958'],
+  },
+  amber: {
+    name: 'Amber',
+    light: ['#E6B800', '#F0CA40', '#F9E080'],
+    dark: ['#E6B800', '#A38308', '#4D4000'],
+  },
+};

@@ -1,5 +1,5 @@
-import { Toast, ToastContainerProps } from "@/src/components/common/Toast";
-import { useTheme } from "react-native-paper";
+import { Toast, ToastContainerProps } from '@/src/components/common/Toast';
+import { useTheme } from 'react-native-paper';
 
 const CustomToast = () => {
   const { colors } = useTheme();

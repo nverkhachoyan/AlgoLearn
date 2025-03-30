@@ -1,20 +1,20 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import { StyleSheet, ViewToken, View, Animated } from "react-native";
-import { ActivityIndicator, Text, useTheme } from "react-native-paper";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { FlashList } from "@shopify/flash-list";
-import SectionsList from "@/src/features/course/components/module-session/SectionsList";
-import Button from "@/src/components/common/Button";
-import { useModuleProgress } from "@/src/features/module/hooks/useModules";
-import { isQuestionSection, Section } from "@/src/features/module/types";
-import { QuestionContent } from "@/src/features/module/types/sections";
-import { ModuleHeader } from "@/src/features/course/components/module-session/ModuleHeader";
-import { ModuleFooter } from "@/src/features/course/components/module-session/ModuleFooter";
-import { useModuleProgressInit } from "@/src/features/module/hooks/useModuleProgressInit";
-import { Colors } from "@/constants/Colors";
-import useToast from "@/src/hooks/useToast";
-import { UseModuleProgressReturn } from "@/src/features/module/hooks/useModules";
-import { usePoints } from "@/src/features/user/hooks/usePoints";
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { StyleSheet, ViewToken, View, Animated } from 'react-native';
+import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
+import SectionsList from '@/src/features/course/components/module-session/SectionsList';
+import Button from '@/src/components/common/Button';
+import { useModuleProgress } from '@/src/features/module/hooks/useModules';
+import { isQuestionSection, Section } from '@/src/features/module/types';
+import { QuestionContent } from '@/src/features/module/types/sections';
+import { ModuleHeader } from '@/src/features/course/components/module-session/ModuleHeader';
+import { ModuleFooter } from '@/src/features/course/components/module-session/ModuleFooter';
+import { useModuleProgressInit } from '@/src/features/module/hooks/useModuleProgressInit';
+import { Colors } from '@/constants/Colors';
+import useToast from '@/src/hooks/useToast';
+import { UseModuleProgressReturn } from '@/src/features/module/hooks/useModules';
+import { usePoints } from '@/src/features/user/hooks/usePoints';
 
 const SECTION_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 30,
@@ -34,9 +34,7 @@ const AnimatedSection = ({
   // Create a ref to track if this component has already been animated
   const hasAnimated = useRef(false);
   const fadeAnim = useRef(new Animated.Value(isQuestionUpdate ? 1 : 0)).current;
-  const translateY = useRef(
-    new Animated.Value(isQuestionUpdate ? 0 : 20)
-  ).current;
+  const translateY = useRef(new Animated.Value(isQuestionUpdate ? 0 : 20)).current;
   const [isInitialRender, setIsInitialRender] = useState(true);
 
   useEffect(() => {
@@ -101,8 +99,8 @@ const AnimatedSection = ({
 };
 
 const MESSAGES = {
-  ERROR: "An error occurred while loading the module",
-  COMPLETE_BUTTON: "Complete Module",
+  ERROR: 'An error occurred while loading the module',
+  COMPLETE_BUTTON: 'Complete Module',
 } as const;
 
 interface RouteParams extends Record<string, string | undefined> {
@@ -148,19 +146,18 @@ export default function ModuleSession() {
     unitId: ids.unitId,
     moduleId: ids.moduleId,
   });
-  const { moduleProgress, setModuleProgress } =
-    useModuleProgressInit(currentModule);
+  const { moduleProgress, setModuleProgress } = useModuleProgressInit(currentModule);
 
   // Special effect to force update the moduleProgress when the module data changes
   // This ensures that sections from the backend are properly marked as seen
   useEffect(() => {
     if (currentModule?.sections && currentModule.sections.length > 0) {
       // Log the full module data to see the actual structure
-      if (process.env.NODE_ENV === "development") {
+      if (process.env.NODE_ENV === 'development') {
         console.log(
-          "Current module structure:",
+          'Current module structure:',
           JSON.stringify(
-            currentModule.sections.map((s) => ({
+            currentModule.sections.map(s => ({
               id: s.id,
               hasProgress: !!(s as any).progress,
               hasSeen: (s as any).progress?.hasSeen,
@@ -171,12 +168,12 @@ export default function ModuleSession() {
         );
       }
 
-      setModuleProgress((prev) => {
+      setModuleProgress(prev => {
         const newSections = new Map(prev.sections);
         let hasChanges = false;
 
         // Process all sections from the module data
-        currentModule.sections?.forEach((section) => {
+        currentModule.sections?.forEach(section => {
           // IMPORTANT: In the API response, the field is called 'progress' not 'sectionProgress'
           const sectionProgress = (section as any).progress;
 
@@ -189,16 +186,13 @@ export default function ModuleSession() {
                 sectionId: section.id,
                 hasSeen: true, // Force hasSeen to true for server-tracked sections
                 seenAt: sectionProgress.seenAt || new Date().toISOString(),
-                startedAt:
-                  sectionProgress.startedAt || new Date().toISOString(),
+                startedAt: sectionProgress.startedAt || new Date().toISOString(),
                 completedAt: sectionProgress.completedAt || null,
               });
               hasChanges = true;
 
-              if (process.env.NODE_ENV === "development") {
-                console.log(
-                  `[FORCE UPDATE] Section ${section.id} marked as seen from server data`
-                );
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[FORCE UPDATE] Section ${section.id} marked as seen from server data`);
               }
             }
           }
@@ -210,20 +204,13 @@ export default function ModuleSession() {
   }, [currentModule?.sections, setModuleProgress]);
 
   const sortedSections: Section[] = useMemo(
-    () =>
-      currentModule?.sections
-        ?.slice()
-        .sort((a: any, b: any) => a.position - b.position) ?? [],
+    () => currentModule?.sections?.slice().sort((a: any, b: any) => a.position - b.position) ?? [],
     [currentModule?.sections]
   );
 
   const handleQuestionAnswer = useCallback(
-    (
-      questionId: number,
-      optionId: number | null,
-      isCorrect: boolean | null
-    ) => {
-      setModuleProgress((prev) => {
+    (questionId: number, optionId: number | null, isCorrect: boolean | null) => {
+      setModuleProgress(prev => {
         const newQuestions = new Map(prev.questions);
         newQuestions.set(questionId, {
           questionId,
@@ -245,18 +232,14 @@ export default function ModuleSession() {
   );
 
   const handleViewableItemsChanged = useCallback(
-    ({
-      viewableItems,
-    }: {
-      viewableItems: Array<ViewToken & { item: Section }>;
-    }) => {
+    ({ viewableItems }: { viewableItems: Array<ViewToken & { item: Section }> }) => {
       const now = new Date().toISOString();
 
-      setModuleProgress((prev) => {
+      setModuleProgress(prev => {
         const newSections = new Map(prev.sections);
         let hasChanges = false;
 
-        viewableItems.forEach((viewableItem) => {
+        viewableItems.forEach(viewableItem => {
           if (viewableItem.isViewable) {
             const section = viewableItem.item;
 
@@ -270,10 +253,10 @@ export default function ModuleSession() {
                 hasSeen: true,
                 seenAt: now,
                 startedAt: now,
-                completedAt: section.type !== "question" ? now : null,
+                completedAt: section.type !== 'question' ? now : null,
               });
               hasChanges = true;
-              if (process.env.NODE_ENV === "development") {
+              if (process.env.NODE_ENV === 'development') {
                 console.log(`Section ${section.id} newly marked as seen`);
               }
             } else if (!existingSection.hasSeen) {
@@ -283,11 +266,10 @@ export default function ModuleSession() {
                 hasSeen: true,
                 seenAt: existingSection.seenAt || now,
                 completedAt:
-                  existingSection.completedAt ||
-                  (section.type !== "question" ? now : null),
+                  existingSection.completedAt || (section.type !== 'question' ? now : null),
               });
               hasChanges = true;
-              if (process.env.NODE_ENV === "development") {
+              if (process.env.NODE_ENV === 'development') {
                 console.log(`Section ${section.id} updated to seen`);
               }
             }
@@ -309,13 +291,9 @@ export default function ModuleSession() {
     const moduleProgressValue = currentModule?.progress;
 
     // If the module is marked as completed in the backend, we should show 100% progress
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        `Backend module status: ${moduleStatus}, progress: ${moduleProgressValue}%`
-      );
-      console.log(
-        `Module completed according to backend: ${moduleStatus === "completed"}`
-      );
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Backend module status: ${moduleStatus}, progress: ${moduleProgressValue}%`);
+      console.log(`Module completed according to backend: ${moduleStatus === 'completed'}`);
 
       // Check if all sections have progress in the backend
       const backendSections = currentModule?.sections || [];
@@ -328,25 +306,19 @@ export default function ModuleSession() {
     }
 
     // Log section progress data for debugging
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       console.log(
-        "ModuleProgress - Sections:",
+        'ModuleProgress - Sections:',
         Array.from(sections.entries()).map(([id, section]: [number, any]) => ({
           id,
           hasSeen: section.hasSeen,
-          seenAt: section.seenAt
-            ? new Date(section.seenAt).toLocaleTimeString()
-            : null,
+          seenAt: section.seenAt ? new Date(section.seenAt).toLocaleTimeString() : null,
         }))
       );
 
       // Log the total number of sections that have been seen
-      const seenSections = Array.from(sections.values()).filter(
-        (s: any) => s.hasSeen
-      );
-      console.log(
-        `Total sections seen: ${seenSections.length}/${totalSections}`
-      );
+      const seenSections = Array.from(sections.values()).filter((s: any) => s.hasSeen);
+      console.log(`Total sections seen: ${seenSections.length}/${totalSections}`);
     }
 
     const completedSections = sortedSections.map((section: Section) => {
@@ -356,14 +328,12 @@ export default function ModuleSession() {
       // A section has been seen if it's in our progress map and hasSeen is true
       const hasSeen = Boolean(progress?.hasSeen);
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env.NODE_ENV === 'development') {
         // Log the state of each section for debugging
-        console.log(
-          `Section ${section.id} (${section.type}): hasSeen=${hasSeen}`
-        );
+        console.log(`Section ${section.id} (${section.type}): hasSeen=${hasSeen}`);
       }
 
-      if (section.type === "question") {
+      if (section.type === 'question') {
         // For question sections, get the question's progress
         // Use type assertion to safely access questionContent.id
         const questionContent = section.content as QuestionContent;
@@ -396,31 +366,23 @@ export default function ModuleSession() {
     });
 
     // Count all sections that are marked as completed
-    const completedCount = completedSections.filter(
-      (s: any) => s.isCompleted
-    ).length;
+    const completedCount = completedSections.filter((s: any) => s.isCompleted).length;
 
-    const totalProgress =
-      totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
+    const totalProgress = totalSections > 0 ? (completedCount / totalSections) * 100 : 0;
 
     // If we're in development, log the progress stats
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Progress: ${completedCount}/${totalSections} = ${totalProgress.toFixed(1)}%`);
       console.log(
-        `Progress: ${completedCount}/${totalSections} = ${totalProgress.toFixed(1)}%`
-      );
-      console.log(
-        "Completed sections:",
-        completedSections
-          .filter((s: any) => s.isCompleted)
-          .map((s: any) => s.sectionId)
+        'Completed sections:',
+        completedSections.filter((s: any) => s.isCompleted).map((s: any) => s.sectionId)
       );
     }
 
     const answeredQuestions = Array.from(questions.values()).filter(
       (q: any) => q.hasAnswered
     ).length;
-    const questionProgress =
-      questions.size > 0 ? (answeredQuestions / questions.size) * 100 : 0;
+    const questionProgress = questions.size > 0 ? (answeredQuestions / questions.size) * 100 : 0;
 
     return {
       total: totalProgress,
@@ -446,21 +408,17 @@ export default function ModuleSession() {
 
       if (sortedSections.length > 0) {
         const unansweredQuestions = Array.from(questions.values()).filter(
-          (question) => !question.hasAnswered
+          question => !question.hasAnswered
         );
-        const unseenSections = Array.from(sections.values()).filter(
-          (section) => !section.hasSeen
-        );
+        const unseenSections = Array.from(sections.values()).filter(section => !section.hasSeen);
 
         if (unansweredQuestions.length > 0) {
-          showToast(
-            "Please answer all questions before completing the module."
-          );
+          showToast('Please answer all questions before completing the module.');
           return;
         }
 
         if (unseenSections.length > 0) {
-          showToast("Please view all sections before completing the module.");
+          showToast('Please view all sections before completing the module.');
           return;
         }
       }
@@ -468,7 +426,7 @@ export default function ModuleSession() {
       setIsCompleting(true);
 
       const answeredQuestions = Array.from(questions.values()).filter(
-        (question) => question.hasAnswered
+        question => question.hasAnswered
       );
 
       const completedSections = Array.from(sections.values());
@@ -485,24 +443,20 @@ export default function ModuleSession() {
       );
 
       router.push({
-        pathname: "/course/[courseId]/module/[moduleId]/congratulations",
+        pathname: '/course/[courseId]/module/[moduleId]/congratulations',
         params: {
           courseId: ids.courseId.toString(),
           unitId: ids.unitId.toString(),
           moduleId: ids.moduleId.toString(),
-          nextModuleId:
-            hasNextModule && nextModuleId ? nextModuleId.toString() : undefined,
-          nextUnitId:
-            hasNextUnit && nextUnitId ? nextUnitId.toString() : undefined,
+          nextModuleId: hasNextModule && nextModuleId ? nextModuleId.toString() : undefined,
+          nextUnitId: hasNextUnit && nextUnitId ? nextUnitId.toString() : undefined,
           nextUnitModuleId:
-            hasNextUnitModule && nextUnitModuleId
-              ? nextUnitModuleId.toString()
-              : undefined,
+            hasNextUnitModule && nextUnitModuleId ? nextUnitModuleId.toString() : undefined,
           hasNext: hasNextRoute.toString(),
         },
       });
     } catch (error) {
-      showToast("Failed to save module progress. Please try again.");
+      showToast('Failed to save module progress. Please try again.');
     } finally {
       setIsCompleting(false);
     }
@@ -516,8 +470,7 @@ export default function ModuleSession() {
         : undefined;
 
       // Determine if this is just a question update
-      const isQuestionUpdate =
-        isQuestionSection(section) && questionKey !== undefined;
+      const isQuestionUpdate = isQuestionSection(section) && questionKey !== undefined;
 
       return (
         <AnimatedSection
@@ -540,20 +493,13 @@ export default function ModuleSession() {
 
   if (error) {
     return (
-      <View
-        style={[styles.centerContainer, { backgroundColor: colors.background }]}
-      >
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <Text style={{ color: colors.onSurface }}>{MESSAGES.ERROR}</Text>
       </View>
     );
   }
 
-  if (
-    isPending ||
-    !currentModule ||
-    !moduleProgress ||
-    !currentModule?.sections
-  ) {
+  if (isPending || !currentModule || !moduleProgress || !currentModule?.sections) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator animating size="large" color={colors.primary} />
@@ -564,7 +510,7 @@ export default function ModuleSession() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ModuleHeader
-        moduleName={currentModule?.name ?? ""}
+        moduleName={currentModule?.name ?? ''}
         progress={calculateProgress}
         colors={colors}
       />
@@ -573,7 +519,7 @@ export default function ModuleSession() {
         data={sortedSections}
         renderItem={renderItem}
         estimatedItemSize={200}
-        keyExtractor={(item) => `${item.id}-${item.position}`}
+        keyExtractor={item => `${item.id}-${item.position}`}
         contentContainerStyle={styles.flashListContainer}
         onViewableItemsChanged={handleViewableItemsChanged}
         viewabilityConfig={SECTION_VIEWABILITY_CONFIG}
@@ -592,7 +538,7 @@ export default function ModuleSession() {
       />
 
       <ModuleFooter
-        moduleName={currentModule?.name ?? ""}
+        moduleName={currentModule?.name ?? ''}
         onNext={handleModuleCompletion}
         onTOC={() => {}}
         colors={colors}
@@ -607,8 +553,8 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   flashListContainer: {
     padding: 20,
@@ -616,7 +562,7 @@ const styles = StyleSheet.create({
   },
   endOfModule: {
     padding: 20,
-    alignItems: "center",
-    backgroundColor: "transparent",
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
 });

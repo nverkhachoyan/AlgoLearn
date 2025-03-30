@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -14,7 +14,7 @@ import {
   ViewStyle,
   TextStyle,
   GestureResponderEvent,
-} from "react-native";
+} from 'react-native';
 
 const TOAST_MAX_WIDTH = 0.8;
 const TOAST_ANIMATION_DURATION = 200;
@@ -43,8 +43,8 @@ interface ToastContainerProps {
   accessible?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
-  accessibilityRole?: "alert" | "button" | "link";
-  slideFrom?: "top" | "bottom";
+  accessibilityRole?: 'alert' | 'button' | 'link';
+  slideFrom?: 'top' | 'bottom';
   containerStyle?: ViewStyle;
   backgroundColor?: string;
   shadowColor?: string;
@@ -60,20 +60,20 @@ interface ToastContainerProps {
 
 const styles = StyleSheet.create({
   defaultStyle: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   } as ViewStyle,
   containerStyle: {
     padding: 10,
-    backgroundColor: "#000",
+    backgroundColor: '#000',
     opacity: 0.8,
     borderRadius: 5,
   } as ViewStyle,
   shadowStyle: {
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: {
       width: 4,
       height: 4,
@@ -84,8 +84,8 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   textStyle: {
     fontSize: 16,
-    color: "#fff",
-    textAlign: "center",
+    color: '#fff',
+    textAlign: 'center',
   } as TextStyle,
 });
 
@@ -105,8 +105,8 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
   accessible = true,
   accessibilityLabel,
   accessibilityHint,
-  accessibilityRole = "alert",
-  slideFrom = "bottom",
+  accessibilityRole = 'alert',
+  slideFrom = 'bottom',
   containerStyle,
   textStyle,
   onPress,
@@ -116,13 +116,11 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
   onShown,
   children,
 }) => {
-  const window = Dimensions.get("window");
+  const window = Dimensions.get('window');
   const [state, setState] = useState({
     visible,
     opacity: new Animated.Value(0),
-    translateY: new Animated.Value(
-      slideFrom === "top" ? -window.height : window.height,
-    ),
+    translateY: new Animated.Value(slideFrom === 'top' ? -window.height : window.height),
     windowWidth: window.width,
     windowHeight: window.height,
     keyboardScreenY: window.height,
@@ -134,17 +132,11 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
   const showTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const dimensionListener = Dimensions.addEventListener(
-      "change",
-      handleWindowChange,
-    );
+    const dimensionListener = Dimensions.addEventListener('change', handleWindowChange);
 
     let keyboardListener: any;
     if (keyboardAvoiding) {
-      keyboardListener = Keyboard.addListener(
-        "keyboardDidChangeFrame",
-        handleKeyboardChange,
-      );
+      keyboardListener = Keyboard.addListener('keyboardDidChangeFrame', handleKeyboardChange);
     }
 
     if (state.visible) {
@@ -167,29 +159,26 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
       hideToast();
     }
 
-    setState((prevState) => ({ ...prevState, visible }));
+    setState(prevState => ({ ...prevState, visible }));
   }, [visible]);
 
   const handleWindowChange = useCallback(({ window }: { window: any }) => {
-    setState((prevState) => ({
+    setState(prevState => ({
       ...prevState,
       windowWidth: window.width,
       windowHeight: window.height,
     }));
   }, []);
 
-  const handleKeyboardChange = useCallback(
-    ({ endCoordinates }: { endCoordinates: any }) => {
-      setState((prevState) => ({
-        ...prevState,
-        keyboardScreenY: endCoordinates.screenY,
-      }));
-    },
-    [],
-  );
+  const handleKeyboardChange = useCallback(({ endCoordinates }: { endCoordinates: any }) => {
+    setState(prevState => ({
+      ...prevState,
+      keyboardScreenY: endCoordinates.screenY,
+    }));
+  }, []);
 
   const setPointerEvents = useCallback((value: string) => {
-    if (Platform.OS !== "web") {
+    if (Platform.OS !== 'web') {
       rootRef.current?.setNativeProps({
         pointerEvents: value,
       });
@@ -203,11 +192,10 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
     if (!animating.current) {
       clearTimeout(hideTimeout.current as ReturnType<typeof setTimeout>);
       animating.current = true;
-      setPointerEvents("auto");
+      setPointerEvents('auto');
       onShow?.();
 
-      const initialTranslateValue =
-        slideFrom === "top" ? -state.windowHeight : state.windowHeight;
+      const initialTranslateValue = slideFrom === 'top' ? -state.windowHeight : state.windowHeight;
       state.translateY.setValue(initialTranslateValue);
 
       Animated.parallel([
@@ -233,25 +221,16 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
         }
       });
     }
-  }, [
-    state.opacity,
-    state.translateY,
-    opacity,
-    animation,
-    onShow,
-    onShown,
-    duration,
-  ]);
+  }, [state.opacity, state.translateY, opacity, animation, onShow, onShown, duration]);
 
   const hideToast = useCallback(() => {
     clearTimeout(showTimeout.current as ReturnType<typeof setTimeout>);
     clearTimeout(hideTimeout.current as ReturnType<typeof setTimeout>);
     if (!animating.current) {
-      setPointerEvents("none");
+      setPointerEvents('none');
       onHide?.();
 
-      const finalTranslateValue =
-        slideFrom === "top" ? -state.windowHeight : state.windowHeight;
+      const finalTranslateValue = slideFrom === 'top' ? -state.windowHeight : state.windowHeight;
 
       Animated.parallel([
         Animated.timing(state.opacity, {
@@ -282,8 +261,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
   const keyboardHeight = Math.max(windowHeight - keyboardScreenY, 0);
   const calculatedPosition = offset
     ? {
-        [offset < 0 ? "bottom" : "top"]:
-          offset < 0 ? keyboardHeight - offset : offset,
+        [offset < 0 ? 'bottom' : 'top']: offset < 0 ? keyboardHeight - offset : offset,
       }
     : {
         top: 0,
@@ -300,7 +278,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
       accessibilityRole={accessibilityRole}
     >
       <Touchable
-        onPress={(event) => {
+        onPress={event => {
           onPress?.(event);
           hideOnPress && hideToast();
         }}
@@ -328,4 +306,4 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
 };
 
 export default ToastContainer;
-export { ToastContainerProps };
+export type { ToastContainerProps };

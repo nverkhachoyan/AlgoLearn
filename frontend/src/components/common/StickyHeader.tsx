@@ -2,11 +2,10 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react
 import LottieView from 'lottie-react-native';
 import Conditional from '@/src/components/Conditional';
 import { Spinning } from './Spinning';
-import { useRef, ReactNode, memo } from 'react';
+import { useRef, memo } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
 import { router, usePathname } from 'expo-router';
-import { Colors } from '@/constants/Colors';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { buildImgUrl } from '@/src/lib/utils/transform';
 import { NIL_UUID } from '@/src/features/upload/utils';
@@ -96,17 +95,6 @@ export const StickyHeader = memo(function StickyHeader({
       }
     );
   }
-
-  const backgroundStyle = useAnimatedStyle(() => {
-    return {
-      opacity: headerOpacity.value,
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    };
-  });
 
   // Create animated style for titleContent with improved direction-aware transition
   const titleContentStyle = useAnimatedStyle(() => {
@@ -243,65 +231,6 @@ export const StickyHeader = memo(function StickyHeader({
   );
 });
 
-export function StickyHeaderSimple({ children }: { children: ReactNode }) {
-  const { colors } = useTheme();
-
-  return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.surface,
-          borderBottomEndRadius: 0,
-          borderBottomStartRadius: 0,
-        },
-        Platform.OS === 'web' && styles.webContainer,
-      ]}
-    >
-      <View style={styles.content}>{children}</View>
-    </View>
-  );
-}
-
-export function HeaderGoBack({
-  title,
-  transparent = false,
-}: {
-  title: string;
-  transparent?: boolean;
-}) {
-  const { colors }: { colors: Colors } = useTheme();
-  const pathname = usePathname();
-
-  return (
-    <View
-      style={[
-        styles.container,
-        transparent ? { backgroundColor: 'transparent' } : { backgroundColor: colors.surface },
-        Platform.OS === 'web' && styles.webContainer,
-      ]}
-    >
-      <View style={[styles.content, styles.goBackContent]}>
-        <TouchableOpacity
-          onPress={() => {
-            router.back();
-          }}
-        >
-          <Feather
-            name="chevron-left"
-            size={24}
-            color={transparent ? '#FFFFFF' : colors.onSurface}
-          />
-        </TouchableOpacity>
-
-        <Text style={[styles.title, { color: transparent ? '#FFFFFF' : colors.onSurface }]}>
-          {title}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     width: '100%',
@@ -333,10 +262,6 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? { justifyContent: 'space-between' }
       : { justifyContent: 'space-between' }),
-  },
-  goBackContent: {
-    justifyContent: 'flex-start',
-    gap: 10,
   },
   rightSection: {
     flexDirection: 'row',
@@ -370,15 +295,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
+
   headerContent: {
     alignItems: 'center',
     // marginVertical: 10,

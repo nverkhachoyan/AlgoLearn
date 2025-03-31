@@ -1,18 +1,20 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { Seperator } from '@/src/components/common/Seperator';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StickyHeader } from '@/src/components/common/StickyHeader';
 import { useUser } from '@/src/features/user/hooks/useUser';
-import { Colors } from '@/constants/Colors';
+import { TabGradients } from '@/constants/Colors';
 import { useAuth } from '@/src/features/auth/AuthContext';
 
 export default function Leaderboard() {
   const { user } = useUser();
   const { isAuthenticated } = useAuth();
-  const { colors }: { colors: Colors } = useTheme();
+  const { colors, dark } = useTheme();
 
   function getRandomColor() {
     var letters = '0123456789ABCDEF';
@@ -61,6 +63,10 @@ export default function Leaderboard() {
     },
   ];
 
+  const headerGradients = dark
+    ? TabGradients['leaderboard'].dark
+    : TabGradients['leaderboard'].light;
+
   if (!isAuthenticated || !user) {
     return <Text style={styles.notLoggedInText}>Not logged in</Text>;
   }
@@ -74,54 +80,62 @@ export default function Leaderboard() {
         },
       ]}
     >
-      <StickyHeader
-        cpus={user.cpus}
-        streak={user.streak || 0}
-        userAvatar={null}
-        onAvatarPress={() => router.push('/(protected)/(profile)')}
+      <LinearGradient
+        colors={headerGradients}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
       />
-      <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
-        <View style={styles.innerContainer}>
-          <Text style={[styles.title, { color: colors.onSurface }]}>Circuit Rankings</Text>
-          <Seperator />
-          <View style={styles.separator} />
-          <View style={styles.leaderboardContainer}>
-            {leaderboardItems.map((item, index) => (
-              <View
-                key={item.id}
-                style={[
-                  styles.leaderboardItem,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.backdrop,
-                  },
-                ]}
-              >
-                <Text style={[styles.leaderboardPosition, { color: colors.onSurface }]}>
-                  {index + 1}
-                </Text>
-                <View style={styles.leaderboardItemContent}>
-                  <Text style={[styles.leaderboardItemName, { color: colors.onSurface }]}>
-                    {item.name}
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <StickyHeader
+          cpus={user.cpus}
+          streak={user.streak || 0}
+          onAvatarPress={() => router.push('/(protected)/(profile)')}
+          gradientColors={headerGradients}
+        />
+        <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.innerContainer}>
+            <Text style={[styles.title, { color: colors.onSurface }]}>Circuit Rankings</Text>
+            <Seperator />
+            <View style={styles.separator} />
+            <View style={styles.leaderboardContainer}>
+              {leaderboardItems.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.leaderboardItem,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.backdrop,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.leaderboardPosition, { color: colors.onSurface }]}>
+                    {index + 1}
                   </Text>
-                  <Text style={[styles.leaderboardItemScore, { color: colors.onSurface }]}>
-                    {item.score} CPUs
-                  </Text>
-                  <Text style={[styles.leaderboardItemRank, { color: '#25A879' }]}>
-                    {item.rank}
-                  </Text>
+                  <View style={styles.leaderboardItemContent}>
+                    <Text style={[styles.leaderboardItemName, { color: colors.onSurface }]}>
+                      {item.name}
+                    </Text>
+                    <Text style={[styles.leaderboardItemScore, { color: colors.onSurface }]}>
+                      {item.score} CPUs
+                    </Text>
+                    <Text style={[styles.leaderboardItemRank, { color: '#25A879' }]}>
+                      {item.rank}
+                    </Text>
+                  </View>
+                  <MaterialIcons
+                    name={item.icon as any}
+                    size={28}
+                    color={getRandomColor()}
+                    style={styles.leaderboardItemIcon}
+                  />
                 </View>
-                <MaterialIcons
-                  name={item.icon as any}
-                  size={28}
-                  color={getRandomColor()}
-                  style={styles.leaderboardItemIcon}
-                />
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -187,5 +201,13 @@ const styles = StyleSheet.create({
   },
   leaderboardItemIcon: {
     marginLeft: 10,
+  },
+  backgroundGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 70, // Increase height to cover enough space for the header + title content
+    zIndex: 0,
   },
 });

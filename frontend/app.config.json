@@ -1,6 +1,6 @@
 {
+  "name": "algolearn",
   "expo": {
-    "name": "algolearn",
     "slug": "algolearn",
     "version": "1.0.0",
     "newArchEnabled": true,
@@ -69,6 +69,5 @@
     "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"],
     "sdkVersion": "52.0.0",
     "entryPoint": ".vscode/exponentIndex.js"
-  },
-  "name": "algolearn"
+  }
 }

@@ -34,7 +34,6 @@ interface StickyHeaderProps {
   collapsibleTitle?: boolean;
 }
 
-// Memoize the StickyHeader component to prevent unnecessary re-renders
 export const StickyHeader = memo(function StickyHeader({
   cpus,
   streak,

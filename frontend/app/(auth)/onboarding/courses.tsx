@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Pressable, TouchableOpacity, ScrollView, View, TextInput } from 'react-native';
 import { Text } from 'react-native-paper';
-import Button from '@/src/components/common/Button';
+import Button from '@/src/components/Button';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

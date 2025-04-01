@@ -13,7 +13,7 @@ import {
 
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import Button from '@/src/components/common/Button';
+import Button from '@/src/components/Button';
 import { Feather } from '@expo/vector-icons';
 import { useTheme, TextInput } from 'react-native-paper';
 import FontAwesome from '@expo/vector-icons/FontAwesome';

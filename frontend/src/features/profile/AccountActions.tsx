@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import React from 'react';
-import Button from '@/src/components/common/Button';
+import Button from '@/src/components/Button';
 
 interface AccountActionsProps {
   onSignOut: () => Promise<void>;

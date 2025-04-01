@@ -1,25 +1,26 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, ViewToken, View, Animated } from 'react-native';
-import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
+import { useTheme } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
-import SectionsList from '@/src/features/course/components/module-session/SectionsList';
-import Button from '@/src/components/common/Button';
+import SectionsList from '@/src/features/module/components/sections/SectionsList';
+import Button from '@/src/components/Button';
 import { useModuleProgress } from '@/src/features/module/hooks/useModules';
 import { isQuestionSection, Section } from '@/src/features/module/types';
 import { QuestionContent } from '@/src/features/module/types/sections';
-import { ModuleHeader } from '@/src/features/course/components/module-session/ModuleHeader';
-import { ModuleFooter } from '@/src/features/course/components/module-session/ModuleFooter';
+import { ModuleHeader } from '@/src/features/module/components/sections/ModuleHeader';
+import { ModuleFooter } from '@/src/features/module/components/sections/ModuleFooter';
 import { useModuleProgressInit } from '@/src/features/module/hooks/useModuleProgressInit';
-import { Colors } from '@/constants/Colors';
+import { Colors, TabGradients } from '@/constants/Colors';
 import useToast from '@/src/hooks/useToast';
 import { UseModuleProgressReturn } from '@/src/features/module/hooks/useModules';
 import { usePoints } from '@/src/features/user/hooks/usePoints';
+import { Spinning } from '@/src/components/Spinning';
 
 const SECTION_VIEWABILITY_CONFIG = {
   itemVisiblePercentThreshold: 30,
   minimumViewTime: 300,
-} as const;
+};
 
 // Create a component for the animated section
 const AnimatedSection = ({
@@ -124,6 +125,7 @@ export default function ModuleSession() {
     }),
     [params]
   );
+
   const {
     currentModule,
     hasNextModule,
@@ -140,13 +142,15 @@ export default function ModuleSession() {
     hasPrevUnitModule,
     completeModuleMutation,
     isPending,
-    error,
   }: UseModuleProgressReturn = useModuleProgress({
     courseId: ids.courseId,
     unitId: ids.unitId,
     moduleId: ids.moduleId,
   });
   const { moduleProgress, setModuleProgress } = useModuleProgressInit(currentModule);
+  const { dark } = useTheme();
+
+  const headerGradientColors = TabGradients.index[dark ? 'dark' : 'light'];
 
   // Special effect to force update the moduleProgress when the module data changes
   // This ensures that sections from the backend are properly marked as seen
@@ -491,30 +495,18 @@ export default function ModuleSession() {
     [handleQuestionAnswer, moduleProgress]
   );
 
-  if (error) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.onSurface }}>{MESSAGES.ERROR}</Text>
-      </View>
-    );
-  }
-
   if (isPending || !currentModule || !moduleProgress || !currentModule?.sections) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator animating size="large" color={colors.primary} />
-      </View>
-    );
+    return <Spinning />;
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ModuleHeader
-        moduleName={currentModule?.name ?? ''}
+        moduleName={currentModule.name}
         progress={calculateProgress}
         colors={colors}
+        gradientColors={headerGradientColors}
       />
-
       <FlashList
         data={sortedSections}
         renderItem={renderItem}
@@ -536,12 +528,12 @@ export default function ModuleSession() {
           </View>
         )}
       />
-
       <ModuleFooter
         moduleName={currentModule?.name ?? ''}
         onNext={handleModuleCompletion}
         onTOC={() => {}}
         colors={colors}
+        gradientColors={headerGradientColors}
       />
     </View>
   );

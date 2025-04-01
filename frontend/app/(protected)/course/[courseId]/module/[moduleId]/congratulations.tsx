@@ -1,31 +1,30 @@
-import { StyleSheet, View } from "react-native";
-import { Text, useTheme } from "react-native-paper";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Colors } from "@/constants/Colors";
-import Button from "@/src/components/common/Button";
-import { useMemo, useState, useEffect } from "react";
-import * as Animatable from "react-native-animatable";
-import { useUser } from "@/src/features/user/hooks/useUser";
-import { usePoints } from "@/src/features/user/hooks/usePoints";
-import { Feather } from "@expo/vector-icons";
-import { User } from "@/src/features/user/types/types";
+import { StyleSheet, View } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Colors } from '@/constants/Colors';
+import Button from '@/src/components/Button';
+import { useMemo, useState, useEffect } from 'react';
+import * as Animatable from 'react-native-animatable';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import { usePoints } from '@/src/features/user/hooks/usePoints';
+import { Feather } from '@expo/vector-icons';
 
 const congratulatoryTitles = [
-  "Congratulations!",
-  "Well Done!",
-  "Awesome Job!",
-  "Fantastic Work!",
-  "Brilliant!",
-  "Way to Go!",
-  "Outstanding!",
-  "Excellent!",
-  "Success!",
-  "You Did It!",
-  "Achievement Unlocked!",
-  "Mission Accomplished!",
-  "Superb!",
-  "Bravo!",
-  "Stellar Work!"
+  'Congratulations!',
+  'Well Done!',
+  'Awesome Job!',
+  'Fantastic Work!',
+  'Brilliant!',
+  'Way to Go!',
+  'Outstanding!',
+  'Excellent!',
+  'Success!',
+  'You Did It!',
+  'Achievement Unlocked!',
+  'Mission Accomplished!',
+  'Superb!',
+  'Bravo!',
+  'Stellar Work!',
 ];
 
 const getRandomTitle = () => {
@@ -35,39 +34,39 @@ const getRandomTitle = () => {
 const congratulatoryMessages: any = {
   achievement: [
     "Great job! You've mastered this module.",
-    "Achievement unlocked! Module completed successfully.",
+    'Achievement unlocked! Module completed successfully.',
     "Excellent work! You've conquered this material.",
     "Bravo! You've completed another milestone in your learning journey.",
-    "Success! You've added another skill to your toolkit."
+    "Success! You've added another skill to your toolkit.",
   ],
   motivation: [
-    "Keep up the momentum and continue your learning journey!",
-    "One step closer to becoming an expert. Keep going!",
+    'Keep up the momentum and continue your learning journey!',
+    'One step closer to becoming an expert. Keep going!',
     "Progress is the key to success. You're on the right track!",
     "Learning is a journey, not a destination. You're making great progress!",
-    "Small steps lead to big achievements. Well done!"
+    'Small steps lead to big achievements. Well done!',
   ],
   inspiration: [
     "Knowledge is power, and you're getting stronger every day!",
     "Every expert was once a beginner. You're on your way!",
-    "Learning is the only thing the mind never exhausts, never fears, and never regrets.",
-    "The more you learn, the more you grow. Keep expanding your horizons!",
-    "Your dedication to learning is inspiring. Keep that fire burning!"
+    'Learning is the only thing the mind never exhausts, never fears, and never regrets.',
+    'The more you learn, the more you grow. Keep expanding your horizons!',
+    'Your dedication to learning is inspiring. Keep that fire burning!',
   ],
   challenge: [
     "Challenge accepted and conquered! What's next on your learning path?",
     "Another challenge overcome! You're building resilience and knowledge.",
     "Difficult roads often lead to beautiful destinations. You're making excellent progress!",
-    "The greater the obstacle, the more glory in overcoming it. Well done!",
-    "Success isn't just about what you accomplish, but what you overcome. Excellent work!"
+    'The greater the obstacle, the more glory in overcoming it. Well done!',
+    "Success isn't just about what you accomplish, but what you overcome. Excellent work!",
   ],
   celebration: [
-    "Time to celebrate this achievement before tackling the next challenge!",
+    'Time to celebrate this achievement before tackling the next challenge!',
     "Give yourself a pat on the back. You've earned it!",
-    "Moments like these deserve recognition. Congratulations!",
-    "Take a moment to enjoy this accomplishment before moving forward.",
-    "Celebrate progress, no matter how small. You did it!"
-  ]
+    'Moments like these deserve recognition. Congratulations!',
+    'Take a moment to enjoy this accomplishment before moving forward.',
+    'Celebrate progress, no matter how small. You did it!',
+  ],
 };
 
 const getRandomCompletionMessage = () => {
@@ -110,9 +109,9 @@ export default function ModuleCongratulations() {
   const router = useRouter();
   const { colors }: { colors: Colors } = useTheme();
   const params = useLocalSearchParams<RouteParams | any>();
-  const [completionMessage, setCompletionMessage] = useState("");
-  const [completionTitle, setCompletionTitle] = useState("");
-  const { user, updateUser }: { user: User, updateUser: any } = useUser();
+  const [completionMessage, setCompletionMessage] = useState('');
+  const [completionTitle, setCompletionTitle] = useState('');
+  const { user } = useUser();
   const { addModuleCompletionPoints, pointsValues } = usePoints();
   const [pointsAdded, setPointsAdded] = useState(false);
   const [streakUpdated, setStreakUpdated] = useState(false);
@@ -132,22 +131,23 @@ export default function ModuleCongratulations() {
       if (!streakUpdated && shouldUpdateStreak(user.lastStreakDate)) {
         const currentStreak = user.streak || 0;
 
-        updateUser.mutate({
-          streak: currentStreak + 1,
-          lastStreakDate: now
-        });
+        // TODO: Fix, underyling func no longer supports updating streak
+        // updateUser.mutate({
+        //   streak: currentStreak + 1,
+        //   lastStreakDate: now,
+        // });
 
         setStreakUpdated(true);
         setStreakIncreased(true);
       } else if (!streakUpdated) {
-        updateUser.mutate({
-          lastStreakDate: now
-        });
+        // updateUser.mutate({
+        //   lastStreakDate: now,
+        // });
 
         setStreakUpdated(true);
       }
     }
-  }, [user, pointsAdded, streakUpdated, addModuleCompletionPoints, updateUser]);
+  }, [user, pointsAdded, streakUpdated, addModuleCompletionPoints]);
 
   const ids = useMemo(
     () => ({
@@ -157,7 +157,7 @@ export default function ModuleCongratulations() {
       nextModuleId: params.nextModuleId ? Number(params.nextModuleId) : undefined,
       nextUnitId: params.nextUnitId ? Number(params.nextUnitId) : undefined,
       nextUnitModuleId: params.nextUnitModuleId ? Number(params.nextUnitModuleId) : undefined,
-      hasNext: params.hasNext === "true",
+      hasNext: params.hasNext === 'true',
     }),
     [params]
   );
@@ -166,22 +166,22 @@ export default function ModuleCongratulations() {
     if (ids.hasNext && ids.nextModuleId) {
       // Navigate to the next module in the same unit
       router.replace({
-        pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+        pathname: '/(protected)/course/[courseId]/module/[moduleId]',
         params: {
           courseId: ids.courseId,
           unitId: ids.unitId,
-          moduleId: ids.nextModuleId
-        }
+          moduleId: ids.nextModuleId,
+        },
       });
     } else if (ids.nextUnitId && ids.nextUnitModuleId) {
       // Navigate to a module in the next unit
       router.replace({
-        pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+        pathname: '/(protected)/course/[courseId]/module/[moduleId]',
         params: {
           courseId: ids.courseId,
           unitId: ids.nextUnitId,
-          moduleId: ids.nextUnitModuleId
-        }
+          moduleId: ids.nextUnitModuleId,
+        },
       });
     } else {
       // No next module or unit, go back to course
@@ -196,11 +196,7 @@ export default function ModuleCongratulations() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>
-      <Animatable.View
-        animation="fadeIn"
-        duration={800}
-        style={styles.content}
-      >
+      <Animatable.View animation="fadeIn" duration={800} style={styles.content}>
         <Animatable.View
           animation="bounceIn"
           delay={300}
@@ -213,9 +209,7 @@ export default function ModuleCongratulations() {
         </Animatable.View>
 
         <Animatable.View animation="fadeInUp" delay={500} duration={800}>
-          <Text style={[styles.title, { color: colors.primary }]}>
-            {completionTitle}
-          </Text>
+          <Text style={[styles.title, { color: colors.primary }]}>{completionTitle}</Text>
           <Text style={[styles.subtitle, { color: colors.onSurface }]}>
             You've successfully completed this module
           </Text>
@@ -226,11 +220,7 @@ export default function ModuleCongratulations() {
           {user && (
             <View style={styles.rewardsContainer}>
               {/* Points reward */}
-              <Animatable.View
-                animation="bounceIn"
-                delay={1000}
-                style={styles.rewardItem}
-              >
+              <Animatable.View animation="bounceIn" delay={1000} style={styles.rewardItem}>
                 <View style={styles.rewardIconContainer}>
                   <Feather name="cpu" size={24} color="#1CC0CB" />
                 </View>
@@ -250,11 +240,7 @@ export default function ModuleCongratulations() {
               </Animatable.View>
 
               {/* Streak reward */}
-              <Animatable.View
-                animation="bounceIn"
-                delay={1300}
-                style={styles.rewardItem}
-              >
+              <Animatable.View animation="bounceIn" delay={1300} style={styles.rewardItem}>
                 <View style={styles.rewardIconContainer}>
                   <Feather name="zap" size={24} color="#1CC0CB" />
                 </View>
@@ -262,12 +248,13 @@ export default function ModuleCongratulations() {
                   Streak:
                 </Text>
                 <Animatable.Text
-                  animation={streakIncreased ? "pulse" : "fadeIn"}
+                  animation={streakIncreased ? 'pulse' : 'fadeIn'}
                   iterationCount={streakIncreased ? 2 : 1}
                   duration={800}
                   style={[styles.rewardValue, { color: colors.primary }]}
                 >
-                  {streakIncreased ? "+" : ""}{user.streak || 0}
+                  {streakIncreased ? '+' : ''}
+                  {user.streak || 0}
                 </Animatable.Text>
                 {streakIncreased && (
                   <Text style={[styles.streakMessage, { color: colors.onSurfaceVariant }]}>
@@ -286,7 +273,7 @@ export default function ModuleCongratulations() {
           style={styles.buttonsContainer}
         >
           <Button
-            title={ids.hasNext ? "Next Module" : "Back to Course"}
+            title={ids.hasNext ? 'Next Module' : 'Back to Course'}
             style={[styles.continueButton, { backgroundColor: colors.primary }]}
             textStyle={{ color: colors.onPrimary }}
             onPress={handleContinue}
@@ -309,15 +296,15 @@ export default function ModuleCongratulations() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   content: {
-    width: "100%",
+    width: '100%',
     maxWidth: 500,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconContainer: {
     marginBottom: 30,
@@ -326,40 +313,40 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   checkmark: {
     fontSize: 60,
-    color: "white",
+    color: 'white',
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 18,
-    fontWeight: "500",
-    textAlign: "center",
+    fontWeight: '500',
+    textAlign: 'center',
     marginBottom: 16,
   },
   message: {
     fontSize: 16,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 20,
   },
   rewardsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
     gap: 15,
     marginBottom: 20,
   },
   rewardItem: {
-    alignItems: "center",
+    alignItems: 'center',
     padding: 15,
     borderRadius: 10,
     backgroundColor: 'rgba(0,0,0,0.05)',
@@ -374,7 +361,7 @@ const styles = StyleSheet.create({
   },
   rewardValue: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 5,
   },
   rewardTotal: {
@@ -382,19 +369,19 @@ const styles = StyleSheet.create({
   },
   streakMessage: {
     fontSize: 14,
-    fontStyle: "italic",
+    fontStyle: 'italic',
   },
   buttonsContainer: {
-    width: "100%",
+    width: '100%',
     gap: 12,
     marginTop: 20,
   },
   continueButton: {
-    width: "100%",
+    width: '100%',
     paddingVertical: 12,
   },
   secondaryButton: {
-    width: "100%",
+    width: '100%',
     paddingVertical: 12,
   },
 });

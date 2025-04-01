@@ -8,7 +8,7 @@ const AUTH_ROUTE = '/(auth)' as const;
 
 export function AuthGuard() {
   const segments = useSegments();
-  const { isAuthenticated, isLoading, isOnboarding } = useAuth();
+  const { isAuthed, isLoading, isOnboarding } = useAuth();
   const rootNavigation = useNavigationContainerRef();
   const router = useRouter();
 
@@ -30,14 +30,14 @@ export function AuthGuard() {
       }
     };
 
-    if (!isAuthenticated) {
+    if (!isAuthed) {
       navigateToPath(AUTH_ROUTE);
     } else if (!isOnboarding) {
       if (inAuthGroup || inPublicGroup) {
         navigateToPath(PROTECTED_ROUTE);
       }
     }
-  }, [isLoading, isAuthenticated, segments, rootNavigation?.isReady]);
+  }, [isLoading, isAuthed, segments, rootNavigation?.isReady]);
 
   return null;
 }

@@ -255,3 +255,11 @@ export const USER_PROFILE_GRADIENTS = {
     dark: ['#E6B800', '#A38308', '#4D4000'],
   },
 };
+
+export const ACCENT_GRADIENT: {
+  dark: readonly [string, string, string];
+  light: readonly [string, string, string];
+} = {
+  dark: ['#5E3773', '#7A3E8C', '#9247A9'],
+  light: ['#F0E1F7', '#E0C2F0', '#D0A3E9'],
+};

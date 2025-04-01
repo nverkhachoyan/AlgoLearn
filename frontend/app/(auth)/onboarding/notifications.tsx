@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Pressable, TouchableOpacity, ScrollView } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import Button from '@/src/components/common/Button';
+import Button from '@/src/components/Button';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/features/auth/AuthContext';

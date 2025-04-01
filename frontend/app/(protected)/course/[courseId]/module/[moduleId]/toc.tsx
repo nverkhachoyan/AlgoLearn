@@ -12,11 +12,11 @@ import { Unit } from '@/src/features/course/types';
 import { Feather } from '@expo/vector-icons';
 export default function SessionTOC(): JSX.Element {
   const { colors } = useTheme();
-  const { isAuthenticated } = useAuth();
+  const { isAuthed } = useAuth();
   const { courseId } = useLocalSearchParams();
   const { course }: { course: Course | undefined } = useCourse({
     courseId: parseInt(courseId as string, 10),
-    isAuthenticated,
+    isAuthed,
   });
 
   if (!course) {

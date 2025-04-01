@@ -1,4 +1,4 @@
-import { Toast, ToastContainerProps } from '@/src/components/common/Toast';
+import { Toast, ToastContainerProps } from '@/src/components/Toast';
 import { useTheme } from 'react-native-paper';
 
 const CustomToast = () => {

@@ -1,13 +1,15 @@
-import { StyleSheet, Image, View } from "react-native";
-import { Text } from "react-native-paper";
-import { Feather } from "@expo/vector-icons";
+import { StyleSheet, Image, View } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Feather } from '@expo/vector-icons';
 
-export default function CourseHeader({ course }: any) {
+export default function CourseHeader({ course, imgURL }: any) {
   return (
     <View>
       <Image
+        width={200}
+        height={200}
         source={{
-          uri: "https://cdn.iconscout.com/icon/free/png-256/javascript-2752148-2284965.png",
+          uri: imgURL,
         }}
         style={styles.icon}
       />
@@ -19,7 +21,7 @@ export default function CourseHeader({ course }: any) {
       ))}
       <View style={styles.courseMetricsContainer}>
         <Text>
-          <Feather name="percent" size={15} /> {course?.difficulty_level}
+          <Feather name="percent" size={15} /> {course?.difficultyLevel}
         </Text>
         <Text>
           <Feather name="clock" size={15} /> {course.duration}
@@ -36,27 +38,27 @@ const styles = StyleSheet.create({
   icon: {
     width: 60,
     height: 60,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginVertical: 10,
   },
   courseTitle: {
     fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginVertical: 5,
   },
   courseAuthor: {
     fontSize: 16,
-    fontStyle: "italic",
-    textAlign: "center",
+    fontStyle: 'italic',
+    textAlign: 'center',
     marginVertical: 5,
   },
   courseMetricsContainer: {
     fontSize: 20,
-    textAlign: "center",
+    textAlign: 'center',
     marginVertical: 5,
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 10,
   },
 });

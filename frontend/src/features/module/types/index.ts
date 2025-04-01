@@ -1,5 +1,5 @@
-import { BaseModel } from "@/src/types";
-import { Section, QuestionProgress } from "./sections";
+import { BaseModel } from '@/src/types';
+import { Section, QuestionProgress } from './sections';
 
 export interface Module extends BaseModel {
   moduleNumber: number;
@@ -27,13 +27,12 @@ export interface SectionProgress {
   completedAt: string | Date | null;
 }
 
-export {
+export { isMarkdownSection, isQuestionSection } from './sections';
+export type {
   Section,
   QuestionProgress,
   BatchModuleProgress,
-  isQuestionSection,
   SectionViewState,
   QuestionOption,
-  isMarkdownSection,
   CodeContent,
-} from "./sections";
+} from './sections';

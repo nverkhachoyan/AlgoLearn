@@ -11,7 +11,7 @@ import { AuthenticatedFetcher } from './authenticatedFetcher';
 import useToast from '@/src/hooks/useToast';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
+  isAuthed: boolean;
   isLoading: boolean;
   isOnboarding: boolean;
   token: string | null;
@@ -50,7 +50,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     queryKey: ['auth', 'token'],
     queryFn: async () => {
       const token = await tokenService.getToken();
-      console.debug('[AuthContext] Token from query:', token ? 'exists' : 'null');
       return token;
     },
     staleTime: Infinity,
@@ -179,7 +178,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: !!token,
+        isAuthed: !!token,
         isLoading,
         token,
         isOnboarding,

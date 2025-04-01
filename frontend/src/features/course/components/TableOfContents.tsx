@@ -1,22 +1,14 @@
-import React, { useState, useCallback, useMemo } from "react";
-import {
-  StyleSheet,
-  Animated,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-} from "react-native";
-import { List, Surface, Text } from "react-native-paper";
-import { Feather } from "@expo/vector-icons";
-import { View } from "react-native";
-import { Unit } from "@/src/features/course/types/units";
-import { router } from "expo-router";
+import React, { useState, useCallback, useMemo } from 'react';
+import { StyleSheet, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { List, Surface, Text } from 'react-native-paper';
+import Conditional from '@/src/components/Conditional';
+import { Feather } from '@expo/vector-icons';
+import { View } from 'react-native';
+import { Unit } from '@/src/features/course/types/units';
+import { router } from 'expo-router';
 
 // Enable LayoutAnimation for Android
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -37,15 +29,15 @@ const configureAnimation = () => {
   );
 };
 
-const ChevronIcon: React.FC<{ rotation: Animated.Value; color: string }> =
-  React.memo(({ rotation, color }) => {
+const ChevronIcon: React.FC<{ rotation: Animated.Value; color: string }> = React.memo(
+  ({ rotation, color }) => {
     const rotationStyle = useMemo(
       () => ({
         transform: [
           {
             rotate: rotation.interpolate({
               inputRange: [0, 1],
-              outputRange: ["0deg", "90deg"],
+              outputRange: ['0deg', '90deg'],
             }),
           },
         ],
@@ -58,32 +50,22 @@ const ChevronIcon: React.FC<{ rotation: Animated.Value; color: string }> =
         <Feather name="chevron-right" size={16} color={color} />
       </Animated.View>
     );
-  });
+  }
+);
 
 const ModuleItem: React.FC<{
   courseId: number;
   unitId: number;
-  module: Unit["modules"][0];
+  module: Unit['modules'][0];
   unitNumber: number;
   moduleNumber: number;
   onPress: (courseId: number, unitId: number, moduleId: number) => void;
   backgroundColor: string;
   textColor: string;
 }> = React.memo(
-  ({
-    courseId,
-    unitId,
-    module,
-    unitNumber,
-    moduleNumber,
-    onPress,
-    backgroundColor,
-    textColor,
-  }) => (
+  ({ courseId, unitId, module, unitNumber, moduleNumber, onPress, backgroundColor, textColor }) => (
     <List.Item
-      left={() => (
-        <Text style={{ color: "#fff" }}>{`${unitNumber}.${moduleNumber}`}</Text>
-      )}
+      left={() => <Text style={{ color: '#fff' }}>{`${unitNumber}.${moduleNumber}`}</Text>}
       title={module.name}
       style={[styles.moduleItem, { backgroundColor }]}
       titleStyle={{ color: textColor }}
@@ -92,23 +74,19 @@ const ModuleItem: React.FC<{
   )
 );
 
-const TableOfContents: React.FC<TableOfContentsProps> = ({
-  courseId,
-  units = [],
-}) => {
+const TableOfContents: React.FC<TableOfContentsProps> = ({ courseId, units = [] }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<number>();
 
   const mainRotation = useMemo(() => new Animated.Value(1), []);
   const unitRotations = useMemo(
-    () =>
-      Object.fromEntries(units.map((unit) => [unit.id, new Animated.Value(0)])),
+    () => Object.fromEntries(units.map(unit => [unit.id, new Animated.Value(0)])),
     [units]
   );
 
   const handleMainPress = useCallback(() => {
     configureAnimation();
-    setIsVisible((prev) => !prev);
+    setIsVisible(prev => !prev);
     Animated.timing(mainRotation, {
       toValue: isVisible ? 0 : 1,
       duration: ANIMATION_DURATION,
@@ -119,7 +97,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
   const handleUnitPress = useCallback(
     (id: number) => {
       configureAnimation();
-      setExpandedId((prevId) => (prevId === id ? undefined : id));
+      setExpandedId(prevId => (prevId === id ? undefined : id));
 
       Animated.timing(unitRotations[id], {
         toValue: expandedId === id ? 0 : 1,
@@ -130,13 +108,9 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
     [expandedId, unitRotations]
   );
 
-  const handleModulePress = (
-    courseId: number,
-    unitId: number,
-    moduleId: number
-  ) => {
+  const handleModulePress = (courseId: number, unitId: number, moduleId: number) => {
     router.replace({
-      pathname: "/(protected)/course/[courseId]/module/[moduleId]",
+      pathname: '/(protected)/course/[courseId]/module/[moduleId]',
       params: {
         courseId: courseId,
         unitId: unitId,
@@ -150,7 +124,7 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
         {
           rotate: mainRotation.interpolate({
             inputRange: [0, 1],
-            outputRange: ["180deg", "0deg"],
+            outputRange: ['180deg', '0deg'],
           }),
         },
       ],
@@ -164,10 +138,8 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
     <Surface style={styles.container} elevation={4}>
       <List.Section style={styles.section}>
         <List.Accordion
-          left={(props) => (
-            <Feather {...props} name="list" size={20} color="#fff" />
-          )}
-          right={(props) => (
+          left={props => <Feather {...props} name="list" size={20} color="#fff" />}
+          right={props => (
             <Animated.View style={mainChevronStyle}>
               <Feather {...props} name="chevron-down" size={20} color="#fff" />
             </Animated.View>
@@ -178,40 +150,48 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
           style={styles.header}
           titleStyle={styles.headerText}
         >
-          {units.map((unit) => (
-            <List.Accordion
-              key={unit.id}
-              title={`${unit.unitNumber}. ${unit.name}`}
-              expanded={expandedId === unit.id}
-              onPress={() => handleUnitPress(unit.id)}
-              style={[styles.unitAccordion, { backgroundColor: "#121212" }]}
-              titleStyle={[styles.accordionTitle, { color: "#fff" }]}
-              right={() => (
-                <ChevronIcon rotation={unitRotations[unit.id]} color="#fff" />
-              )}
-            >
-              <View style={styles.contentContainer}>
-                <Text style={[styles.description, { color: "#fff" }]}>
-                  {unit.description}
-                </Text>
-                <View style={styles.modulesList}>
-                  {unit.modules?.map((module) => (
-                    <ModuleItem
-                      key={module.id}
-                      courseId={courseId}
-                      unitId={unit.id}
-                      module={module}
-                      unitNumber={unit.unitNumber}
-                      moduleNumber={module.moduleNumber}
-                      onPress={handleModulePress}
-                      backgroundColor={"#2D3338"}
-                      textColor="#fff"
-                    />
-                  ))}
-                </View>
-              </View>
-            </List.Accordion>
-          ))}
+          <Conditional
+            condition={units.length > 0}
+            renderTrue={() =>
+              units?.map(unit => (
+                <List.Accordion
+                  key={unit.id}
+                  title={`${unit.unitNumber}. ${unit.name}`}
+                  expanded={expandedId === unit.id}
+                  onPress={() => handleUnitPress(unit.id)}
+                  style={[styles.unitAccordion, { backgroundColor: '#121212' }]}
+                  titleStyle={[styles.accordionTitle, { color: '#fff' }]}
+                  right={() => <ChevronIcon rotation={unitRotations[unit.id]} color="#fff" />}
+                >
+                  <View style={styles.contentContainer}>
+                    <Text style={[styles.description, { color: '#fff' }]}>{unit.description}</Text>
+                    <View style={styles.modulesList}>
+                      <Conditional
+                        condition={unit.modules.length > 0}
+                        renderTrue={() =>
+                          unit.modules?.map(module => (
+                            <ModuleItem
+                              key={module.id}
+                              courseId={courseId}
+                              unitId={unit.id}
+                              module={module}
+                              unitNumber={unit.unitNumber}
+                              moduleNumber={module.moduleNumber}
+                              onPress={handleModulePress}
+                              backgroundColor={'#2D3338'}
+                              textColor="#fff"
+                            />
+                          ))
+                        }
+                        renderFalse={null}
+                      />
+                    </View>
+                  </View>
+                </List.Accordion>
+              ))
+            }
+            renderFalse={null}
+          />
         </List.Accordion>
       </List.Section>
     </Surface>
@@ -220,35 +200,35 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: "90%",
-    backgroundColor: "#1A2942",
-    alignSelf: "center",
+    width: '90%',
+    backgroundColor: '#1A2942',
+    alignSelf: 'center',
     borderRadius: 15,
   },
   section: {
-    backgroundColor: "#1A2942",
+    backgroundColor: '#1A2942',
   },
   header: {
-    backgroundColor: "#1A2942",
+    backgroundColor: '#1A2942',
   },
   headerText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#fff',
+    fontWeight: 'bold',
   },
   unitAccordion: {
     paddingLeft: 16,
   },
   accordionTitle: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   contentContainer: {
-    width: "95%",
+    width: '95%',
   },
   description: {
     fontSize: 16,
     marginVertical: 16,
-    textAlign: "center",
+    textAlign: 'center',
   },
   modulesList: {
     paddingLeft: 16,

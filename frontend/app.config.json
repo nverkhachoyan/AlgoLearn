@@ -1,73 +1,75 @@
 {
   "name": "algolearn",
-  "expo": {
-    "slug": "algolearn",
-    "version": "1.0.0",
-    "newArchEnabled": true,
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "app.algolearn",
-    "userInterfaceStyle": "automatic",
-    "platforms": ["ios", "android", "web"],
+  "slug": "algolearn",
+  "version": "1.0.0",
+  "newArchEnabled": true,
+  "orientation": "portrait",
+  "icon": "./assets/images/icon.png",
+  "scheme": "app.algolearn",
+  "userInterfaceStyle": "automatic",
+  "platforms": ["ios", "android", "web"],
+  "backgroundColor": "#24272E",
+  "splash": {
+    "image": "./assets/images/splash.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#24272E"
+  },
+  "ios": {
+    "supportsTablet": true,
+    "bundleIdentifier": "app.nverkhachoyan.algolearn",
     "backgroundColor": "#24272E",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
+    "userInterfaceStyle": "automatic",
+    "infoPlist": {
+      "ITSAppUsesNonExemptEncryption": false
+    }
+  },
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/images/adaptive-icon.png",
       "backgroundColor": "#24272E"
     },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.nverkhachoyan.algolearn",
-      "backgroundColor": "#24272E",
-      "userInterfaceStyle": "automatic"
+    "backgroundColor": "#24272E",
+    "package": "app.nverkhachoyan.algolearn",
+    "userInterfaceStyle": "automatic",
+    "permissions": ["android.permission.RECORD_AUDIO"]
+  },
+  "web": {
+    "bundler": "metro",
+    "output": "static",
+    "favicon": "./assets/images/favicon.png",
+    "backgroundColor": "#24272E",
+    "config": {
+      "redirectUri": "https://auth.expo.io/@nverkhachoyan/algolearn"
     },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#24272E"
-      },
-      "backgroundColor": "#24272E",
-      "package": "com.nverkhachoyan.algolearn",
-      "userInterfaceStyle": "automatic"
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png",
-      "backgroundColor": "#24272E",
-      "config": {
-        "redirectUri": "https://auth.expo.io/@nverkhachoyan/algolearn"
-      },
-      "userInterfaceStyle": "automatic"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "8973f7e9-27c5-43e1-aa75-aff16ec756c8"
+    "userInterfaceStyle": "automatic"
+  },
+  "plugins": [
+    "expo-router",
+    "expo-font",
+    [
+      "expo-image-picker",
+      {
+        "photosPermission": "The app accesses your photos to let you share them with your friends."
       }
+    ]
+  ],
+  "experiments": {
+    "typedRoutes": true
+  },
+  "extra": {
+    "router": {
+      "origin": false
     },
-    "owner": "nverkhachoyan",
-    "runtimeVersion": "1.0.0",
-    "updates": {
-      "url": "https://u.expo.dev/8973f7e9-27c5-43e1-aa75-aff16ec756c8"
-    },
-    "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"],
-    "sdkVersion": "52.0.0",
-    "entryPoint": ".vscode/exponentIndex.js"
-  }
+    "eas": {
+      "projectId": "8973f7e9-27c5-43e1-aa75-aff16ec756c8"
+    }
+  },
+  "owner": "nverkhachoyan",
+  "runtimeVersion": "1.0.0",
+  "updates": {
+    "url": "https://u.expo.dev/8973f7e9-27c5-43e1-aa75-aff16ec756c8"
+  },
+  "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"],
+  "sdkVersion": "52.0.0",
+  "entryPoint": ".vscode/exponentIndex.js"
 }

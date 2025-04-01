@@ -13,19 +13,19 @@ const handleResponse = <T>(response: ApiResponse<T>) => {
 
 interface CourseQueryParams {
   pageSize: number;
-  isAuthenticated?: boolean;
+  isAuthed?: boolean;
 }
 
 // Hook for listing courses (public or with progress)
-export const useCourses = ({ pageSize, isAuthenticated = false }: CourseQueryParams) => {
-  const queryKey = isAuthenticated ? ['courses', 'progress'] : ['courses'];
+export const useCourses = ({ pageSize, isAuthed = false }: CourseQueryParams) => {
+  const queryKey = isAuthed ? ['courses', 'progress'] : ['courses'];
   const authFetcher = useAuthFetcher();
 
   const queryResult = useInfiniteQuery<PaginatedPayload<Course>>({
     queryKey,
     queryFn: async ({ pageParam = 1 }) => {
       try {
-        const { data } = isAuthenticated
+        const { data } = isAuthed
           ? await authFetcher.get(`/courses/progress`, {
               params: {
                 page: pageParam,
@@ -69,13 +69,13 @@ export const useCourses = ({ pageSize, isAuthenticated = false }: CourseQueryPar
 
 interface CourseParams {
   courseId: number;
-  isAuthenticated?: boolean;
+  isAuthed?: boolean;
   hasProgress?: boolean;
 }
 
 // Hook for getting a single course (public or with progress)
-export const useCourse = ({ courseId, isAuthenticated, hasProgress }: CourseParams) => {
-  const queryKey = isAuthenticated ? ['course', courseId, 'progress'] : ['course', courseId];
+export const useCourse = ({ courseId, isAuthed, hasProgress }: CourseParams) => {
+  const queryKey = isAuthed ? ['course', courseId, 'progress'] : ['course', courseId];
   const authFetcher = useAuthFetcher();
 
   const queryResult = useQuery<Course>({
@@ -83,7 +83,7 @@ export const useCourse = ({ courseId, isAuthenticated, hasProgress }: CoursePara
     queryFn: async () => {
       try {
         const { data } =
-          isAuthenticated && hasProgress
+          isAuthed && hasProgress
             ? await authFetcher.get(`/courses/${courseId}/progress`)
             : await authFetcher.get(`/courses/${courseId}`);
         return handleResponse(data);

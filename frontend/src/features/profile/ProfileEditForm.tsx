@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import React from 'react';
-import LabeledInput from '@/src/components/common/LabeledInput';
+import LabeledInput from '@/src/components/LabeledInput';
 
 interface ProfileFormData {
   username?: string;

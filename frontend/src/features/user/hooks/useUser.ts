@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/src/features/auth/AuthContext';
-import { User } from '../types/index';
+import { User } from '@/src/features/user/types/index';
 import { useAuthFetcher } from '../../auth';
 import { useS3 } from '@/src/features/upload';
 import { randomUUID } from 'expo-crypto';
@@ -9,7 +9,7 @@ import { AxiosError } from 'axios';
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 export function useUser() {
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthed } = useAuth();
   const queryClient = useQueryClient();
   const authFetcher = useAuthFetcher();
   const { getPresignedUrlMutation, uploadToS3Mutation } = useS3();
@@ -24,7 +24,7 @@ export function useUser() {
         throw error;
       }
     },
-    enabled: !!token && isAuthenticated,
+    enabled: !!token && isAuthed,
     retry: false,
     gcTime: 0,
     staleTime: 5 * 60 * 1000,

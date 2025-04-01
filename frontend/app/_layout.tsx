@@ -15,7 +15,7 @@ import { AuthProvider } from '@/src/features/auth/AuthContext';
 import { queryClient } from '@/src/lib/react-query/queryClient';
 import { PostHogProvider } from 'posthog-react-native';
 
-const isBrowser = Platform.OS === 'web' && typeof window !== 'undefined';
+const isBrowser = Platform.OS === 'web';
 const isNative = Platform.OS !== 'web';
 
 // Only use PostHog in browser or native environments

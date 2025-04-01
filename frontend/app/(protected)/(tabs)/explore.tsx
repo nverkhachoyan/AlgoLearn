@@ -2,16 +2,14 @@ import { useState, useRef } from 'react';
 import { StyleSheet, View, Animated, Platform, ActivityIndicator } from 'react-native';
 import { Searchbar } from 'react-native-paper';
 import { router } from 'expo-router';
-import { StickyHeader } from '@/src/components/common/StickyHeader';
+import { StickyHeader } from '@/src/components/StickyHeader';
 import { useTheme } from 'react-native-paper';
 import { useCourses, useSearchCourses } from '@/src/features/course/hooks/useCourses';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { CourseSection } from '@/src/features/course/components/CourseList';
-import { Colors, TabGradients } from '@/constants/Colors';
+import { TabGradients } from '@/constants/Colors';
 import { BlurView } from 'expo-blur';
 import { useDebounce } from '@/src/hooks/useDebounce';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Explore() {
   const { user } = useUser();
@@ -35,7 +33,7 @@ export default function Explore() {
 
   const { courses, hasNextPage, fetchNextPage, isFetchingNextPage } = useCourses({
     pageSize: 5,
-    isAuthenticated: false,
+    isAuthed: false,
   });
 
   const headerGradientColors = theme.dark
@@ -86,59 +84,51 @@ export default function Explore() {
         },
       ]}
     >
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <LinearGradient
-          colors={headerGradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.backgroundGradient}
+      <View style={styles.headerContainer}>
+        <StickyHeader
+          cpus={user?.cpus ?? 0}
+          streak={user?.streak || 0}
+          onAvatarPress={() => router.push('/(protected)/(profile)')}
+          gradientColors={headerGradientColors}
         />
-        <View style={styles.headerContainer}>
-          <StickyHeader
-            cpus={user?.cpus ?? 0}
-            streak={user?.streak || 0}
-            onAvatarPress={() => router.push('/(protected)/(profile)')}
-            gradientColors={headerGradientColors}
-          />
-          <Animated.View
-            style={[
-              styles.searchContainer,
-              {
-                transform: [{ translateY: searchBarTranslateY }],
-                opacity: searchBarOpacity,
-              },
-            ]}
-          >
-            {Platform.OS === 'ios' ? (
-              <BlurView intensity={30} tint="light" style={styles.searchBarWrapper}>
-                <Searchbar
-                  placeholder="Explore"
-                  onChangeText={setSearchQuery}
-                  value={searchQuery}
-                  style={[styles.searchBar, { backgroundColor: 'transparent' }]}
-                />
-              </BlurView>
-            ) : (
+        <Animated.View
+          style={[
+            styles.searchContainer,
+            {
+              transform: [{ translateY: searchBarTranslateY }],
+              opacity: searchBarOpacity,
+            },
+          ]}
+        >
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={30} tint="light" style={styles.searchBarWrapper}>
               <Searchbar
                 placeholder="Explore"
                 onChangeText={setSearchQuery}
                 value={searchQuery}
-                style={[styles.searchBar, { backgroundColor: 'rgba(255, 255, 255, 0.8)' }]}
+                style={[styles.searchBar, { backgroundColor: 'transparent' }]}
               />
-            )}
-          </Animated.View>
-        </View>
+            </BlurView>
+          ) : (
+            <Searchbar
+              placeholder="Explore"
+              onChangeText={setSearchQuery}
+              value={searchQuery}
+              style={[styles.searchBar, { backgroundColor: 'rgba(255, 255, 255, 0.8)' }]}
+            />
+          )}
+        </Animated.View>
+      </View>
 
-        <Animated.ScrollView
-          contentContainerStyle={[styles.scrollContent, { backgroundColor: colors.background }]}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-            useNativeDriver: true,
-          })}
-          scrollEventThrottle={16}
-        >
-          {renderContent()}
-        </Animated.ScrollView>
-      </SafeAreaView>
+      <Animated.ScrollView
+        contentContainerStyle={[styles.scrollContent]}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
+        scrollEventThrottle={16}
+      >
+        {renderContent()}
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -157,10 +147,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     position: 'absolute',
-    top: 60,
+    top: 130,
     left: 0,
     right: 0,
-    zIndex: 2,
+    zIndex: -1,
   },
   searchBarWrapper: {
     borderRadius: 5,
@@ -193,13 +183,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 200,
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 70, // Increase height to cover enough space for the header + title content
-    zIndex: 0,
   },
 });

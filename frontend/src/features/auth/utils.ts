@@ -39,8 +39,6 @@ export const createApiClient = () => {
       'Content-Type': 'application/json',
     },
   });
-
-  console.debug('[API Client] Initializing with base URL:', getBaseURL());
   return api;
 };
 

@@ -7,7 +7,7 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Text, Menu, IconButton } from 'react-native-paper';
+import { Text, Menu, IconButton, Button } from 'react-native-paper';
 import { useEffect, useState, useRef } from 'react';
 import { useTheme } from 'react-native-paper';
 import {
@@ -15,42 +15,40 @@ import {
   useStartCourse,
   useResetCourseProgress,
 } from '@/src/features/course/hooks/useCourses';
-import { StickyHeader } from '@/src/components/common/StickyHeader';
+import { StickyHeader } from '@/src/components/StickyHeader';
 import CourseHeader from '@/src/features/course/components/CourseHeader';
 import CurrentModuleCard from '@/src/features/course/components/CurrentModuleCard';
 import TableOfContents from '@/src/features/course/components/TableOfContents';
 import CourseInfo from '@/src/features/course/components/CourseInfo';
-import FooterButtons from '@/src/features/course/components/FooterButtons';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { Colors } from '@/constants/Colors';
-import Loading from '@/src/components/common/Loading';
+import { Spinning } from '@/src/components/Spinning';
 import { Alert } from 'react-native';
 import { useAuth } from '@/src/features/auth/AuthContext';
+import { TabGradients } from '@/constants/Colors';
+import { buildImgUrl } from '@/src/lib/utils/transform';
+import Conditional from '@/src/components/Conditional';
 
 export default function CourseDetails() {
   const { courseId, hasProgress } = useLocalSearchParams();
   const { colors }: { colors: Colors } = useTheme();
   const { user } = useUser();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthed } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const rotationValue = useRef(new Animated.Value(0)).current;
-  const { course, isLoading, error } = useCourse({
+  const { course, isLoading } = useCourse({
     courseId: parseInt(courseId as string),
-    isAuthenticated: true,
+    isAuthed: true,
     hasProgress: hasProgress === 'true',
   });
-  const { startCourse, isLoading: isStartCourseLoading } = useStartCourse(
-    parseInt(courseId as string)
-  );
-  const { resetCourseProgress, isLoading: isResetCourseProgressLoading } = useResetCourseProgress(
-    parseInt(courseId as string)
-  );
+  const { startCourse } = useStartCourse(parseInt(courseId as string));
+  const { resetCourseProgress } = useResetCourseProgress(parseInt(courseId as string));
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 1024;
   const isMediumScreen = width >= 768 && width < 1024;
 
-  const goToModule = ({
+  const navigateToModule = ({
     courseId,
     unitId,
     moduleId,
@@ -59,20 +57,6 @@ export default function CourseDetails() {
     unitId: number;
     moduleId: number;
   }) => {
-    if (!user) {
-      Alert.alert('Authentication Required', 'Please sign in to access course content.', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign In',
-          onPress: () => router.push('/(auth)'),
-        },
-      ]);
-      return;
-    }
-
     router.push({
       pathname: '/(protected)/course/[courseId]/module/[moduleId]',
       params: {
@@ -84,22 +68,8 @@ export default function CourseDetails() {
   };
 
   const handleStartCourse = async () => {
-    if (!user) {
-      Alert.alert('Authentication Required', 'Please sign in to start the course.', [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign In',
-          onPress: () => router.push('/(auth)'),
-        },
-      ]);
-      return;
-    }
-
     if (course?.currentModule) {
-      goToModule({
+      navigateToModule({
         courseId: parseInt(courseId as string),
         unitId: course.currentUnit.id,
         moduleId: course.currentModule.id,
@@ -108,7 +78,7 @@ export default function CourseDetails() {
       try {
         const response = await startCourse();
         if (response?.moduleId && response?.unitId) {
-          goToModule({
+          navigateToModule({
             courseId: parseInt(courseId as string),
             unitId: response.unitId,
             moduleId: response.moduleId,
@@ -184,25 +154,10 @@ export default function CourseDetails() {
   });
 
   if (isLoading) {
-    return <Loading />;
+    return <Spinning />;
   }
 
-  if (error) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: colors.background,
-        }}
-      >
-        <Text style={{ fontSize: 20, fontWeight: 'bold', textAlign: 'center' }}>
-          {error.message || 'Failed to load course.'}
-        </Text>
-      </View>
-    );
-  }
+  const headerGradientColors = TabGradients.index.dark;
 
   if (!course) {
     return (
@@ -222,23 +177,19 @@ export default function CourseDetails() {
     );
   }
 
+  const imgURL = buildImgUrl('courses', course?.folderObjectKey, course?.imgKey, course?.mediaExt);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.headerContainer, isLargeScreen && styles.webHeader]}>
-        <StickyHeader
-          cpus={user?.cpus || 0}
-          streak={user?.streak || 0}
-          userAvatar={user?.avatar}
-          onAvatarPress={() => user && router.push('/(protected)/(profile)')}
-        />
-      </View>
+      <StickyHeader
+        cpus={user?.cpus || 0}
+        streak={user?.streak || 0}
+        onAvatarPress={() => user && router.push('/(protected)/(profile)')}
+        gradientColors={headerGradientColors}
+      />
+
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollView,
-          { backgroundColor: colors.background },
-          isLargeScreen && styles.webScrollView,
-        ]}
-        style={[styles.scrollViewContainer, isLargeScreen && styles.webScrollViewContainer]}
+        contentContainerStyle={[styles.scrollView, isLargeScreen && styles.webScrollView]}
       >
         <View
           style={[
@@ -247,7 +198,7 @@ export default function CourseDetails() {
             isMediumScreen && styles.tabletContent,
           ]}
         >
-          <CourseHeader course={course} />
+          <CourseHeader course={course} imgURL={imgURL} />
 
           {!isLargeScreen && course.units && (
             <TableOfContents courseId={parseInt(courseId as string)} units={course.units} />
@@ -255,14 +206,18 @@ export default function CourseDetails() {
 
           <View style={isLargeScreen ? styles.webLayout : styles.mobileLayout}>
             <View style={isLargeScreen ? styles.webMainContent : styles.mobileMainContent}>
-              {isAuthenticated && course.currentModule && (
-                <CurrentModuleCard
-                  course={course}
-                  isPressed={isCurrentModulePressed}
-                  onPressIn={() => setIsCurrentModulePressed(true)}
-                  onPressOut={() => setIsCurrentModulePressed(false)}
-                />
-              )}
+              <Conditional
+                condition={course.currentModule != undefined}
+                renderTrue={() => (
+                  <CurrentModuleCard
+                    course={course}
+                    isPressed={isCurrentModulePressed}
+                    onPressIn={() => setIsCurrentModulePressed(true)}
+                    onPressOut={() => setIsCurrentModulePressed(false)}
+                  />
+                )}
+                renderFalse={null}
+              />
 
               <CourseInfo course={course} colors={colors} />
             </View>
@@ -285,46 +240,55 @@ export default function CourseDetails() {
           isLargeScreen && styles.webFooter,
         ]}
       >
-        {course.currentModule && (
-          <View>
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              elevation={5}
-              anchor={
-                <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                  <IconButton
-                    icon="cog"
-                    size={24}
-                    onPress={() => setMenuVisible(!menuVisible)}
-                    style={styles.settingsButton}
-                    mode="contained"
-                  />
-                </Animated.View>
-              }
-              anchorPosition="top"
-              contentStyle={[styles.menuContent, { backgroundColor: colors.surface }]}
-            >
-              <Menu.Item
-                onPress={() => {
-                  setMenuVisible(false);
-                  handleRestartCourse();
-                }}
-                title="Restart Course"
-                leadingIcon="restart"
-              />
-            </Menu>
-          </View>
-        )}
+        <Conditional
+          condition={course.currentModule != undefined}
+          renderTrue={() => (
+            <View>
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                elevation={5}
+                anchor={
+                  <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                    <IconButton
+                      icon="cog"
+                      size={24}
+                      onPress={() => setMenuVisible(!menuVisible)}
+                      style={styles.settingsButton}
+                      mode="contained"
+                    />
+                  </Animated.View>
+                }
+                anchorPosition="top"
+                contentStyle={[styles.menuContent, { backgroundColor: colors.surface }]}
+              >
+                <Menu.Item
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleRestartCourse();
+                  }}
+                  title="Restart Course"
+                  leadingIcon="restart"
+                />
+              </Menu>
+            </View>
+          )}
+          renderFalse={null}
+        />
+
         <View style={[styles.mainButton, isLargeScreen && styles.webMainButton]}>
-          <FooterButtons
-            colors={colors}
-            rightButton={
-              isAuthenticated && course.currentModule ? 'Continue Course' : 'Start Course'
-            }
-            onStartCourse={handleStartCourse}
-            isLoading={isStartCourseLoading || isResetCourseProgressLoading}
-          />
+          <View style={styles.container}>
+            <Button
+              mode="contained"
+              onPress={handleStartCourse}
+              loading={isLoading}
+              style={[styles.button, { backgroundColor: colors.primary }]}
+              labelStyle={{ color: colors.onPrimary }}
+              disabled={isLoading}
+            >
+              {isAuthed && course.currentModule ? 'Continue Course' : 'Start Course'}
+            </Button>
+          </View>
         </View>
       </View>
     </View>
@@ -348,13 +312,6 @@ const styles = StyleSheet.create({
   webHeader: {
     position: 'fixed',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  },
-  scrollViewContainer: {
-    flex: 1,
-    marginTop: HEADER_HEIGHT,
-  },
-  webScrollViewContainer: {
-    marginTop: HEADER_HEIGHT + 20,
   },
   scrollView: {
     flexGrow: 1,
@@ -443,5 +400,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  button: {
+    borderRadius: 8,
   },
 });

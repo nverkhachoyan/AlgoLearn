@@ -10,7 +10,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { router } from 'expo-router';
-import Button from '@/src/components/common/Button';
+import Button from '@/src/components/Button';
 import LottieView from 'lottie-react-native';
 import { useTheme } from 'react-native-paper';
 import { Colors } from '@/constants/Colors';

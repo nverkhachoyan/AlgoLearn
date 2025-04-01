@@ -1,29 +1,99 @@
-import { StyleSheet, View, ScrollView } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
-import { Seperator } from '@/src/components/common/Seperator';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View, Pressable, Animated } from 'react-native';
+import { Text, useTheme, Surface, Divider } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { StickyHeader } from '@/src/components/common/StickyHeader';
+import { StickyHeader } from '@/src/components/StickyHeader';
 import { useUser } from '@/src/features/user/hooks/useUser';
-import { TabGradients } from '@/constants/Colors';
+import { TabGradients, USER_PROFILE_GRADIENTS } from '@/constants/Colors';
 import { useAuth } from '@/src/features/auth/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function Leaderboard() {
   const { user } = useUser();
-  const { isAuthenticated } = useAuth();
+  const { isAuthed } = useAuth();
   const { colors, dark } = useTheme();
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
+  // Animation values for each leaderboard item
+  const itemAnimations = useRef(
+    Array(5)
+      .fill(0)
+      .map(() => new Animated.Value(0))
+  ).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset animations when screen comes into focus
+      itemAnimations.forEach(anim => {
+        anim.setValue(0);
+      });
+
+      // Animate items in sequence
+      itemAnimations.forEach((anim, index) => {
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 100,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, [])
+  );
+
+  const getGradientForRank = (rank: number): [string, string, string] => {
+    switch (rank) {
+      case 0: // 1st place
+        return dark
+          ? [
+              USER_PROFILE_GRADIENTS.amber.dark[0],
+              USER_PROFILE_GRADIENTS.amber.dark[1],
+              USER_PROFILE_GRADIENTS.amber.dark[2],
+            ]
+          : [
+              USER_PROFILE_GRADIENTS.amber.light[0],
+              USER_PROFILE_GRADIENTS.amber.light[1],
+              USER_PROFILE_GRADIENTS.amber.light[2],
+            ];
+      case 1: // 2nd place
+        return dark
+          ? [
+              USER_PROFILE_GRADIENTS.ocean.dark[0],
+              USER_PROFILE_GRADIENTS.ocean.dark[1],
+              USER_PROFILE_GRADIENTS.ocean.dark[2],
+            ]
+          : [
+              USER_PROFILE_GRADIENTS.ocean.light[0],
+              USER_PROFILE_GRADIENTS.ocean.light[1],
+              USER_PROFILE_GRADIENTS.ocean.light[2],
+            ];
+      case 2: // 3rd place
+        return dark
+          ? [
+              USER_PROFILE_GRADIENTS.sunset.dark[0],
+              USER_PROFILE_GRADIENTS.sunset.dark[1],
+              USER_PROFILE_GRADIENTS.sunset.dark[2],
+            ]
+          : [
+              USER_PROFILE_GRADIENTS.sunset.light[0],
+              USER_PROFILE_GRADIENTS.sunset.light[1],
+              USER_PROFILE_GRADIENTS.sunset.light[2],
+            ];
+      default:
+        return dark
+          ? [
+              TabGradients.leaderboard.dark[0],
+              TabGradients.leaderboard.dark[1],
+              TabGradients.leaderboard.dark[2],
+            ]
+          : [
+              TabGradients.leaderboard.light[0],
+              TabGradients.leaderboard.light[1],
+              TabGradients.leaderboard.light[2],
+            ];
     }
-    return color;
-  }
+  };
 
   const leaderboardItems = [
     {
@@ -67,9 +137,97 @@ export default function Leaderboard() {
     ? TabGradients['leaderboard'].dark
     : TabGradients['leaderboard'].light;
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthed || !user) {
     return <Text style={styles.notLoggedInText}>Not logged in</Text>;
   }
+
+  const renderPodium = () => {
+    const top3 = leaderboardItems.slice(0, 3);
+
+    return (
+      <View style={styles.podiumContainer}>
+        {/* Second Place */}
+        <View style={styles.podiumPlace}>
+          <View style={styles.avatarContainer}>
+            <Surface style={[{ borderColor: colors.secondary, elevation: 4 }]}>
+              <LinearGradient colors={getGradientForRank(1)} style={styles.avatarGradient}>
+                <MaterialIcons name={top3[1].icon as any} size={28} color="#fff" />
+              </LinearGradient>
+            </Surface>
+          </View>
+
+          <View
+            style={[
+              styles.podiumPillar,
+              styles.secondPlace,
+              { backgroundColor: colors.secondaryContainer },
+            ]}
+          >
+            <Text style={styles.podiumPosition}>2</Text>
+          </View>
+          <Text style={[styles.podiumName, { color: colors.onSurface }]} numberOfLines={1}>
+            {top3[1].name}
+          </Text>
+          <Text style={[styles.podiumScore, { color: colors.secondary }]}>
+            {top3[1].score} CPUs
+          </Text>
+        </View>
+
+        {/* First Place */}
+        <View style={styles.podiumPlace}>
+          <Surface
+            style={[
+              styles.avatarContainer,
+              styles.firstPlaceAvatar,
+              { borderColor: '#FFD700', elevation: 8 },
+            ]}
+          >
+            <LinearGradient colors={getGradientForRank(0)} style={styles.avatarGradient}>
+              <MaterialIcons name={top3[0].icon as any} size={36} color="#fff" />
+            </LinearGradient>
+          </Surface>
+          <View
+            style={[
+              styles.podiumPillar,
+              styles.firstPlace,
+              { backgroundColor: colors.primaryContainer },
+            ]}
+          >
+            <MaterialIcons name="emoji-events" size={24} color="#FFD700" />
+          </View>
+          <Text
+            style={[styles.podiumName, styles.firstPlaceName, { color: colors.onSurface }]}
+            numberOfLines={1}
+          >
+            {top3[0].name}
+          </Text>
+          <Text style={[styles.podiumScore, { color: colors.primary }]}>{top3[0].score} CPUs</Text>
+        </View>
+
+        {/* Third Place */}
+        <View style={styles.podiumPlace}>
+          <Surface style={[styles.avatarContainer, { borderColor: colors.tertiary, elevation: 4 }]}>
+            <LinearGradient colors={getGradientForRank(2)} style={styles.avatarGradient}>
+              <MaterialIcons name={top3[2].icon as any} size={28} color="#fff" />
+            </LinearGradient>
+          </Surface>
+          <View
+            style={[
+              styles.podiumPillar,
+              styles.thirdPlace,
+              { backgroundColor: colors.tertiaryContainer },
+            ]}
+          >
+            <Text style={styles.podiumPosition}>3</Text>
+          </View>
+          <Text style={[styles.podiumName, { color: colors.onSurface }]} numberOfLines={1}>
+            {top3[2].name}
+          </Text>
+          <Text style={[styles.podiumScore, { color: colors.tertiary }]}>{top3[2].score} CPUs</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View
@@ -80,62 +238,97 @@ export default function Leaderboard() {
         },
       ]}
     >
-      <LinearGradient
-        colors={headerGradients}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.backgroundGradient}
+      <StickyHeader
+        cpus={user.cpus}
+        streak={user.streak || 0}
+        onAvatarPress={() => router.push('/(protected)/(profile)')}
+        gradientColors={headerGradients}
       />
-      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <StickyHeader
-          cpus={user.cpus}
-          streak={user.streak || 0}
-          onAvatarPress={() => router.push('/(protected)/(profile)')}
-          gradientColors={headerGradients}
-        />
-        <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
-          <View style={styles.innerContainer}>
-            <Text style={[styles.title, { color: colors.onSurface }]}>Circuit Rankings</Text>
-            <Seperator />
-            <View style={styles.separator} />
-            <View style={styles.leaderboardContainer}>
-              {leaderboardItems.map((item, index) => (
-                <View
+
+      <Animated.ScrollView
+        style={[styles.scrollContainer, { backgroundColor: colors.background }]}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
+        scrollEventThrottle={16}
+      >
+        <View style={styles.innerContainer}>
+          <Text style={[styles.title, { color: colors.onSurface }]}>Circuit Rankings</Text>
+          <Divider style={{ marginVertical: 20 }} />
+
+          {/* Podium Section */}
+          {renderPodium()}
+
+          <Text style={[styles.subtitle, { color: colors.secondary }]}>Other Competitors</Text>
+
+          <View style={styles.leaderboardContainer}>
+            {leaderboardItems.slice(3).map((item, index) => {
+              const actualIndex = index + 3; // Start from 4th place
+
+              return (
+                <Animated.View
                   key={item.id}
                   style={[
-                    styles.leaderboardItem,
                     {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.backdrop,
+                      opacity: itemAnimations[actualIndex],
+                      transform: [
+                        {
+                          translateX: itemAnimations[actualIndex].interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [50, 0],
+                          }),
+                        },
+                      ],
                     },
                   ]}
                 >
-                  <Text style={[styles.leaderboardPosition, { color: colors.onSurface }]}>
-                    {index + 1}
-                  </Text>
-                  <View style={styles.leaderboardItemContent}>
-                    <Text style={[styles.leaderboardItemName, { color: colors.onSurface }]}>
-                      {item.name}
-                    </Text>
-                    <Text style={[styles.leaderboardItemScore, { color: colors.onSurface }]}>
-                      {item.score} CPUs
-                    </Text>
-                    <Text style={[styles.leaderboardItemRank, { color: '#25A879' }]}>
-                      {item.rank}
-                    </Text>
-                  </View>
-                  <MaterialIcons
-                    name={item.icon as any}
-                    size={28}
-                    color={getRandomColor()}
-                    style={styles.leaderboardItemIcon}
-                  />
-                </View>
-              ))}
-            </View>
+                  <Pressable>
+                    {({ pressed }) => (
+                      <Surface
+                        style={[
+                          styles.leaderboardItem,
+                          {
+                            backgroundColor: pressed ? colors.surfaceVariant : colors.surface,
+                            borderColor: colors.outline,
+                            elevation: pressed ? 1 : 3,
+                          },
+                        ]}
+                      >
+                        <LinearGradient
+                          colors={getGradientForRank(actualIndex)}
+                          style={styles.rankBadge}
+                        >
+                          <Text style={styles.leaderboardPosition}>{actualIndex + 1}</Text>
+                        </LinearGradient>
+
+                        <View style={styles.leaderboardItemContent}>
+                          <Text style={[styles.leaderboardItemName, { color: colors.onSurface }]}>
+                            {item.name}
+                          </Text>
+                          <Text style={[styles.leaderboardItemScore, { color: colors.secondary }]}>
+                            {item.score} CPUs
+                          </Text>
+                          <Text style={[styles.leaderboardItemRank, { color: '#25A879' }]}>
+                            {item.rank}
+                          </Text>
+                        </View>
+
+                        <View style={styles.iconContainer}>
+                          <MaterialIcons
+                            name={item.icon as any}
+                            size={28}
+                            color={colors.tertiary}
+                          />
+                        </View>
+                      </Surface>
+                    )}
+                  </Pressable>
+                </Animated.View>
+              );
+            })}
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -149,65 +342,152 @@ const styles = StyleSheet.create({
   },
   innerContainer: {
     padding: 20,
-    alignItems: 'center',
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 26,
+    fontSize: 20,
+    fontFamily: 'OpenSauceOne-Regular',
     fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   loadingText: {
     fontSize: 18,
   },
   notLoggedInText: {
     fontSize: 18,
+    textAlign: 'center',
+    marginTop: 20,
   },
-  separator: {
-    height: 1,
-    width: '80%',
+
+  // Podium styles
+  podiumContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginTop: 25,
+    marginBottom: 10,
+    height: 200,
   },
+  podiumPlace: {
+    alignItems: 'center',
+    marginHorizontal: 5,
+    width: 100,
+  },
+  podiumPillar: {
+    width: 60,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  firstPlace: {
+    height: 100,
+    zIndex: 3,
+  },
+  secondPlace: {
+    height: 80,
+    zIndex: 2,
+  },
+  thirdPlace: {
+    height: 60,
+    zIndex: 1,
+  },
+  podiumPosition: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  podiumName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+    width: 90,
+  },
+  firstPlaceName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  podiumScore: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 10,
+    borderWidth: 2,
+    overflow: 'hidden',
+  },
+  firstPlaceAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 3,
+  },
+  avatarGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Leaderboard list styles
   leaderboardContainer: {
     width: '100%',
-    marginBottom: 20,
+    marginTop: 10,
   },
   leaderboardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderWidth: 2,
-    borderRadius: 12,
-    marginBottom: 15,
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  rankBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
   leaderboardPosition: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginRight: 15,
-    width: 40,
-    textAlign: 'center',
+    color: '#FFFFFF',
   },
   leaderboardItemContent: {
     flex: 1,
   },
   leaderboardItemName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   leaderboardItemScore: {
-    fontSize: 16,
+    fontSize: 15,
     marginTop: 2,
   },
   leaderboardItemRank: {
-    fontSize: 14,
+    fontSize: 13,
     marginTop: 2,
+    fontWeight: '500',
   },
-  leaderboardItemIcon: {
-    marginLeft: 10,
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 70, // Increase height to cover enough space for the header + title content
-    zIndex: 0,
+  iconContainer: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 25,
   },
 });

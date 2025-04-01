@@ -13,7 +13,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import Button from '@/src/components/common/Button';
+import Button from '@/src/components/Button';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
 import useToast from '@/src/hooks/useToast';

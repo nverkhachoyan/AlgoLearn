@@ -1,37 +1,22 @@
 import {
   StyleSheet,
   View,
-  ScrollView,
   Animated as RNAnimated,
   TouchableOpacity,
   RefreshControl,
-  NativeScrollEvent,
-  Platform,
 } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { Seperator } from '@/src/components/common/Seperator';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import { StickyHeader } from '@/src/components/common/StickyHeader';
+import { StickyHeader } from '@/src/components/StickyHeader';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { Colors } from '@/constants/Colors';
 import { humanReadableDate } from '@/src/lib/utils/date';
-import { Spinning } from '@/src/components/common/Spinning';
+import { Spinning } from '@/src/components/Spinning';
 import { LinearGradient } from 'expo-linear-gradient';
 import Conditional from '@/src/components/Conditional';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedScrollHandler,
-  useSharedValue,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
-  runOnJS,
-  useDerivedValue,
-  withTiming,
-  cancelAnimation,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 type FeedItemType = 'course' | 'poll' | 'achievement';
 
@@ -50,7 +35,6 @@ export default function Feed() {
   const fadeAnim = useRef(new RNAnimated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useSharedValue(0);
-  const lastScrollDirection = useSharedValue<'up' | 'down' | null>(null);
   const [feedItems, setFeedItems] = useState<FeedItem[]>([
     {
       id: 1,
@@ -75,7 +59,6 @@ export default function Feed() {
         'Congratulations on completing the JavaScript Basics course! Keep up the good work.',
       date: '2024-07-23',
     },
-    // Add a few more items to ensure scrolling
     {
       id: 4,
       type: 'course',
@@ -90,9 +73,36 @@ export default function Feed() {
       description: 'Vote for your preferred backend framework and see community preferences.',
       date: '2024-07-18',
     },
+    {
+      id: 6,
+      type: 'poll',
+      title: 'Best Backend Framework?',
+      description: 'Vote for your preferred backend framework and see community preferences.',
+      date: '2024-07-18',
+    },
+    {
+      id: 7,
+      type: 'poll',
+      title: 'Best Backend Framework?',
+      description: 'Vote for your preferred backend framework and see community preferences.',
+      date: '2024-07-18',
+    },
+    {
+      id: 8,
+      type: 'poll',
+      title: 'Best Backend Framework?',
+      description: 'Vote for your preferred backend framework and see community preferences.',
+      date: '2024-07-18',
+    },
+    {
+      id: 9,
+      type: 'poll',
+      title: 'Best Backend Framework?',
+      description: 'Vote for your preferred backend framework and see community preferences.',
+      date: '2024-07-18',
+    },
   ]);
 
-  // Initial fade in animation for the whole feed
   useEffect(() => {
     RNAnimated.timing(fadeAnim, {
       toValue: 1,
@@ -103,35 +113,16 @@ export default function Feed() {
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    // Simulate fetching new data
     setTimeout(() => {
       setRefreshing(false);
     }, 1500);
   }, []);
 
-  // Direction-aware scroll handler with improved event handling
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: event => {
-      // Check if event is properly formed before using
       if (event && event.contentOffset && typeof event.contentOffset.y === 'number') {
-        // Get current scroll position
-        const currentY = event.contentOffset.y;
-
-        // Detect direction by comparing with previous value
-        if (scrollY.value < currentY) {
-          lastScrollDirection.value = 'down';
-        } else if (scrollY.value > currentY) {
-          lastScrollDirection.value = 'up';
-        }
-
-        // Pass the raw value to the header component which will handle smoothing
-        scrollY.value = currentY;
+        scrollY.value = event.contentOffset.y;
       }
-    },
-    // Reset scroll tracking at the beginning of a new scroll gesture
-    onBeginDrag: () => {
-      // Reset the last scroll direction when starting a new drag
-      lastScrollDirection.value = null;
     },
   });
 
@@ -265,57 +256,44 @@ export default function Feed() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Main background gradient that spans the entire top section */}
-      <LinearGradient
-        colors={headerGradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.backgroundGradient}
+      <StickyHeader
+        cpus={user.cpus}
+        streak={user?.streak || 0}
+        onAvatarPress={() => router.push('/(protected)/(profile)')}
+        gradientColors={headerGradientColors}
+        scrollY={scrollY}
+        collapsibleTitle={true}
+        titleContent={() => (
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Your Feed</Text>
+            <Text style={styles.headerSubtitle}>Stay updated with the latest content</Text>
+          </View>
+        )}
       />
 
-      {/* SafeAreaView should be outside and wrap everything */}
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StickyHeader
-          cpus={user.cpus}
-          streak={user?.streak || 0}
-          onAvatarPress={() => router.push('/(protected)/(profile)')}
-          gradientColors={headerGradientColors}
-          scrollY={scrollY}
-          collapsibleTitle={true}
-          transparent={true}
-          titleContent={() => (
-            <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Your Feed</Text>
-              <Text style={styles.headerSubtitle}>Stay updated with the latest content</Text>
-            </View>
-          )}
-        />
-
-        <Animated.ScrollView
-          style={[styles.scrollContainer, { backgroundColor: colors.background }]}
-          onScroll={scrollHandler}
-          scrollEventThrottle={8} // More frequent updates for smoother detection
-          contentContainerStyle={styles.scrollContentContainer}
-          showsVerticalScrollIndicator={false} // Hide scrollbar for cleaner look
-          bounces={true} // Allow iOS bounce effect
-          overScrollMode="never" // Prevent Android overscroll glow
-          decelerationRate={Platform.OS === 'ios' ? 'fast' : 'normal'} // Faster deceleration on iOS
-          snapToOffsets={[0]} // Help snap back to the top position
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-              progressViewOffset={20} // Add offset to avoid conflict with header
-            />
-          }
-        >
-          <RNAnimated.View style={{ opacity: fadeAnim }}>
-            <View style={styles.feedContainer}>{renderedFeedItems}</View>
-          </RNAnimated.View>
-        </Animated.ScrollView>
-      </SafeAreaView>
+      <Animated.ScrollView
+        style={[styles.scrollContainer, { backgroundColor: colors.background }]}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        overScrollMode="never"
+        decelerationRate="normal"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressViewOffset={100}
+          />
+        }
+      >
+        <RNAnimated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.feedContainer}>{renderedFeedItems}</View>
+        </RNAnimated.View>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -324,24 +302,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  safeArea: {
-    flex: 1,
-  },
-  backgroundGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 160, // Increase height to cover enough space for the header + title content
-    zIndex: 0,
-  },
   scrollContainer: {
     flex: 1,
     zIndex: 1,
   },
   scrollContentContainer: {
-    paddingTop: 10, // Add some padding at the top
-    paddingBottom: 30, // Increase padding at bottom to avoid being right at the boundary
+    paddingTop: 10,
+    paddingBottom: 30,
   },
   headerContent: {
     alignItems: 'center',

@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import React from 'react';
 import Conditional from '@/src/components/Conditional';
-import LabeledInput from '@/src/components/common/LabeledInput';
+import LabeledInput from '@/src/components/LabeledInput';
 
 interface BioSectionProps {
   bio: string;

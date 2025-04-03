@@ -1,8 +1,9 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { HeaderAndTabs } from '@/constants/Colors';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 interface SectionCompletion {
   sectionId: number;
@@ -31,7 +32,7 @@ interface ModuleHeaderProps {
   moduleName: string;
   progress: Progress;
   colors: any;
-  gradientColors: readonly [string, string, string];
+  gradientColors: string;
 }
 
 const CIRCLE_SIZE = 40;
@@ -40,6 +41,8 @@ const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
 
 export const ModuleHeader = memo(
   ({ moduleName, progress, colors, gradientColors }: ModuleHeaderProps) => {
+    const { theme } = useAppTheme();
+    const { dark } = theme;
     const [displayPercentage, setDisplayPercentage] = useState(0);
     const targetPercentage = Math.round(progress.total);
     const animationRef = useRef<number | null>(null);
@@ -96,23 +99,18 @@ export const ModuleHeader = memo(
           shadowOpacity: 0.3,
           shadowRadius: 3,
           zIndex: 1,
+          backgroundColor: HeaderAndTabs[dark ? 'dark' : 'light'],
         }}
       >
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 120,
-            zIndex: 0,
-          }}
-        />
-        <View style={[styles.container, { shadowColor: colors.shadowColor }]}>
+        <View
+          style={[
+            styles.container,
+            {
+              shadowColor: colors.shadowColor,
+              backgroundColor: HeaderAndTabs[dark ? 'dark' : 'light'],
+            },
+          ]}
+        >
           <View style={styles.headerContainer}>
             <Text style={[styles.moduleTitle, { color: colors.onSurface }]} numberOfLines={1}>
               {moduleName}
@@ -120,15 +118,6 @@ export const ModuleHeader = memo(
           </View>
 
           <View style={styles.rightContainer}>
-            <View style={styles.statsContainer}>
-              <Text style={[styles.statText, { color: colors.onSurface }]}>
-                {progress.sections.completed}/{progress.sections.total} sections
-              </Text>
-              <Text style={[styles.statText, { color: colors.onSurface }]}>
-                {progress.questions.completed}/{progress.questions.total} questions
-              </Text>
-            </View>
-
             <View style={styles.progressContainer}>
               <Svg height={CIRCLE_SIZE} width={CIRCLE_SIZE}>
                 {/* Background circle */}

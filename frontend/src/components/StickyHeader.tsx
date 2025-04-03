@@ -11,7 +11,7 @@ import {
 import Conditional from '@/src/components/Conditional';
 import { Spinning } from './Spinning';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { router, usePathname } from 'expo-router';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { buildImgUrl } from '@/src/lib/utils/transform';
@@ -27,6 +27,7 @@ import Svg, { Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useHeaderAnimation } from '../hooks/useHeaderAnimation';
 import React, { useCallback } from 'react';
+import { HeaderAndTabs } from '@/constants/Colors';
 
 const HEADER_HEIGHT = Platform.select({
   web: 64,
@@ -40,7 +41,6 @@ interface StickyHeaderProps {
   cpus: number;
   streak: number;
   onAvatarPress: () => void;
-  gradientColors: readonly [string, string, string];
   titleContent?: () => React.ReactNode;
   scrollY?: SharedValue<number>;
   collapsibleTitle?: boolean;
@@ -110,15 +110,17 @@ export const StickyHeader: React.FC<StickyHeaderProps> = ({
   cpus,
   streak,
   onAvatarPress,
-  gradientColors,
   titleContent,
   scrollY,
   collapsibleTitle = false,
 }) => {
-  const { colors, dark } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
+  const dark = theme.dark;
   const pathname = usePathname();
   const { user } = useUser();
   const { titleContentStyle } = useHeaderAnimation(scrollY, collapsibleTitle);
+  const bgColor = HeaderAndTabs[dark ? 'dark' : 'light'];
   const canGoBack = router.canGoBack && router.canGoBack();
 
   const avatarScale = useSharedValue(1);
@@ -140,14 +142,8 @@ export const StickyHeader: React.FC<StickyHeaderProps> = ({
   }
 
   return (
-    <View style={styles.headerWrapper}>
+    <View style={[styles.headerWrapper, { backgroundColor: bgColor }]}>
       <SafeAreaView edges={['top']} style={styles.safeArea}>
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        />
         <Animated.View
           style={[
             styles.outerContainer,

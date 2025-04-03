@@ -1,32 +1,32 @@
 import { StyleSheet, Image, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
 import { Feather } from '@expo/vector-icons';
 
 export default function CourseHeader({ course, imgURL }: any) {
   return (
     <View>
       <Image
-        width={200}
-        height={200}
         source={{
           uri: imgURL,
         }}
         style={styles.icon}
       />
-      <Text style={styles.courseTitle}>{course.name}</Text>
+      <Text variant="headline" style={styles.courseTitle}>
+        {course.name}
+      </Text>
       {course.authors.map((author: any) => (
-        <Text key={author.id} style={styles.courseAuthor}>
+        <Text variant="body" key={author.id} style={styles.courseAuthor}>
           {author.name}
         </Text>
       ))}
       <View style={styles.courseMetricsContainer}>
-        <Text>
+        <Text variant="body">
           <Feather name="percent" size={15} /> {course?.difficultyLevel}
         </Text>
-        <Text>
+        <Text variant="body">
           <Feather name="clock" size={15} /> {course.duration}
         </Text>
-        <Text>
+        <Text variant="body">
           <Feather name="star" size={15} /> {course.rating}
         </Text>
       </View>
@@ -36,10 +36,11 @@ export default function CourseHeader({ course, imgURL }: any) {
 
 const styles = StyleSheet.create({
   icon: {
-    width: 60,
-    height: 60,
+    width: 100,
+    height: 100,
     alignSelf: 'center',
     marginVertical: 10,
+    borderRadius: 8,
   },
   courseTitle: {
     fontSize: 22,

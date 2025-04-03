@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 interface LabeledInputProps {
   label: string;
@@ -30,7 +30,8 @@ const LabeledInput: React.FC<LabeledInputProps> = ({
   numberOfLines = 1,
   maxLength = 100,
 }) => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
   const [isFocused, setIsFocused] = useState(false);
 
   return (

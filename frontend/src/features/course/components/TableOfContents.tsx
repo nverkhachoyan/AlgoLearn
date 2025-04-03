@@ -1,11 +1,23 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { StyleSheet, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { List, Surface, Text } from 'react-native-paper';
+import {
+  StyleSheet,
+  Animated,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  View,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
+  TouchableOpacity,
+} from 'react-native';
+import { Text, Surface } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import Conditional from '@/src/components/Conditional';
 import { Feather } from '@expo/vector-icons';
-import { View } from 'react-native';
 import { Unit } from '@/src/features/course/types/units';
 import { router } from 'expo-router';
+import { Colors } from '@/constants/Colors';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -16,6 +28,77 @@ interface TableOfContentsProps {
   courseId: number;
   units: Unit[];
 }
+
+// Custom Accordion Component
+const Accordion = ({
+  title,
+  expanded,
+  onPress,
+  style,
+  titleStyle,
+  left,
+  right,
+  children,
+}: {
+  title: string | React.ReactNode;
+  expanded: boolean;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+  titleStyle?: StyleProp<TextStyle>;
+  left?: React.ReactNode | ((props: any) => React.ReactNode);
+  right?: React.ReactNode | ((props: any) => React.ReactNode);
+  children?: React.ReactNode;
+}) => {
+  return (
+    <View>
+      <TouchableOpacity style={style} onPress={onPress} activeOpacity={0.7}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15 }}>
+          {left && (typeof left === 'function' ? left({}) : left)}
+          <View style={{ flex: 1 }}>
+            {typeof title === 'string' ? <Text style={titleStyle}>{title}</Text> : title}
+          </View>
+          {right && (typeof right === 'function' ? right({}) : right)}
+        </View>
+      </TouchableOpacity>
+      {expanded && children}
+    </View>
+  );
+};
+
+// Custom List Section Component
+const Section = ({
+  style,
+  children,
+}: {
+  style?: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) => {
+  return <View style={style}>{children}</View>;
+};
+
+// Custom List Item Component
+const ListItem = ({
+  title,
+  style,
+  titleStyle,
+  left,
+  onPress,
+}: {
+  title: string;
+  style?: StyleProp<ViewStyle>;
+  titleStyle?: StyleProp<TextStyle>;
+  left?: React.ReactNode | ((props: any) => React.ReactNode);
+  onPress?: () => void;
+}) => {
+  return (
+    <TouchableOpacity style={style} onPress={onPress} activeOpacity={0.7}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10 }}>
+        {left && (typeof left === 'function' ? left({}) : left)}
+        <Text style={titleStyle}>{title}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const ANIMATION_DURATION = 200;
 
@@ -57,32 +140,99 @@ const ModuleItem: React.FC<{
   courseId: number;
   unitId: number;
   module: Unit['modules'][0];
-  unitNumber: number;
-  moduleNumber: number;
   onPress: (courseId: number, unitId: number, moduleId: number) => void;
-  backgroundColor: string;
-  textColor: string;
-}> = React.memo(
-  ({ courseId, unitId, module, unitNumber, moduleNumber, onPress, backgroundColor, textColor }) => (
-    <List.Item
-      left={() => <Text style={{ color: '#fff' }}>{`${unitNumber}.${moduleNumber}`}</Text>}
-      title={module.name}
-      style={[styles.moduleItem, { backgroundColor }]}
-      titleStyle={{ color: textColor }}
-      onPress={() => onPress(courseId, unitId, module.id)}
-    />
-  )
-);
+  style: StyleProp<ViewStyle>;
+  titleStyle: StyleProp<TextStyle>;
+  leftElement: React.ReactNode;
+}> = React.memo(({ module, onPress, style, titleStyle, leftElement, courseId, unitId }) => (
+  <ListItem
+    left={() => leftElement}
+    title={module.name}
+    style={style}
+    titleStyle={titleStyle}
+    onPress={() => onPress(courseId, unitId, module.id)}
+  />
+));
 
 const TableOfContents: React.FC<TableOfContentsProps> = ({ courseId, units = [] }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [expandedId, setExpandedId] = useState<number>();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
+  const [isVisible, setIsVisible] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | undefined>(units[0]?.id);
 
-  const mainRotation = useMemo(() => new Animated.Value(1), []);
+  const mainRotation = useMemo(() => new Animated.Value(isVisible ? 1 : 0), [isVisible]);
   const unitRotations = useMemo(
-    () => Object.fromEntries(units.map(unit => [unit.id, new Animated.Value(0)])),
-    [units]
+    () =>
+      Object.fromEntries(
+        units.map(unit => [unit.id, new Animated.Value(expandedId === unit.id ? 1 : 0)])
+      ),
+    [units, expandedId]
   );
+
+  const styles = StyleSheet.create({
+    container: {
+      backgroundColor: colors.elevation?.level2 || colors.surfaceVariant,
+      borderRadius: 15,
+      marginBottom: 16,
+    },
+    section: {
+      backgroundColor: 'transparent',
+      margin: 0,
+      padding: 0,
+    },
+    header: {
+      backgroundColor: colors.elevation?.level2 || colors.surfaceVariant,
+      borderTopLeftRadius: 15,
+      borderTopRightRadius: 15,
+    },
+    headerText: {
+      color: colors.onSurface,
+      fontWeight: 'bold',
+    },
+    unitAccordion: {
+      paddingLeft: 16,
+      backgroundColor: colors.elevation?.level1 || colors.surface,
+    },
+    accordionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.onSurfaceVariant,
+    },
+    contentContainer: {
+      paddingHorizontal: 16,
+      backgroundColor: colors.elevation?.level1 || colors.surface,
+    },
+    description: {
+      fontSize: 14,
+      marginVertical: 12,
+      textAlign: 'left',
+      color: colors.onSurfaceVariant,
+      paddingHorizontal: 8,
+    },
+    modulesList: {
+      paddingLeft: 0,
+      paddingBottom: 16,
+    },
+    moduleItem: {
+      marginVertical: 2,
+      paddingHorizontal: 15,
+      borderRadius: 8,
+      backgroundColor: colors.elevation?.level3 || colors.surfaceVariant,
+    },
+    moduleItemText: {
+      color: colors.onSurface,
+    },
+    moduleNumberText: {
+      color: colors.onSurfaceVariant,
+      fontSize: 12,
+      minWidth: 30,
+      textAlign: 'center',
+      marginRight: 8,
+    },
+  });
+
+  // Define chevronColor constant using theme color
+  const chevronColor = colors.onSurfaceVariant;
 
   const handleMainPress = useCallback(() => {
     configureAnimation();
@@ -135,13 +285,13 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ courseId, units = [] 
   if (!units.length) return null;
 
   return (
-    <Surface style={styles.container} elevation={4}>
-      <List.Section style={styles.section}>
-        <List.Accordion
-          left={props => <Feather {...props} name="list" size={20} color="#fff" />}
-          right={props => (
+    <Surface style={styles.container} elevation={2}>
+      <Section style={styles.section}>
+        <Accordion
+          left={() => <Feather name="list" size={20} color={colors.onSurface} />}
+          right={() => (
             <Animated.View style={mainChevronStyle}>
-              <Feather {...props} name="chevron-down" size={20} color="#fff" />
+              <Feather name="chevron-down" size={20} color={colors.onSurface} />
             </Animated.View>
           )}
           title="Table of Contents"
@@ -154,17 +304,19 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ courseId, units = [] 
             condition={units.length > 0}
             renderTrue={() =>
               units?.map(unit => (
-                <List.Accordion
+                <Accordion
                   key={unit.id}
                   title={`${unit.unitNumber}. ${unit.name}`}
                   expanded={expandedId === unit.id}
                   onPress={() => handleUnitPress(unit.id)}
-                  style={[styles.unitAccordion, { backgroundColor: '#121212' }]}
-                  titleStyle={[styles.accordionTitle, { color: '#fff' }]}
-                  right={() => <ChevronIcon rotation={unitRotations[unit.id]} color="#fff" />}
+                  style={styles.unitAccordion}
+                  titleStyle={styles.accordionTitle}
+                  right={() => (
+                    <ChevronIcon rotation={unitRotations[unit.id]} color={chevronColor} />
+                  )}
                 >
                   <View style={styles.contentContainer}>
-                    <Text style={[styles.description, { color: '#fff' }]}>{unit.description}</Text>
+                    <Text style={styles.description}>{unit.description}</Text>
                     <View style={styles.modulesList}>
                       <Conditional
                         condition={unit.modules.length > 0}
@@ -175,11 +327,14 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ courseId, units = [] 
                               courseId={courseId}
                               unitId={unit.id}
                               module={module}
-                              unitNumber={unit.unitNumber}
-                              moduleNumber={module.moduleNumber}
+                              style={styles.moduleItem}
+                              titleStyle={styles.moduleItemText}
+                              leftElement={
+                                <Text
+                                  style={styles.moduleNumberText}
+                                >{`${unit.unitNumber}.${module.moduleNumber}`}</Text>
+                              }
                               onPress={handleModulePress}
-                              backgroundColor={'#2D3338'}
-                              textColor="#fff"
                             />
                           ))
                         }
@@ -187,58 +342,15 @@ const TableOfContents: React.FC<TableOfContentsProps> = ({ courseId, units = [] 
                       />
                     </View>
                   </View>
-                </List.Accordion>
+                </Accordion>
               ))
             }
             renderFalse={null}
           />
-        </List.Accordion>
-      </List.Section>
+        </Accordion>
+      </Section>
     </Surface>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: '90%',
-    backgroundColor: '#1A2942',
-    alignSelf: 'center',
-    borderRadius: 15,
-  },
-  section: {
-    backgroundColor: '#1A2942',
-  },
-  header: {
-    backgroundColor: '#1A2942',
-  },
-  headerText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  unitAccordion: {
-    paddingLeft: 16,
-  },
-  accordionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  contentContainer: {
-    width: '95%',
-  },
-  description: {
-    fontSize: 16,
-    marginVertical: 16,
-    textAlign: 'center',
-  },
-  modulesList: {
-    paddingLeft: 16,
-    paddingBottom: 16,
-  },
-  moduleItem: {
-    marginVertical: 4,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-});
 
 export default React.memo(TableOfContents);

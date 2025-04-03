@@ -10,11 +10,18 @@
         "simulator": true,
         "buildConfiguration": "Debug"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "autoIncrement": true
     },
     "production": {
       "distribution": "store",
-      "channel": "production"
+      "channel": "production",
+      "autoIncrement": true
+    },
+    "development": {
+      "channel": "preview",
+      "distribution": "internal",
+      "autoIncrement": true
     }
   }
 }

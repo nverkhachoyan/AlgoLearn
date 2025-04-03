@@ -1,7 +1,8 @@
 import { View, StyleSheet } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import React from 'react';
 import Button from '@/src/components/Button';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 interface AccountActionsProps {
   onSignOut: () => Promise<void>;
@@ -10,11 +11,14 @@ interface AccountActionsProps {
 }
 
 const AccountActions = ({ onSignOut, onDeleteAccount, isDark }: AccountActionsProps) => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
 
   return (
     <View style={[styles.actionsCard, { backgroundColor: isDark ? colors.surface : 'white' }]}>
-      <Text style={[styles.sectionTitle, { color: colors.primary }]}>Account Actions</Text>
+      <Text variant="subtitle" style={[styles.sectionTitle, { color: colors.primary }]}>
+        Account Actions
+      </Text>
 
       <View style={styles.actionsContainer}>
         <Button

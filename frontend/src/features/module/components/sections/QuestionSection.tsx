@@ -1,333 +1,242 @@
-import React, { useCallback, memo } from 'react';
-import { StyleSheet, TouchableOpacity, View, Dimensions } from 'react-native';
-import { Card, Checkbox, Text, Surface, Avatar, Badge, IconButton } from 'react-native-paper';
-import { Option, QuestionContent, QuestionProgress } from '@/src/features/module/types/sections';
+import React, { memo, useState, useEffect, useRef } from 'react';
+import { StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
+import { Card, Text } from '@/src/components/ui';
+import { Feather } from '@expo/vector-icons';
+import { useAppTheme } from '@/src/context/ThemeContext';
+import { QuestionContent, QuestionProgress } from '@/src/features/module/types/sections';
 import { usePoints } from '@/src/features/user/hooks/usePoints';
+import { Colors } from '@/constants/Colors';
+import * as Haptics from 'expo-haptics';
 
 interface QuestionSectionProps {
   content: QuestionContent;
   questionState: QuestionProgress | undefined;
   onAnswer: (questionId: number, optionId: number, isCorrect: boolean) => void;
-  colors: any;
+  colors: Colors;
 }
 
 export const QuestionSection = memo(
   ({ content, questionState, onAnswer, colors }: QuestionSectionProps) => {
     const { addPoints, pointsValues } = usePoints();
+    const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+    const { theme } = useAppTheme();
+    const { dark } = theme;
 
-    const getOptionStyle = useCallback(
-      (option: Option) => {
-        const isSelected = option.id === questionState?.optionId;
-        const showResult = questionState?.hasAnswered;
+    const shakeAnimation = useRef(new Animated.Value(0)).current;
 
-        const baseStyle = [styles.questionOption, isSelected && styles.selectedOption];
+    const primaryBlue = '#0070F3';
+    const correctGreen = '#25A879';
+    const warningAmber = '#F59E0B';
+    const defaultGray = dark ? '#333333' : '#EFEFEF';
 
-        if (showResult) {
-          if (option.isCorrect) {
-            return [...baseStyle, styles.correctOption];
-          }
-          if (isSelected) {
-            return [...baseStyle, styles.incorrectOption];
-          }
+    useEffect(() => {
+      if (questionState?.optionId) {
+        setSelectedOptionId(questionState.optionId);
+
+        if (questionState.hasAnswered && !questionState.isCorrect) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          startShakeAnimation();
+        } else if (questionState.hasAnswered && questionState.isCorrect) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
+      } else {
+        setSelectedOptionId(null);
+      }
+    }, [content.id, questionState?.optionId, questionState?.hasAnswered, questionState?.isCorrect]);
 
-        return baseStyle;
-      },
-      [questionState]
-    );
+    const startShakeAnimation = () => {
+      Animated.sequence([
+        Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnimation, { toValue: -10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnimation, { toValue: -10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnimation, { toValue: 5, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnimation, { toValue: -5, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true }),
+      ]).start();
+    };
+
+    const handleOptionPress = (optionId: number) => {
+      setSelectedOptionId(optionId);
+
+      const selectedOption = content.options.find(opt => opt.id === optionId);
+      if (selectedOption) {
+        onAnswer(content.id, optionId, selectedOption.isCorrect);
+      }
+    };
 
     return (
-      <Card
-        style={[styles.section, { backgroundColor: colors.background }]}
-        elevation={0}
-        mode="elevated"
-      >
-        <Card.Content style={styles.questionContainer}>
-          <View style={styles.questionHeader}>
-            <View style={[styles.tagContainer, { backgroundColor: colors.primary + '10' }]}>
-              <Text style={[styles.tagText, { color: colors.primary }]}>Quiz</Text>
+      <Card style={styles.section} elevation={1}>
+        <View style={styles.container}>
+          <View style={styles.headerRow}>
+            <View style={[styles.tag, { backgroundColor: primaryBlue }]}>
+              <Text style={styles.tagText}>Quiz</Text>
             </View>
 
             {questionState?.hasAnswered && questionState?.isCorrect && (
-              <View style={styles.badgeContainer}>
-                <IconButton
-                  icon="check"
-                  iconColor={colors.background}
-                  size={14}
-                  style={[styles.statusBadge, { backgroundColor: colors.primary }]}
-                />
-                <Text style={[styles.statusText, { color: colors.primary }]}>Correct</Text>
+              <View style={styles.correctBadge}>
+                <View style={styles.smallIcon}>
+                  <Feather name="check" size={12} color="#fff" />
+                </View>
+                <Text style={styles.correctText}>Correct</Text>
               </View>
             )}
           </View>
 
-          <Text style={[styles.question, { color: colors.onBackground }]} variant="titleLarge">
-            {content.question}
-          </Text>
+          {/* Question text */}
+          <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
+            <Text style={styles.questionText}>{content.question}</Text>
 
-          <View style={styles.optionsContainer}>
-            {content.options.map((option, index) => {
-              const isSelected = option.id === questionState?.optionId;
-              const showResult = questionState?.hasAnswered;
-              const optionLetter = String.fromCharCode(65 + index); // A, B, C, D...
+            {/* Options */}
+            <View style={styles.optionsContainer}>
+              {content.options.map((option, index) => {
+                const isSelected = option.id === selectedOptionId;
+                const showResult = questionState?.hasAnswered;
+                const isCorrect = showResult && option.isCorrect;
+                const isIncorrect = showResult && isSelected && !option.isCorrect;
 
-              return (
-                <TouchableOpacity
-                  key={`${content.id}-${option.id}`}
-                  onPress={() => onAnswer(content.id, option.id, option.isCorrect)}
-                  style={styles.optionContainer}
-                >
-                  <Surface
-                    style={[
-                      getOptionStyle(option),
-                      {
-                        backgroundColor: isSelected ? colors.secondaryContainer : colors.surface,
-                      },
-                    ]}
-                    elevation={isSelected ? 1 : 0}
+                let bgColor = defaultGray;
+                let labelColor = dark ? '#fff' : '#333';
+
+                if (isSelected) {
+                  if (isCorrect) {
+                    bgColor = correctGreen;
+                    labelColor = '#fff';
+                  } else if (isIncorrect) {
+                    bgColor = warningAmber;
+                    labelColor = '#fff';
+                  } else {
+                    bgColor = primaryBlue;
+                    labelColor = '#fff';
+                  }
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={`${content.id}-${option.id}`}
+                    onPress={() => handleOptionPress(option.id)}
+                    style={[styles.optionRow, { backgroundColor: bgColor }]}
+                    activeOpacity={0.7}
                   >
-                    <View style={styles.optionInner}>
-                      <View
-                        style={[
-                          styles.optionLetterContainer,
-                          {
-                            backgroundColor: isSelected ? colors.secondary : colors.surfaceVariant,
-                            borderColor: isSelected ? colors.secondary : colors.outline + '40',
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.optionLetter,
-                            {
-                              color: isSelected ? colors.onSecondary : colors.onSurfaceVariant,
-                            },
-                          ]}
-                        >
-                          {optionLetter}
-                        </Text>
-                      </View>
-
-                      <Text
-                        style={[
-                          styles.optionText,
-                          {
-                            color: isSelected ? colors.onSecondaryContainer : colors.onSurface,
-                            fontWeight: isSelected ? '500' : '400',
-                          },
-                          showResult && !option.isCorrect && isSelected && styles.incorrectText,
-                        ]}
-                      >
+                    <View style={styles.optionContent}>
+                      <Text style={[styles.optionLetter, { color: labelColor }]}>
+                        {String.fromCharCode(65 + index)}
+                      </Text>
+                      <Text style={[styles.optionText, { color: labelColor }]}>
                         {option.content}
                       </Text>
-
-                      {showResult && (
-                        <View style={styles.resultContainer}>
-                          <IconButton
-                            icon={
-                              option.isCorrect
-                                ? 'check-circle-outline'
-                                : isSelected
-                                  ? 'information-outline'
-                                  : ''
-                            }
-                            iconColor={
-                              option.isCorrect
-                                ? colors.primary
-                                : isSelected
-                                  ? colors.onSurfaceVariant
-                                  : 'transparent'
-                            }
-                            size={20}
-                            style={styles.resultIcon}
-                          />
-                        </View>
-                      )}
                     </View>
-                  </Surface>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
 
-          {questionState?.hasAnswered && (
-            <View style={styles.resultFeedback}>
-              <Surface elevation={0}>
-                <View
-                  style={[
-                    styles.feedbackBar,
-                    {
-                      backgroundColor: questionState.isCorrect
-                        ? colors.primary + '20'
-                        : colors.surfaceVariant,
-                    },
-                  ]}
-                />
-                <View style={styles.feedbackContent}>
-                  <IconButton
-                    icon={questionState.isCorrect ? 'lightbulb-outline' : 'information-outline'}
-                    iconColor={questionState.isCorrect ? colors.primary : colors.onSurfaceVariant}
-                    size={24}
-                    style={styles.feedbackIcon}
-                  />
-                  <View style={styles.feedbackTextContainer}>
-                    <Text
-                      style={[
-                        styles.feedbackTitle,
-                        {
-                          color: questionState.isCorrect ? colors.primary : colors.onSurfaceVariant,
-                        },
-                      ]}
-                    >
-                      {questionState.isCorrect ? 'Great work!' : "Let's review this"}
-                    </Text>
-                    <Text style={[styles.feedbackDescription, { color: colors.onSurfaceVariant }]}>
-                      {questionState.isCorrect
-                        ? "You've selected the correct answer."
-                        : 'Review the correct answer highlighted above.'}
-                    </Text>
-                  </View>
-                </View>
-              </Surface>
+                    {showResult && (option.isCorrect || isIncorrect) && (
+                      <View style={styles.resultIcon}>
+                        <Feather
+                          name={option.isCorrect ? 'check-circle' : 'alert-circle'}
+                          size={18}
+                          color="#fff"
+                        />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-          )}
-        </Card.Content>
+          </Animated.View>
+        </View>
       </Card>
     );
   }
 );
 
-const { width } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
   section: {
-    marginVertical: 16,
-    borderRadius: 24,
+    marginVertical: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderColor: 'rgba(0,0,0,0.06)',
   },
-  questionContainer: {
-    padding: 20,
+  container: {
+    padding: 16,
   },
-  questionHeader: {
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  tagContainer: {
+  tag: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: 12,
   },
   tagText: {
-    fontSize: 13,
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
   },
-  badgeContainer: {
+  correctBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  statusBadge: {
-    margin: 0,
+    backgroundColor: '#10B981',
+    paddingRight: 8,
+    paddingLeft: 2,
     borderRadius: 12,
+  },
+  smallIcon: {
     width: 24,
     height: 24,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  question: {
-    marginBottom: 24,
-    fontSize: 20,
-    fontWeight: '600',
-    lineHeight: 28,
-  },
-  optionsContainer: {
-    gap: 12,
-  },
-  questionOption: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-  },
-  optionInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    paddingLeft: 4,
-  },
-  optionLetterContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    borderWidth: 1,
+  },
+  correctText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  questionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  optionsContainer: {
+    gap: 8,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  optionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   optionLetter: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  selectedOption: {
-    borderColor: 'transparent',
-  },
-  correctOption: {
-    borderColor: 'rgba(0,0,0,0)',
-    backgroundColor: 'rgba(46, 204, 113, 0.1)',
-  },
-  incorrectOption: {
-    borderColor: 'rgba(0,0,0,0)',
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    marginRight: 10,
+    width: 18,
   },
   optionText: {
+    fontSize: 14,
     flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  resultContainer: {
-    marginLeft: 'auto',
   },
   resultIcon: {
-    margin: 0,
-  },
-  optionContainer: {
-    width: '100%',
-  },
-  incorrectText: {
-    color: 'rgba(0, 0, 0, 0.7)',
-  },
-  resultFeedback: {
-    marginTop: 24,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  feedbackBar: {
-    height: 4,
-    width: '100%',
-  },
-  feedbackContent: {
-    flexDirection: 'row',
-    padding: 16,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  feedbackIcon: {
-    margin: 0,
-    marginRight: 8,
+  feedback: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
   },
-  feedbackTextContainer: {
-    flex: 1,
-  },
-  feedbackTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  feedbackDescription: {
+  feedbackText: {
+    color: '#fff',
     fontSize: 14,
-    lineHeight: 20,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

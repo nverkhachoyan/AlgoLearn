@@ -1,23 +1,25 @@
 import { useState, useRef } from 'react';
 import { StyleSheet, View, Animated, Platform, ActivityIndicator } from 'react-native';
-import { Searchbar } from 'react-native-paper';
 import { router } from 'expo-router';
 import { StickyHeader } from '@/src/components/StickyHeader';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
+import { Searchbar } from '@/src/components/ui';
 import { useCourses, useSearchCourses } from '@/src/features/course/hooks/useCourses';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { CourseSection } from '@/src/features/course/components/CourseList';
-import { TabGradients } from '@/constants/Colors';
+import { ContentBackground, HeaderAndTabs } from '@/constants/Colors';
 import { BlurView } from 'expo-blur';
 import { useDebounce } from '@/src/hooks/useDebounce';
 
 export default function Explore() {
   const { user } = useUser();
-  const theme = useTheme();
+  const { theme } = useAppTheme();
   const { colors } = theme;
+  const dark = theme.dark;
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const headerGradientColors = HeaderAndTabs[dark ? 'dark' : 'light'];
 
   const {
     courses: searchResults,
@@ -35,10 +37,6 @@ export default function Explore() {
     pageSize: 5,
     isAuthed: false,
   });
-
-  const headerGradientColors = theme.dark
-    ? TabGradients['explore'].dark
-    : TabGradients['explore'].light;
 
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, 100],
@@ -80,7 +78,7 @@ export default function Explore() {
       style={[
         styles.container,
         {
-          backgroundColor: colors.background,
+          backgroundColor: ContentBackground[dark ? 'dark' : 'light'],
         },
       ]}
     >
@@ -89,7 +87,6 @@ export default function Explore() {
           cpus={user?.cpus ?? 0}
           streak={user?.streak || 0}
           onAvatarPress={() => router.push('/(protected)/(profile)')}
-          gradientColors={headerGradientColors}
         />
         <Animated.View
           style={[
@@ -106,7 +103,8 @@ export default function Explore() {
                 placeholder="Explore"
                 onChangeText={setSearchQuery}
                 value={searchQuery}
-                style={[styles.searchBar, { backgroundColor: 'transparent' }]}
+                style={{ backgroundColor: 'transparent' }}
+                inputStyle={styles.searchBar}
               />
             </BlurView>
           ) : (
@@ -114,7 +112,8 @@ export default function Explore() {
               placeholder="Explore"
               onChangeText={setSearchQuery}
               value={searchQuery}
-              style={[styles.searchBar, { backgroundColor: 'rgba(255, 255, 255, 0.8)' }]}
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}
+              inputStyle={styles.searchBar}
             />
           )}
         </Animated.View>

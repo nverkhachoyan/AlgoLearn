@@ -7,15 +7,16 @@ import {
   Platform,
   ViewStyle,
 } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
 import CourseCard from '@/src/features/course/components/CourseCard';
 import Conditional from '@/src/components/Conditional';
 import Button from '@/src/components/Button';
 import { Course } from '@/src/features/course/types';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { buildImgUrl } from '@/src/lib/utils/transform';
+import { ContentBackground } from '@/constants/Colors';
 
 type SortOption = 'name' | 'rating' | 'duration' | 'difficultyLevel';
 
@@ -49,7 +50,8 @@ export const CourseSection = ({
   onLoadMore,
   hasProgress,
 }: CourseSectionProps) => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors, dark } = theme;
   const { width } = useWindowDimensions();
   const [sortBy, setSortBy] = useState<SortOption>('name');
 
@@ -133,7 +135,9 @@ export const CourseSection = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: ContentBackground[dark ? 'dark' : 'light'] }]}
+    >
       <FlashList
         key={`course-list-${numColumns}`}
         data={sortedCourses}
@@ -144,14 +148,18 @@ export const CourseSection = ({
         ListHeaderComponent={
           <>
             <View style={styles.headerContainer}>
-              <Text style={styles.title}>{title}</Text>
+              <Text variant="headline" style={styles.title}>
+                {title}
+              </Text>
             </View>
             <View style={styles.separator} />
           </>
         }
         ListEmptyComponent={
           <View style={styles.emptyStateContainer}>
-            <Text style={styles.emptyMessage}>{MESSAGES.NO_COURSES_LEARNING}</Text>
+            <Text variant="body" style={styles.emptyMessage}>
+              {MESSAGES.NO_COURSES_LEARNING}
+            </Text>
             <Button
               title={MESSAGES.EXPLORE_COURSES}
               onPress={() => {

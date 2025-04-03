@@ -12,7 +12,7 @@ import {
 import { router } from 'expo-router';
 import Button from '@/src/components/Button';
 import LottieView from 'lottie-react-native';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { Colors } from '@/constants/Colors';
 
 // Breakpoints for responsive design
@@ -22,7 +22,8 @@ const BREAKPOINTS = {
 };
 
 export default function Welcome() {
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
   const [isMounted, setIsMounted] = useState(false);
   const animation = useRef(null);
   const { width } = useWindowDimensions();

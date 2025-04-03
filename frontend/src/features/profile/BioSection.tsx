@@ -1,8 +1,9 @@
 import { View, StyleSheet } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import React from 'react';
 import Conditional from '@/src/components/Conditional';
 import LabeledInput from '@/src/components/LabeledInput';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 interface BioSectionProps {
   bio: string;
@@ -12,11 +13,14 @@ interface BioSectionProps {
 }
 
 const BioSection = ({ bio, editMode, onBioChange, isDark }: BioSectionProps) => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
 
   return (
     <View style={[styles.bioContainer, { backgroundColor: isDark ? colors.surface : '#FFFFFF' }]}>
-      <Text style={[styles.bioTitle, { color: colors.primary }]}>About</Text>
+      <Text variant="subtitle" style={[styles.bioTitle, { color: colors.primary }]}>
+        About
+      </Text>
 
       <Conditional
         condition={editMode}

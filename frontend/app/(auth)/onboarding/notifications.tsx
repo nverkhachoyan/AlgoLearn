@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Pressable, TouchableOpacity, ScrollView } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import Button from '@/src/components/Button';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -8,7 +9,8 @@ import { useAuth } from '@/src/features/auth/AuthContext';
 
 export default function PushNotifications() {
   const { setIsOnboarding } = useAuth();
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
 
   const handleNotNow = async () => {
     await setIsOnboarding(false);
@@ -20,7 +22,9 @@ export default function PushNotifications() {
       <Pressable style={styles.goBackButton} onPress={() => router.back()}>
         <Feather name="arrow-left" size={24} color={colors.onSurface} />
       </Pressable>
-      <Text style={[styles.title, { color: colors.onSurface }]}>Turn on notifications</Text>
+      <Text variant="headline" style={[styles.title, { color: colors.onSurface }]}>
+        Turn on notifications
+      </Text>
 
       <Text style={[styles.description, { color: colors.onSurface }]}>
         Get daily reminders to learn programming with our lessons.

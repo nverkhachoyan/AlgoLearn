@@ -5,18 +5,19 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { router } from 'expo-router';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { StickyHeader } from '@/src/components/StickyHeader';
 import { useUser } from '@/src/features/user/hooks/useUser';
-import { Colors } from '@/constants/Colors';
+import { Colors, ContentBackground, HeaderAndTabs } from '@/constants/Colors';
 import { humanReadableDate } from '@/src/lib/utils/date';
 import { Spinning } from '@/src/components/Spinning';
 import { LinearGradient } from 'expo-linear-gradient';
 import Conditional from '@/src/components/Conditional';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 type FeedItemType = 'course' | 'poll' | 'achievement';
 
@@ -31,7 +32,8 @@ interface FeedItem {
 
 export default function Feed() {
   const { user } = useUser();
-  const { colors, dark }: { colors: Colors; dark: boolean } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors, dark } = theme;
   const fadeAnim = useRef(new RNAnimated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useSharedValue(0);
@@ -179,9 +181,11 @@ export default function Feed() {
     }
   };
 
-  const headerGradientColors = dark
-    ? (['#4F6CF7', '#3D4FA3', '#2A3550'] as readonly [string, string, string])
-    : (['#4F6CF7', '#6A78ED', '#8A84E2'] as readonly [string, string, string]);
+  // const headerGradientColors = dark
+  //   ? (['#4F6CF7', '#3D4FA3', '#2A3550'] as readonly [string, string, string])
+  //   : (['#4F6CF7', '#6A78ED', '#8A84E2'] as readonly [string, string, string]);
+
+  const headerGradientColors = HeaderAndTabs[dark ? 'dark' : 'light'];
 
   if (!user) {
     return <Spinning />;
@@ -255,12 +259,11 @@ export default function Feed() {
   }, [feedItems, dark, colors]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={{ flex: 1 }}>
       <StickyHeader
         cpus={user.cpus}
         streak={user?.streak || 0}
         onAvatarPress={() => router.push('/(protected)/(profile)')}
-        gradientColors={headerGradientColors}
         scrollY={scrollY}
         collapsibleTitle={true}
         titleContent={() => (
@@ -272,7 +275,7 @@ export default function Feed() {
       />
 
       <Animated.ScrollView
-        style={[styles.scrollContainer, { backgroundColor: colors.background }]}
+        style={{ flex: 1, zIndex: 1, backgroundColor: ContentBackground[dark ? 'dark' : 'light'] }}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContentContainer}
@@ -299,13 +302,6 @@ export default function Feed() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flex: 1,
-    zIndex: 1,
-  },
   scrollContentContainer: {
     paddingTop: 10,
     paddingBottom: 30,

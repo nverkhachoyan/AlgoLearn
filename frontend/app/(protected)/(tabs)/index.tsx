@@ -4,29 +4,26 @@ import { useUser } from '@/src/features/user/hooks/useUser';
 import { useCourses } from '@/src/features/course/hooks/useCourses';
 import { StickyHeader } from '@/src/components/StickyHeader';
 import { useRouter } from 'expo-router';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { useAuth } from '@/src/features/auth/AuthContext';
-import { Colors, TabGradients } from '@/constants/Colors';
+import { HeaderAndTabs, ContentBackground } from '@/constants/Colors';
 
 export default function Home() {
   const { isAuthed } = useAuth();
   const { user } = useUser();
   const router = useRouter();
-  const { colors, dark }: { colors: Colors; dark: boolean } = useTheme();
+  const { colorScheme }: { colorScheme: 'light' | 'dark' } = useAppTheme();
   const { courses, fetchNextPage, hasNextPage, isFetchingNextPage } = useCourses({
     pageSize: 5,
     isAuthed,
   });
 
-  const headerGradientColors = TabGradients.index[dark ? 'dark' : 'light'];
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: ContentBackground[colorScheme] }]}>
       <StickyHeader
         cpus={user?.cpus ?? 0}
         streak={user?.streak || 0}
         onAvatarPress={() => router.push('/(protected)/(profile)')}
-        gradientColors={headerGradientColors}
       />
       <ScrollView contentContainerStyle={[styles.scrollContent]}>
         <CourseSection

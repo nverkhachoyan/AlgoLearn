@@ -1,5 +1,4 @@
 import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import Button from '@/src/components/Button';
@@ -8,6 +7,8 @@ import * as Animatable from 'react-native-animatable';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import { usePoints } from '@/src/features/user/hooks/usePoints';
 import { Feather } from '@expo/vector-icons';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 const congratulatoryTitles = [
   'Congratulations!',
@@ -107,7 +108,8 @@ const shouldUpdateStreak = (lastStreakDate: string | null | undefined): boolean 
 
 export default function ModuleCongratulations() {
   const router = useRouter();
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
   const params = useLocalSearchParams<RouteParams | any>();
   const [completionMessage, setCompletionMessage] = useState('');
   const [completionTitle, setCompletionTitle] = useState('');

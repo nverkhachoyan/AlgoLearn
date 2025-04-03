@@ -1,6 +1,7 @@
 import { View, StyleSheet } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import React from 'react';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 interface SectionDividerProps {
   title: string;
@@ -9,7 +10,8 @@ interface SectionDividerProps {
 }
 
 const SectionDivider = ({ title, isDark, withMarginTop = false }: SectionDividerProps) => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
 
   return (
     <>
@@ -20,6 +22,7 @@ const SectionDivider = ({ title, isDark, withMarginTop = false }: SectionDivider
         ]}
       />
       <Text
+        variant="subtitle"
         style={[styles.sectionTitle, { color: colors.primary, marginTop: withMarginTop ? 15 : 0 }]}
       >
         {title}

@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, memo } from "react";
-import { useTheme } from "react-native-paper";
+import React, { useCallback, useEffect, useRef, memo } from 'react';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import {
   Section,
   isQuestionSection,
@@ -7,16 +7,18 @@ import {
   isCodeSection,
   isMarkdownSection,
   isLotteSection,
-} from "@/src/features/module/types/sections";
-import { QuestionSection } from "./QuestionSection";
-import { MarkdownSection } from "./MarkdownSection";
-import { CodeSection } from "./CodeSection";
-import { VideoSection } from "./VideoSection";
-import { QuestionProgress } from "@/src/features/module/types/sections";
-import { LottieSection } from "./LottieSection";
+} from '@/src/features/module/types/sections';
+import { QuestionSection } from './QuestionSection';
+import { MarkdownSection } from './MarkdownSection';
+import { CodeSection } from './CodeSection';
+import { VideoSection } from './VideoSection';
+import { QuestionProgress } from '@/src/features/module/types/sections';
+import { LottieSection } from './LottieSection';
+import { Colors } from '@/constants/Colors';
 
 interface SectionRendererProps {
   section: Section;
+  folderObjectKey?: string;
   handleQuestionAnswer: (
     questionId: number,
     selectedOptionId: number | null,
@@ -26,8 +28,9 @@ interface SectionRendererProps {
 }
 
 const SectionsList: React.FC<SectionRendererProps> = memo(
-  ({ section, handleQuestionAnswer, questionsState }) => {
-    const { colors } = useTheme();
+  ({ section, handleQuestionAnswer, questionsState, folderObjectKey }) => {
+    const { theme } = useAppTheme();
+    const { colors }: { colors: Colors } = theme;
     const viewableRef = useRef(false);
 
     useEffect(() => {
@@ -45,6 +48,7 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
         return (
           <LottieSection
             content={section.content}
+            folderObjectKey={folderObjectKey}
             position={section.position}
             colors={colors}
           />
@@ -53,11 +57,7 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
 
       if (isMarkdownSection(section)) {
         return (
-          <MarkdownSection
-            content={section.content}
-            position={section.position}
-            colors={colors}
-          />
+          <MarkdownSection content={section.content} position={section.position} colors={colors} />
         );
       }
 
@@ -92,16 +92,9 @@ const SectionsList: React.FC<SectionRendererProps> = memo(
   (prevProps, nextProps) => {
     if (prevProps.section.id !== nextProps.section.id) return false;
 
-    if (
-      isQuestionSection(prevProps.section) &&
-      isQuestionSection(nextProps.section)
-    ) {
-      const prevState = prevProps.questionsState.get(
-        prevProps.section.content.id
-      );
-      const nextState = nextProps.questionsState.get(
-        nextProps.section.content.id
-      );
+    if (isQuestionSection(prevProps.section) && isQuestionSection(nextProps.section)) {
+      const prevState = prevProps.questionsState.get(prevProps.section.content.id);
+      const nextState = nextProps.questionsState.get(nextProps.section.content.id);
       return JSON.stringify(prevState) === JSON.stringify(nextState);
     }
 

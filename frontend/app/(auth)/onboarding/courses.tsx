@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { StyleSheet, Pressable, TouchableOpacity, ScrollView, View, TextInput } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
 import Button from '@/src/components/Button';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 export default function CourseSelectionScreen() {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
   const [checked, setChecked] = useState(false);
 
   const handleContinue = () => {
@@ -23,7 +24,7 @@ export default function CourseSelectionScreen() {
         <Pressable style={styles.goBackButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.onSurface} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.onSurface }]}>
+        <Text variant="headline" style={[styles.title, { color: colors.onSurface }]}>
           Find a course that interests you
         </Text>
 
@@ -58,7 +59,7 @@ export default function CourseSelectionScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.informative, { color: colors.secondary }]}>
+        <Text variant="caption" style={[styles.informative, { color: colors.secondary }]}>
           More courses coming soon
         </Text>
 

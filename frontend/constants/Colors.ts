@@ -1,7 +1,6 @@
-import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
 import { fontConfig } from './Fonts';
 
-// Light theme colors with  existing color palette
+// Light theme colors with existing color palette
 export const lightTheme = {
   colors: {
     // Core colors
@@ -33,7 +32,7 @@ export const lightTheme = {
     onBackground: '#000000', //text
     surface: '#FFFFFF', //cardBackground
     onSurface: '#000000', //text
-    surfaceVariant: '#FFF', //tabBarBackground
+    surfaceVariant: '#F0F0F0', //tabBarBackground
     onSurfaceVariant: '#636F73', //textDimmed
 
     // Other colors
@@ -102,7 +101,7 @@ export const darkTheme = {
     onBackground: '#FFFFFF', // dark text
     surface: '#24272E', // cardBackground dark
     onSurface: '#FFFFFF',
-    surfaceVariant: '#F7F9FC', // tabBarBackground dark
+    surfaceVariant: '#24272E', // tabBarBackground dark
     onSurfaceVariant: '#C2C2C2', // textDimmed dark
 
     outline: '#E8E8E8', // inputBorder dark
@@ -136,8 +135,9 @@ export const darkTheme = {
   },
 };
 
+// Create full theme objects with all necessary properties
 export const customDarkTheme = {
-  ...MD3DarkTheme,
+  dark: true,
   fonts: fontConfig,
   colors: {
     ...darkTheme.colors,
@@ -161,7 +161,7 @@ export const customDarkTheme = {
 };
 
 export const customLightTheme = {
-  ...MD3LightTheme,
+  dark: false,
   fonts: fontConfig,
   colors: {
     ...lightTheme.colors,
@@ -191,36 +191,6 @@ export type Colors = typeof customLightTheme.colors | typeof customDarkTheme.col
 export const themes = {
   light: customLightTheme,
   dark: customDarkTheme,
-};
-
-export type TabName = 'index' | 'explore' | 'challenges' | 'leaderboard' | 'feed';
-export const TabGradients: Record<
-  TabName,
-  {
-    dark: readonly [string, string, string];
-    light: readonly [string, string, string];
-  }
-> = {
-  index: {
-    dark: ['#24272E', '#2D3347', '#363F5C'] as const,
-    light: ['#E6EAF5', '#C7D3E8', '#A8BDDB'] as const,
-  },
-  explore: {
-    dark: ['#292D3E', '#36375A', '#433D76'] as const,
-    light: ['#E8E9F5', '#D0D1E8', '#B8BADA'] as const,
-  },
-  challenges: {
-    dark: ['#2E2A29', '#403633', '#524440'] as const,
-    light: ['#F2EBE9', '#E5D8D5', '#D8C5C1'] as const,
-  },
-  leaderboard: {
-    dark: ['#242C33', '#2B3D4A', '#324B5E'] as const,
-    light: ['#E6EDF2', '#CADBE8', '#AECBDF'] as const,
-  },
-  feed: {
-    dark: ['#4F6CF7', '#3D4FA3', '#2A3550'] as const,
-    light: ['#4F6CF7', '#6A78ED', '#8A84E2'] as const,
-  },
 };
 
 export const USER_PROFILE_GRADIENTS = {
@@ -256,10 +226,30 @@ export const USER_PROFILE_GRADIENTS = {
   },
 };
 
-export const ACCENT_GRADIENT: {
-  dark: readonly [string, string, string];
-  light: readonly [string, string, string];
-} = {
-  dark: ['#5E3773', '#7A3E8C', '#9247A9'],
-  light: ['#F0E1F7', '#E0C2F0', '#D0A3E9'],
+export const HeaderAndTabs = {
+  dark: '#1C1C1E', // System Gray 6 Dark (Common background)
+  light: '#F2F2F7', // System Gray 6 Light (Common background)
+};
+
+export const ContentBackground = {
+  dark: '#000000', // Black (Base Dark Background)
+  light: '#FFFFFF', // White (Base Light Background)
+};
+
+export const COURSE_CARD = {
+  // Often cards use the base background or a slightly darker/lighter grouped background
+  dark: '#1C1C1E', // System Gray 6 Dark (or #000000)
+  light: '#FFFFFF', // White (or #F2F2F7)
+};
+
+export const CURRENT_MODULE = {
+  // Standard System Blue for interactive elements
+  dark: '#0A84FF', // System Blue Dark
+  light: '#007AFF', // System Blue Light
+};
+
+export const CURRENT_MODULE_PRESSED = {
+  // A slightly darker/more saturated version for pressed state (approximation)
+  dark: '#0A64FF',
+  light: '#005AFF',
 };

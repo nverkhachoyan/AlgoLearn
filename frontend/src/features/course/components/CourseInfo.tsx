@@ -1,5 +1,5 @@
 import { Platform, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
 import { MaterialIcons, AntDesign } from '@expo/vector-icons';
 import { Course } from '@/src/features/course/types';
 import { Colors } from '@/constants/Colors';
@@ -31,7 +31,9 @@ function InfoSection({ icon, title, content }: any) {
     <View>
       <View style={styles.courseInfoTitleContainer}>
         {icon}
-        <Text style={styles.courseInfoTitle}>{title}</Text>
+        <Text variant="subtitle" style={styles.courseInfoTitle}>
+          {title}
+        </Text>
       </View>
       <Text style={styles.courseDescription}>{content}</Text>
     </View>

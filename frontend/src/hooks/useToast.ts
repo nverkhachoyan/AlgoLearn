@@ -1,8 +1,9 @@
 import { Toast, ToastContainerProps } from '@/src/components/Toast';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 const CustomToast = () => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
 
   const showToast = (message: string, props?: ToastContainerProps) => {
     const {

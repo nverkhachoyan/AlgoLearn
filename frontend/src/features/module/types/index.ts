@@ -12,6 +12,9 @@ export interface Module extends BaseModel {
   completedAt?: string;
   lastAccessed?: string;
   sections?: Section[];
+  folderObjectKey?: string;
+  imgKey?: string;
+  mediaExt?: string;
 }
 
 export interface ModuleProgress {

@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text } from 'react-native-paper';
-import { useTheme } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { useAuth } from '@/src/features/auth/AuthContext';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCourse } from '@/src/features/course/hooks/useCourses';
@@ -10,8 +10,10 @@ import { Module } from '@/src/features/module/types';
 import { FlashList } from '@shopify/flash-list';
 import { Unit } from '@/src/features/course/types';
 import { Feather } from '@expo/vector-icons';
+
 export default function SessionTOC(): JSX.Element {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
   const { isAuthed } = useAuth();
   const { courseId } = useLocalSearchParams();
   const { course }: { course: Course | undefined } = useCourse({
@@ -45,6 +47,7 @@ export default function SessionTOC(): JSX.Element {
     >
       <View style={styles.moduleContent}>
         <Text
+          variant="body"
           style={[
             styles.moduleTitle,
             {
@@ -75,8 +78,12 @@ export default function SessionTOC(): JSX.Element {
   const renderUnit = ({ item: unit }: { item: Unit }): JSX.Element => (
     <View style={[styles.unitTitle, { backgroundColor: colors.background }]}>
       <View style={styles.unitTitleContainer}>
-        <Text style={[styles.unitTitleText, { color: colors.onSurface }]}>{unit.unitNumber}.</Text>
-        <Text style={[styles.unitTitleText, { color: colors.onSurface }]}>{unit.name}</Text>
+        <Text variant="subtitle" style={[styles.unitTitleText, { color: colors.onSurface }]}>
+          {unit.unitNumber}.
+        </Text>
+        <Text variant="subtitle" style={[styles.unitTitleText, { color: colors.onSurface }]}>
+          {unit.name}
+        </Text>
       </View>
       <View style={styles.modulesContainer}>
         <FlashList
@@ -93,7 +100,9 @@ export default function SessionTOC(): JSX.Element {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.onSurface }]}>
         <Feather name="book-open" color={colors.onSurface} />
-        <Text style={styles.courseTitle}>{course.name}</Text>
+        <Text variant="headline" style={styles.courseTitle}>
+          {course.name}
+        </Text>
       </View>
       <FlashList
         data={course.units}

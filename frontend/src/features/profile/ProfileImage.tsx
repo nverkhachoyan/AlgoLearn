@@ -7,7 +7,6 @@ import { FontAwesome } from '@expo/vector-icons';
 import { User } from '../user/types';
 import { ImageFile } from '@/src/types';
 import { Colors } from '@/constants/Colors';
-import { MD3Colors } from 'react-native-paper';
 
 const ProfileImage = ({
   user,

@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { Card, Divider, Text as PaperText } from 'react-native-paper';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Card, CardContent, CardTitle, CardActions, Divider, Text } from '@/src/components/ui';
 import Button from '@/src/components/Button';
 import { router } from 'expo-router';
 import { Course } from '../types/types';
@@ -16,7 +16,7 @@ export default function CurrentModuleCard({
   onPressOut: () => void;
 }) {
   return (
-    <Card
+    <TouchableOpacity
       onPress={() =>
         router.replace({
           pathname: '/(protected)/course/[courseId]/module/[moduleId]',
@@ -32,52 +32,51 @@ export default function CurrentModuleCard({
         {
           backgroundColor: '#1d855f',
           transform: [{ scale: isPressed ? 1.02 : 1 }],
-          elevation: isPressed ? 8 : 2,
         },
       ]}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
-      elevation={4}
+      activeOpacity={0.9}
     >
-      <Card.Title
-        title={`Unit ${course.currentUnit.unitNumber} Module ${course.currentModule?.moduleNumber}`}
-        titleVariant="titleSmall"
-        titleStyle={{ color: '#E8E8E8' }}
-      />
-      <Card.Content style={{ gap: 10 }}>
-        <PaperText variant="titleLarge" style={{ color: '#E8E8E8' }}>
-          {course.currentModule?.name}
-        </PaperText>
-        <PaperText variant="bodyMedium" style={{ color: '#E8E8E8' }}>
-          {course.currentModule?.description}
-        </PaperText>
-      </Card.Content>
-      <Divider style={styles.cardDivider} />
-      <Card.Actions style={styles.cardActions}>
-        <Button
-          title="Jump back in"
-          onPress={() => {
-            router.push({
-              pathname: '/(protected)/course/[courseId]/module/[moduleId]',
-              params: {
-                courseId: course.id,
-                unitId: course.currentUnit?.id,
-                moduleId: course.currentModule?.id as number,
-                hasProgress: 'true',
-              },
-            });
-          }}
-          style={styles.jumpButton}
-          textStyle={styles.jumpButtonText}
-          iconStyle={{ color: '#24272E' }}
-          icon={{
-            type: 'feather',
-            name: 'arrow-right',
-            position: 'right',
-          }}
+      <Card elevation={isPressed ? 8 : 4} style={{ backgroundColor: 'transparent' }}>
+        <CardTitle
+          title={`Unit ${course.currentUnit.unitNumber} Module ${course.currentModule?.moduleNumber}`}
         />
-      </Card.Actions>
-    </Card>
+        <CardContent style={{ gap: 10 }}>
+          <Text variant="title" style={{ color: '#E8E8E8' }}>
+            {course.currentModule?.name}
+          </Text>
+          <Text variant="body" style={{ color: '#E8E8E8' }}>
+            {course.currentModule?.description}
+          </Text>
+        </CardContent>
+        <Divider style={styles.cardDivider} />
+        <CardActions style={styles.cardActions}>
+          <Button
+            title="Jump back in"
+            onPress={() => {
+              router.push({
+                pathname: '/(protected)/course/[courseId]/module/[moduleId]',
+                params: {
+                  courseId: course.id,
+                  unitId: course.currentUnit?.id,
+                  moduleId: course.currentModule?.id as number,
+                  hasProgress: 'true',
+                },
+              });
+            }}
+            style={styles.jumpButton}
+            textStyle={styles.jumpButtonText}
+            iconStyle={{ color: '#24272E' }}
+            icon={{
+              type: 'feather',
+              name: 'arrow-right',
+              position: 'right',
+            }}
+          />
+        </CardActions>
+      </Card>
+    </TouchableOpacity>
   );
 }
 

@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import { Platform, AppState, StyleSheet, View } from 'react-native';
 import { QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { RootSiblingParent } from 'react-native-root-siblings';
-import { PaperProvider } from 'react-native-paper';
 import { useFonts } from 'expo-font';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { SplashScreen } from 'expo-router';
@@ -46,7 +45,8 @@ function SafePostHogProvider({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  const { theme, themeVersion } = useAppTheme();
+  const { theme } = useAppTheme();
+
   const [fontsLoaded, error] = useFonts({
     SpaceMono: require('@/assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome6.font,
@@ -79,20 +79,18 @@ function AppContent() {
   }
 
   return (
-    <PaperProvider theme={theme} key={themeVersion}>
-      <SafeAreaProvider>
-        <RootSiblingParent>
-          <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            <StatusBar style={theme.dark ? 'light' : 'dark'} />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(public)" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(protected)" />
-            </Stack>
-          </View>
-        </RootSiblingParent>
-      </SafeAreaProvider>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <RootSiblingParent>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <StatusBar style={theme.dark ? 'light' : 'dark'} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(public)" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(protected)" />
+          </Stack>
+        </View>
+      </RootSiblingParent>
+    </SafeAreaProvider>
   );
 }
 

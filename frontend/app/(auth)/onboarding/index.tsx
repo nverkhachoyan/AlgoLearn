@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Pressable,
   TouchableOpacity,
   Image,
-  Animated,
   Platform,
 } from 'react-native';
 
@@ -15,9 +14,10 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import Button from '@/src/components/Button';
 import { Feather } from '@expo/vector-icons';
-import { useTheme, TextInput } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import useToast from '@/src/hooks/useToast';
+import LabeledInput from '@/src/components/LabeledInput';
 
 import { ImageFile } from '@/src/types/common';
 import { useUser } from '@/src/features/user/hooks/useUser';
@@ -36,38 +36,9 @@ export default function UserDetails() {
   const [lastName, setLastName] = useState('');
   const [imageFile, setImageFile] = useState<ImageFile>(null);
   const { updateUser } = useUser();
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
   const { showToast } = useToast();
-  const [isFocused, setIsFocused] = useState({
-    username: false,
-    firstName: false,
-    lastName: false,
-  });
-
-  const usernameScale = useRef(new Animated.Value(1)).current;
-  const firstNameScale = useRef(new Animated.Value(1)).current;
-  const lastNameScale = useRef(new Animated.Value(1)).current;
-
-  const animateScale = (animatedValue: Animated.Value, toValue: number) => {
-    Animated.spring(animatedValue, {
-      toValue,
-      useNativeDriver: true,
-      friction: 8,
-      tension: 40,
-    }).start();
-  };
-
-  useEffect(() => {
-    animateScale(usernameScale, isFocused.username ? 1.02 : 1);
-  }, [isFocused.username]);
-
-  useEffect(() => {
-    animateScale(firstNameScale, isFocused.firstName ? 1.02 : 1);
-  }, [isFocused.firstName]);
-
-  useEffect(() => {
-    animateScale(lastNameScale, isFocused.lastName ? 1.02 : 1);
-  }, [isFocused.lastName]);
 
   const pickImage = async () => {
     if (Platform.OS !== 'web') {
@@ -191,58 +162,35 @@ export default function UserDetails() {
         <View style={styles.inputsContainer}>
           <View style={styles.inputWrapper}>
             <Text style={[styles.label, { color: colors.onSurface }]}>Username</Text>
-            <Animated.View style={{ transform: [{ scaleX: usernameScale }] }}>
-              <TextInput
-                value={username}
-                onChangeText={setUsername}
-                mode="outlined"
-                placeholder="Choose a unique username"
-                autoCapitalize="none"
-                style={[styles.textInput, { backgroundColor: colors.surface }]}
-                onFocus={() => setIsFocused(prev => ({ ...prev, username: true }))}
-                onBlur={() => setIsFocused(prev => ({ ...prev, username: false }))}
-                placeholderTextColor={colors.surfaceDisabled}
-                outlineColor={colors.shadow}
-                activeOutlineColor={colors.secondary}
-                outlineStyle={{ borderRadius: 8, borderWidth: 0.5, borderColor: colors.shadow }}
-              />
-            </Animated.View>
+            <LabeledInput
+              label="Username"
+              icon="user"
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Choose a unique username"
+            />
           </View>
 
           <View style={styles.inputWrapper}>
             <Text style={[styles.label, { color: colors.onSurface }]}>First name</Text>
-            <Animated.View style={{ transform: [{ scaleX: firstNameScale }] }}>
-              <TextInput
-                value={firstName}
-                onChangeText={setFirstName}
-                mode="outlined"
-                placeholder="Your first name"
-                autoCapitalize="words"
-                style={[styles.textInput, { backgroundColor: colors.surface }]}
-                onFocus={() => setIsFocused(prev => ({ ...prev, firstName: true }))}
-                onBlur={() => setIsFocused(prev => ({ ...prev, firstName: false }))}
-                placeholderTextColor={colors.surfaceDisabled}
-                outlineStyle={{ borderRadius: 8, borderWidth: 0.5, borderColor: colors.shadow }}
-              />
-            </Animated.View>
+            <LabeledInput
+              label="First name"
+              icon="user"
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Your first name"
+            />
           </View>
 
           <View style={styles.inputWrapper}>
             <Text style={[styles.label, { color: colors.onSurface }]}>Last name</Text>
-            <Animated.View style={{ transform: [{ scaleX: lastNameScale }] }}>
-              <TextInput
-                value={lastName}
-                onChangeText={setLastName}
-                mode="outlined"
-                placeholder="Your last name"
-                autoCapitalize="words"
-                style={[styles.textInput, { backgroundColor: colors.surface }]}
-                onFocus={() => setIsFocused(prev => ({ ...prev, lastName: true }))}
-                onBlur={() => setIsFocused(prev => ({ ...prev, lastName: false }))}
-                placeholderTextColor={colors.surfaceDisabled}
-                outlineStyle={{ borderRadius: 8, borderWidth: 0.5, borderColor: colors.shadow }}
-              />
-            </Animated.View>
+            <LabeledInput
+              label="Last name"
+              icon="user"
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Your last name"
+            />
           </View>
         </View>
 

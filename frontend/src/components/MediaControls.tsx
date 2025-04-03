@@ -3,6 +3,7 @@ import { StyleSheet, View, TouchableOpacity, Text, Animated } from 'react-native
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { SpeedSelector } from '@/src/components/SpeedSelector';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 interface MediaControlsProps {
   isPlaying: boolean;
@@ -48,6 +49,9 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
   onSpeedSelect,
   onSpeedMenuClose,
 }) => {
+  const { theme } = useAppTheme();
+  const { dark } = theme;
+
   return (
     <Animated.View style={[styles.controlsWrapper, { opacity }]}>
       <View style={styles.minimalControls}>
@@ -99,7 +103,7 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
           style={styles.slider}
           thumbTintColor={primaryColor}
           minimumTrackTintColor={primaryColor}
-          maximumTrackTintColor={surfaceVariant}
+          maximumTrackTintColor={dark ? 'white' : 'black'}
         />
       </View>
     </Animated.View>
@@ -110,8 +114,7 @@ const styles = StyleSheet.create({
   controlsWrapper: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    marginTop: 4,
   },
   minimalControls: {
     flexDirection: 'row',

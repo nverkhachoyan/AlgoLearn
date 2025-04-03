@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
+import { Text } from '@/src/components/ui';
 import { Feather } from '@expo/vector-icons';
 import React from 'react';
 
@@ -16,7 +17,10 @@ export default function UserInfoRow({
   value: string;
   highlight?: boolean;
 }) {
-  const { colors, dark } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
+  const dark = theme.dark;
+
   return (
     <View style={styles.userInfoRow}>
       <View
@@ -38,7 +42,9 @@ export default function UserInfoRow({
         />
       </View>
       <View style={styles.infoContent}>
-        <Text style={[styles.userInfoLabel, { color: colors.onSurfaceVariant }]}>{label}</Text>
+        <Text variant="caption" style={[styles.userInfoLabel, { color: colors.onSurfaceVariant }]}>
+          {label}
+        </Text>
         <Text style={[styles.userInfoText, { color: colors.onSurface }]}>{value}</Text>
       </View>
     </View>

@@ -1,11 +1,12 @@
 import { View } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { Stack } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 export default function AuthLayout() {
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
 
   return (
     <View style={{ flex: 1 }}>

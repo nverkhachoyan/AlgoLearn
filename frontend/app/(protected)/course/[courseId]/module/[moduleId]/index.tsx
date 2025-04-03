@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, ViewToken, View, Animated } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { FlashList } from '@shopify/flash-list';
 import SectionsList from '@/src/features/module/components/sections/SectionsList';
 import Button from '@/src/components/Button';
@@ -11,7 +11,7 @@ import { QuestionContent } from '@/src/features/module/types/sections';
 import { ModuleHeader } from '@/src/features/module/components/sections/ModuleHeader';
 import { ModuleFooter } from '@/src/features/module/components/sections/ModuleFooter';
 import { useModuleProgressInit } from '@/src/features/module/hooks/useModuleProgressInit';
-import { Colors, TabGradients } from '@/constants/Colors';
+import { Colors, HeaderAndTabs } from '@/constants/Colors';
 import useToast from '@/src/hooks/useToast';
 import { UseModuleProgressReturn } from '@/src/features/module/hooks/useModules';
 import { usePoints } from '@/src/features/user/hooks/usePoints';
@@ -112,7 +112,8 @@ interface RouteParams extends Record<string, string | undefined> {
 
 export default function ModuleSession() {
   const router = useRouter();
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
   const params = useLocalSearchParams<RouteParams | any>();
   const [isCompleting, setIsCompleting] = useState(false);
   const { showToast } = useToast();
@@ -148,9 +149,9 @@ export default function ModuleSession() {
     moduleId: ids.moduleId,
   });
   const { moduleProgress, setModuleProgress } = useModuleProgressInit(currentModule);
-  const { dark } = useTheme();
+  const { dark } = theme;
 
-  const headerGradientColors = TabGradients.index[dark ? 'dark' : 'light'];
+  const headerGradientColors = HeaderAndTabs[dark ? 'dark' : 'light'];
 
   // Special effect to force update the moduleProgress when the module data changes
   // This ensures that sections from the backend are properly marked as seen
@@ -473,7 +474,6 @@ export default function ModuleSession() {
         ? JSON.stringify(moduleProgress.questions.get(section.content.id))
         : undefined;
 
-      // Determine if this is just a question update
       const isQuestionUpdate = isQuestionSection(section) && questionKey !== undefined;
 
       return (
@@ -485,6 +485,7 @@ export default function ModuleSession() {
           <View>
             <SectionsList
               section={section}
+              folderObjectKey={currentModule && currentModule.folderObjectKey}
               handleQuestionAnswer={handleQuestionAnswer}
               questionsState={moduleProgress.questions}
             />
@@ -533,7 +534,6 @@ export default function ModuleSession() {
         onNext={handleModuleCompletion}
         onTOC={() => {}}
         colors={colors}
-        gradientColors={headerGradientColors}
       />
     </View>
   );

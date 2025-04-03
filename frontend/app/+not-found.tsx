@@ -1,18 +1,18 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Text } from 'react-native-paper';
-import { useColorScheme } from 'react-native';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 export default function NotFoundScreen() {
-  const colorScheme = useColorScheme();
+  const { theme } = useAppTheme();
+  const isDark = theme.dark;
+
   return (
     <View>
       <Stack.Screen options={{ title: 'Oops!' }} />
-      <View
-        style={[styles.container, { backgroundColor: colorScheme === 'dark' ? '#000' : '#FFF' }]}
-      >
-        <Text style={[styles.title, { color: colorScheme === 'dark' ? '#FFF' : '#000' }]}>
+      <View style={[styles.container, { backgroundColor: isDark ? '#000' : '#FFF' }]}>
+        <Text variant="headline" style={[styles.title, { color: isDark ? '#FFF' : '#000' }]}>
           This screen doesn't exist.
         </Text>
 

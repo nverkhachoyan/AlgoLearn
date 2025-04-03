@@ -1,6 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, View, Animated, TouchableOpacity } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import { useUser } from '@/src/features/user/hooks/useUser';
 import Button from '@/src/components/Button';
 import { Feather } from '@expo/vector-icons';
@@ -20,6 +19,8 @@ import { User, UserPreferences } from '@/src/features/user/types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { USER_PROFILE_GRADIENTS, Colors } from '@/constants/Colors';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 import ProfileHeader from '@/src/features/profile/ProfileHeader';
 import BioSection from '@/src/features/profile/BioSection';
@@ -45,7 +46,9 @@ type GradientThemeKey = keyof typeof USER_PROFILE_GRADIENTS;
 
 export default function Profile() {
   const { user, updateUser } = useUser();
-  const { colors, dark }: { colors: Colors; dark: boolean } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
+  const dark = theme.dark;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const imageAnim = useRef(new Animated.Value(0)).current;
   const gradientAnim = useRef(new Animated.Value(0)).current;

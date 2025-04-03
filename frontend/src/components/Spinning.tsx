@@ -1,8 +1,11 @@
 import { View, StyleSheet } from 'react-native';
-import { ActivityIndicator, useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
+import { ActivityIndicator } from '@/src/components/ui';
 
 export const Spinning = () => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ActivityIndicator size="small" color={colors.onSurface} />

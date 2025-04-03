@@ -1,8 +1,9 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { USER_PROFILE_GRADIENTS } from '@/constants/Colors';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 type GradientThemeKey = keyof typeof USER_PROFILE_GRADIENTS;
 
@@ -13,11 +14,15 @@ interface ThemeSelectorProps {
 }
 
 const ThemeSelector = ({ currentTheme, onThemeChange, isDark }: ThemeSelectorProps) => {
-  const { colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
 
   return (
     <View>
-      <Text style={[styles.sectionTitle, { color: colors.primary, marginTop: 15 }]}>
+      <Text
+        variant="subtitle"
+        style={[styles.sectionTitle, { color: colors.primary, marginTop: 15 }]}
+      >
         Theme Preference
       </Text>
       <View style={styles.themeOptions}>

@@ -1,56 +1,57 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useColorScheme, Appearance } from "react-native";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme, Appearance } from 'react-native';
 import {
   customLightTheme,
   customDarkTheme,
-  AppTheme,
-} from "@/constants/Colors";
+  ThemeType as ColorThemeType,
+  AppTheme as ColorAppTheme,
+} from '@/constants/Colors';
+
+// Re-export types from Colors.ts
+export type AppTheme = ColorAppTheme;
+export type ThemeType = ColorThemeType;
 
 type ThemeContextType = {
   theme: AppTheme;
-  colorScheme: "light" | "dark";
-  themeVersion: number;
+  colorScheme: ThemeType;
+  dark: boolean;
+  light: boolean;
 };
 
-const initialTheme =
-  Appearance.getColorScheme() === "dark" ? customDarkTheme : customLightTheme;
+const initialColorScheme = (Appearance.getColorScheme() as ThemeType) || 'light';
+const initialTheme = initialColorScheme === 'dark' ? customDarkTheme : customLightTheme;
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: initialTheme,
-  colorScheme: Appearance.getColorScheme() || "light",
-  themeVersion: 0,
+  colorScheme: initialColorScheme,
+  dark: initialColorScheme === 'dark',
+  light: initialColorScheme === 'light',
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemColorScheme = useColorScheme();
-  const [currentColorScheme, setCurrentColorScheme] = useState<
-    "light" | "dark"
-  >(systemColorScheme || "light");
-  const [themeVersion, setThemeVersion] = useState(0);
+  const systemColorScheme = (useColorScheme() as ThemeType) || 'light';
+  const [currentColorScheme, setCurrentColorScheme] = useState<ThemeType>(systemColorScheme);
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
       if (colorScheme) {
-        setCurrentColorScheme(colorScheme);
-        setThemeVersion((prev) => prev + 1);
+        setCurrentColorScheme(colorScheme as ThemeType);
       }
     });
 
     return () => subscription.remove();
   }, []);
 
-  const theme =
-    currentColorScheme === "dark" ? customDarkTheme : customLightTheme;
+  const theme = currentColorScheme === 'dark' ? customDarkTheme : customLightTheme;
 
   const value = {
     theme,
     colorScheme: currentColorScheme,
-    themeVersion,
+    dark: currentColorScheme === 'dark',
+    light: currentColorScheme === 'light',
   };
 
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useAppTheme() {

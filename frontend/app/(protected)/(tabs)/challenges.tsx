@@ -1,9 +1,16 @@
 import { StyleSheet, View, ScrollView } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import LottieView from 'lottie-react-native';
+import { ContentBackground } from '@/constants/Colors';
+import { StickyHeader } from '@/src/components/StickyHeader';
+import { useUser } from '@/src/features/user/hooks/useUser';
+import { router } from 'expo-router';
 
 export default function Challenges() {
-  const { colors, dark } = useTheme();
+  const { theme } = useAppTheme();
+  const { dark } = theme;
+  const { user } = useUser();
   const animationSource = require('@/assets/lotties/coming.lottie');
 
   return (
@@ -11,13 +18,20 @@ export default function Challenges() {
       style={[
         styles.container,
         {
-          backgroundColor: colors.background,
+          backgroundColor: ContentBackground[dark ? 'dark' : 'light'],
         },
       ]}
     >
-      <Text style={styles.title}>Challenges?</Text>
+      <StickyHeader
+        cpus={user?.cpus || 0}
+        streak={user?.streak || 0}
+        onAvatarPress={() => router.replace('/')}
+      />
 
-      <View style={[styles.animationContainer, { backgroundColor: 'transparent' }]}>
+      <View style={styles.animationContainer}>
+        <Text variant="headline" style={styles.title}>
+          Challenges?
+        </Text>
         <LottieView
           source={animationSource}
           style={styles.lottieView}
@@ -26,7 +40,7 @@ export default function Challenges() {
           colorFilters={[
             {
               keypath: '**.*',
-              color: dark ? '#25A879' : 'black',
+              color: '#25A879',
             },
           ]}
           renderMode="AUTOMATIC"
@@ -39,21 +53,22 @@ export default function Challenges() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   animationContainer: {
-    width: '100%',
-    height: 300,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexDirection: 'column',
   },
   lottieView: {
-    width: '50%',
+    width: '100%',
     height: '100%',
+    aspectRatio: 0.5,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     fontFamily: 'OpenSauceOne-Regular',
+    marginTop: 40,
   },
 });

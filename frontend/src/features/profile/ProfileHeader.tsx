@@ -1,11 +1,11 @@
 import { StyleSheet, Animated } from 'react-native';
-import { Text } from 'react-native-paper';
 import React from 'react';
 import Conditional from '@/src/components/Conditional';
 import ProfileImage from './ProfileImage';
 import { User } from '@/src/features/user/types';
 import { ImageFile } from '@/src/types';
 import { Colors } from '@/constants/Colors';
+import { Text } from '@/src/components/ui';
 
 interface ProfileHeaderProps {
   user: User;
@@ -55,7 +55,7 @@ const ProfileHeader = ({
       <Conditional
         condition={!editMode && !!(user.firstName || user.lastName)}
         renderTrue={() => (
-          <Text style={[styles.fullName, { color: '#FFFFFF' }]}>
+          <Text variant="headline" style={[styles.fullName, { color: '#FFFFFF' }]}>
             {user.firstName + ' ' + user.lastName}
           </Text>
         )}
@@ -65,7 +65,7 @@ const ProfileHeader = ({
       <Conditional
         condition={!editMode}
         renderTrue={() => (
-          <Text style={[styles.username, { color: '#FFFFFF' }]}>
+          <Text variant="body" style={[styles.username, { color: '#FFFFFF' }]}>
             {'@' + user.username || user.email}
           </Text>
         )}

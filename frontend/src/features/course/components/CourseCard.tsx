@@ -3,12 +3,11 @@ import { router } from 'expo-router';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import Button from '@/src/components/Button';
 import { Author, Unit } from '@/src/features/course/types';
-import { useTheme, Surface } from 'react-native-paper';
-import { Divider, Text } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
+import { Text, Divider } from '@/src/components/ui';
 import { useState, useRef, useEffect } from 'react';
 import { Module } from '@/src/features/module/types';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ACCENT_GRADIENT, TabGradients } from '@/constants/Colors';
+import { COURSE_CARD, CURRENT_MODULE, CURRENT_MODULE_PRESSED } from '@/constants/Colors';
 import { BlurView } from 'expo-blur';
 
 export default function CourseCard(props: {
@@ -28,9 +27,16 @@ export default function CourseCard(props: {
   filter?: string;
   hasProgress?: boolean;
 }) {
-  const { colors, dark } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors, dark } = theme;
   const [isCoursePressed, setIsCoursePressed] = useState(false);
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
+
+  // Colors
+  const courseBg = COURSE_CARD[dark ? 'dark' : 'light'];
+  const currentModuleBg = isCurrentModulePressed
+    ? CURRENT_MODULE_PRESSED[dark ? 'dark' : 'light']
+    : CURRENT_MODULE[dark ? 'dark' : 'light'];
 
   // Animation values
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -67,9 +73,6 @@ export default function CourseCard(props: {
     }
   }, [isCoursePressed]);
 
-  const gradientColors = TabGradients.explore[dark ? 'dark' : 'light'];
-  const accentGradient = ACCENT_GRADIENT[dark ? 'dark' : 'light'];
-
   return (
     <Pressable
       onPress={() =>
@@ -91,197 +94,186 @@ export default function CourseCard(props: {
           {
             transform: [{ scale: scaleAnim }],
             opacity: fadeAnim,
+            backgroundColor: courseBg,
+            borderRadius: 8,
           },
         ]}
       >
-        <LinearGradient
-          colors={gradientColors}
-          style={[styles.accentGradient, { height: '100%', borderRadius: 8 }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <LinearGradient
-            colors={accentGradient}
-            style={styles.accentGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          />
-          <View style={styles.container}>
-            <View style={[{ backgroundColor: 'transparent', elevation: 4, zIndex: 10 }]}>
-              {/* Card Content */}
-              <View style={styles.contentContainer}>
-                <View style={styles.headerRow}>
-                  <Image source={{ uri: props.iconUrl }} style={styles.icon} />
+        <View style={styles.container}>
+          <View style={[{ backgroundColor: 'transparent', elevation: 4, zIndex: 10 }]}>
+            {/* Card Content */}
+            <View style={styles.contentContainer}>
+              <View style={styles.headerRow}>
+                <Image source={{ uri: props.iconUrl }} style={styles.icon} />
 
-                  <View style={styles.headerInfo}>
-                    <Text style={[styles.title, { color: colors.onSurface }]}>
-                      {props.courseTitle}
+                <View style={styles.headerInfo}>
+                  <Text variant="headline" style={[styles.title, { color: colors.onSurface }]}>
+                    {props.courseTitle}
+                  </Text>
+                  {props.authors?.map(author => (
+                    <Text
+                      variant="caption"
+                      key={author.id}
+                      style={[styles.author, { color: colors.secondary }]}
+                    >
+                      {author.name}
                     </Text>
-                    {props.authors?.map(author => (
-                      <Text key={author.id} style={[styles.author, { color: colors.secondary }]}>
-                        {author.name}
-                      </Text>
-                    ))}
+                  ))}
+                </View>
+              </View>
+
+              <BlurView
+                tint="light"
+                style={{
+                  marginBottom: 16,
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                }}
+              >
+                <View style={[styles.info]}>
+                  <View style={styles.infoItem}>
+                    <Feather name="percent" size={15} color={colors.secondary} />
+                    <Text variant="body" style={[styles.infoText, { color: colors.onSurface }]}>
+                      {props.difficultyLevel}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItemDivider} />
+                  <View style={styles.infoItem}>
+                    <Feather name="clock" size={15} color={colors.secondary} />
+                    <Text variant="body" style={[styles.infoText, { color: colors.onSurface }]}>
+                      {props.duration}
+                    </Text>
+                  </View>
+                  <View style={styles.infoItemDivider} />
+                  <View style={styles.infoItem}>
+                    <Feather name="star" size={15} color={colors.secondary} />
+                    <Text variant="body" style={[styles.infoText, { color: colors.onSurface }]}>
+                      {props.rating}
+                    </Text>
                   </View>
                 </View>
+              </BlurView>
 
-                <BlurView
-                  tint="light"
-                  style={{
-                    marginBottom: 16,
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <View style={[styles.info]}>
-                    <View style={styles.infoItem}>
-                      <Feather name="percent" size={15} color={colors.secondary} />
-                      <Text style={[styles.infoText, { color: colors.onSurface }]}>
-                        {props.difficultyLevel}
-                      </Text>
-                    </View>
-                    <View style={styles.infoItemDivider} />
-                    <View style={styles.infoItem}>
-                      <Feather name="clock" size={15} color={colors.secondary} />
-                      <Text style={[styles.infoText, { color: colors.onSurface }]}>
-                        {props.duration}
-                      </Text>
-                    </View>
-                    <View style={styles.infoItemDivider} />
-                    <View style={styles.infoItem}>
-                      <Feather name="star" size={15} color={colors.secondary} />
-                      <Text style={[styles.infoText, { color: colors.onSurface }]}>
-                        {props.rating}
-                      </Text>
-                    </View>
-                  </View>
-                </BlurView>
+              <Divider style={[styles.divider, { backgroundColor: colors.outline }]} />
 
-                <Divider style={[styles.divider, { backgroundColor: colors.outline }]} />
+              <Text variant="body" style={[styles.description, { color: colors.onSurface }]}>
+                {props.description}
+              </Text>
 
-                <Text style={[styles.description, { color: colors.onSurface }]}>
-                  {props.description}
-                </Text>
-
-                {props?.currentUnit && (
-                  <View style={styles.currentModuleContainer}>
-                    <View>
-                      <LinearGradient
-                        colors={[
-                          dark ? '#3F4D71' : '#D3E0F5',
-                          dark ? '#4A5D8F' : '#B8CEEE',
-                          dark ? '#5B73B7' : '#9EBAE6',
-                        ]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.currentModuleGradient}
-                      >
-                        <Pressable
-                          onPress={() =>
-                            router.push({
-                              pathname: '/(protected)/course/[courseId]/module/[moduleId]',
-                              params: {
-                                courseId: props.courseID,
-                                unitId: props.currentUnit?.id,
-                                moduleId: props.currentModule?.id as number,
-                                hasProgress: props.hasProgress ? 'true' : 'false',
-                              },
-                            })
-                          }
-                          onPressIn={() => setIsCurrentModulePressed(true)}
-                          onPressOut={() => setIsCurrentModulePressed(false)}
-                          style={[
-                            styles.currentModuleContent,
-                            {
-                              transform: [{ scale: isCurrentModulePressed ? 0.98 : 1 }],
-                            },
-                          ]}
-                        >
-                          <View style={styles.currentModuleHeader}>
-                            <MaterialIcons
-                              name="play-circle-filled"
-                              size={20}
-                              color="#FFF"
-                              style={styles.currentModuleIcon}
-                            />
-                            <Text style={styles.currentModuleTitle}>
-                              Unit {props.currentUnit.unitNumber} · Module{' '}
-                              {props.currentModule?.moduleNumber}
-                            </Text>
-                          </View>
-
-                          <Text style={styles.currentModuleName} numberOfLines={1}>
-                            {props.currentModule?.name}
-                          </Text>
-
-                          <Text style={styles.currentModuleDescription} numberOfLines={2}>
-                            {props.currentModule?.description}
-                          </Text>
-
-                          <Button
-                            title="Continue"
-                            onPress={() =>
-                              router.push({
-                                pathname: '/(protected)/course/[courseId]/module/[moduleId]',
-                                params: {
-                                  courseId: props.courseID,
-                                  moduleId: props.currentModule?.id as number,
-                                  unitId: props.currentUnit?.id,
-                                },
-                              })
-                            }
-                            style={styles.continueButton}
-                            textStyle={styles.continueButtonText}
-                            iconStyle={{ color: '#1d855f' }}
-                            icon={{
-                              type: 'feather',
-                              name: 'arrow-right',
-                              position: 'right',
-                            }}
-                          />
-                        </Pressable>
-                      </LinearGradient>
-                    </View>
-                  </View>
-                )}
-
-                {props.filter === 'explore' && (
-                  <View style={styles.buttonContainer}>
-                    <Button
-                      title="Check it out"
+              {props?.currentUnit && (
+                <View style={styles.currentModuleContainer}>
+                  <View>
+                    <Pressable
                       onPress={() =>
                         router.push({
-                          pathname: '/(protected)/course/[courseId]',
+                          pathname: '/(protected)/course/[courseId]/module/[moduleId]',
                           params: {
                             courseId: props.courseID,
+                            unitId: props.currentUnit?.id,
+                            moduleId: props.currentModule?.id as number,
+                            hasProgress: props.hasProgress ? 'true' : 'false',
                           },
                         })
                       }
-                      style={{
-                        backgroundColor: colors.tertiary,
-                        borderRadius: 25,
-                        paddingVertical: 8,
-                      }}
-                      textStyle={{
-                        fontSize: 16,
-                        fontWeight: '600',
-                        color: '#FFFFFF',
-                      }}
-                      icon={{
-                        type: 'feather',
-                        name: 'arrow-right',
-                        position: 'right',
-                      }}
-                      iconStyle={{
-                        color: '#FFFFFF',
-                      }}
-                    />
+                      onPressIn={() => setIsCurrentModulePressed(true)}
+                      onPressOut={() => setIsCurrentModulePressed(false)}
+                      style={[
+                        styles.currentModuleContent,
+                        {
+                          overflow: 'hidden',
+                          borderRadius: 8,
+                          transform: [{ scale: isCurrentModulePressed ? 0.98 : 1 }],
+                          backgroundColor: currentModuleBg,
+                        },
+                      ]}
+                    >
+                      <View style={styles.currentModuleHeader}>
+                        <MaterialIcons
+                          name="play-circle-filled"
+                          size={20}
+                          color="#FFF"
+                          style={styles.currentModuleIcon}
+                        />
+                        <Text variant="caption" style={styles.currentModuleTitle}>
+                          Unit {props.currentUnit.unitNumber} · Module{' '}
+                          {props.currentModule?.moduleNumber}
+                        </Text>
+                      </View>
+
+                      <Text variant="subtitle" style={styles.currentModuleName} numberOfLines={1}>
+                        {props.currentModule?.name}
+                      </Text>
+
+                      <Text
+                        variant="body"
+                        style={styles.currentModuleDescription}
+                        numberOfLines={2}
+                      >
+                        {props.currentModule?.description}
+                      </Text>
+
+                      <Button
+                        title="Continue"
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(protected)/course/[courseId]/module/[moduleId]',
+                            params: {
+                              courseId: props.courseID,
+                              moduleId: props.currentModule?.id as number,
+                              unitId: props.currentUnit?.id,
+                            },
+                          })
+                        }
+                        style={styles.continueButton}
+                        textStyle={styles.continueButtonText}
+                        iconStyle={{ color: '#1d855f' }}
+                        icon={{
+                          type: 'feather',
+                          name: 'arrow-right',
+                          position: 'right',
+                        }}
+                      />
+                    </Pressable>
                   </View>
-                )}
-              </View>
+                </View>
+              )}
+
+              {props.filter === 'explore' && (
+                <View style={styles.buttonContainer}>
+                  <Button
+                    title="Check it out"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(protected)/course/[courseId]',
+                        params: {
+                          courseId: props.courseID,
+                        },
+                      })
+                    }
+                    style={{
+                      backgroundColor: colors.tertiary,
+                      borderRadius: 25,
+                      paddingVertical: 8,
+                    }}
+                    textStyle={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: '#FFFFFF',
+                    }}
+                    icon={{
+                      type: 'feather',
+                      name: 'arrow-right',
+                      position: 'right',
+                    }}
+                    iconStyle={{
+                      color: '#FFFFFF',
+                    }}
+                  />
+                </View>
+              )}
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -292,7 +284,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     shadowOffset: { height: 0, width: 0 },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: 1,
   },
   animatedContainer: {
     width: '100%',
@@ -302,7 +294,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   accentGradient: {
-    height: 6,
+    // height: 6,
     width: '100%',
   },
   contentContainer: {

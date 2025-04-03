@@ -1,19 +1,22 @@
 import { StyleSheet, View, Pressable, Animated } from 'react-native';
-import { Text, useTheme, Surface, Divider } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useCallback } from 'react';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StickyHeader } from '@/src/components/StickyHeader';
 import { useUser } from '@/src/features/user/hooks/useUser';
-import { TabGradients, USER_PROFILE_GRADIENTS } from '@/constants/Colors';
+import { ContentBackground, HeaderAndTabs, USER_PROFILE_GRADIENTS } from '@/constants/Colors';
 import { useAuth } from '@/src/features/auth/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { Text, Surface, Divider } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
 
 export default function Leaderboard() {
   const { user } = useUser();
   const { isAuthed } = useAuth();
-  const { colors, dark } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors } = theme;
+  const dark = theme.dark;
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Animation values for each leaderboard item
@@ -81,17 +84,7 @@ export default function Leaderboard() {
               USER_PROFILE_GRADIENTS.sunset.light[2],
             ];
       default:
-        return dark
-          ? [
-              TabGradients.leaderboard.dark[0],
-              TabGradients.leaderboard.dark[1],
-              TabGradients.leaderboard.dark[2],
-            ]
-          : [
-              TabGradients.leaderboard.light[0],
-              TabGradients.leaderboard.light[1],
-              TabGradients.leaderboard.light[2],
-            ];
+        return dark ? ['#333', '#333', '#333'] : ['#333', '#333', '#333'];
     }
   };
 
@@ -133,9 +126,7 @@ export default function Leaderboard() {
     },
   ];
 
-  const headerGradients = dark
-    ? TabGradients['leaderboard'].dark
-    : TabGradients['leaderboard'].light;
+  const headerGradients = dark ? HeaderAndTabs.dark : HeaderAndTabs.light;
 
   if (!isAuthed || !user) {
     return <Text style={styles.notLoggedInText}>Not logged in</Text>;
@@ -230,23 +221,17 @@ export default function Leaderboard() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.background,
-        },
-      ]}
-    >
+    <View style={{ flex: 1 }}>
       <StickyHeader
         cpus={user.cpus}
         streak={user.streak || 0}
         onAvatarPress={() => router.push('/(protected)/(profile)')}
-        gradientColors={headerGradients}
       />
-
       <Animated.ScrollView
-        style={[styles.scrollContainer, { backgroundColor: colors.background }]}
+        style={{
+          flex: 1,
+          backgroundColor: ContentBackground[dark ? 'dark' : 'light'],
+        }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: true,
         })}
@@ -334,12 +319,6 @@ export default function Leaderboard() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
   innerContainer: {
     padding: 20,
     paddingBottom: 40,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
+  Text as RNText,
   StyleSheet,
   ScrollView,
   TextInput,
@@ -15,7 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import Button from '@/src/components/Button';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from 'react-native-paper';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import useToast from '@/src/hooks/useToast';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/src/features/auth/AuthContext';
@@ -25,7 +25,8 @@ import { isValidEmail, isPasswordValid } from '@/src/features/auth/utils';
 export default function SignUp() {
   const router = useRouter();
   const { isLoading, signIn, signUp, checkEmail, isOnboarding } = useAuth();
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
   const [emailExists, setEmailExists] = useState<boolean | null>(null);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -133,13 +134,13 @@ export default function SignUp() {
             <Feather name="arrow-left" size={24} color={colors.onSurface} />
           </Pressable>
 
-          <Text style={[styles.title, { color: colors.onSurface }]}>
+          <RNText style={[styles.title, { color: colors.onSurface }]}>
             {emailExists ? 'Welcome back!' : 'Create an account'}
-          </Text>
+          </RNText>
 
           <View style={styles.middleContent}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: colors.onSurface }]}>Email</Text>
+              <RNText style={[styles.label, { color: colors.onSurface }]}>Email</RNText>
               <TextInput
                 style={[
                   styles.textInput,
@@ -170,7 +171,7 @@ export default function SignUp() {
               renderTrue={() => (
                 <>
                   <View style={styles.inputContainer}>
-                    <Text style={[styles.label, { color: colors.onSurface }]}>Password</Text>
+                    <RNText style={[styles.label, { color: colors.onSurface }]}>Password</RNText>
                     <TextInput
                       style={[
                         styles.textInput,
@@ -198,9 +199,11 @@ export default function SignUp() {
                       condition={!emailExists}
                       renderTrue={() => (
                         <>
-                          <Text style={[styles.label, { color: colors.onSurface, marginTop: 16 }]}>
+                          <RNText
+                            style={[styles.label, { color: colors.onSurface, marginTop: 16 }]}
+                          >
                             Confirm Password
-                          </Text>
+                          </RNText>
                           <TextInput
                             style={[
                               styles.textInput,
@@ -278,7 +281,7 @@ export default function SignUp() {
 
           <View style={styles.dividerContainer}>
             <View style={[styles.line, { backgroundColor: colors.onSurface }]} />
-            <Text style={[styles.orText, { color: colors.onSurface }]}>or</Text>
+            <RNText style={[styles.orText, { color: colors.onSurface }]}>or</RNText>
             <View style={[styles.line, { backgroundColor: colors.onSurface }]} />
           </View>
 

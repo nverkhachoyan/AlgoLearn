@@ -1,15 +1,6 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  Animated,
-  Platform,
-  useWindowDimensions,
-} from 'react-native';
-import { Text, Menu, IconButton, Button } from 'react-native-paper';
-import { useEffect, useState, useRef } from 'react';
-import { useTheme } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import { useState } from 'react';
 import {
   useCourse,
   useStartCourse,
@@ -25,18 +16,23 @@ import { Colors } from '@/constants/Colors';
 import { Spinning } from '@/src/components/Spinning';
 import { Alert } from 'react-native';
 import { useAuth } from '@/src/features/auth/AuthContext';
-import { TabGradients } from '@/constants/Colors';
 import { buildImgUrl } from '@/src/lib/utils/transform';
 import Conditional from '@/src/components/Conditional';
+import CourseFooter from '@/src/features/course/components/CourseFooter';
+import { Text } from '@/src/components/ui';
+import { useAppTheme } from '@/src/context/ThemeContext';
+import { Feather } from '@expo/vector-icons';
+import Button from '@/src/components/Button';
+
+const MAX_CONTENT_WIDTH = 1200;
 
 export default function CourseDetails() {
   const { courseId, hasProgress } = useLocalSearchParams();
-  const { colors }: { colors: Colors } = useTheme();
+  const { theme } = useAppTheme();
+  const { colors }: { colors: Colors } = theme;
   const { user } = useUser();
   const [isCurrentModulePressed, setIsCurrentModulePressed] = useState(false);
   const { isAuthed } = useAuth();
-  const [menuVisible, setMenuVisible] = useState(false);
-  const rotationValue = useRef(new Animated.Value(0)).current;
   const { course, isLoading } = useCourse({
     courseId: parseInt(courseId as string),
     isAuthed: true,
@@ -47,6 +43,77 @@ export default function CourseDetails() {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 1024;
   const isMediumScreen = width >= 768 && width < 1024;
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    headerContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1,
+    },
+    webHeader: {
+      position: 'fixed',
+      backgroundColor: `${colors.surface}F2`,
+    },
+    scrollView: {
+      flexGrow: 1,
+      paddingVertical: 15,
+      paddingHorizontal: Platform.OS === 'web' ? 0 : 15,
+    },
+    webScrollView: {
+      alignItems: 'center',
+    },
+    content: {
+      flex: 1,
+      gap: 20,
+      width: '100%',
+    },
+    webContent: {
+      maxWidth: MAX_CONTENT_WIDTH,
+      paddingHorizontal: 40,
+    },
+    tabletContent: {
+      maxWidth: '100%',
+      paddingHorizontal: 24,
+    },
+    webLayout: {
+      flexDirection: 'row',
+      gap: 40,
+    },
+    mobileLayout: {
+      flexDirection: 'column',
+      gap: 20,
+    },
+    webMainContent: {
+      flex: 2,
+    },
+    mobileMainContent: {
+      width: '100%',
+    },
+    webSidebar: {
+      flex: 1,
+      minWidth: 300,
+      maxWidth: 400,
+    },
+    mobileSidebar: {
+      width: '100%',
+    },
+    separator: {
+      marginVertical: 10,
+      height: 1,
+      backgroundColor: colors.outlineVariant,
+      opacity: 0.5,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
 
   const navigateToModule = ({
     courseId,
@@ -124,40 +191,9 @@ export default function CourseDetails() {
     );
   };
 
-  const startRotation = () => {
-    Animated.timing(rotationValue, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const stopRotation = () => {
-    Animated.timing(rotationValue, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  useEffect(() => {
-    if (menuVisible) {
-      startRotation();
-    } else {
-      stopRotation();
-    }
-  }, [menuVisible]);
-
-  const spin = rotationValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '90deg'],
-  });
-
   if (isLoading) {
     return <Spinning />;
   }
-
-  const headerGradientColors = TabGradients.index.dark;
 
   if (!course) {
     return (
@@ -169,10 +205,17 @@ export default function CourseDetails() {
           backgroundColor: colors.background,
         }}
       >
-        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>
-          Course not found.
-          <IconButton icon="arrow-left" onPress={() => router.back()} />
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text variant="headline" style={{ fontSize: 20, fontWeight: 'bold' }}>
+            Course not found.
+          </Text>
+          <Button
+            title="Go Back"
+            icon={{ name: 'arrow-left', position: 'left' }}
+            onPress={() => router.back()}
+            style={{ marginLeft: 10 }}
+          />
+        </View>
       </View>
     );
   }
@@ -185,7 +228,6 @@ export default function CourseDetails() {
         cpus={user?.cpus || 0}
         streak={user?.streak || 0}
         onAvatarPress={() => user && router.push('/(protected)/(profile)')}
-        gradientColors={headerGradientColors}
       />
 
       <ScrollView
@@ -233,175 +275,13 @@ export default function CourseDetails() {
         </View>
       </ScrollView>
 
-      <View
-        style={[
-          styles.footerContainer,
-          { backgroundColor: colors.surface },
-          isLargeScreen && styles.webFooter,
-        ]}
-      >
-        <Conditional
-          condition={course.currentModule != undefined}
-          renderTrue={() => (
-            <View>
-              <Menu
-                visible={menuVisible}
-                onDismiss={() => setMenuVisible(false)}
-                elevation={5}
-                anchor={
-                  <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                    <IconButton
-                      icon="cog"
-                      size={24}
-                      onPress={() => setMenuVisible(!menuVisible)}
-                      style={styles.settingsButton}
-                      mode="contained"
-                    />
-                  </Animated.View>
-                }
-                anchorPosition="top"
-                contentStyle={[styles.menuContent, { backgroundColor: colors.surface }]}
-              >
-                <Menu.Item
-                  onPress={() => {
-                    setMenuVisible(false);
-                    handleRestartCourse();
-                  }}
-                  title="Restart Course"
-                  leadingIcon="restart"
-                />
-              </Menu>
-            </View>
-          )}
-          renderFalse={null}
-        />
-
-        <View style={[styles.mainButton, isLargeScreen && styles.webMainButton]}>
-          <View style={styles.container}>
-            <Button
-              mode="contained"
-              onPress={handleStartCourse}
-              loading={isLoading}
-              style={[styles.button, { backgroundColor: colors.primary }]}
-              labelStyle={{ color: colors.onPrimary }}
-              disabled={isLoading}
-            >
-              {isAuthed && course.currentModule ? 'Continue Course' : 'Start Course'}
-            </Button>
-          </View>
-        </View>
-      </View>
+      <CourseFooter
+        isLoading={isLoading}
+        module={course.currentModule}
+        handleStartCourse={handleStartCourse}
+        handleRestartCourse={handleRestartCourse}
+        isLargeScreen={isLargeScreen}
+      />
     </View>
   );
 }
-
-const HEADER_HEIGHT = 80;
-const MAX_CONTENT_WIDTH = 1200;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1,
-  },
-  webHeader: {
-    position: 'fixed',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  },
-  scrollView: {
-    flexGrow: 1,
-    paddingVertical: 15,
-    paddingHorizontal: Platform.OS === 'web' ? 0 : 15,
-  },
-  webScrollView: {
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    gap: 20,
-    width: '100%',
-  },
-  webContent: {
-    maxWidth: MAX_CONTENT_WIDTH,
-    paddingHorizontal: 40,
-  },
-  tabletContent: {
-    maxWidth: '100%',
-    paddingHorizontal: 24,
-  },
-  webLayout: {
-    flexDirection: 'row',
-    gap: 40,
-  },
-  mobileLayout: {
-    flexDirection: 'column',
-    gap: 20,
-  },
-  webMainContent: {
-    flex: 2,
-  },
-  mobileMainContent: {
-    width: '100%',
-  },
-  webSidebar: {
-    flex: 1,
-    minWidth: 300,
-    maxWidth: 400,
-  },
-  mobileSidebar: {
-    width: '100%',
-  },
-  separator: {
-    marginVertical: 10,
-    height: 1,
-    backgroundColor: '#333',
-    opacity: 0.2,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  webFooter: {
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-  },
-  settingsButton: {
-    marginRight: 8,
-  },
-  mainButton: {
-    flex: 1,
-  },
-  webMainButton: {
-    maxWidth: 300,
-    marginLeft: 'auto',
-  },
-  menuContent: {
-    borderRadius: 8,
-    marginTop: -40,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  button: {
-    borderRadius: 8,
-  },
-});
